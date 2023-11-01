@@ -19,33 +19,25 @@ from .dataset_test_utils import (
   enriched_item,
 )
 
-SIMPLE_ITEMS: list[Item] = [{
-  'str': 'a',
-  'int': 1,
-  'bool': False,
-  'float': 3.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 2.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 1.0
-}]
+SIMPLE_ITEMS: list[Item] = [
+  {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
+]
 
-EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
-                                             ('hello2.', [1.0, 1.0, 0.0]),
-                                             ('hello world.', [1.0, 1.0, 1.0]),
-                                             ('hello world2.', [2.0, 1.0, 1.0])]
+EMBEDDINGS: list[tuple[str, list[float]]] = [
+  ('hello.', [1.0, 0.0, 0.0]),
+  ('hello2.', [1.0, 1.0, 0.0]),
+  ('hello world.', [1.0, 1.0, 1.0]),
+  ('hello world2.', [2.0, 1.0, 1.0]),
+]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override
@@ -107,88 +99,55 @@ def test_select_all_columns(make_test_data: TestDataMaker) -> None:
 
 
 def test_select_subcols_with_dot_seperator(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'people': [{
-      'name': 'A',
-      'address': {
-        'zip': 1
-      }
-    }, {
-      'name': 'B',
-      'address': {
-        'zip': 2
-      }
-    }]
-  }, {
-    'people': [{
-      'name': 'C',
-      'address': {
-        'zip': 3
-      }
-    }]
-  }]
+  items: list[Item] = [
+    {'people': [{'name': 'A', 'address': {'zip': 1}}, {'name': 'B', 'address': {'zip': 2}}]},
+    {'people': [{'name': 'C', 'address': {'zip': 3}}]},
+  ]
   dataset = make_test_data(items)
 
   result = dataset.select_rows(['people.*.name', 'people.*.address.zip'])
-  assert list(result) == [{
-    'people.*.name': ['A', 'B'],
-    'people.*.address.zip': [1, 2]
-  }, {
-    'people.*.name': ['C'],
-    'people.*.address.zip': [3]
-  }]
+  assert list(result) == [
+    {'people.*.name': ['A', 'B'], 'people.*.address.zip': [1, 2]},
+    {'people.*.name': ['C'], 'people.*.address.zip': [3]},
+  ]
 
   result = dataset.select_rows(['people.*.address.zip'], combine_columns=True)
-  assert list(result) == [{
-    'people': [{
-      'address': {
-        'zip': 1
-      }
-    }, {
-      'address': {
-        'zip': 2
-      }
-    }]
-  }, {
-    'people': [{
-      'address': {
-        'zip': 3
-      }
-    }]
-  }]
+  assert list(result) == [
+    {'people': [{'address': {'zip': 1}}, {'address': {'zip': 2}}]},
+    {'people': [{'address': {'zip': 3}}]},
+  ]
 
   result = dataset.select_rows(['people'])
   assert list(result) == items
 
 
 def test_select_subcols_with_escaped_dot(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'people.new': [{
-      'name': 'A'
-    }, {
-      'name': 'B'
-    }]
-  }, {
-    'people.new': [{
-      'name': 'C'
-    }]
-  }]
+  items: list[Item] = [
+    {'people.new': [{'name': 'A'}, {'name': 'B'}]},
+    {'people.new': [{'name': 'C'}]},
+  ]
   dataset = make_test_data(items)
 
   result = dataset.select_rows(['"people.new".*.name'])
-  assert list(result) == [{
-    'people.new.*.name': ['A', 'B'],
-  }, {
-    'people.new.*.name': ['C'],
-  }]
+  assert list(result) == [
+    {
+      'people.new.*.name': ['A', 'B'],
+    },
+    {
+      'people.new.*.name': ['C'],
+    },
+  ]
 
   # Escape name even though it does not need to be.
   result = dataset.select_rows(['"people.new".*."name"'])
-  assert list(result) == [{
-    'people.new.*.name': ['A', 'B'],
-  }, {
-    'people.new.*.name': ['C'],
-  }]
+  assert list(result) == [
+    {
+      'people.new.*.name': ['A', 'B'],
+    },
+    {
+      'people.new.*.name': ['C'],
+    },
+  ]
 
 
 def test_select_star(make_test_data: TestDataMaker) -> None:
@@ -205,39 +164,25 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
 
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'])
-  assert list(result) == [{
-    'name': 'A',
-    'info': {
-      'age': 40
+  assert list(result) == [
+    {
+      'name': 'A',
+      'info': {'age': 40},
+      'info_2': {'age': 40},
     },
-    'info_2': {
-      'age': 40
+    {
+      'name': 'B',
+      'info': {'age': 42},
+      'info_2': {'age': 42},
     },
-  }, {
-    'name': 'B',
-    'info': {
-      'age': 42
-    },
-    'info_2': {
-      'age': 42
-    },
-  }]
+  ]
 
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')])
-  assert list(result) == [{
-    'name': 'A',
-    'info': {
-      'age': 40
-    },
-    'info.age': 40
-  }, {
-    'name': 'B',
-    'info': {
-      'age': 42
-    },
-    'info.age': 42
-  }]
+  assert list(result) == [
+    {'name': 'A', 'info': {'age': 40}, 'info.age': 40},
+    {'name': 'B', 'info': {'age': 42}, 'info.age': 42},
+  ]
 
 
 def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
@@ -260,23 +205,10 @@ def test_select_star_with_combine_cols(make_test_data: TestDataMaker) -> None:
   udf = Column('name', signal_udf=TestSignal())
   result = dataset.select_rows(['*', 'name', udf], combine_columns=True)
 
-  assert list(result) == [{
-    'name': enriched_item('A', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
-    'info': {
-      'age': 40
-    }
-  }, {
-    'name': enriched_item('B', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
-    'info': {
-      'age': 42
-    }
-  }]
+  assert list(result) == [
+    {'name': enriched_item('A', {'test_signal': {'len': 1, 'flen': 1.0}}), 'info': {'age': 40}},
+    {'name': enriched_item('B', {'test_signal': {'len': 1, 'flen': 1.0}}), 'info': {'age': 42}},
+  ]
 
 
 def test_select_ids(make_test_data: TestDataMaker) -> None:
@@ -309,19 +241,11 @@ def test_columns(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows([ROWID, 'str', 'float'])
 
-  assert list(result) == [{
-    ROWID: '1',
-    'str': 'a',
-    'float': 3.0
-  }, {
-    ROWID: '2',
-    'str': 'b',
-    'float': 2.0
-  }, {
-    ROWID: '3',
-    'str': 'b',
-    'float': 1.0
-  }]
+  assert list(result) == [
+    {ROWID: '1', 'str': 'a', 'float': 3.0},
+    {ROWID: '2', 'str': 'b', 'float': 2.0},
+    {ROWID: '3', 'str': 'b', 'float': 1.0},
+  ]
 
 
 def test_select_rows_iter(make_test_data: TestDataMaker) -> None:
@@ -370,81 +294,53 @@ def test_merge_values(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(length_signal, 'text')
 
   result = dataset.select_rows(['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {
-      'length_signal': 5,
-      'test_signal': {
-        'len': 5,
-        'flen': 5.0
-      }
-    })
-  }, {
-    'text': enriched_item('everybody', {
-      'length_signal': 9,
-      'test_signal': {
-        'len': 9,
-        'flen': 9.0
-      }
-    }),
-  }]
+  assert list(result) == [
+    {'text': enriched_item('hello', {'length_signal': 5, 'test_signal': {'len': 5, 'flen': 5.0}})},
+    {
+      'text': enriched_item(
+        'everybody', {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}
+      ),
+    },
+  ]
 
   # Test subselection.
   result = dataset.select_rows(
-    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')])
-  assert list(result) == [{
-    'text': 'hello',
-    'text.test_signal.flen': 5.0,
-    'text.test_signal.len': 5
-  }, {
-    'text': 'everybody',
-    'text.test_signal.flen': 9.0,
-    'text.test_signal.len': 9
-  }]
+    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')]
+  )
+  assert list(result) == [
+    {'text': 'hello', 'text.test_signal.flen': 5.0, 'text.test_signal.len': 5},
+    {'text': 'everybody', 'text.test_signal.flen': 9.0, 'text.test_signal.len': 9},
+  ]
 
   # Test subselection with combine_columns=True.
   result = dataset.select_rows(
-    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {
-      'length_signal': 5,
-      'test_signal': {
-        'len': 5,
-        'flen': 5.0
-      }
-    })
-  }, {
-    'text': enriched_item('everybody', {
-      'length_signal': 9,
-      'test_signal': {
-        'len': 9,
-        'flen': 9.0
-      }
-    }),
-  }]
+    ['text', ('text', 'test_signal', 'flen'), ('text', 'test_signal', 'len')],
+    combine_columns=True,
+  )
+  assert list(result) == [
+    {'text': enriched_item('hello', {'length_signal': 5, 'test_signal': {'len': 5, 'flen': 5.0}})},
+    {
+      'text': enriched_item(
+        'everybody', {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}
+      ),
+    },
+  ]
 
   # Test subselection with aliasing.
   result = dataset.select_rows(
-    columns=['text', Column(('text', 'test_signal', 'len'), alias='metadata')])
+    columns=['text', Column(('text', 'test_signal', 'len'), alias='metadata')]
+  )
   assert list(result) == [{'text': 'hello', 'metadata': 5}, {'text': 'everybody', 'metadata': 9}]
 
   result = dataset.select_rows(columns=['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {
-      'length_signal': 5,
-      'test_signal': {
-        'len': 5,
-        'flen': 5.0
-      }
-    })
-  }, {
-    'text': enriched_item('everybody', {
-      'length_signal': 9,
-      'test_signal': {
-        'len': 9,
-        'flen': 9.0
-      }
-    })
-  }]
+  assert list(result) == [
+    {'text': enriched_item('hello', {'length_signal': 5, 'test_signal': {'len': 5, 'flen': 5.0}})},
+    {
+      'text': enriched_item(
+        'everybody', {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}
+      )
+    },
+  ]
 
 
 def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
@@ -455,21 +351,10 @@ def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(length_signal, 'text')
 
   result = dataset.select_rows()
-  assert list(result) == [{
-    'text': 'hello',
-    'text.length_signal': 5,
-    'text.test_signal': {
-      'len': 5,
-      'flen': 5.0
-    }
-  }, {
-    'text': 'everybody',
-    'text.length_signal': 9,
-    'text.test_signal': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }]
+  assert list(result) == [
+    {'text': 'hello', 'text.length_signal': 5, 'text.test_signal': {'len': 5, 'flen': 5.0}},
+    {'text': 'everybody', 'text.length_signal': 9, 'text.test_signal': {'len': 9, 'flen': 9.0}},
+  ]
 
 
 def test_merge_array_values(make_test_data: TestDataMaker) -> None:
@@ -483,189 +368,111 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'texts': [
-        field(
-          'string',
-          fields={
-            'length_signal': field('int32', length_signal.model_dump()),
-            'test_signal': field(
-              signal=test_signal.model_dump(), fields={
-                'len': 'int32',
-                'flen': 'float32'
-              })
-          })
-      ],
-    }),
+    data_schema=schema(
+      {
+        'texts': [
+          field(
+            'string',
+            fields={
+              'length_signal': field('int32', length_signal.model_dump()),
+              'test_signal': field(
+                signal=test_signal.model_dump(),
+                fields={'len': 'int32', 'flen': 'float32'},
+              ),
+            },
+          )
+        ],
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows(['texts'], combine_columns=True)
-  assert list(result) == [{
-    'texts': [
-      enriched_item('hello', {
-        'length_signal': 5,
-        'test_signal': {
-          'len': 5,
-          'flen': 5.0
-        }
-      }),
-      enriched_item('everybody', {
-        'length_signal': 9,
-        'test_signal': {
-          'len': 9,
-          'flen': 9.0
-        }
-      })
-    ],
-  }, {
-    'texts': [
-      enriched_item('a', {
-        'length_signal': 1,
-        'test_signal': {
-          'len': 1,
-          'flen': 1.0
-        }
-      }),
-      enriched_item('bc', {
-        'length_signal': 2,
-        'test_signal': {
-          'len': 2,
-          'flen': 2.0
-        }
-      }),
-      enriched_item('def', {
-        'length_signal': 3,
-        'test_signal': {
-          'len': 3,
-          'flen': 3.0
-        }
-      })
-    ],
-  }]
+  assert list(result) == [
+    {
+      'texts': [
+        enriched_item('hello', {'length_signal': 5, 'test_signal': {'len': 5, 'flen': 5.0}}),
+        enriched_item('everybody', {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}),
+      ],
+    },
+    {
+      'texts': [
+        enriched_item('a', {'length_signal': 1, 'test_signal': {'len': 1, 'flen': 1.0}}),
+        enriched_item('bc', {'length_signal': 2, 'test_signal': {'len': 2, 'flen': 2.0}}),
+        enriched_item('def', {'length_signal': 3, 'test_signal': {'len': 3, 'flen': 3.0}}),
+      ],
+    },
+  ]
 
   # Test subselection.
-  result = dataset.select_rows([('texts', '*'), ('texts', '*', 'length_signal'),
-                                ('texts', '*', 'test_signal', 'flen')])
-  assert list(result) == [{
-    'texts.*': ['hello', 'everybody'],
-    'texts.*.test_signal.flen': [5.0, 9.0],
-    'texts.*.length_signal': [5, 9]
-  }, {
-    'texts.*': ['a', 'bc', 'def'],
-    'texts.*.test_signal.flen': [1.0, 2.0, 3.0],
-    'texts.*.length_signal': [1, 2, 3]
-  }]
+  result = dataset.select_rows(
+    [('texts', '*'), ('texts', '*', 'length_signal'), ('texts', '*', 'test_signal', 'flen')]
+  )
+  assert list(result) == [
+    {
+      'texts.*': ['hello', 'everybody'],
+      'texts.*.test_signal.flen': [5.0, 9.0],
+      'texts.*.length_signal': [5, 9],
+    },
+    {
+      'texts.*': ['a', 'bc', 'def'],
+      'texts.*.test_signal.flen': [1.0, 2.0, 3.0],
+      'texts.*.length_signal': [1, 2, 3],
+    },
+  ]
 
 
 def test_combining_columns(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello',
-    'extra': {
-      'text': {
-        'length_signal': 5,
-        'test_signal': {
-          'len': 5,
-          'flen': 5.0
-        }
-      }
-    }
-  }, {
-    'text': 'everybody',
-    'extra': {
-      'text': {
-        'length_signal': 9,
-        'test_signal': {
-          'len': 9,
-          'flen': 9.0
-        }
-      }
-    }
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello',
+        'extra': {'text': {'length_signal': 5, 'test_signal': {'len': 5, 'flen': 5.0}}},
+      },
+      {
+        'text': 'everybody',
+        'extra': {'text': {'length_signal': 9, 'test_signal': {'len': 9, 'flen': 9.0}}},
+      },
+    ]
+  )
 
   # Sub-select text and test_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'test_signal')], combine_columns=True)
-  assert list(result) == [{
-    'text': 'hello',
-    'extra': {
-      'text': {
-        'test_signal': {
-          'len': 5,
-          'flen': 5.0
-        }
-      }
-    }
-  }, {
-    'text': 'everybody',
-    'extra': {
-      'text': {
-        'test_signal': {
-          'len': 9,
-          'flen': 9.0
-        }
-      }
-    }
-  }]
+  assert list(result) == [
+    {'text': 'hello', 'extra': {'text': {'test_signal': {'len': 5, 'flen': 5.0}}}},
+    {'text': 'everybody', 'extra': {'text': {'test_signal': {'len': 9, 'flen': 9.0}}}},
+  ]
 
   # Sub-select text and length_signal.
   result = dataset.select_rows(['text', ('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == [{
-    'text': 'hello',
-    'extra': {
-      'text': {
-        'length_signal': 5
-      }
-    }
-  }, {
-    'text': 'everybody',
-    'extra': {
-      'text': {
-        'length_signal': 9
-      }
-    }
-  }]
+  assert list(result) == [
+    {'text': 'hello', 'extra': {'text': {'length_signal': 5}}},
+    {'text': 'everybody', 'extra': {'text': {'length_signal': 9}}},
+  ]
 
   # Sub-select length_signal only.
   result = dataset.select_rows([('extra', 'text', 'length_signal')], combine_columns=True)
-  assert list(result) == [{
-    'extra': {
-      'text': {
-        'length_signal': 5
-      }
-    }
-  }, {
-    'extra': {
-      'text': {
-        'length_signal': 9
-      }
-    }
-  }]
+  assert list(result) == [
+    {'extra': {'text': {'length_signal': 5}}},
+    {'extra': {'text': {'length_signal': 9}}},
+  ]
 
   # Aliases are ignored when combing columns.
   len_col = Column(('extra', 'text', 'length_signal'), alias='hello')
   result = dataset.select_rows([len_col], combine_columns=True)
-  assert list(result) == [{
-    'extra': {
-      'text': {
-        'length_signal': 5
-      }
-    }
-  }, {
-    'extra': {
-      'text': {
-        'length_signal': 9
-      }
-    }
-  }]
+  assert list(result) == [
+    {'extra': {'text': {'length_signal': 5}}},
+    {'extra': {'text': {'length_signal': 9}}},
+  ]
 
   # Works with UDFs and aliases are ignored.
   udf_col = Column('text', alias='ignored', signal_udf=LengthSignal())
   result = dataset.select_rows(['text', udf_col], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {'length_signal': 5})
-  }, {
-    'text': enriched_item('everybody', {'length_signal': 9})
-  }]
+  assert list(result) == [
+    {'text': enriched_item('hello', {'length_signal': 5})},
+    {'text': enriched_item('everybody', {'length_signal': 9})},
+  ]
 
 
 def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
@@ -673,14 +480,17 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'str': 'string',
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32',
-    }),
+    data_schema=schema(
+      {
+        'str': 'string',
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }
+    ),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'str')
@@ -689,60 +499,47 @@ def test_source_joined_with_named_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'str': field(
-        'string',
-        fields={
-          'test_signal': field(
-            signal=test_signal.model_dump(), fields={
-              'len': 'int32',
-              'flen': 'float32'
-            })
-        }),
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32',
-    }),
+    data_schema=schema(
+      {
+        'str': field(
+          'string',
+          fields={
+            'test_signal': field(
+              signal=test_signal.model_dump(),
+              fields={'len': 'int32', 'flen': 'float32'},
+            )
+          },
+        ),
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }
+    ),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows(['str', Column(('str', 'test_signal'), alias='test_signal_on_str')])
 
-  assert list(result) == [{
-    'str': 'a',
-    'test_signal_on_str': {
-      'len': 1,
-      'flen': 1.0
-    }
-  }, {
-    'str': 'b',
-    'test_signal_on_str': {
-      'len': 1,
-      'flen': 1.0
-    }
-  }, {
-    'str': 'b',
-    'test_signal_on_str': {
-      'len': 1,
-      'flen': 1.0
-    }
-  }]
+  assert list(result) == [
+    {'str': 'a', 'test_signal_on_str': {'len': 1, 'flen': 1.0}},
+    {'str': 'b', 'test_signal_on_str': {'len': 1, 'flen': 1.0}},
+    {'str': 'b', 'test_signal_on_str': {'len': 1, 'flen': 1.0}},
+  ]
 
 
 def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': enriched_item('hello', {'test_signal': {
-      'len': 5
-    }}),
-    'text2': [
-      enriched_item('hello', {'test_signal': {
-        'len': 5
-      }}),
-      enriched_item('hi', {'test_signal': {
-        'len': 2
-      }})
-    ],
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': enriched_item('hello', {'test_signal': {'len': 5}}),
+        'text2': [
+          enriched_item('hello', {'test_signal': {'len': 5}}),
+          enriched_item('hi', {'test_signal': {'len': 2}}),
+        ],
+      }
+    ]
+  )
 
   with pytest.raises(ValueError, match='Path part "invalid" not found in the dataset'):
     dataset.select_rows([('text', 'test_signal', 'invalid')])
@@ -752,37 +549,33 @@ def test_invalid_column_paths(make_test_data: TestDataMaker) -> None:
 
 
 def test_signal_with_quote(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello',
-  }, {
-    'text': 'world',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello',
+      },
+      {
+        'text': 'world',
+      },
+    ]
+  )
   dataset.compute_signal(SignalWithQuoteInIt(), 'text')
   dataset.compute_signal(SignalWithDoubleQuoteInIt(), 'text')
   result = dataset.select_rows(['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {
-      "test'signal": True,
-      'test"signal': True
-    })
-  }, {
-    'text': enriched_item('world', {
-      "test'signal": True,
-      'test"signal': True
-    }),
-  }]
+  assert list(result) == [
+    {'text': enriched_item('hello', {"test'signal": True, 'test"signal': True})},
+    {
+      'text': enriched_item('world', {"test'signal": True, 'test"signal': True}),
+    },
+  ]
 
-  result = dataset.select_rows(['text', "text.test'signal", 'text.test"signal'],
-                               combine_columns=False)
-  assert list(result) == [{
-    'text': 'hello',
-    "text.test'signal": True,
-    'text.test"signal': True
-  }, {
-    'text': 'world',
-    "text.test'signal": True,
-    'text.test"signal': True
-  }]
+  result = dataset.select_rows(
+    ['text', "text.test'signal", 'text.test"signal'], combine_columns=False
+  )
+  assert list(result) == [
+    {'text': 'hello', "text.test'signal": True, 'text.test"signal': True},
+    {'text': 'world', "text.test'signal": True, 'text.test"signal': True},
+  ]
 
 
 class SignalWithQuoteInIt(TextSignal):
@@ -819,22 +612,26 @@ def test_dataset_config_from_manifest(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={
-          'test_signal': field(
-            signal=TestSignal().model_dump(), fields={
-              'len': 'int32',
-              'flen': 'float32'
-            }),
-          'test_embedding': field(
-            signal=TestEmbedding().model_dump(),
-            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
-        })
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_signal': field(
+              signal=TestSignal().model_dump(),
+              fields={'len': 'int32', 'flen': 'float32'},
+            ),
+            'test_embedding': field(
+              signal=TestEmbedding().model_dump(),
+              fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+            ),
+          },
+        )
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   config = dataset_config_from_manifest(dataset.manifest())
 
@@ -843,4 +640,5 @@ def test_dataset_config_from_manifest(make_test_data: TestDataMaker) -> None:
     name=TEST_DATASET_NAME,
     source=TestSource(),
     embeddings=[EmbeddingConfig(path=('text',), embedding='test_embedding')],
-    signals=[SignalConfig(path=('text',), signal=TestSignal())])
+    signals=[SignalConfig(path=('text',), signal=TestSignal())],
+  )

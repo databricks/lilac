@@ -16,11 +16,13 @@ class RedditDataset(Source):
   """Reddit data loader, using Huggingface.
 
   Loads data from [huggingface.co/datasets/reddit](https://huggingface.co/datasets/reddit).
-  """ # noqa: D415, D400
+  """  # noqa: D415, D400
+
   name: ClassVar[str] = 'reddit'
 
   subreddits: Optional[list[str]] = PydanticField(
-    description='If defined, only loads the subset of reddit data in these subreddit.')
+    description='If defined, only loads the subset of reddit data in these subreddit.'
+  )
 
   _hf_dataset: HuggingFaceSource
 

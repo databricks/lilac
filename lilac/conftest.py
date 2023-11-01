@@ -14,8 +14,9 @@ from .schema import Item, Schema
 
 
 @pytest.fixture(scope='function', params=[DatasetDuckDB])
-def make_test_data(tmp_path: pathlib.Path, mocker: MockerFixture,
-                   request: pytest.FixtureRequest) -> Generator:
+def make_test_data(
+  tmp_path: pathlib.Path, mocker: MockerFixture, request: pytest.FixtureRequest
+) -> Generator:
   """A pytest fixture for creating temporary test datasets."""
   mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
   dataset_cls: Type[Dataset] = request.param

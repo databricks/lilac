@@ -49,8 +49,10 @@ uvicorn = { extras = ["standard"], version = "^0.23.2" }
 
 # LLM providers.
 cohere = { version = "^3.7.0", optional = true }
-google-generativeai = { version = "^0.1.0", optional = true }   # PaLM / MakerSuite.
-google-cloud-aiplatform = { version = "^1.35.0", optional = true, extras=["grpcio"]} # PaLM via GCP
+google-generativeai = { version = "^0.1.0", optional = true } # PaLM / MakerSuite.
+google-cloud-aiplatform = { version = "^1.35.0", optional = true, extras = [
+  "grpcio",
+] } # PaLM via GCP
 openai = { version = "^0.27.8", optional = true }
 sentence-transformers = { version = "^2.2.2", optional = true } # SBERT on-device embeddings.
 
@@ -149,7 +151,6 @@ bokeh = ">=2.4.2,<3"                                      # Required for Dask mo
 google-api-python-client-stubs = "^1.13.0"
 httpx = "^0.24.0"
 huggingface-hub = "^0.17.1"
-isort = "^5.12.0"
 matplotlib = "^3.7.1"
 mypy = "^1.5.1"
 notebook = "^6.5.4"
@@ -157,7 +158,7 @@ pytest = "^7.2.0"
 pytest-asyncio = "^0.20.2"
 pytest-cov = "^4.0.0"
 pytest-mock = "^3.10.0"
-ruff = "^0.1.0"
+ruff = "^0.1.3"
 setuptools = "^65.5.0"
 toml = "^0.10.2"
 types-Pillow = "^9.3.0.4"
@@ -167,7 +168,6 @@ types-requests = "^2.28.11.5"
 types-tqdm = "^4.65.0.0"
 watchdog = { extras = ["watchmedo"], version = "^3.0.0" }
 wheel = "^0.37.1"
-yapf = "^0.32.0"
 freezegun = "^1.2.2"
 line-profiler = "^4.1.1"
 pytest-repeat = "^0.9.3"
@@ -183,11 +183,14 @@ requires = ["poetry-core"]
 include = ["lilac"]
 
 [tool.ruff]
-line-length = 100
 src = ["lilac"]
+line-length = 100
+indent-width = 2
 
 # Enable Pyflakes `F`, pycodestyle "W" and `E`, "Q" quotes, "I" imports.
 fix = true
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
 ignore = [
   "D105", # Missing docstring in magic method.
   "D106", # Missing docstring in a public nested class.
@@ -198,10 +201,8 @@ ignore = [
   "D401", # First line of docstring should be in imperative mood: "{first_line}"
   "D407", # Missing dashed underline after section.
   "F841", # Unused variable rules.
-  "I001", # Delegate sorting to isort.
 ]
 select = ["E", "W", "F", "Q", "I", "D"]
-unfixable = ["I"] # Delegate import organization to isort.
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -233,17 +234,18 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # Assume Python 3.9.
 target-version = "py39"
 
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+skip-magic-trailing-comma = true
+line-ending = "auto"
+
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
 [tool.ruff.flake8-quotes]
 inline-quotes = "single"
-
-[tool.isort]
-indent = "  "
-line_length = 100
-profile = "black"
 
 [tool.ruff.per-file-ignores]
 "*_test.py" = ["D101", "D102", "D103", "D104"]

@@ -23,6 +23,7 @@ def _find_all(text: str, subtext: str) -> Iterable[tuple[int, int]]:
 
 class SubstringSignal(Signal):
   """Find a substring in a document."""
+
   name: ClassVar[str] = 'substring_search'
   display_name: ClassVar[str] = 'Substring Search'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT

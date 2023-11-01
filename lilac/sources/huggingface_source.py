@@ -29,6 +29,7 @@ DEFAULT_LOCAL_SPLIT_NAME = 'default'
 
 class SchemaInfo(BaseModel):
   """Information about the processed huggingface schema."""
+
   fields: dict[str, Field] = {}
   class_labels: dict[str, list[str]]
   num_items: int
@@ -54,7 +55,8 @@ def _infer_field(feature_value: Union[Value, dict]) -> Optional[Field]:
         fields={
           name: Field(repeated_field=_infer_field(value))
           for name, value in feature_value.feature.items()
-        })
+        }
+      )
     else:
       return Field(repeated_field=_infer_field(feature_value.feature))
   elif isinstance(feature_value, list):
@@ -72,8 +74,9 @@ def _infer_field(feature_value: Union[Value, dict]) -> Optional[Field]:
     raise ValueError(f'Feature is not a `Value`, `Sequence`, or `dict`: {feature_value}')
 
 
-def hf_schema_to_schema(hf_dataset_dict: DatasetDict, split: Optional[str],
-                        sample_size: Optional[int]) -> SchemaInfo:
+def hf_schema_to_schema(
+  hf_dataset_dict: DatasetDict, split: Optional[str], sample_size: Optional[int]
+) -> SchemaInfo:
   """Convert the HuggingFace schema to our schema."""
   if split:
     split_datasets = [hf_dataset_dict[split]]
@@ -123,27 +126,34 @@ class HuggingFaceSource(Source):
 
   For documentation on dataset loading see:
       [huggingface.co/docs/datasets/index](https://huggingface.co/docs/datasets/index)
-  """ # noqa: D415, D400
+  """  # noqa: D415, D400
+
   name: ClassVar[str] = 'huggingface'
 
   dataset_name: str = PydanticField(
-    description='Either in the format `user/dataset` or `dataset`.',)
+    description='Either in the format `user/dataset` or `dataset`.',
+  )
   config_name: Optional[str] = PydanticField(
-    title='Dataset config name', description='Some datasets require this.', default=None)
+    title='Dataset config name', description='Some datasets require this.', default=None
+  )
   split: Optional[str] = PydanticField(
-    title='Dataset split', description='Loads all splits by default.', default=None)
+    title='Dataset split', description='Loads all splits by default.', default=None
+  )
   sample_size: Optional[int] = PydanticField(
     title='Sample size',
     description='Number of rows to sample from the dataset, for each split.',
-    default=None)
+    default=None,
+  )
   token: Optional[str] = PydanticField(
     title='Huggingface token',
     description='Huggingface token for private datasets.',
     default=None,
-    exclude=True)
+    exclude=True,
+  )
   revision: Optional[str] = PydanticField(title='Dataset revision', default=None)
   load_from_disk: Optional[bool] = PydanticField(
-    description='Load from local disk instead of the hub.', default=False)
+    description='Load from local disk instead of the hub.', default=False
+  )
 
   _dataset_dict: Optional[DatasetDict] = None
   _schema_info: Optional[SchemaInfo] = None
@@ -159,7 +169,8 @@ class HuggingFaceSource(Source):
         self.config_name,
         num_proc=multiprocessing.cpu_count(),
         verification_mode='no_checks',
-        token=self.token)
+        token=self.token,
+      )
     self._dataset_dict = hf_dataset_dict
     self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split, self.sample_size)
 
@@ -189,7 +200,8 @@ class HuggingFaceSource(Source):
         for feature_name in self._schema_info.class_labels.keys():
           if feature_name in example:
             example[feature_name] = self._schema_info.class_labels[feature_name][
-              example[feature_name]]
+              example[feature_name]
+            ]
 
         # Inject the split name.
         example[HF_SPLIT_COLUMN] = split_name

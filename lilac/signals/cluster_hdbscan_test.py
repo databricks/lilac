@@ -14,19 +14,23 @@ from ..schema import Item, RichData, lilac_embedding, lilac_span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .cluster_hdbscan import ClusterHDBScan
 
-TEST_ITEMS: list[Item] = [{
-  'text': 'a',
-}, {
-  'text': 'b',
-}, {
-  'text': 'c',
-}]
+TEST_ITEMS: list[Item] = [
+  {
+    'text': 'a',
+  },
+  {
+    'text': 'b',
+  },
+  {
+    'text': 'c',
+  },
+]
 
 EMBEDDINGS: dict[str, list[float]] = {
   'a': [1.0, 0.0, 0.0],
   'b': [0.0, 1.0, 0.0],
   'c': [1.0, 0.1, 0.0],
-  'd': [0.0, 0.9, 0.0]
+  'd': [0.0, 0.9, 0.0],
 }
 
 
@@ -49,6 +53,7 @@ def setup_teardown() -> Iterable[None]:
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override
@@ -65,13 +70,10 @@ def test_simple_data(make_test_data: TestDataMaker, mocker: MockerFixture) -> No
   dataset.compute_signal(signal, 'text')
   signal_key = signal.key(is_computed_signal=True)
   result = dataset.select_rows(combine_columns=True)
-  expected_result = [{
-    'text': enriched_item('a', {signal_key: [lilac_span(0, 1, {'cluster_id': 0})]})
-  }, {
-    'text': enriched_item('b', {signal_key: [lilac_span(0, 1, {'cluster_id': 1})]})
-  }, {
-    'text': enriched_item('c', {signal_key: [lilac_span(0, 1, {'cluster_id': 0})]})
-  }, {
-    'text': enriched_item('d', {signal_key: [lilac_span(0, 1, {'cluster_id': 1})]})
-  }]
+  expected_result = [
+    {'text': enriched_item('a', {signal_key: [lilac_span(0, 1, {'cluster_id': 0})]})},
+    {'text': enriched_item('b', {signal_key: [lilac_span(0, 1, {'cluster_id': 1})]})},
+    {'text': enriched_item('c', {signal_key: [lilac_span(0, 1, {'cluster_id': 0})]})},
+    {'text': enriched_item('d', {signal_key: [lilac_span(0, 1, {'cluster_id': 1})]})},
+  ]
   assert list(result) == expected_result

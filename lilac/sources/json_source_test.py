@@ -30,10 +30,8 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({
-      'x': 'int64',
-      'y': 'string'
-    }).fields, num_items=2)
+    fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2
+  )
 
   items = list(source.process())
 
@@ -55,10 +53,8 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
 
   assert source_schema == SourceSchema(
-    fields=schema({
-      'x': 'int64',
-      'y': 'string'
-    }).fields, num_items=2)
+    fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2
+  )
 
   items = list(source.process())
 

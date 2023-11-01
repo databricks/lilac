@@ -16,6 +16,7 @@ class SpacyNER(TextSignal):
 
   For details see: [spacy.io/models](https://spacy.io/models).
   """
+
   name: ClassVar[str] = 'spacy_ner'
   display_name: ClassVar[str] = 'Named Entity Recognition'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
@@ -30,15 +31,18 @@ class SpacyNER(TextSignal):
       import spacy
       import spacy.cli
     except ImportError:
-      raise ImportError('Could not import the "spacy" python package. '
-                        'Please install it with `pip install spacy`.')
+      raise ImportError(
+        'Could not import the "spacy" python package. '
+        'Please install it with `pip install spacy`.'
+      )
 
     if not spacy.util.is_package(self.model):
       spacy.cli.download(self.model)
     self._nlp = spacy.load(
       self.model,
       # Disable everything except the NER component. See: https://spacy.io/models
-      disable=['tok2vec', 'tagger', 'parser', 'attribute_ruler', 'lemmatizer'])
+      disable=['tok2vec', 'tagger', 'parser', 'attribute_ruler', 'lemmatizer'],
+    )
 
   @override
   def fields(self) -> Field:

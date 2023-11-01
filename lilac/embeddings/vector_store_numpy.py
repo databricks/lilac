@@ -15,6 +15,7 @@ _LOOKUP_SUFFIX = '.lookup.pkl'
 
 class NumpyVectorStore(VectorStore):
   """Stores vectors as in-memory np arrays."""
+
   name = 'numpy'
 
   def __init__(self) -> None:
@@ -24,14 +25,16 @@ class NumpyVectorStore(VectorStore):
 
   @override
   def size(self) -> int:
-    assert self._embeddings is not None, (
-      'The vector store has no embeddings. Call load() or add() first.')
+    assert (
+      self._embeddings is not None
+    ), 'The vector store has no embeddings. Call load() or add() first.'
     return len(self._embeddings)
 
   @override
   def save(self, base_path: str) -> None:
-    assert self._embeddings is not None and self._key_to_index is not None, (
-      'The vector store has no embeddings. Call load() or add() first.')
+    assert (
+      self._embeddings is not None and self._key_to_index is not None
+    ), 'The vector store has no embeddings. Call load() or add() first.'
     np.save(base_path + _EMBEDDINGS_SUFFIX, self._embeddings, allow_pickle=False)
     self._key_to_index.to_pickle(base_path + _LOOKUP_SUFFIX)
 
@@ -44,7 +47,8 @@ class NumpyVectorStore(VectorStore):
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     if len(keys) != embeddings.shape[0]:
       raise ValueError(
-        f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.')
+        f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.'
+      )
 
     current_size = self.size() if self._embeddings is not None else 0
 
@@ -64,26 +68,30 @@ class NumpyVectorStore(VectorStore):
 
   @override
   def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
-    assert self._embeddings is not None and self._key_to_index is not None, (
-      'The vector store has no embeddings. Call load() or add() first.')
+    assert (
+      self._embeddings is not None and self._key_to_index is not None
+    ), 'The vector store has no embeddings. Call load() or add() first.'
     if not keys:
       return self._embeddings
     locs = self._key_to_index.loc[cast(list[str], keys)]
     return self._embeddings.take(locs, axis=0)
 
   @override
-  def topk(self,
-           query: np.ndarray,
-           k: int,
-           keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
-    assert self._embeddings is not None and self._key_to_index is not None, (
-      'The vector store has no embeddings. Call load() or add() first.')
+  def topk(
+    self, query: np.ndarray, k: int, keys: Optional[Iterable[VectorKey]] = None
+  ) -> list[tuple[VectorKey, float]]:
+    assert (
+      self._embeddings is not None and self._key_to_index is not None
+    ), 'The vector store has no embeddings. Call load() or add() first.'
     if keys is not None:
       row_indices = self._key_to_index.loc[cast(list[str], keys)]
       embeddings = self._embeddings.take(row_indices, axis=0)
       keys = list(keys)
     else:
-      keys, embeddings = cast(list[VectorKey], self._key_to_index.index.tolist()), self._embeddings
+      keys, embeddings = (
+        cast(list[VectorKey], self._key_to_index.index.tolist()),
+        self._embeddings,
+      )
 
     query = query.astype(embeddings.dtype)
     similarities: np.ndarray = np.dot(embeddings, query).reshape(-1)

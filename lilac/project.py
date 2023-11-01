@@ -32,9 +32,11 @@ def init(project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
   log(f'Successfully initialized project at {project_dir}')
 
 
-def add_project_dataset_config(dataset_config: DatasetConfig,
-                               project_dir: Optional[Union[str, pathlib.Path]] = None,
-                               overwrite: bool = False) -> None:
+def add_project_dataset_config(
+  dataset_config: DatasetConfig,
+  project_dir: Optional[Union[str, pathlib.Path]] = None,
+  overwrite: bool = False,
+) -> None:
   """Add a dataset to the project config.
 
   Args:
@@ -46,8 +48,9 @@ def add_project_dataset_config(dataset_config: DatasetConfig,
   project_dir = project_dir or get_project_dir()
   with PROJECT_CONFIG_LOCK:
     config = read_project_config(project_dir)
-    existing_dataset_config = get_dataset_config(config, dataset_config.namespace,
-                                                 dataset_config.name)
+    existing_dataset_config = get_dataset_config(
+      config, dataset_config.namespace, dataset_config.name
+    )
     if existing_dataset_config is not None:
       if overwrite:
         config.datasets.remove(existing_dataset_config)
@@ -55,15 +58,16 @@ def add_project_dataset_config(dataset_config: DatasetConfig,
         raise ValueError(
           f'{dataset_config} has already been added. You can delete it with: \n\n'
           f'dataset = get_dataset("{dataset_config.namespace}", "{dataset_config.name}")\n'
-          'dataset.delete()')
+          'dataset.delete()'
+        )
 
     config.datasets.append(dataset_config)
     write_project_config(project_dir, config)
 
 
-def delete_project_dataset_config(namespace: str,
-                                  dataset_name: str,
-                                  project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+def delete_project_dataset_config(
+  namespace: str, dataset_name: str, project_dir: Optional[Union[str, pathlib.Path]] = None
+) -> None:
   """Delete a dataset config in a project."""
   project_dir = project_dir or get_project_dir()
 
@@ -77,10 +81,12 @@ def delete_project_dataset_config(namespace: str,
     write_project_config(project_dir, config)
 
 
-def update_project_dataset_settings(dataset_namespace: str,
-                                    dataset_name: str,
-                                    settings: DatasetSettings,
-                                    project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+def update_project_dataset_settings(
+  dataset_namespace: str,
+  dataset_name: str,
+  settings: DatasetSettings,
+  project_dir: Optional[Union[str, pathlib.Path]] = None,
+) -> None:
   """Update the settings of a dataset config in a project."""
   project_dir = project_dir or get_project_dir()
 
@@ -93,10 +99,12 @@ def update_project_dataset_settings(dataset_namespace: str,
     write_project_config(project_dir, config)
 
 
-def add_project_signal_config(dataset_namespace: str,
-                              dataset_name: str,
-                              signal_config: SignalConfig,
-                              project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+def add_project_signal_config(
+  dataset_namespace: str,
+  dataset_name: str,
+  signal_config: SignalConfig,
+  project_dir: Optional[Union[str, pathlib.Path]] = None,
+) -> None:
   """Add a dataset signal to the project config."""
   project_dir = project_dir or get_project_dir()
 
@@ -106,17 +114,20 @@ def add_project_signal_config(dataset_namespace: str,
     if dataset_config is None:
       raise ValueError(
         f'Dataset "{dataset_namespace}/{dataset_name}" not found in project config in '
-        f'project dir: {project_dir}.')
+        f'project dir: {project_dir}.'
+      )
     if signal_config in dataset_config.signals:
       return
     dataset_config.signals.append(signal_config)
     write_project_config(project_dir, config)
 
 
-def add_project_embedding_config(dataset_namespace: str,
-                                 dataset_name: str,
-                                 embedding_config: EmbeddingConfig,
-                                 project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+def add_project_embedding_config(
+  dataset_namespace: str,
+  dataset_name: str,
+  embedding_config: EmbeddingConfig,
+  project_dir: Optional[Union[str, pathlib.Path]] = None,
+) -> None:
   """Add a dataset embedding to the project config."""
   project_dir = project_dir or get_project_dir()
 
@@ -133,10 +144,12 @@ def add_project_embedding_config(dataset_namespace: str,
     write_project_config(project_dir, config)
 
 
-def delete_project_signal_config(dataset_namespace: str,
-                                 dataset_name: str,
-                                 signal_config: SignalConfig,
-                                 project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+def delete_project_signal_config(
+  dataset_namespace: str,
+  dataset_name: str,
+  signal_config: SignalConfig,
+  project_dir: Optional[Union[str, pathlib.Path]] = None,
+) -> None:
   """Delete a dataset signal from the project config."""
   project_dir = project_dir or get_project_dir()
 
@@ -185,9 +198,11 @@ def write_project_config(project_dir: Union[str, pathlib.Path], config: Config) 
   """Writes the project config."""
   with open(os.path.join(project_dir, PROJECT_CONFIG_FILENAME), 'w') as f:
     yaml_config = to_yaml(config.model_dump(exclude_defaults=True, exclude_none=True))
-    f.write('# Lilac project config.\n' +
-            '# See https://lilacml.com/api_reference/index.html#lilac.Config '
-            'for details.\n\n' + yaml_config)
+    f.write(
+      '# Lilac project config.\n'
+      + '# See https://lilacml.com/api_reference/index.html#lilac.Config '
+      'for details.\n\n' + yaml_config
+    )
 
 
 def create_project(project_dir: Union[str, pathlib.Path]) -> None:

@@ -7,24 +7,12 @@ from ..signal import TextSignal
 from .dataset import BinaryFilterTuple, ListFilterTuple, UnaryFilterTuple
 from .dataset_test_utils import TestDataMaker
 
-TEST_DATA: list[Item] = [{
-  'str': 'a',
-  'int': 1,
-  'bool': False,
-  'float': 3.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 2.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 1.0
-}, {
-  'float': float('nan')
-}]
+TEST_DATA: list[Item] = [
+  {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
+  {'float': float('nan')},
+]
 
 
 def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
@@ -61,17 +49,10 @@ def test_filter_greater_equal(make_test_data: TestDataMaker) -> None:
   filter: BinaryFilterTuple = ('float', 'greater_equal', 2.0)
   result = dataset.select_rows(filters=[filter])
 
-  assert list(result) == [{
-    'str': 'a',
-    'int': 1,
-    'bool': False,
-    'float': 3.0
-  }, {
-    'str': 'b',
-    'int': 2,
-    'bool': True,
-    'float': 2.0
-  }]
+  assert list(result) == [
+    {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+    {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+  ]
 
 
 def test_filter_less(make_test_data: TestDataMaker) -> None:
@@ -89,17 +70,10 @@ def test_filter_less_equal(make_test_data: TestDataMaker) -> None:
   filter: BinaryFilterTuple = ('float', 'less_equal', 2.0)
   result = dataset.select_rows(filters=[filter])
 
-  assert list(result) == [{
-    'str': 'b',
-    'int': 2,
-    'bool': True,
-    'float': 2.0
-  }, {
-    'str': 'b',
-    'int': 2,
-    'bool': True,
-    'float': 1.0
-  }]
+  assert list(result) == [
+    {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+    {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
+  ]
 
 
 def test_filter_not_equal(make_test_data: TestDataMaker) -> None:
@@ -109,18 +83,8 @@ def test_filter_not_equal(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(filters=[filter])
 
   assert list(result) == [
-    {
-      'str': 'a',
-      'int': 1,
-      'bool': False,
-      'float': 3.0
-    },
-    {
-      'str': 'b',
-      'int': 2,
-      'bool': True,
-      'float': 1.0
-    },
+    {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+    {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
     # NaNs are not counted when we are filtering a field.
   ]
 
@@ -131,36 +95,20 @@ def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
   filter: ListFilterTuple = (ROWID, 'in', ['1', '2'])
   result = dataset.select_rows(['*', ROWID], filters=[filter])
 
-  assert list(result) == [{
-    ROWID: '1',
-    'str': 'a',
-    'int': 1,
-    'bool': False,
-    'float': 3.0
-  }, {
-    ROWID: '2',
-    'str': 'b',
-    'int': 2,
-    'bool': True,
-    'float': 2.0
-  }]
+  assert list(result) == [
+    {ROWID: '1', 'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+    {ROWID: '2', 'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+  ]
 
 
 def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'name': 'A',
-    'info': {
-      'lang': 'en'
+  items: list[Item] = [
+    {'name': 'A', 'info': {'lang': 'en'}, 'ages': []},
+    {
+      'info': {'lang': 'fr'},
     },
-    'ages': []
-  }, {
-    'info': {
-      'lang': 'fr'
-    },
-  }, {
-    'name': 'C',
-    'ages': [[1, 2], [3, 4]]
-  }]
+    {'name': 'C', 'ages': [[1, 2], [3, 4]]},
+  ]
   dataset = make_test_data(items)
 
   exists_filter: UnaryFilterTuple = ('name', 'exists')
@@ -180,20 +128,13 @@ def test_filter_by_exists(make_test_data: TestDataMaker) -> None:
 
 
 def test_filter_by_exists_on_enriched(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'name': 'A',
-    'info': {
-      'lang': 'en'
+  items: list[Item] = [
+    {'name': 'A', 'info': {'lang': 'en'}, 'ages': []},
+    {
+      'info': {'lang': 'fr'},
     },
-    'ages': []
-  }, {
-    'info': {
-      'lang': 'fr'
-    },
-  }, {
-    'name': 'C',
-    'ages': [[1, 2], [3, 4]]
-  }]
+    {'name': 'C', 'ages': [[1, 2], [3, 4]]},
+  ]
   dataset = make_test_data(items)
 
   class LengthSignal(TextSignal):
@@ -212,20 +153,16 @@ def test_filter_by_exists_on_enriched(make_test_data: TestDataMaker) -> None:
 
 
 def test_filter_by_not_exists(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'name': 'A',
-    'info': {
-      'lang': 'en'
+  items: list[Item] = [
+    {'name': 'A', 'info': {'lang': 'en'}, 'ages': []},
+    {
+      'info': {'lang': 'fr'},
     },
-    'ages': []
-  }, {
-    'info': {
-      'lang': 'fr'
+    {
+      'name': 'C',
+      'ages': [[1, 2], [3, 4]],
     },
-  }, {
-    'name': 'C',
-    'ages': [[1, 2], [3, 4]],
-  }]
+  ]
   dataset = make_test_data(items)
 
   not_exists_filter: UnaryFilterTuple = ('name', 'not_exists')

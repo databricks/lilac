@@ -24,7 +24,8 @@ def test_auth_admin(mocker: MockerFixture) -> None:
   # Override the session user so we make them an admin.
   def admin_user() -> UserInfo:
     return UserInfo(
-      id='1', email='test@test.com', name='test', given_name='test', family_name='test')
+      id='1', email='test@test.com', name='test', given_name='test', family_name='test'
+    )
 
   app.dependency_overrides[get_session_user] = admin_user
 
@@ -43,9 +44,12 @@ def test_auth_admin(mocker: MockerFixture) -> None:
         update_settings=True,
         create_label_type=True,
         edit_labels=True,
-        label_all=True),
-      concept=ConceptUserAccess(delete_any_concept=True)),
-    auth_enabled=True)
+        label_all=True,
+      ),
+      concept=ConceptUserAccess(delete_any_concept=True),
+    ),
+    auth_enabled=True,
+  )
 
 
 def test_auth_nonadmin(mocker: MockerFixture) -> None:
@@ -55,7 +59,8 @@ def test_auth_nonadmin(mocker: MockerFixture) -> None:
   # Override the session user so we make them an admin.
   def user() -> UserInfo:
     return UserInfo(
-      id='1', email='test_user@test.com', name='test', given_name='test', family_name='test')
+      id='1', email='test_user@test.com', name='test', given_name='test', family_name='test'
+    )
 
   app.dependency_overrides[get_session_user] = user
 
@@ -74,9 +79,12 @@ def test_auth_nonadmin(mocker: MockerFixture) -> None:
         update_settings=False,
         create_label_type=False,
         edit_labels=False,
-        label_all=True),
-      concept=ConceptUserAccess(delete_any_concept=False)),
-    auth_enabled=True)
+        label_all=True,
+      ),
+      concept=ConceptUserAccess(delete_any_concept=False),
+    ),
+    auth_enabled=True,
+  )
 
 
 def test_auth_nonadmin_edit_labels(mocker: MockerFixture) -> None:
@@ -87,7 +95,8 @@ def test_auth_nonadmin_edit_labels(mocker: MockerFixture) -> None:
   # Override the session user so we make them an admin.
   def user() -> UserInfo:
     return UserInfo(
-      id='1', email='test@test.com', name='test', given_name='test', family_name='test')
+      id='1', email='test@test.com', name='test', given_name='test', family_name='test'
+    )
 
   app.dependency_overrides[get_session_user] = user
 
@@ -107,9 +116,12 @@ def test_auth_nonadmin_edit_labels(mocker: MockerFixture) -> None:
         create_label_type=False,
         # Users can edit labels (add and remove) but not create label types.
         edit_labels=True,
-        label_all=True),
-      concept=ConceptUserAccess(delete_any_concept=False)),
-    auth_enabled=True)
+        label_all=True,
+      ),
+      concept=ConceptUserAccess(delete_any_concept=False),
+    ),
+    auth_enabled=True,
+  )
 
 
 def test_auth_nonadmin_label_all(mocker: MockerFixture) -> None:
@@ -121,7 +133,8 @@ def test_auth_nonadmin_label_all(mocker: MockerFixture) -> None:
   # Override the session user so we make them an admin.
   def user() -> UserInfo:
     return UserInfo(
-      id='1', email='test@test.com', name='test', given_name='test', family_name='test')
+      id='1', email='test@test.com', name='test', given_name='test', family_name='test'
+    )
 
   app.dependency_overrides[get_session_user] = user
 
@@ -142,6 +155,9 @@ def test_auth_nonadmin_label_all(mocker: MockerFixture) -> None:
         # Users can edit labels (add and remove) but not create label types.
         edit_labels=True,
         # Users cannot use the label all feature.
-        label_all=False),
-      concept=ConceptUserAccess(delete_any_concept=False)),
-    auth_enabled=True)
+        label_all=False,
+      ),
+      concept=ConceptUserAccess(delete_any_concept=False),
+    ),
+    auth_enabled=True,
+  )

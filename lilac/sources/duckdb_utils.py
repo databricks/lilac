@@ -9,10 +9,12 @@ from ..env import env
 
 def duckdb_setup(con: duckdb.DuckDBPyConnection) -> None:
   """Setup DuckDB. This includes setting up performance optimizations."""
-  con.execute("""
+  con.execute(
+    """
     SET enable_http_metadata_cache=true;
     SET enable_object_cache=true;
-  """)
+  """
+  )
 
 
 def convert_path_to_duckdb(filepath: str) -> str:

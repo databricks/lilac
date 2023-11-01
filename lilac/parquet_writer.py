@@ -10,11 +10,13 @@ from .schema import Item, Schema, schema_to_arrow_schema
 class ParquetWriter:
   """A writer to parquet."""
 
-  def __init__(self,
-               schema: Schema,
-               codec: str = 'snappy',
-               row_group_buffer_size: int = 128 * 1024 * 1024,
-               record_batch_size: int = 10_000):
+  def __init__(
+    self,
+    schema: Schema,
+    codec: str = 'snappy',
+    row_group_buffer_size: int = 128 * 1024 * 1024,
+    record_batch_size: int = 10_000,
+  ):
     self._schema = schema_to_arrow_schema(schema)
     self._codec = codec
     self._row_group_buffer_size = row_group_buffer_size

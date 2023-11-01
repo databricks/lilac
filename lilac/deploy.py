@@ -64,13 +64,16 @@ def deploy_project(
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
   except ImportError:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".')
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    )
 
   project_dir = project_dir or get_project_dir()
   if not project_dir:
     raise ValueError(
-      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.')
+      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.'
+    )
 
   hf_api = HfApi()
 
@@ -87,7 +90,8 @@ def deploy_project(
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,
-    hf_token=hf_token)
+    hf_token=hf_token,
+  )
 
   # Atomically commit all the operations so we don't kick the server multiple times.
   hf_api.create_commit(
@@ -120,8 +124,10 @@ def deploy_project_operations(
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
     from huggingface_hub.utils._errors import RepositoryNotFoundError
   except ImportError as e:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".') from e
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    ) from e
 
   hf_api: HfApi = api
 
@@ -131,7 +137,8 @@ def deploy_project_operations(
       raise ValueError(
         'When datasets are made private, please set the `HF_ACCESS_TOKEN` environment flag or '
         'pass --hf_token. The token is required so that the space can sync datasets when it '
-        'boots up.')
+        'boots up.'
+      )
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
@@ -139,8 +146,10 @@ def deploy_project_operations(
     repo_info = hf_api.repo_info(hf_space, repo_type='space')
   except RepositoryNotFoundError as e:
     if not create_space:
-      raise ValueError('The huggingface space does not exist! '
-                       'Please pass --create_space if you wish to create it.') from e
+      raise ValueError(
+        'The huggingface space does not exist! '
+        'Please pass --create_space if you wish to create it.'
+      ) from e
     repo_info = None
   if repo_info is None:
     log(f'Creating huggingface space https://huggingface.co/spaces/{hf_space}')
@@ -154,7 +163,8 @@ def deploy_project_operations(
       private=True,
       space_storage=hf_space_storage,
       repo_type='space',
-      space_sdk='docker')
+      space_sdk='docker',
+    )
 
     log(f'Created: https://huggingface.co/spaces/{hf_space}')
 
@@ -173,7 +183,10 @@ def deploy_project_operations(
   for upload_file in os.listdir(hf_docker_dir):
     operations.append(
       CommitOperationAdd(
-        path_in_repo=upload_file, path_or_fileobj=str(os.path.join(hf_docker_dir, upload_file))))
+        path_in_repo=upload_file,
+        path_or_fileobj=str(os.path.join(hf_docker_dir, upload_file)),
+      )
+    )
 
   ##
   ##  Create the empty wheel directory. If uploading a local wheel, use scripts.deploy_staging.
@@ -194,7 +207,8 @@ def deploy_project_operations(
       project_dir=project_dir,
       hf_space=hf_space,
       datasets=datasets,
-      make_datasets_public=make_datasets_public)
+      make_datasets_public=make_datasets_public,
+    )
   else:
     lilac_hf_datasets = []
 
@@ -203,21 +217,28 @@ def deploy_project_operations(
   ##  to storage when the docker image boots up.
   ##
   if (lilac_hf_datasets and not skip_data_upload) or load_on_space:
-    readme = '---\n' + to_yaml({
-      'title': 'Lilac',
-      'emoji': '🌷',
-      'colorFrom': 'purple',
-      'colorTo': 'purple',
-      'sdk': 'docker',
-      'app_port': 5432,
-      'datasets': [d for d in lilac_hf_datasets],
-    }) + '\n---'
+    readme = (
+      '---\n'
+      + to_yaml(
+        {
+          'title': 'Lilac',
+          'emoji': '🌷',
+          'colorFrom': 'purple',
+          'colorTo': 'purple',
+          'sdk': 'docker',
+          'app_port': 5432,
+          'datasets': [d for d in lilac_hf_datasets],
+        }
+      )
+      + '\n---'
+    )
     readme_filename = 'README.md'
     if hf_api.file_exists(hf_space, readme_filename, repo_type='space'):
       operations.append(CommitOperationDelete(path_in_repo=readme_filename))
 
     operations.append(
-      CommitOperationAdd(path_in_repo=readme_filename, path_or_fileobj=readme.encode()))
+      CommitOperationAdd(path_in_repo=readme_filename, path_or_fileobj=readme.encode())
+    )
   ##
   ##  Upload the lilac.yml project configuration.
   ##
@@ -225,7 +246,8 @@ def deploy_project_operations(
     project_config_filename = f'data/{PROJECT_CONFIG_FILENAME}'
     # Filter datasets that aren't explicitly defined.
     project_config.datasets = [
-      dataset for dataset in project_config.datasets
+      dataset
+      for dataset in project_config.datasets
       if f'{dataset.namespace}/{dataset.name}' in datasets
     ]
     if hf_api.file_exists(hf_space, project_config_filename, repo_type='space'):
@@ -233,7 +255,9 @@ def deploy_project_operations(
     operations.append(
       CommitOperationAdd(
         path_in_repo=project_config_filename,
-        path_or_fileobj=to_yaml(project_config.model_dump()).encode()))
+        path_or_fileobj=to_yaml(project_config.model_dump()).encode(),
+      )
+    )
 
   ##
   ##  Upload concepts.
@@ -279,8 +303,10 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
   except ImportError:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".')
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    )
 
   hf_api: HfApi = api
 
@@ -289,12 +315,15 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
   # Make an empty readme in py_dist_dir.
   os.makedirs(PY_DIST_DIR, exist_ok=True)
   with open(os.path.join(PY_DIST_DIR, 'README.md'), 'w') as f:
-    f.write('This directory is used for locally built whl files.\n'
-            'We write a README.md to ensure an empty folder is uploaded when there is no whl.')
+    f.write(
+      'This directory is used for locally built whl files.\n'
+      'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
+    )
 
   readme_contents = (
     'This directory is used for locally built whl files.\n'
-    'We write a README.md to ensure an empty folder is uploaded when there is no whl.').encode()
+    'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
+  ).encode()
 
   # Remove everything that exists in dist.
   remote_readme_filepath = os.path.join(PY_DIST_DIR, 'README.md')
@@ -302,7 +331,8 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
     operations.append(CommitOperationDelete(path_in_repo=f'{PY_DIST_DIR}/'))
 
   operations.append(
-    CommitOperationAdd(path_in_repo=remote_readme_filepath, path_or_fileobj=readme_contents))
+    CommitOperationAdd(path_in_repo=remote_readme_filepath, path_or_fileobj=readme_contents)
+  )
 
   return operations
 
@@ -312,8 +342,10 @@ def _upload_cache(hf_space: str, project_dir: str, concepts: Optional[list[str]]
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, list_files_info
   except ImportError:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".')
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    )
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
@@ -341,7 +373,9 @@ def _upload_cache(hf_space: str, project_dir: str, concepts: Optional[list[str]]
         operations.append(
           CommitOperationAdd(
             path_in_repo=os.path.join(remote_cache_dir, relative_root, file),
-            path_or_fileobj=os.path.join(cache_dir, relative_root, file)))
+            path_or_fileobj=os.path.join(cache_dir, relative_root, file),
+          )
+        )
 
   log('Uploading cache files:', cache_files)
   log()
@@ -349,21 +383,25 @@ def _upload_cache(hf_space: str, project_dir: str, concepts: Optional[list[str]]
   return operations
 
 
-def _upload_concepts(hf_space: str,
-                     project_dir: str,
-                     concepts: Optional[list[str]] = None) -> tuple[list, list[str]]:
+def _upload_concepts(
+  hf_space: str, project_dir: str, concepts: Optional[list[str]] = None
+) -> tuple[list, list[str]]:
   """Adds local concepts to the HuggingFace Space commit."""
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, list_files_info
   except ImportError:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".')
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    )
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
   disk_concepts = [
     # Remove lilac concepts as they're checked in, and not in the
-    f'{c.namespace}/{c.name}' for c in DiskConceptDB(project_dir).list() if c.namespace != 'lilac'
+    f'{c.namespace}/{c.name}'
+    for c in DiskConceptDB(project_dir).list()
+    if c.namespace != 'lilac'
   ]
 
   # When concepts are not defined, upload all disk concepts.
@@ -388,18 +426,22 @@ def _upload_concepts(hf_space: str,
       operations.append(
         CommitOperationAdd(
           path_in_repo=os.path.join(remote_concept_dir, upload_file),
-          path_or_fileobj=os.path.join(concept_dir, upload_file)))
+          path_or_fileobj=os.path.join(concept_dir, upload_file),
+        )
+      )
 
   log('Uploading concepts: ', concepts)
   log()
   return operations, concepts
 
 
-def _upload_datasets(api: Any,
-                     project_dir: str,
-                     hf_space: str,
-                     datasets: list[str],
-                     make_datasets_public: Optional[bool] = False) -> list[str]:
+def _upload_datasets(
+  api: Any,
+  project_dir: str,
+  hf_space: str,
+  datasets: list[str],
+  make_datasets_public: Optional[bool] = False,
+) -> list[str]:
   """Uploads local datasets to HuggingFace datasets."""
   if not make_datasets_public:
     make_datasets_public = False
@@ -407,8 +449,10 @@ def _upload_datasets(api: Any,
     from huggingface_hub import HfApi
 
   except ImportError:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".')
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    )
   hf_api: HfApi = api
 
   hf_space_org, hf_space_name = hf_space.split('/')
@@ -423,11 +467,14 @@ def _upload_datasets(api: Any,
     namespace, name = d.split('/')
     dataset_repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, namespace, name)
 
-    print(f'Uploading "{d}" to HuggingFace dataset repo '
-          f'https://huggingface.co/datasets/{dataset_repo_id}\n')
+    print(
+      f'Uploading "{d}" to HuggingFace dataset repo '
+      f'https://huggingface.co/datasets/{dataset_repo_id}\n'
+    )
 
     hf_api.create_repo(
-      dataset_repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True)
+      dataset_repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True
+    )
     dataset_output_dir = get_dataset_output_dir(project_dir, namespace, name)
     hf_api.upload_folder(
       folder_path=dataset_output_dir,
@@ -435,7 +482,8 @@ def _upload_datasets(api: Any,
       repo_id=dataset_repo_id,
       repo_type='dataset',
       # Delete all data on the server.
-      delete_patterns='*')
+      delete_patterns='*',
+    )
 
     config = read_project_config(project_dir)
     dataset_config = get_dataset_config(config, namespace, name)
@@ -447,15 +495,17 @@ def _upload_datasets(api: Any,
       dataset_link = f'https://huggingface.co/datasets/{dataset_config.source.dataset_name}'
 
     dataset_config_yaml = to_yaml(
-      dataset_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True))
+      dataset_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
+    )
 
     readme = (
-      ('This dataset is generated by [Lilac](http://lilacml.com) for a HuggingFace Space: '
-       f'[huggingface.co/spaces/{hf_space_org}/{hf_space_name}]'
-       f'(https://huggingface.co/spaces/{hf_space_org}/{hf_space_name}).\n\n' +
-       (f'Original dataset: [{dataset_link}]({dataset_link})\n\n' if dataset_link != '' else '') +
-       'Lilac dataset config:\n'
-       f'```{dataset_config_yaml}```\n\n').encode())
+      'This dataset is generated by [Lilac](http://lilacml.com) for a HuggingFace Space: '
+      f'[huggingface.co/spaces/{hf_space_org}/{hf_space_name}]'
+      f'(https://huggingface.co/spaces/{hf_space_org}/{hf_space_name}).\n\n'
+      + (f'Original dataset: [{dataset_link}]({dataset_link})\n\n' if dataset_link != '' else '')
+      + 'Lilac dataset config:\n'
+      f'```{dataset_config_yaml}```\n\n'
+    ).encode()
     hf_api.upload_file(
       path_or_fileobj=readme,
       path_in_repo='README.md',
@@ -500,7 +550,8 @@ def deploy_config(
       create_space=create_space,
       load_on_space=True,
       hf_space_storage=hf_space_storage,
-      hf_token=hf_token)
+      hf_token=hf_token,
+    )
 
 
 def run(cmd: str, capture_output: bool = False) -> subprocess.CompletedProcess[str]:

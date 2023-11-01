@@ -23,18 +23,22 @@ class ParquetSource(Source):
 
   For more details on authentication with private objects, see:
   https://arrow.apache.org/docs/python/filesystems.html
-  """ # noqa: D415, D400
+  """  # noqa: D415, D400
+
   name: ClassVar[str] = 'parquet'
   filepaths: list[str] = Field(
-    description=
-    'A list of paths to parquet files which live locally or remotely on GCS, S3, or Hadoop.')
+    description='A list of paths to parquet files which live locally or remotely on GCS, S3, or '
+    'Hadoop.'
+  )
   seed: Optional[int] = Field(description='Random seed for sampling', default=None)
   sample_size: Optional[int] = Field(
-    title='Sample size', description='Number of rows to sample from the dataset', default=None)
+    title='Sample size', description='Number of rows to sample from the dataset', default=None
+  )
   approximate_shuffle: bool = Field(
     default=False,
     description='If true, the reader will read a fraction of rows from each shard, '
-    'avoiding a pass over the entire dataset.')
+    'avoiding a pass over the entire dataset.',
+  )
 
   _source_schema: Optional[SourceSchema] = None
   _readers: list[pa.RecordBatchReader] = []
@@ -70,7 +74,8 @@ class ParquetSource(Source):
       assert self.sample_size, 'approximate_shuffle requires sample_size to be set.'
       # Find each individual file.
       glob_rows: list[tuple[str]] = self._con.execute(
-        f'SELECT * FROM GLOB({duckdb_paths})').fetchall()
+        f'SELECT * FROM GLOB({duckdb_paths})'
+      ).fetchall()
       duckdb_files: list[str] = list(set([row[0] for row in glob_rows]))
       batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
       for duckdb_file in duckdb_files:

@@ -21,12 +21,14 @@ class JSONSource(Source):
 
   For more details on authorizing access to S3, GCS or R2, see:
   https://duckdb.org/docs/guides/import/s3_import.html
-  """ # noqa: D415, D400
+  """  # noqa: D415, D400
+
   name: ClassVar[str] = 'json'
 
   filepaths: list[str] = PydanticField(
     description='A list of filepaths to JSON files. '
-    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.')
+    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.'
+  )
 
   _source_schema: Optional[SourceSchema] = None
   _reader: Optional[pa.RecordBatchReader] = None
@@ -43,9 +45,11 @@ class JSONSource(Source):
     duckdb_paths = [convert_path_to_duckdb(path) for path in filepaths]
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
-    self._con.execute(f"""
+    self._con.execute(
+      f"""
       CREATE VIEW t as (SELECT * FROM read_json_auto({duckdb_paths}, IGNORE_ERRORS=true));
-    """)
+    """
+    )
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
     num_items = cast(tuple[int], res)[0]

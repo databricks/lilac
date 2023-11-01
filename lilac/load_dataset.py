@@ -25,9 +25,11 @@ from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
-def create_dataset(config: DatasetConfig,
-                   project_dir: Optional[Union[str, pathlib.Path]] = None,
-                   overwrite: bool = False) -> Dataset:
+def create_dataset(
+  config: DatasetConfig,
+  project_dir: Optional[Union[str, pathlib.Path]] = None,
+  overwrite: bool = False,
+) -> Dataset:
   """Load a dataset from a given source configuration.
 
   Args:
@@ -38,8 +40,10 @@ def create_dataset(config: DatasetConfig,
   """
   project_dir = project_dir or get_project_dir()
   if not project_dir:
-    raise ValueError('`project_dir` must be defined. Please pass a `project_dir` or set it '
-                     'globally with `set_project_dir(path)`')
+    raise ValueError(
+      '`project_dir` must be defined. Please pass a `project_dir` or set it '
+      'globally with `set_project_dir(path)`'
+    )
 
   # Update the config before processing the source.
   add_project_dataset_config(config, project_dir, overwrite)
@@ -48,9 +52,11 @@ def create_dataset(config: DatasetConfig,
   return get_dataset(config.namespace, config.name, project_dir)
 
 
-def process_source(project_dir: Union[str, pathlib.Path],
-                   config: DatasetConfig,
-                   task_step_id: Optional[TaskStepId] = None) -> tuple[str, int]:
+def process_source(
+  project_dir: Union[str, pathlib.Path],
+  config: DatasetConfig,
+  task_step_id: Optional[TaskStepId] = None,
+) -> tuple[str, int]:
   """Process a source."""
   output_dir = get_dataset_output_dir(project_dir, config.namespace, config.name)
 
@@ -66,7 +72,8 @@ def process_source(project_dir: Union[str, pathlib.Path],
     items,
     task_step_id=task_step_id,
     estimated_len=source_schema.num_items,
-    step_description=f'Reading from source {config.source.name}...')
+    step_description=f'Reading from source {config.source.name}...',
+  )
 
   # Filter out the `None`s after progress.
   items = (item for item in items if item is not None)
@@ -78,11 +85,13 @@ def process_source(project_dir: Union[str, pathlib.Path],
     schema=data_schema,
     filename_prefix=PARQUET_FILENAME_PREFIX,
     shard_index=0,
-    num_shards=1)
+    num_shards=1,
+  )
 
   filenames = [os.path.basename(filepath)]
   manifest = SourceManifest(
-    files=filenames, data_schema=data_schema, images=None, source=config.source)
+    files=filenames, data_schema=data_schema, images=None, source=config.source
+  )
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.model_dump_json(indent=2, exclude_none=True))
 

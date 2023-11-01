@@ -50,26 +50,18 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
-  assert parsed_items == [{
-    'text': 'hello',
-    'text.test_signal': {
-      'len': 5,
-      'flen': 5.0
-    }
-  }, {
-    'text': 'everybody',
-    'text.test_signal': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }]
+  assert parsed_items == [
+    {'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}},
+    {'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}},
+  ]
 
   # Download a subset of columns with filter.
   filepath = tmp_path / 'dataset2.json'
   dataset.to_json(
     filepath,
     columns=['text', 'text.test_signal.flen'],
-    filters=[('text.test_signal.len', 'greater', '6')])
+    filters=[('text.test_signal.len', 'greater', '6')],
+  )
 
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
@@ -112,19 +104,12 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
   dataset.to_parquet(filepath)
 
   df = pd.read_parquet(filepath)
-  expected_df = pd.DataFrame([{
-    'text': 'hello',
-    'text.test_signal': {
-      'len': 5,
-      'flen': 5.0
-    }
-  }, {
-    'text': 'everybody',
-    'text.test_signal': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }])
+  expected_df = pd.DataFrame(
+    [
+      {'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}},
+      {'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}},
+    ]
+  )
   pd.testing.assert_frame_equal(df, expected_df)
 
 
@@ -134,32 +119,22 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
 
   # Download all columns.
   df = dataset.to_pandas()
-  expected_df = pd.DataFrame([{
-    'text': 'hello',
-    'text.test_signal': {
-      'len': 5,
-      'flen': 5.0
-    }
-  }, {
-    'text': 'everybody',
-    'text.test_signal': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }])
+  expected_df = pd.DataFrame(
+    [
+      {'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}},
+      {'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}},
+    ]
+  )
   pd.testing.assert_frame_equal(df, expected_df)
 
   # Select only some columns, including pseudocolumn rowid.
   df = dataset.to_pandas([ROWID, 'text', 'text.test_signal.flen'])
-  expected_df = pd.DataFrame([{
-    ROWID: '1',
-    'text': 'hello',
-    'text.test_signal.flen': np.float32(5.0)
-  }, {
-    ROWID: '2',
-    'text': 'everybody',
-    'text.test_signal.flen': np.float32(9.0)
-  }])
+  expected_df = pd.DataFrame(
+    [
+      {ROWID: '1', 'text': 'hello', 'text.test_signal.flen': np.float32(5.0)},
+      {ROWID: '2', 'text': 'everybody', 'text.test_signal.flen': np.float32(9.0)},
+    ]
+  )
   pd.testing.assert_frame_equal(df, expected_df)
 
   # Invalid columns.
@@ -171,8 +146,9 @@ TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
 
 
 @freeze_time(TEST_TIME)
-def test_label_and_export_by_excluding(make_test_data: TestDataMaker,
-                                       tmp_path: pathlib.Path) -> None:
+def test_label_and_export_by_excluding(
+  make_test_data: TestDataMaker, tmp_path: pathlib.Path
+) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
   dataset.add_labels('delete', ['2', '3'])
 
@@ -192,19 +168,10 @@ def test_label_and_export_by_excluding(make_test_data: TestDataMaker,
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
-  assert parsed_items == [{
-    'delete': {
-      'created': str(TEST_TIME),
-      'label': 'true'
-    },
-    'text': 'b'
-  }, {
-    'delete': {
-      'created': str(TEST_TIME),
-      'label': 'true'
-    },
-    'text': 'c'
-  }]
+  assert parsed_items == [
+    {'delete': {'created': str(TEST_TIME), 'label': 'true'}, 'text': 'b'},
+    {'delete': {'created': str(TEST_TIME), 'label': 'true'}, 'text': 'c'},
+  ]
 
 
 def test_include_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:

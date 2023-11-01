@@ -44,6 +44,7 @@ TaskId = str
 
 class TaskStatus(str, Enum):
   """Enum holding a tasks status."""
+
   PENDING = 'pending'
   COMPLETED = 'completed'
   ERROR = 'error'
@@ -51,11 +52,13 @@ class TaskStatus(str, Enum):
 
 class TaskType(str, Enum):
   """Enum holding a task type."""
+
   DATASET_LOAD = 'dataset_load'
 
 
 class TaskStepInfo(BaseModel):
   """Information about a step of the task.."""
+
   progress: Optional[float] = None
   description: Optional[str] = None
   details: Optional[str] = None
@@ -63,6 +66,7 @@ class TaskStepInfo(BaseModel):
 
 class TaskInfo(BaseModel):
   """Metadata about a task."""
+
   name: str
   type: Optional[TaskType] = None
   status: TaskStatus
@@ -82,6 +86,7 @@ class TaskInfo(BaseModel):
 
 class TaskManifest(BaseModel):
   """Information for tasks that are running or completed."""
+
   tasks: dict[str, TaskInfo]
   progress: Optional[float] = None
 
@@ -91,6 +96,7 @@ STEPS_LOG_KEY = 'steps'
 
 class TaskManager:
   """Manage FastAPI background tasks."""
+
   _tasks: dict[str, TaskInfo] = {}
   # Maps task_ids to their futures.
   _futures: dict[str, Future] = {}
@@ -107,7 +113,10 @@ class TaskManager:
 
     total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
-      asynchronous=not env('LILAC_TEST'), memory_limit=f'{total_memory_gb} GB', processes=False)
+      asynchronous=not env('LILAC_TEST'),
+      memory_limit=f'{total_memory_gb} GB',
+      processes=False,
+    )
 
   async def _update_tasks(self) -> None:
     adapter = TypeAdapter(list[TaskStepInfo])
@@ -153,7 +162,8 @@ class TaskManager:
     ]
     return TaskManifest(
       tasks=self._tasks,
-      progress=sum(tasks_with_progress) / len(tasks_with_progress) if tasks_with_progress else None)
+      progress=sum(tasks_with_progress) / len(tasks_with_progress) if tasks_with_progress else None,
+    )
 
   def wait(self, task_ids: Optional[list[str]] = None) -> None:
     """Wait until all tasks are completed."""
@@ -165,10 +175,9 @@ class TaskManager:
     if futures:
       wait(futures)
 
-  def task_id(self,
-              name: str,
-              type: Optional[TaskType] = None,
-              description: Optional[str] = None) -> TaskId:
+  def task_id(
+    self, name: str, type: Optional[TaskType] = None, description: Optional[str] = None
+  ) -> TaskId:
     """Create a unique ID for a task."""
     task_id = uuid.uuid4().hex
     self._tasks[task_id] = TaskInfo(
@@ -177,7 +186,8 @@ class TaskManager:
       status=TaskStatus.PENDING,
       progress=None,
       description=description,
-      start_timestamp=datetime.now().isoformat())
+      start_timestamp=datetime.now().isoformat(),
+    )
     return task_id
 
   def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:
@@ -185,7 +195,8 @@ class TaskManager:
     self._tasks[task_id].end_timestamp = end_timestamp
 
     elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(
-      self._tasks[task_id].start_timestamp)
+      self._tasks[task_id].start_timestamp
+    )
     elapsed_formatted = pretty_timedelta(elapsed)
 
     if task_future.status == 'error':
@@ -205,8 +216,7 @@ class TaskManager:
       self._tasks[task_id].progress = 1.0
       self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
 
-    log(f'Task completed "{task_id}": "{self._tasks[task_id].name}" in '
-        f'{elapsed_formatted}.')
+    log(f'Task completed "{task_id}": "{self._tasks[task_id].name}" in ' f'{elapsed_formatted}.')
 
   def execute(self, task_id: str, task: TaskFn, *args: Any) -> None:
     """Execute a task."""
@@ -214,9 +224,11 @@ class TaskManager:
 
     task_info = self._tasks[task_id]
     task_future = self._dask_client.submit(
-      functools.partial(_execute_task, task, task_info, task_id), *args, key=task_id)
+      functools.partial(_execute_task, task, task_info, task_id), *args, key=task_id
+    )
     task_future.add_done_callback(
-      lambda task_future: self._set_task_completed(task_id, task_future))
+      lambda task_future: self._set_task_completed(task_id, task_future)
+    )
 
     self._futures[task_id] = task_future
 
@@ -265,11 +277,13 @@ def get_current_step_id(steps: list[TaskStepInfo]) -> int:
   return cur_step
 
 
-def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
-             task_step_id: Optional[TaskStepId],
-             estimated_len: Optional[int],
-             step_description: Optional[str] = None,
-             emit_every_s: float = 1.) -> Generator[TProgress, None, None]:
+def progress(
+  it: Union[Iterator[TProgress], Iterable[TProgress]],
+  task_step_id: Optional[TaskStepId],
+  estimated_len: Optional[int],
+  step_description: Optional[str] = None,
+  emit_every_s: float = 1.0,
+) -> Generator[TProgress, None, None]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id or task_step_id[0] == '':
     yield from tqdm(it, desc=step_description, total=estimated_len)
@@ -306,7 +320,8 @@ def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
           elapsed_sec=tq.format_dict['elapsed'] or 0.0,
           it_per_sec=it_per_sec or 0.0,
           estimated_total_sec=((estimated_len) / it_per_sec if it_per_sec else 0),
-          estimated_len=estimated_len)
+          estimated_len=estimated_len,
+        )
         last_emit = cur_time
       yield t
       it_idx += 1
@@ -318,13 +333,15 @@ def progress(it: Union[Iterator[TProgress], Iterable[TProgress]],
     elapsed_sec=total_time,
     it_per_sec=(estimated_len or it_idx) / total_time,
     estimated_total_sec=total_time,
-    estimated_len=estimated_len or it_idx)
+    estimated_len=estimated_len or it_idx,
+  )
 
 
 def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
   """Sets up worker steps. Use to provide task step descriptions before they compute."""
   get_worker().log_event(
-    _progress_event_topic(task_id), {STEPS_LOG_KEY: [step.model_dump() for step in steps]})
+    _progress_event_topic(task_id), {STEPS_LOG_KEY: [step.model_dump() for step in steps]}
+  )
 
 
 def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:
@@ -347,9 +364,14 @@ def set_worker_next_step(task_id: TaskId) -> None:
     set_worker_steps(task_id, steps)
 
 
-def set_worker_task_progress(task_step_id: TaskStepId, it_idx: int, elapsed_sec: float,
-                             it_per_sec: float, estimated_total_sec: float,
-                             estimated_len: int) -> None:
+def set_worker_task_progress(
+  task_step_id: TaskStepId,
+  it_idx: int,
+  elapsed_sec: float,
+  it_per_sec: float,
+  estimated_total_sec: float,
+  estimated_len: int,
+) -> None:
   """Updates a task step with a progress between 0 and 1.
 
   This method does not exist on the TaskManager as it is meant to be a standalone method used by
@@ -367,7 +389,6 @@ def set_worker_task_progress(task_step_id: TaskStepId, it_idx: int, elapsed_sec:
   if it_idx != estimated_len:
     # Only show estimated when in progress.
     elapsed = f'{elapsed} < {pretty_timedelta(timedelta(seconds=estimated_total_sec))}'
-  steps[step_id].details = (f'{it_idx:,}/{estimated_len:,} '
-                            f'[{elapsed}, {it_per_sec:,.2f} ex/s]')
+  steps[step_id].details = f'{it_idx:,}/{estimated_len:,} ' f'[{elapsed}, {it_per_sec:,.2f} ex/s]'
 
   set_worker_steps(task_id, steps)

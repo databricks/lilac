@@ -17,8 +17,10 @@ def delete_old_files() -> None:
   try:
     from huggingface_hub import scan_cache_dir
   except ImportError:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".')
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    )
 
   # Scan cache
   try:
@@ -32,7 +34,8 @@ def delete_old_files() -> None:
   for repo in scan.repos:
     latest_revision = max(repo.revisions, key=lambda x: x.last_modified)
     to_delete.extend(
-      [revision.commit_hash for revision in repo.revisions if revision != latest_revision])
+      [revision.commit_hash for revision in repo.revisions if revision != latest_revision]
+    )
   strategy = scan.delete_revisions(*to_delete)
 
   # Delete them
@@ -46,6 +49,7 @@ class HfSpaceConfig(TypedDict):
   See:
   https://huggingface.co/docs/hub/spaces-config-reference
   """
+
   title: str
   datasets: list[str]
 
@@ -61,8 +65,10 @@ def _hf_docker_start() -> None:
   try:
     from huggingface_hub import snapshot_download
   except ImportError:
-    raise ImportError('Could not import the "huggingface_hub" python package. '
-                      'Please install it with `pip install "huggingface_hub".')
+    raise ImportError(
+      'Could not import the "huggingface_hub" python package. '
+      'Please install it with `pip install "huggingface_hub".'
+    )
 
   # SPACE_ID is the HuggingFace Space ID environment variable that is automatically set by HF.
   repo_id = env('SPACE_ID', None)
@@ -78,7 +84,7 @@ def _hf_docker_start() -> None:
     first_dashes = readme_contents.find(dashes)
     second_dashes = readme_contents.find(dashes, first_dashes + len(dashes))
 
-    readme = readme_contents[first_dashes + len(dashes):second_dashes]
+    readme = readme_contents[first_dashes + len(dashes) : second_dashes]
     hf_config: HfSpaceConfig = yaml.safe_load(readme)
 
   # Download the huggingface space data. This includes code and datasets, so we move the datasets
@@ -93,7 +99,8 @@ def _hf_docker_start() -> None:
       repo_type='dataset',
       token=env('HF_ACCESS_TOKEN'),
       local_dir=datasets_dir,
-      ignore_patterns=['.gitattributes', 'README.md'])
+      ignore_patterns=['.gitattributes', 'README.md'],
+    )
 
   snapshot_dir = snapshot_download(repo_id=repo_id, repo_type='space', token=env('HF_ACCESS_TOKEN'))
 
@@ -119,10 +126,12 @@ def _hf_docker_start() -> None:
     # Ignore lilac concepts, they're already part of the source code.
     if concept.namespace == 'lilac':
       continue
-    spaces_concept_output_dir = get_concept_output_dir(spaces_data_dir, concept.namespace,
-                                                       concept.name)
-    persistent_output_dir = get_concept_output_dir(get_project_dir(), concept.namespace,
-                                                   concept.name)
+    spaces_concept_output_dir = get_concept_output_dir(
+      spaces_data_dir, concept.namespace, concept.name
+    )
+    persistent_output_dir = get_concept_output_dir(
+      get_project_dir(), concept.namespace, concept.name
+    )
     shutil.rmtree(persistent_output_dir, ignore_errors=True)
     shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
     shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)

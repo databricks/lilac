@@ -5,9 +5,15 @@ import pathlib
 from typing import Optional, Union
 
 import yaml
-from pydantic import BaseModel, ConfigDict
+from pydantic import (
+  BaseModel,
+  ConfigDict,
+  SerializeAsAny,
+  ValidationError,
+  field_serializer,
+  field_validator,
+)
 from pydantic import Field as PydanticField
-from pydantic import SerializeAsAny, ValidationError, field_serializer, field_validator
 
 from .embeddings.embedding import EMBEDDING_SORT_PRIORITIES
 from .schema import Path, PathTuple, normalize_path
@@ -28,6 +34,7 @@ def _serializable_path(path: PathTuple) -> Union[str, list]:
 
 class SignalConfig(BaseModel):
   """Configures a signal on a source path."""
+
   path: PathTuple
   signal: SerializeAsAny[Signal]
   model_config = ConfigDict(extra='forbid')
@@ -52,6 +59,7 @@ class SignalConfig(BaseModel):
 
 class EmbeddingConfig(BaseModel):
   """Configures an embedding on a source path."""
+
   path: PathTuple
   embedding: str
   model_config = ConfigDict(extra='forbid')
@@ -77,6 +85,7 @@ class EmbeddingConfig(BaseModel):
 
 class DatasetUISettings(BaseModel):
   """The UI persistent settings for a dataset."""
+
   media_paths: list[PathTuple] = []
   markdown_paths: list[PathTuple] = []
   model_config = ConfigDict(extra='forbid')
@@ -99,14 +108,16 @@ class DatasetUISettings(BaseModel):
     return [_serializable_path(path) for path in media_paths]
 
   @field_serializer('markdown_paths')
-  def serialize_markdown_paths(self,
-                               markdown_paths: list[PathTuple]) -> list[Union[str, list[str]]]:
+  def serialize_markdown_paths(
+    self, markdown_paths: list[PathTuple]
+  ) -> list[Union[str, list[str]]]:
     """Serialize markdown paths."""
     return [_serializable_path(path) for path in markdown_paths]
 
 
 class DatasetSettings(BaseModel):
   """The persistent settings for a dataset."""
+
   ui: Optional[DatasetUISettings] = None
   preferred_embedding: Optional[str] = DEFAULT_EMBEDDING
   model_config = ConfigDict(extra='forbid')
@@ -114,23 +125,28 @@ class DatasetSettings(BaseModel):
 
 class DatasetConfig(BaseModel):
   """Configures a dataset with a source and transformations."""
+
   namespace: str = PydanticField(description='The namespace of the dataset.')
   name: str = PydanticField(description='The name of the dataset.')
   tags: list[str] = PydanticField(
-    description='A list of tags for the dataset to organize in the UI.', default=[])
+    description='A list of tags for the dataset to organize in the UI.', default=[]
+  )
 
   # The source configuration.
   source: SerializeAsAny[Source] = PydanticField(
-    description=
-    'The source configuration. This config determines where data is loaded from for the dataset.')
+    description='The source configuration. This config determines where data is loaded '
+    'from for the dataset.'
+  )
 
   # Model configuration: embeddings and signals on paths.
   embeddings: list[EmbeddingConfig] = PydanticField(
-    description='The embedding configs for the dataset.', default=[])
+    description='The embedding configs for the dataset.', default=[]
+  )
 
   # When defined, uses this list of signals instead of running all signals.
   signals: list[SignalConfig] = PydanticField(
-    description='The signal configs for the dataset', default=[])
+    description='The signal configs for the dataset', default=[]
+  )
 
   # Dataset settings, default embeddings and UI settings like media paths.
   settings: Optional[DatasetSettings] = PydanticField(description='Dataset settings.', default=None)
@@ -145,17 +161,22 @@ class DatasetConfig(BaseModel):
 
 class Config(BaseModel):
   """Configures a set of datasets for a lilac instance."""
+
   datasets: list[DatasetConfig] = PydanticField(
-    description='The configurations for the datasets in the project.', default=[])
+    description='The configurations for the datasets in the project.', default=[]
+  )
 
   # When defined, uses this list of signals to run over every dataset, over all media paths, unless
   # signals is overridden by a specific dataset.
   signals: list[Signal] = PydanticField(
-    description='The signals to run for every dataset.', default=[])
+    description='The signals to run for every dataset.', default=[]
+  )
 
   # A list of embeddings to compute the model caches for, for all concepts.
   concept_model_cache_embeddings: list[str] = PydanticField(
-    description='The set of embeddings to compute model caches for for every concept.', default=[])
+    description='The set of embeddings to compute model caches for for every concept.',
+    default=[],
+  )
   model_config = ConfigDict(extra='forbid')
 
   @field_validator('signals', mode='before')
@@ -165,8 +186,9 @@ class Config(BaseModel):
     return [resolve_signal(signal) for signal in signals]
 
 
-def get_dataset_config(config: Config, dataset_namespace: str,
-                       dataset_name: str) -> Optional[DatasetConfig]:
+def get_dataset_config(
+  config: Config, dataset_namespace: str, dataset_name: str
+) -> Optional[DatasetConfig]:
   """Returns the dataset config."""
   for dataset_config in config.datasets:
     if dataset_config.namespace == dataset_namespace and dataset_config.name == dataset_name:

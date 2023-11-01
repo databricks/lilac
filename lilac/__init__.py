@@ -33,8 +33,13 @@ register_default_vector_stores()
 set_default_dataset_cls(DatasetDuckDB)
 
 # Avoids polluting the results of dir(__package__).
-del (metadata, register_default_sources, register_default_signals, set_default_dataset_cls,
-     DatasetDuckDB)
+del (
+  metadata,
+  register_default_sources,
+  register_default_signals,
+  set_default_dataset_cls,
+  DatasetDuckDB,
+)
 
 __all__ = [
   'start_server',

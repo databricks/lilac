@@ -24,6 +24,7 @@ from .utils import DATASETS_DIR_NAME
 
 class TestSource(Source):
   """A test source."""
+
   name: ClassVar[str] = 'test_source'
 
   @override
@@ -60,7 +61,8 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   setup_mock = mocker.spy(TestSource, 'setup')
 
   output_dir, num_items = process_source(
-    tmp_path, DatasetConfig(namespace='test_namespace', name='test_dataset', source=source))
+    tmp_path, DatasetConfig(namespace='test_namespace', name='test_dataset', source=source)
+  )
 
   assert setup_mock.call_count == 1
 
@@ -71,30 +73,26 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
 
   assert source_manifest == SourceManifest(
     files=[get_parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)],
-    data_schema=schema({
-      'x': 'int64',
-      'y': 'string'
-    }),
-    source=source)
+    data_schema=schema({'x': 'int64', 'y': 'string'}),
+    source=source,
+  )
 
   items = read_items(output_dir, source_manifest.files, source_manifest.data_schema)
 
-  assert items == [{
-    ROWID: fake_uuid(b'1').hex,
-    'x': 1,
-    'y': 'ten'
-  }, {
-    ROWID: fake_uuid(b'2').hex,
-    'x': 2,
-    'y': 'twenty'
-  }]
+  assert items == [
+    {ROWID: fake_uuid(b'1').hex, 'x': 1, 'y': 'ten'},
+    {ROWID: fake_uuid(b'2').hex, 'x': 2, 'y': 'twenty'},
+  ]
 
   project_config = read_project_config(str(tmp_path))
-  assert project_config == Config(datasets=[
-    DatasetConfig(
-      namespace='test_namespace',
-      name='test_dataset',
-      source=source,
-      # 'y' is the longest path, so should be set as the default setting.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('y',)])))
-  ])
+  assert project_config == Config(
+    datasets=[
+      DatasetConfig(
+        namespace='test_namespace',
+        name='test_dataset',
+        source=source,
+        # 'y' is the longest path, so should be set as the default setting.
+        settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('y',)])),
+      )
+    ]
+  )

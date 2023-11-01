@@ -77,8 +77,9 @@ def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[o
   return input
 
 
-def _wrap_in_dicts(input: Union[object, Iterable[object]],
-                   spec: list[PathTuple]) -> Union[object, Iterable[object]]:
+def _wrap_in_dicts(
+  input: Union[object, Iterable[object]], spec: list[PathTuple]
+) -> Union[object, Iterable[object]]:
   """Wraps an object or iterable in a dict according to the spec."""
   props = spec[0] if spec else tuple()
   if len(spec) == 1:
@@ -135,9 +136,14 @@ def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema:
 
 
 def _flat_embeddings(
-  input: Union[Item, Iterable[Item]], path: PathKey = ()) -> Iterator[tuple[PathKey, list[Item]]]:
-  if (isinstance(input, list) and len(input) > 0 and isinstance(input[0], dict) and
-      EMBEDDING_KEY in input[0]):
+  input: Union[Item, Iterable[Item]], path: PathKey = ()
+) -> Iterator[tuple[PathKey, list[Item]]]:
+  if (
+    isinstance(input, list)
+    and len(input) > 0
+    and isinstance(input[0], dict)
+    and EMBEDDING_KEY in input[0]
+  ):
     yield path, input
   elif isinstance(input, dict):
     for k, v in input.items():
@@ -150,11 +156,13 @@ def _flat_embeddings(
     pass
 
 
-def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item],
-                             output_dir: str) -> None:
+def write_embeddings_to_disk(
+  vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item], output_dir: str
+) -> None:
   """Write a set of embeddings to disk."""
   path_embedding_items = (
-    _flat_embeddings(signal_item, path=(signal_item[ROWID],)) for signal_item in signal_items)
+    _flat_embeddings(signal_item, path=(signal_item[ROWID],)) for signal_item in signal_items
+  )
 
   def _get_span_vectors() -> Generator:
     nonlocal path_embedding_items
@@ -198,9 +206,14 @@ def write_embeddings_to_disk(vector_store: str, rowids: Iterable[str], signal_it
   gc.collect()
 
 
-def write_items_to_parquet(items: Iterable[Item], output_dir: str, schema: Schema,
-                           filename_prefix: str, shard_index: int,
-                           num_shards: int) -> tuple[str, int]:
+def write_items_to_parquet(
+  items: Iterable[Item],
+  output_dir: str,
+  schema: Schema,
+  filename_prefix: str,
+  shard_index: int,
+  num_shards: int,
+) -> tuple[str, int]:
   """Write a set of items to a parquet file, in columnar format."""
   schema = schema.model_copy(deep=True)
   # Add a rowid column.
@@ -248,10 +261,17 @@ def get_parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
   return f'{prefix}-{shard_index:05d}-of-{num_shards:05d}.parquet'
 
 
-def _flatten_keys(rowid: str, nested_input: Iterable, location: list[int],
-                  is_primitive_predicate: Callable[[object], bool]) -> Iterator[VectorKey]:
-  if is_primitive_predicate(nested_input) or is_primitive(nested_input) or isinstance(
-      nested_input, dict):
+def _flatten_keys(
+  rowid: str,
+  nested_input: Iterable,
+  location: list[int],
+  is_primitive_predicate: Callable[[object], bool],
+) -> Iterator[VectorKey]:
+  if (
+    is_primitive_predicate(nested_input)
+    or is_primitive(nested_input)
+    or isinstance(nested_input, dict)
+  ):
     yield (rowid, *location)
     return
 
@@ -260,9 +280,10 @@ def _flatten_keys(rowid: str, nested_input: Iterable, location: list[int],
 
 
 def flatten_keys(
-    rowids: Iterable[str],
-    nested_input: Iterable,
-    is_primitive_predicate: Callable[[object], bool] = is_primitive) -> Iterator[Optional[PathKey]]:
+  rowids: Iterable[str],
+  nested_input: Iterable,
+  is_primitive_predicate: Callable[[object], bool] = is_primitive,
+) -> Iterator[Optional[PathKey]]:
   """Flatten the rowids of a nested input."""
   for rowid, input in zip(rowids, nested_input):
     if input is None:
@@ -276,8 +297,8 @@ Tout = TypeVar('Tout')
 
 
 def sparse_to_dense_compute(
-    sparse_input: Iterator[Optional[Tin]],
-    func: Callable[[Iterable[Tin]], Iterable[Tout]]) -> Iterator[Optional[Tout]]:
+  sparse_input: Iterator[Optional[Tin]], func: Callable[[Iterable[Tin]], Iterable[Tout]]
+) -> Iterator[Optional[Tout]]:
   """Densifies the input before calling the provided `func` and sparsifies the output."""
   total_size: int = 0
 
@@ -290,7 +311,8 @@ def sparse_to_dense_compute(
 
   dense_input_with_locations = densify(sparse_input)
   dense_input_with_locations_0, dense_input_with_locations_1 = itertools.tee(
-    dense_input_with_locations, 2)
+    dense_input_with_locations, 2
+  )
   dense_input = (value for (_, value) in dense_input_with_locations_0)
 
   dense_output = iter(func(dense_input))

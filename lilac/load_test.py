@@ -24,25 +24,17 @@ from .sources.source_registry import clear_source_registry, register_source
 from .tasks import TaskManager
 from .utils import to_yaml
 
-SIMPLE_ITEMS: list[Item] = [{
-  'str': 'a',
-  'int': 1,
-  'bool': False,
-  'float': 3.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 2.0
-}, {
-  'str': 'c',
-  'int': 3,
-  'bool': True,
-  'float': 1.0
-}]
+SIMPLE_ITEMS: list[Item] = [
+  {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+  {'str': 'c', 'int': 3, 'bool': True, 'float': 1.0},
+]
 
-EMBEDDINGS: list[tuple[str, list[float]]] = [('a', [1.0, 0.0, 0.0]), ('b', [1.0, 1.0, 0.0]),
-                                             ('c', [1.0, 1.0, 0.0])]
+EMBEDDINGS: list[tuple[str, list[float]]] = [
+  ('a', [1.0, 0.0, 0.0]),
+  ('b', [1.0, 1.0, 0.0]),
+  ('c', [1.0, 1.0, 0.0]),
+]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
@@ -54,6 +46,7 @@ def task_manager() -> TaskManager:
 
 class TestSource(Source):
   """A test source."""
+
   name: ClassVar[str] = 'test_source'
 
   @override
@@ -64,9 +57,10 @@ class TestSource(Source):
         'str': field('string'),
         'int': field('int32'),
         'bool': field('boolean'),
-        'float': field('float32')
+        'float': field('float32'),
       },
-      num_items=len(SIMPLE_ITEMS))
+      num_items=len(SIMPLE_ITEMS),
+    )
 
   @override
   def process(self) -> Iterable[Item]:
@@ -76,6 +70,7 @@ class TestSource(Source):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override
@@ -121,7 +116,8 @@ def test_load_config_obj(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   init()
 
   project_config = Config(
-    datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())])
+    datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())]
+  )
 
   # Load the project config from a config object.
   load(config=project_config, task_manager=task_manager)
@@ -131,14 +127,10 @@ def test_load_config_obj(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   assert dataset.manifest() == DatasetManifest(
     namespace='namespace',
     dataset_name='test',
-    data_schema=schema({
-      'str': 'string',
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32'
-    }),
+    data_schema=schema({'str': 'string', 'int': 'int32', 'bool': 'boolean', 'float': 'float32'}),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
 
 def test_load_project_config_yml(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
@@ -149,7 +141,8 @@ def test_load_project_config_yml(tmp_path: pathlib.Path, task_manager: TaskManag
 
   # Simulate the user manually editing the project config.
   project_config = Config(
-    datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())])
+    datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())]
+  )
   project_config_yml = to_yaml(project_config.model_dump())
   config_path = os.path.join(tmp_path, PROJECT_CONFIG_FILENAME)
 
@@ -164,14 +157,10 @@ def test_load_project_config_yml(tmp_path: pathlib.Path, task_manager: TaskManag
   assert dataset.manifest() == DatasetManifest(
     namespace='namespace',
     dataset_name='test',
-    data_schema=schema({
-      'str': 'string',
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32'
-    }),
+    data_schema=schema({'str': 'string', 'int': 'int32', 'bool': 'boolean', 'float': 'float32'}),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
 
 def test_load_config_yml_outside_project(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
@@ -183,7 +172,8 @@ def test_load_config_yml_outside_project(tmp_path: pathlib.Path, task_manager: T
   set_project_dir(tmp_path)
 
   project_config = Config(
-    datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())])
+    datasets=[DatasetConfig(namespace='namespace', name='test', source=TestSource())]
+  )
 
   project_config_yml = to_yaml(project_config.model_dump())
 
@@ -198,14 +188,10 @@ def test_load_config_yml_outside_project(tmp_path: pathlib.Path, task_manager: T
   assert dataset.manifest() == DatasetManifest(
     namespace='namespace',
     dataset_name='test',
-    data_schema=schema({
-      'str': 'string',
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32'
-    }),
+    data_schema=schema({'str': 'string', 'int': 'int32', 'bool': 'boolean', 'float': 'float32'}),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
 
 def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
@@ -215,13 +201,16 @@ def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None
   init()
 
   test_signal = TestSignal()
-  project_config = Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      signals=[SignalConfig(path=('str',), signal=test_signal)])
-  ])
+  project_config = Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        signals=[SignalConfig(path=('str',), signal=test_signal)],
+      )
+    ]
+  )
 
   # Load the project config from a config object.
   load(config=project_config, task_manager=task_manager)
@@ -231,17 +220,22 @@ def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None
   assert dataset.manifest() == DatasetManifest(
     namespace='namespace',
     dataset_name='test',
-    data_schema=schema({
-      'str': field(
-        'string', fields={
-          'test_signal': field('int32', signal=test_signal.model_dump()),
-        }),
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32'
-    }),
+    data_schema=schema(
+      {
+        'str': field(
+          'string',
+          fields={
+            'test_signal': field('int32', signal=test_signal.model_dump()),
+          },
+        ),
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }
+    ),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
 
 def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
@@ -250,13 +244,16 @@ def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   # Initialize the lilac project. init() defaults to the project directory.
   init()
 
-  project_config = Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
-  ])
+  project_config = Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')],
+      )
+    ]
+  )
 
   # Load the project config from a config object.
   load(config=project_config, task_manager=task_manager)
@@ -266,24 +263,30 @@ def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   assert dataset.manifest() == DatasetManifest(
     namespace='namespace',
     dataset_name='test',
-    data_schema=schema({
-      'str': field(
-        'string',
-        fields={
-          'test_embedding': field(
-            signal=TestEmbedding().model_dump(),
-            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})]),
-        }),
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32'
-    }),
+    data_schema=schema(
+      {
+        'str': field(
+          'string',
+          fields={
+            'test_embedding': field(
+              signal=TestEmbedding().model_dump(),
+              fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+            ),
+          },
+        ),
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }
+    ),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
 
-def test_load_twice_no_overwrite(tmp_path: pathlib.Path, task_manager: TaskManager,
-                                 mocker: MockerFixture) -> None:
+def test_load_twice_no_overwrite(
+  tmp_path: pathlib.Path, task_manager: TaskManager, mocker: MockerFixture
+) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -293,14 +296,17 @@ def test_load_twice_no_overwrite(tmp_path: pathlib.Path, task_manager: TaskManag
   compute_embedding_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_embedding.__name__)
 
   test_signal = TestSignal()
-  project_config = Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      signals=[SignalConfig(path=('str',), signal=test_signal)],
-      embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
-  ])
+  project_config = Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        signals=[SignalConfig(path=('str',), signal=test_signal)],
+        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')],
+      )
+    ]
+  )
 
   # Load the project config from a config object.
   load(config=project_config, task_manager=task_manager)
@@ -321,8 +327,9 @@ def test_load_twice_no_overwrite(tmp_path: pathlib.Path, task_manager: TaskManag
   assert first_manifest == second_manifest
 
 
-def test_load_twice_overwrite(tmp_path: pathlib.Path, task_manager: TaskManager,
-                              mocker: MockerFixture) -> None:
+def test_load_twice_overwrite(
+  tmp_path: pathlib.Path, task_manager: TaskManager, mocker: MockerFixture
+) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -332,14 +339,17 @@ def test_load_twice_overwrite(tmp_path: pathlib.Path, task_manager: TaskManager,
   compute_embedding_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_embedding.__name__)
 
   test_signal = TestSignal()
-  project_config = Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      signals=[SignalConfig(path=('str',), signal=test_signal)],
-      embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
-  ])
+  project_config = Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        signals=[SignalConfig(path=('str',), signal=test_signal)],
+        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')],
+      )
+    ]
+  )
 
   # Load the project config from a config object.
   load(config=project_config, task_manager=task_manager)

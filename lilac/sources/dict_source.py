@@ -15,6 +15,7 @@ _TMP_FILENAME = 'tmp.jsonl'
 
 class DictSource(Source):
   """Loads data from an iterable of dict objects."""
+
   name: ClassVar[str] = 'dict'
 
   _items: Iterable[Item]
@@ -42,7 +43,8 @@ class DictSource(Source):
     # Register the memory filesystem to query it.
     self._con = duckdb.connect(database=':memory:')
     self._con.register_filesystem(self._fs)
-    self._con.execute(f"""
+    self._con.execute(
+      f"""
       CREATE VIEW t as (
         SELECT * FROM read_json_auto(
           'memory://{_TMP_FILENAME}',
@@ -50,7 +52,8 @@ class DictSource(Source):
           FORMAT='newline_delimited'
         )
       );
-    """)
+    """
+    )
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
     num_items = cast(tuple[int], res)[0]

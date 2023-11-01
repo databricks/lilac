@@ -56,10 +56,9 @@ class VectorStore(abc.ABC):
     """
     pass
 
-  def topk(self,
-           query: np.ndarray,
-           k: int,
-           keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
+  def topk(
+    self, query: np.ndarray, k: int, keys: Optional[Iterable[VectorKey]] = None
+  ) -> list[tuple[VectorKey, float]]:
     """Return the top k most similar vectors.
 
     Args:
@@ -109,8 +108,9 @@ class VectorDBIndex:
       pickle.dump(list(self._id_to_spans.items()), f)
     self._vector_store.save(os.path.join(base_path, self._vector_store.name))
 
-  def add(self, all_spans: list[tuple[PathKey, list[tuple[int, int]]]],
-          embeddings: np.ndarray) -> None:
+  def add(
+    self, all_spans: list[tuple[PathKey, list[tuple[int, int]]]], embeddings: np.ndarray
+  ) -> None:
     """Add the given spans and embeddings.
 
     Args:
@@ -118,8 +118,9 @@ class VectorDBIndex:
       embeddings: The embeddings to initialize the index with.
     """
     vector_keys = [(*path_key, i) for path_key, spans in all_spans for i in range(len(spans))]
-    assert len(vector_keys) == len(embeddings), (
-      f'Number of spans ({len(vector_keys)}) and embeddings ({len(embeddings)}) must match.')
+    assert len(vector_keys) == len(
+      embeddings
+    ), f'Number of spans ({len(vector_keys)}) and embeddings ({len(embeddings)}) must match.'
 
     self._id_to_spans.update(all_spans)
     for path_key, _ in all_spans:
@@ -152,14 +153,13 @@ class VectorDBIndex:
     flat_vector_keys = [key for vector_keys in all_vector_keys for key in (vector_keys or [])]
     all_vectors = self._vector_store.get(flat_vector_keys)
     for spans in all_spans:
-      vectors = all_vectors[offset:offset + len(spans)]
+      vectors = all_vectors[offset : offset + len(spans)]
       yield [{'span': span, 'vector': vector} for span, vector in zip(spans, vectors)]
       offset += len(spans)
 
-  def topk(self,
-           query: np.ndarray,
-           k: int,
-           rowids: Optional[Iterable[str]] = None) -> list[tuple[PathKey, float]]:
+  def topk(
+    self, query: np.ndarray, k: int, rowids: Optional[Iterable[str]] = None
+  ) -> list[tuple[PathKey, float]]:
     """Return the top k most similar vectors.
 
     Args:
@@ -177,15 +177,22 @@ class VectorDBIndex:
       span_keys = []
       for rowid in rowids:
         path_keys = self._rowid_to_path_keys[rowid]
-        span_keys.extend([
-          (*path_key, i) for path_key in path_keys for i in range(len(self._id_to_spans[path_key]))
-        ])
+        span_keys.extend(
+          [
+            (*path_key, i)
+            for path_key in path_keys
+            for i in range(len(self._id_to_spans[path_key]))
+          ]
+        )
       k = min(k, len(span_keys))
     span_k = k
     path_key_scores: dict[PathKey, float] = {}
     seen_rowids: dict[str, bool] = {}
-    while (len(seen_rowids) < k and span_k <= total_num_span_keys and
-           (not span_keys or span_k <= len(span_keys))):
+    while (
+      len(seen_rowids) < k
+      and span_k <= total_num_span_keys
+      and (not span_keys or span_k <= len(span_keys))
+    ):
       span_k += k
       vector_key_scores = self._vector_store.topk(query, span_k, span_keys)
       for (*path_key_list, _), score in vector_key_scores:

@@ -51,11 +51,16 @@ def setup_teardown() -> Iterable[None]:
 
 @freeze_time(TEST_TIME)
 def test_map(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'a sentence',
-  }, {
-    'text': 'b sentence',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'a sentence',
+      },
+      {
+        'text': 'b sentence',
+      },
+    ]
+  )
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -69,59 +74,60 @@ def test_map(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={
-          'test_signal': field(
-            fields={
-              'len': 'int32',
-              'firstchar': 'string'
-            }, signal={'signal_name': 'test_signal'})
-        },
-      ),
-      'output_text': field(
-        fields={'result': 'string'},
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_signal': field(
+              fields={'len': 'int32', 'firstchar': 'string'},
+              signal={'signal_name': 'test_signal'},
+            )
+          },
+        ),
+        'output_text': field(
+          fields={'result': 'string'},
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
     {
       'text': 'a sentence',
-      'text.test_signal': {
-        'firstchar': 'a',
-        'len': 10
-      },
-      'output_text': {
-        'result': 'a_10'
-      }
+      'text.test_signal': {'firstchar': 'a', 'len': 10},
+      'output_text': {'result': 'a_10'},
     },
     {
       'text': 'b sentence',
-      'text.test_signal': {
-        'firstchar': 'b',
-        'len': 10
-      },
-      'output_text': {
-        'result': 'b_10'
-      }
+      'text.test_signal': {'firstchar': 'b', 'len': 10},
+      'output_text': {'result': 'b_10'},
     },
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_map_continuation(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'id': 0,
-    'text': 'a sentence',
-  }, {
-    'id': 1,
-    'text': 'b sentence',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'id': 0,
+        'text': 'a sentence',
+      },
+      {
+        'id': 1,
+        'text': 'b sentence',
+      },
+    ]
+  )
 
   first_run = True
   map_call_ids = []
@@ -145,23 +151,15 @@ def test_map_continuation(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': 'string',
-      'id': 'int32'
-    }),
+    data_schema=schema({'text': 'string', 'id': 'int32'}),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
   # The rows should not reflect the output of the unfinished map.
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'a sentence',
-      'id': 0
-    },
-    {
-      'text': 'b sentence',
-      'id': 1
-    },
+    {'text': 'a sentence', 'id': 0},
+    {'text': 'b sentence', 'id': 1},
   ]
 
   first_run = False
@@ -174,41 +172,45 @@ def test_map_continuation(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': 'string',
-      'id': 'int32',
-      'map_id': field(
-        dtype='int64',
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
-    }),
+    data_schema=schema(
+      {
+        'text': 'string',
+        'id': 'int32',
+        'map_id': field(
+          dtype='int64',
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'a sentence',
-      'id': 0,
-      'map_id': 0
-    },
-    {
-      'text': 'b sentence',
-      'id': 1,
-      'map_id': 1
-    },
+    {'text': 'a sentence', 'id': 0, 'map_id': 0},
+    {'text': 'b sentence', 'id': 1, 'map_id': 1},
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'id': 0,
-    'text': 'a sentence',
-  }, {
-    'id': 1,
-    'text': 'b sentence',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'id': 0,
+        'text': 'a sentence',
+      },
+      {
+        'id': 1,
+        'text': 'b sentence',
+      },
+    ]
+  )
 
   first_run = True
   map_call_ids = []
@@ -239,39 +241,43 @@ def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': 'string',
-      'id': 'int32',
-      'map_id': field(
-        dtype='int64',
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
-    }),
+    data_schema=schema(
+      {
+        'text': 'string',
+        'id': 'int32',
+        'map_id': field(
+          dtype='int64',
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'a sentence',
-      'id': 0,
-      'map_id': 0
-    },
-    {
-      'text': 'b sentence',
-      'id': 1,
-      'map_id': 1
-    },
+    {'text': 'a sentence', 'id': 0, 'map_id': 0},
+    {'text': 'b sentence', 'id': 1, 'map_id': 1},
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_map_overwrite(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'a',
-  }, {
-    'text': 'b',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'a',
+      },
+      {
+        'text': 'b',
+      },
+    ]
+  )
 
   prefix = '0'
 
@@ -284,14 +290,8 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'a',
-      'map_text': '0a'
-    },
-    {
-      'text': 'b',
-      'map_text': '0b'
-    },
+    {'text': 'a', 'map_text': '0a'},
+    {'text': 'b', 'map_text': '0b'},
   ]
 
   with pytest.raises(ValueError, match=' which already exists in the dataset'):
@@ -304,36 +304,42 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': 'string',
-      'map_text': field(
-        dtype='string',
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
-    }),
+    data_schema=schema(
+      {
+        'text': 'string',
+        'map_text': field(
+          dtype='string',
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'a',
-      'map_text': '1a'
-    },
-    {
-      'text': 'b',
-      'map_text': '1b'
-    },
+    {'text': 'a', 'map_text': '1a'},
+    {'text': 'b', 'map_text': '1b'},
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'a sentence',
-  }, {
-    'text': 'b sentence',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'a sentence',
+      },
+      {
+        'text': 'b sentence',
+      },
+    ]
+  )
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -347,49 +353,47 @@ def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={
-          'test_signal': field(
-            fields={
-              'len': 'int32',
-              'firstchar': 'string'
-            }, signal={'signal_name': 'test_signal'})
-        },
-      )
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_signal': field(
+              fields={'len': 'int32', 'firstchar': 'string'},
+              signal={'signal_name': 'test_signal'},
+            )
+          },
+        )
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
     {
       'text': 'a sentence',
-      'text.test_signal': {
-        'firstchar': 'a',
-        'len': 10
-      },
+      'text.test_signal': {'firstchar': 'a', 'len': 10},
     },
     {
       'text': 'b sentence',
-      'text.test_signal': {
-        'firstchar': 'b',
-        'len': 10
-      },
+      'text.test_signal': {'firstchar': 'b', 'len': 10},
     },
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'a sentence',
-    'extra': 1
-  }, {
-    'text': 'b sentence',
-    'extra': 2,
-  }])
+  dataset = make_test_data(
+    [
+      {'text': 'a sentence', 'extra': 1},
+      {
+        'text': 'b sentence',
+        'extra': 2,
+      },
+    ]
+  )
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -403,65 +407,67 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
     _map_fn,
     output_path='output_text',
     input_paths=[('text',), ('text', 'test_signal')],
-    combine_columns=False)
+    combine_columns=False,
+  )
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={
-          'test_signal': field(
-            fields={
-              'len': 'int32',
-              'firstchar': 'string'
-            }, signal={'signal_name': 'test_signal'})
-        },
-      ),
-      'extra': 'int32',
-      'output_text': field(
-        fields={'result': 'string'},
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_signal': field(
+              fields={'len': 'int32', 'firstchar': 'string'},
+              signal={'signal_name': 'test_signal'},
+            )
+          },
+        ),
+        'extra': 'int32',
+        'output_text': field(
+          fields={'result': 'string'},
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
     {
       'text': 'a sentence',
       'extra': 1,
-      'text.test_signal': {
-        'firstchar': 'a',
-        'len': 10
-      },
-      'output_text': {
-        'result': 'a_10'
-      }
+      'text.test_signal': {'firstchar': 'a', 'len': 10},
+      'output_text': {'result': 'a_10'},
     },
     {
       'text': 'b sentence',
       'extra': 2,
-      'text.test_signal': {
-        'firstchar': 'b',
-        'len': 10
-      },
-      'output_text': {
-        'result': 'b_10'
-      }
+      'text.test_signal': {'firstchar': 'b', 'len': 10},
+      'output_text': {'result': 'b_10'},
     },
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_map_chained(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'a sentence',
-  }, {
-    'text': 'b sentence',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'a sentence',
+      },
+      {
+        'text': 'b sentence',
+      },
+    ]
+  )
 
   def _split_fn(row: Item) -> Item:
     return row['text'].split(' ')
@@ -475,45 +481,51 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {
-      'text': 'a sentence',
-      'splits': ['a', 'sentence'],
-      'rearrange': 'sentence a'
-    },
-    {
-      'text': 'b sentence',
-      'splits': ['b', 'sentence'],
-      'rearrange': 'sentence b'
-    },
+    {'text': 'a sentence', 'splits': ['a', 'sentence'], 'rearrange': 'sentence a'},
+    {'text': 'b sentence', 'splits': ['b', 'sentence'], 'rearrange': 'sentence b'},
   ]
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field('string'),
-      'splits': field(
-        fields=['string'],
-        map=MapInfo(
-          fn_name='_split_fn', fn_source=inspect.getsource(_split_fn), date_created=TEST_TIME)),
-      'rearrange': field(
-        'string',
-        map=MapInfo(
-          fn_name='_rearrange_fn',
-          fn_source=inspect.getsource(_rearrange_fn),
-          date_created=TEST_TIME)),
-    }),
+    data_schema=schema(
+      {
+        'text': field('string'),
+        'splits': field(
+          fields=['string'],
+          map=MapInfo(
+            fn_name='_split_fn',
+            fn_source=inspect.getsource(_split_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+        'rearrange': field(
+          'string',
+          map=MapInfo(
+            fn_name='_rearrange_fn',
+            fn_source=inspect.getsource(_rearrange_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
 
 @freeze_time(TEST_TIME)
 def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'a sentence',
-  }, {
-    'text': 'b sentence',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'a sentence',
+      },
+      {
+        'text': 'b sentence',
+      },
+    ]
+  )
 
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
@@ -528,57 +540,58 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={
-          'test_signal': field(
-            fields={
-              'len': 'int32',
-              'firstchar': 'string'
-            }, signal={'signal_name': 'test_signal'})
-        },
-      ),
-      'output_text': field(
-        fields={'result': 'string'},
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME))
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_signal': field(
+              fields={'len': 'int32', 'firstchar': 'string'},
+              signal={'signal_name': 'test_signal'},
+            )
+          },
+        ),
+        'output_text': field(
+          fields={'result': 'string'},
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
     {
       'text': 'a sentence',
-      'text.test_signal': {
-        'firstchar': 'a',
-        'len': 10
-      },
-      'output_text': {
-        'result': 'a_10'
-      }
+      'text.test_signal': {'firstchar': 'a', 'len': 10},
+      'output_text': {'result': 'a_10'},
     },
     {
       'text': 'b sentence',
-      'text.test_signal': {
-        'firstchar': 'b',
-        'len': 10
-      },
-      'output_text': {
-        'result': 'b_10'
-      }
+      'text.test_signal': {'firstchar': 'b', 'len': 10},
+      'output_text': {'result': 'b_10'},
     },
   ]
 
 
 @freeze_time(TEST_TIME)
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'abcd',
-  }, {
-    'text': 'efghi',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'abcd',
+      },
+      {
+        'text': 'efghi',
+      },
+    ]
+  )
 
   def _map_fn(row: Item) -> Item:
     return row['text'] + ' ' + row['text']
@@ -592,40 +605,40 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': 'string',
-      'double': field(
-        'string',
-        fields={
-          'test_signal': field(
-            fields={
-              'len': 'int32',
-              'firstchar': 'string'
-            }, signal={'signal_name': 'test_signal'})
-        },
-        map=MapInfo(
-          fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME)),
-    }),
+    data_schema=schema(
+      {
+        'text': 'string',
+        'double': field(
+          'string',
+          fields={
+            'test_signal': field(
+              fields={'len': 'int32', 'firstchar': 'string'},
+              signal={'signal_name': 'test_signal'},
+            )
+          },
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
     {
       'text': 'abcd',
       'double': 'abcd abcd',
-      'double.test_signal': {
-        'firstchar': 'a',
-        'len': 9
-      },
+      'double.test_signal': {'firstchar': 'a', 'len': 9},
     },
     {
       'text': 'efghi',
       'double': 'efghi efghi',
-      'double.test_signal': {
-        'firstchar': 'e',
-        'len': 11
-      },
+      'double.test_signal': {'firstchar': 'e', 'len': 11},
     },
   ]
 
@@ -634,31 +647,36 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {
       'text': 'abcd',
-      'double': enriched_item('abcd abcd', {
-        signal.key(): {
-          'firstchar': 'a',
-          'len': 9
+      'double': enriched_item(
+        'abcd abcd',
+        {
+          signal.key(): {'firstchar': 'a', 'len': 9},
         },
-      }),
+      ),
     },
     {
       'text': 'efghi',
-      'double': enriched_item('efghi efghi', {
-        signal.key(): {
-          'firstchar': 'e',
-          'len': 11
+      'double': enriched_item(
+        'efghi efghi',
+        {
+          signal.key(): {'firstchar': 'e', 'len': 11},
         },
-      }),
+      ),
     },
   ]
 
 
 def test_map_non_root_output_errors(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'abcd',
-  }, {
-    'text': 'efghi',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'abcd',
+      },
+      {
+        'text': 'efghi',
+      },
+    ]
+  )
 
   def _map_fn(row: Item) -> Item:
     return row['text'] + ' ' + row['text']

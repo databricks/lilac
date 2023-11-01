@@ -19,15 +19,16 @@ _CACHED_DATASETS: dict[str, Dataset] = {}
 _db_lock = threading.Lock()
 
 
-def _dataset_cache_key(namespace: str, dataset_name: str, project_dir: Union[str,
-                                                                             pathlib.Path]) -> str:
+def _dataset_cache_key(
+  namespace: str, dataset_name: str, project_dir: Union[str, pathlib.Path]
+) -> str:
   """Get the cache key for a dataset."""
   return f'{os.path.abspath(project_dir)}/{namespace}/{dataset_name}'
 
 
-def get_dataset(namespace: str,
-                dataset_name: str,
-                project_dir: Optional[Union[str, pathlib.Path]] = None) -> Dataset:
+def get_dataset(
+  namespace: str, dataset_name: str, project_dir: Optional[Union[str, pathlib.Path]] = None
+) -> Dataset:
   """Get the dataset instance."""
   if not _DEFAULT_DATASET_CLS:
     raise ValueError('Default dataset class not set.')
@@ -40,13 +41,14 @@ def get_dataset(namespace: str,
   with _db_lock:
     if cache_key not in _CACHED_DATASETS or inside_test:
       _CACHED_DATASETS[cache_key] = _DEFAULT_DATASET_CLS(
-        namespace=namespace, dataset_name=dataset_name, project_dir=project_dir)
+        namespace=namespace, dataset_name=dataset_name, project_dir=project_dir
+      )
     return _CACHED_DATASETS[cache_key]
 
 
-def remove_dataset_from_cache(namespace: str,
-                              dataset_name: str,
-                              project_dir: Optional[Union[str, pathlib.Path]] = None) -> None:
+def remove_dataset_from_cache(
+  namespace: str, dataset_name: str, project_dir: Optional[Union[str, pathlib.Path]] = None
+) -> None:
   """Remove the dataset from the db manager cache."""
   project_dir = project_dir or get_project_dir()
 
@@ -58,6 +60,7 @@ def remove_dataset_from_cache(namespace: str,
 
 class DatasetInfo(BaseModel):
   """Information about a dataset."""
+
   namespace: str
   dataset_name: str
   description: Optional[str] = None

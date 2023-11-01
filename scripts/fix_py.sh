@@ -4,10 +4,7 @@
 set -e
 
 echo "Fixing python with ruff..."
+# ruff --fix fixes lint issues.
 poetry run ruff --fix lilac/
-
-echo "Fixing python imports with isort..."
-poetry run isort lilac/
-
-echo "Fixing python formatting with yapf..."
-poetry run yapf -i -p -r lilac/
+# ruff format formats code, organizes imports, etc.
+poetry run ruff format lilac/

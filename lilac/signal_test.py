@@ -38,6 +38,7 @@ class TestSignal(Signal):
 
 class TestTextEmbedding(TextEmbeddingSignal):
   """A test text embedding."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override

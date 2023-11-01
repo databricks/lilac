@@ -12,7 +12,8 @@ def test_draft_examples_main() -> None:
       '0': Example(id='0', label=True, text='hello'),
       '1': Example(id='1', label=False, text='world'),
     },
-    version=0)
+    version=0,
+  )
 
   assert draft_examples(concept, DRAFT_MAIN) == {
     '0': Example(id='0', label=True, text='hello'),
@@ -33,7 +34,8 @@ def test_draft_examples_simple_draft() -> None:
       '4': Example(id='4', label=True, text='hello draft 2', draft='draft2'),
       '5': Example(id='5', label=False, text='world draft 2', draft='draft2'),
     },
-    version=0)
+    version=0,
+  )
 
   assert draft_examples(concept, DRAFT_MAIN) == {
     '0': Example(id='0', label=True, text='hello'),
@@ -67,7 +69,8 @@ def test_draft_examples_draft_dedupe() -> None:
       '2': Example(id='2', label=False, text='hello', draft='draft'),
       '3': Example(id='3', label=False, text='world draft', draft='draft'),
     },
-    version=0)
+    version=0,
+  )
 
   assert draft_examples(concept, DRAFT_MAIN) == {
     '0': Example(id='0', label=True, text='hello'),

@@ -152,12 +152,13 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   'greater': '>',
   'greater_equal': '>=',
   'less': '<',
-  'less_equal': '<='
+  'less_equal': '<=',
 }
 
 
 class DuckDBSearchUDF(BaseModel):
   """The transformation of searches to column UDFs."""
+
   udf: Column
   search_path: PathTuple
   output_path: PathTuple
@@ -166,6 +167,7 @@ class DuckDBSearchUDF(BaseModel):
 
 class DuckDBSearchUDFs(BaseModel):
   """The transformation of searches to column UDFs with sorts."""
+
   udfs: list[Column]
   output_paths: list[PathTuple]
   sorts: list[tuple[PathTuple, SortOrder]]
@@ -173,6 +175,7 @@ class DuckDBSearchUDFs(BaseModel):
 
 class SignalManifest(BaseModel):
   """The manifest that describes a signal computation including schema and parquet files."""
+
   # List of a parquet filepaths storing the data. The paths are relative to the manifest.
   files: list[str]
 
@@ -200,6 +203,7 @@ class SignalManifest(BaseModel):
 
 class MapManifest(BaseModel):
   """The manifest that describes a signal computation including schema and parquet files."""
+
   # List of a parquet filepaths storing the data. The paths are relative to the manifest.
   files: list[str]
 
@@ -231,11 +235,13 @@ class DuckDBMapOutput:
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
-  def __init__(self,
-               namespace: str,
-               dataset_name: str,
-               vector_store: str = 'hnsw',
-               project_dir: Optional[Union[str, pathlib.Path]] = None):
+  def __init__(
+    self,
+    namespace: str,
+    dataset_name: str,
+    vector_store: str = 'hnsw',
+    project_dir: Optional[Union[str, pathlib.Path]] = None,
+  ):
     super().__init__(namespace, dataset_name, project_dir)
     self.dataset_path = get_dataset_output_dir(self.project_dir, namespace, dataset_name)
 
@@ -279,8 +285,9 @@ class DatasetDuckDB(Dataset):
     shutil.rmtree(self.dataset_path, ignore_errors=True)
     delete_project_dataset_config(self.namespace, self.dataset_name, self.project_dir)
 
-  def _create_view(self, view_name: str, files: list[str], type: Literal['parquet',
-                                                                         'sqlite']) -> None:
+  def _create_view(
+    self, view_name: str, files: list[str], type: Literal['parquet', 'sqlite']
+  ) -> None:
     inner_select: str
     if type == 'parquet':
       inner_select = f'SELECT * FROM read_parquet({files})'
@@ -293,9 +300,11 @@ class DatasetDuckDB(Dataset):
     else:
       raise ValueError(f'Unknown type: {type}')
 
-    self.con.execute(f"""
+    self.con.execute(
+      f"""
       CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS ({inner_select});
-    """)
+    """
+    )
 
   # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
   # the results are invalidated.
@@ -308,8 +317,10 @@ class DatasetDuckDB(Dataset):
     self._map_manifests = []
     # Make a joined view of all the column groups.
     self._create_view(
-      SOURCE_VIEW_NAME, [os.path.join(self.dataset_path, f) for f in self._source_manifest.files],
-      type='parquet')
+      SOURCE_VIEW_NAME,
+      [os.path.join(self.dataset_path, f) for f in self._source_manifest.files],
+      type='parquet',
+    )
 
     # Add the signal column groups.
     for root, _, files in os.walk(self.dataset_path):
@@ -322,7 +333,7 @@ class DatasetDuckDB(Dataset):
           if signal_files:
             self._create_view(signal_manifest.parquet_id, signal_files, type='parquet')
         elif file.endswith(LABELS_SQLITE_SUFFIX):
-          label_name = file[0:-len(LABELS_SQLITE_SUFFIX)]
+          label_name = file[0 : -len(LABELS_SQLITE_SUFFIX)]
           self._create_view(label_name, [os.path.join(root, file)], type='sqlite')
           # This mirrors the structure in DuckDBDatasetLabel.
           self._label_schemas[label_name] = Schema(
@@ -332,8 +343,10 @@ class DatasetDuckDB(Dataset):
                   'label': Field(dtype=DataType.STRING),
                   'created': Field(dtype=DataType.TIMESTAMP),
                 },
-                label=label_name)
-            })
+                label=label_name,
+              )
+            }
+          )
         elif file.endswith(MAP_MANIFEST_SUFFIX):
           with open_file(os.path.join(root, file)) as f:
             map_manifest = MapManifest.model_validate_json(f.read())
@@ -343,9 +356,10 @@ class DatasetDuckDB(Dataset):
             self._map_manifests.append(map_manifest)
 
     merged_schema = merge_schemas(
-      [self._source_manifest.data_schema] +
-      [m.data_schema for m in self._signal_manifests + self._map_manifests] +
-      list(self._label_schemas.values()))
+      [self._source_manifest.data_schema]
+      + [m.data_schema for m in self._signal_manifests + self._map_manifests]
+      + list(self._label_schemas.values())
+    )
 
     # The logic below generates the following example query:
     # CREATE OR REPLACE VIEW t AS (
@@ -357,14 +371,18 @@ class DatasetDuckDB(Dataset):
     # );
     # NOTE: "root_column" for each signal is defined as the top-level column.
     signal_column_selects = [
-      (f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-       f'AS {_escape_col_name(manifest.parquet_id)}')
+      (
+        f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
+        f'AS {_escape_col_name(manifest.parquet_id)}'
+      )
       for manifest in self._signal_manifests
       if manifest.files
     ]
     map_column_selects = [
-      (f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-       f'AS {_escape_col_name(manifest.parquet_id)}')
+      (
+        f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
+        f'AS {_escape_col_name(manifest.parquet_id)}'
+      )
       for manifest in self._map_manifests
       if manifest.files
     ]
@@ -373,15 +391,18 @@ class DatasetDuckDB(Dataset):
       col_name = _escape_col_name(label_name)
       # We use a case here because labels are sparse and we don't want to return an object at all
       # when there is no label.
-      label_column_selects.append(f"""
+      label_column_selects.append(
+        f"""
         (CASE WHEN {col_name}.{SQLITE_LABEL_COLNAME} IS NULL THEN NULL ELSE {{
           {SQLITE_LABEL_COLNAME}: {col_name}.{SQLITE_LABEL_COLNAME},
           {SQLITE_CREATED_COLNAME}: {col_name}.{SQLITE_CREATED_COLNAME}
         }} END) as {col_name}
-      """)
+      """
+      )
 
-    select_sql = ', '.join([f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + map_column_selects +
-                           label_column_selects)
+    select_sql = ', '.join(
+      [f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + map_column_selects + label_column_selects
+    )
 
     # Get parquet ids for signals, maps, and labels.
     parquet_ids = [
@@ -390,8 +411,9 @@ class DatasetDuckDB(Dataset):
       if manifest.files
     ] + list(self._label_schemas.keys())
     join_sql = ' '.join(
-      [SOURCE_VIEW_NAME] +
-      [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids])
+      [SOURCE_VIEW_NAME]
+      + [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
+    )
     view_or_table = 'TABLE'
     use_views = env('DUCKDB_USE_VIEWS', 0) or 0
     if int(use_views):
@@ -410,7 +432,8 @@ class DatasetDuckDB(Dataset):
       dataset_name=self.dataset_name,
       data_schema=merged_schema,
       num_items=num_items,
-      source=self._source_manifest.source)
+      source=self._source_manifest.source,
+    )
 
   @override
   def manifest(self) -> DatasetManifest:
@@ -435,8 +458,11 @@ class DatasetDuckDB(Dataset):
         return self._vector_indices[index_key]
 
       manifests = [
-        m for m in self._signal_manifests if schema_contains_path(m.data_schema, path) and
-        m.vector_store and m.signal.name == embedding
+        m
+        for m in self._signal_manifests
+        if schema_contains_path(m.data_schema, path)
+        and m.vector_store
+        and m.signal.name == embedding
       ]
       if not manifests:
         raise ValueError(f'No embedding found for path {path}.')
@@ -444,31 +470,39 @@ class DatasetDuckDB(Dataset):
         raise ValueError(f'Multiple embeddings found for path {path}. Got: {manifests}')
       manifest = manifests[0]
       if not manifest.vector_store:
-        raise ValueError(f'Signal manifest for path {path} is not an embedding. '
-                         f'Got signal manifest: {manifest}')
+        raise ValueError(
+          f'Signal manifest for path {path} is not an embedding. '
+          f'Got signal manifest: {manifest}'
+        )
 
-      base_path = os.path.join(self.dataset_path, _signal_dir(manifest.enriched_path),
-                               manifest.signal.name)
+      base_path = os.path.join(
+        self.dataset_path, _signal_dir(manifest.enriched_path), manifest.signal.name
+      )
       path_id = f'{self.namespace}/{self.dataset_name}:{path}'
-      with DebugTimer(f'Loading vector store "{manifest.vector_store}" for {path_id}'
-                      f' with embedding "{embedding}"'):
+      with DebugTimer(
+        f'Loading vector store "{manifest.vector_store}" for {path_id}'
+        f' with embedding "{embedding}"'
+      ):
         vector_index = VectorDBIndex(manifest.vector_store)
         vector_index.load(base_path)
       # Cache the vector index.
       self._vector_indices[index_key] = vector_index
       return vector_index
 
-  def _select_iterable_values(self, path: PathTuple,
-                              data_schema: Schema) -> Iterable[tuple[str, RichData]]:
+  def _select_iterable_values(
+    self, path: PathTuple, data_schema: Schema
+  ) -> Iterable[tuple[str, RichData]]:
     # Fetch the data from DuckDB.
     con = self.con.cursor()
 
     duckdb_path = self._leaf_path_to_duckdb_path(path, data_schema)
 
     sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=False)
-    result = con.execute(f"""
+    result = con.execute(
+      f"""
       SELECT {ROWID}, {sql} as values FROM t
-    """)
+    """
+    )
 
     while True:
       df_chunk = result.fetch_df_chunk()
@@ -478,8 +512,9 @@ class DatasetDuckDB(Dataset):
       values = df_chunk['values'].tolist()
       yield from zip(row_ids, values)
 
-  def _compute_signal_items(self, signal: Signal, path: Path,
-                            data_schema: Schema) -> Iterable[Item]:
+  def _compute_signal_items(
+    self, signal: Signal, path: Path, data_schema: Schema
+  ) -> Iterable[Item]:
     source_path = normalize_path(path)
 
     source_values = self._select_iterable_values(source_path, data_schema)
@@ -497,11 +532,13 @@ class DatasetDuckDB(Dataset):
       vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
       flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
       signal_out = sparse_to_dense_compute(
-        iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
+        iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
+      )
     else:
       flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-      signal_out = sparse_to_dense_compute(flat_input,
-                                           lambda x: signal.compute(cast(Iterable[RichData], x)))
+      signal_out = sparse_to_dense_compute(
+        flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
+      )
 
     nested_out = deep_unflatten(signal_out, input_values_1)
 
@@ -515,22 +552,27 @@ class DatasetDuckDB(Dataset):
       for (rowid, _), item in zip(inputs_1, enriched_signal_items):
         yield {**item, ROWID: rowid}
     except Exception as e:
-      raise ValueError('The signal generated a different number of values than was input. '
-                       'Please yield `None` in signals when there is no value.') from e
+      raise ValueError(
+        'The signal generated a different number of values than was input. '
+        'Please yield `None` in signals when there is no value.'
+      ) from e
 
   @override
-  def compute_signal(self,
-                     signal: Signal,
-                     path: Path,
-                     task_step_id: Optional[TaskStepId] = None) -> None:
+  def compute_signal(
+    self, signal: Signal, path: Path, task_step_id: Optional[TaskStepId] = None
+  ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
       return self.compute_embedding(signal.name, path, task_step_id)
 
     input_path = normalize_path(path)
 
     # Update the project config before computing the signal.
-    add_project_signal_config(self.namespace, self.dataset_name,
-                              SignalConfig(path=input_path, signal=signal), self.project_dir)
+    add_project_signal_config(
+      self.namespace,
+      self.dataset_name,
+      SignalConfig(path=input_path, signal=signal),
+      self.project_dir,
+    )
 
     manifest = self.manifest()
     field = manifest.data_schema.get_field(input_path)
@@ -566,7 +608,8 @@ class DatasetDuckDB(Dataset):
         output_items,
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
-        step_description=f'Computing signal {signal} over {input_path}')
+        step_description=f'Computing signal {signal} over {input_path}',
+      )
 
     parquet_filename, _ = write_items_to_parquet(
       items=output_items,
@@ -574,7 +617,8 @@ class DatasetDuckDB(Dataset):
       schema=signal_schema,
       filename_prefix='data',
       shard_index=0,
-      num_shards=1)
+      num_shards=1,
+    )
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],
@@ -582,21 +626,24 @@ class DatasetDuckDB(Dataset):
       signal=signal,
       enriched_path=input_path,
       parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
-      py_version=metadata.version('lilac'))
+      py_version=metadata.version('lilac'),
+    )
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
     log(f'Wrote signal output to {output_dir}')
 
   @override
-  def compute_embedding(self,
-                        embedding: str,
-                        path: Path,
-                        task_step_id: Optional[TaskStepId] = None) -> None:
+  def compute_embedding(
+    self, embedding: str, path: Path, task_step_id: Optional[TaskStepId] = None
+  ) -> None:
     source_path = normalize_path(path)
-    add_project_embedding_config(self.namespace, self.dataset_name,
-                                 EmbeddingConfig(path=source_path, embedding=embedding),
-                                 self.project_dir)
+    add_project_embedding_config(
+      self.namespace,
+      self.dataset_name,
+      EmbeddingConfig(path=source_path, embedding=embedding),
+      self.project_dir,
+    )
     manifest = self.manifest()
     field = manifest.data_schema.get_field(source_path)
     if field.dtype != DataType.STRING:
@@ -624,13 +671,15 @@ class DatasetDuckDB(Dataset):
         output_items,
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
-        step_description=f'Computing embedding {signal} over {source_path}')
+        step_description=f'Computing embedding {signal} over {source_path}',
+      )
 
     write_embeddings_to_disk(
       vector_store=self.vector_store,
       rowids=row_ids,
       signal_items=output_items,
-      output_dir=output_dir)
+      output_dir=output_dir,
+    )
 
     gc.collect()
 
@@ -650,7 +699,8 @@ class DatasetDuckDB(Dataset):
       enriched_path=source_path,
       parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
       vector_store=self.vector_store,
-      py_version=metadata.version('lilac'))
+      py_version=metadata.version('lilac'),
+    )
 
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
@@ -671,15 +721,22 @@ class DatasetDuckDB(Dataset):
     if signal is None:
       raise ValueError(f'{signal_path} is not a signal.')
 
-    delete_project_signal_config(self.namespace, self.dataset_name,
-                                 SignalConfig(path=source_path, signal=resolve_signal(signal)),
-                                 self.project_dir)
+    delete_project_signal_config(
+      self.namespace,
+      self.dataset_name,
+      SignalConfig(path=source_path, signal=resolve_signal(signal)),
+      self.project_dir,
+    )
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(signal_path))
     shutil.rmtree(output_dir, ignore_errors=True)
 
-  def _validate_filters(self, filters: Sequence[Filter], col_aliases: dict[str, PathTuple],
-                        manifest: DatasetManifest) -> None:
+  def _validate_filters(
+    self,
+    filters: Sequence[Filter],
+    col_aliases: dict[str, PathTuple],
+    manifest: DatasetManifest,
+  ) -> None:
     for filter in filters:
       if filter.path[0] in col_aliases:
         # This is a filter on a column alias, which is always allowed.
@@ -695,16 +752,20 @@ class DatasetDuckDB(Dataset):
           continue
         if current_field.fields:
           if path_part not in current_field.fields:
-            raise ValueError(f'Unable to filter on path {filter.path}. '
-                             f'Path part "{path_part}" not found in the dataset.')
+            raise ValueError(
+              f'Unable to filter on path {filter.path}. '
+              f'Path part "{path_part}" not found in the dataset.'
+            )
           current_field = current_field.fields[str(path_part)]
           continue
         elif current_field.repeated_field:
           current_field = current_field.repeated_field
           continue
         else:
-          raise ValueError(f'Unable to filter on path {filter.path}. '
-                           f'Path part "{path_part}" is not defined on a primitive value.')
+          raise ValueError(
+            f'Unable to filter on path {filter.path}. '
+            f'Path part "{path_part}" is not defined on a primitive value.'
+          )
 
       while current_field.repeated_field:
         current_field = current_field.repeated_field
@@ -720,14 +781,17 @@ class DatasetDuckDB(Dataset):
       # Signal transforms must operate on a leaf field.
       leaf = source_schema.leafs.get(path)
       if not leaf or not leaf.dtype:
-        raise ValueError(f'Leaf "{path}" not found in dataset. '
-                         'Signal transforms must operate on a leaf field.')
+        raise ValueError(
+          f'Leaf "{path}" not found in dataset. ' 'Signal transforms must operate on a leaf field.'
+        )
 
       # Signal transforms must have the same dtype as the leaf field.
       signal = cast(Signal, col.signal_udf)
       if not signal_type_supports_dtype(signal.input_type, leaf.dtype):
-        raise ValueError(f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
-                         f'by "{signal.key()}" with signal input type "{signal.input_type}".')
+        raise ValueError(
+          f'Leaf "{path}" has dtype "{leaf.dtype}" which is not supported '
+          f'by "{signal.key()}" with signal input type "{signal.input_type}".'
+        )
 
   def _validate_selection(self, columns: Sequence[Column], select_schema: Schema) -> None:
     # Validate all the columns and make sure they exist in the `select_schema`.
@@ -743,24 +807,31 @@ class DatasetDuckDB(Dataset):
           continue
         if current_field.fields:
           if path_part not in current_field.fields:
-            raise ValueError(f'Unable to select path {path}. '
-                             f'Path part "{path_part}" not found in the dataset.')
+            raise ValueError(
+              f'Unable to select path {path}. ' f'Path part "{path_part}" not found in the dataset.'
+            )
           current_field = current_field.fields[path_part]
           continue
         elif current_field.repeated_field:
           if path_part.isdigit():
-            raise ValueError(f'Unable to select path {path}. Selecting a specific index of '
-                             'a repeated field is currently not supported.')
+            raise ValueError(
+              f'Unable to select path {path}. Selecting a specific index of '
+              'a repeated field is currently not supported.'
+            )
           if path_part != PATH_WILDCARD:
-            raise ValueError(f'Unable to select path {path}. '
-                             f'Path part "{path_part}" should be a wildcard.')
+            raise ValueError(
+              f'Unable to select path {path}. ' f'Path part "{path_part}" should be a wildcard.'
+            )
           current_field = current_field.repeated_field
         elif not current_field.dtype:
-          raise ValueError(f'Unable to select path {path}. '
-                           f'Path part "{path_part}" is not defined on a primitive value.')
+          raise ValueError(
+            f'Unable to select path {path}. '
+            f'Path part "{path_part}" is not defined on a primitive value.'
+          )
 
-  def _validate_columns(self, columns: Sequence[Column], source_schema: Schema,
-                        select_schema: Schema) -> None:
+  def _validate_columns(
+    self, columns: Sequence[Column], source_schema: Schema, select_schema: Schema
+  ) -> None:
     udf_cols = [col for col in columns if col.signal_udf]
     self._validate_udfs(udf_cols, source_schema)
     self._validate_selection(columns, select_schema)
@@ -776,21 +847,27 @@ class DatasetDuckDB(Dataset):
         continue
       if current_field.fields:
         if path_part not in current_field.fields:
-          raise ValueError(f'Unable to sort by path {path}. '
-                           f'Path part "{path_part}" not found in the dataset.')
+          raise ValueError(
+            f'Unable to sort by path {path}. ' f'Path part "{path_part}" not found in the dataset.'
+          )
         current_field = current_field.fields[path_part]
         continue
       elif current_field.repeated_field:
         if path_part.isdigit():
-          raise ValueError(f'Unable to sort by path {path}. Selecting a specific index of '
-                           'a repeated field is currently not supported.')
+          raise ValueError(
+            f'Unable to sort by path {path}. Selecting a specific index of '
+            'a repeated field is currently not supported.'
+          )
         if path_part != PATH_WILDCARD:
-          raise ValueError(f'Unable to sort by path {path}. '
-                           f'Path part "{path_part}" should be a wildcard.')
+          raise ValueError(
+            f'Unable to sort by path {path}. ' f'Path part "{path_part}" should be a wildcard.'
+          )
         current_field = current_field.repeated_field
       elif not current_field.dtype:
-        raise ValueError(f'Unable to sort by path {path}. '
-                         f'Path part "{path_part}" is not defined on a primitive value.')
+        raise ValueError(
+          f'Unable to sort by path {path}. '
+          f'Path part "{path_part}" is not defined on a primitive value.'
+        )
     if not current_field.dtype:
       raise ValueError(f'Unable to sort by path {path}. The field has no value.')
 
@@ -812,7 +889,8 @@ class DatasetDuckDB(Dataset):
 
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
     inner_select = _select_sql(
-      duckdb_path, flatten=True, unnest=True, span_from=self._resolve_span(path, manifest))
+      duckdb_path, flatten=True, unnest=True, span_from=self._resolve_span(path, manifest)
+    )
 
     # Compute the average length of text fields.
     avg_text_length: Optional[int] = None
@@ -851,7 +929,8 @@ class DatasetDuckDB(Dataset):
       path=path,
       total_count=total_count,
       approx_count_distinct=approx_count_distinct,
-      avg_text_length=avg_text_length)
+      avg_text_length=avg_text_length,
+    )
 
     # Compute min/max values for ordinal leafs, without sampling the data.
     if is_ordinal(leaf.dtype):
@@ -867,13 +946,14 @@ class DatasetDuckDB(Dataset):
 
   @override
   def select_groups(
-      self,
-      leaf_path: Path,
-      filters: Optional[Sequence[FilterLike]] = None,
-      sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
-      sort_order: Optional[SortOrder] = SortOrder.DESC,
-      limit: Optional[int] = None,
-      bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None) -> SelectGroupsResult:
+    self,
+    leaf_path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None,
+  ) -> SelectGroupsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
     sort_by = sort_by or GroupsSortBy.COUNT
@@ -932,7 +1012,8 @@ class DatasetDuckDB(Dataset):
     limit_query = f'LIMIT {limit}' if limit else ''
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
     inner_select = _select_sql(
-      duckdb_path, flatten=True, unnest=True, span_from=self._resolve_span(path, manifest))
+      duckdb_path, flatten=True, unnest=True, span_from=self._resolve_span(path, manifest)
+    )
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     filter_queries = self._create_where(manifest, filters, searches=[])
@@ -975,8 +1056,10 @@ class DatasetDuckDB(Dataset):
       return None
     primary_sort_by = sort_by[0]
     udf_cols_to_sort_by = [
-      udf_col for udf_col in udf_columns if udf_col.alias == primary_sort_by[0] or
-      _path_contains(_col_destination_path(udf_col), primary_sort_by)
+      udf_col
+      for udf_col in udf_columns
+      if udf_col.alias == primary_sort_by[0]
+      or _path_contains(_col_destination_path(udf_col), primary_sort_by)
     ]
     if not udf_cols_to_sort_by:
       return None
@@ -985,8 +1068,9 @@ class DatasetDuckDB(Dataset):
       return None
     return udf_col
 
-  def _normalize_columns(self, columns: Optional[Sequence[ColumnId]], schema: Schema,
-                         combine_columns: bool) -> list[Column]:
+  def _normalize_columns(
+    self, columns: Optional[Sequence[ColumnId]], schema: Schema, combine_columns: bool
+  ) -> list[Column]:
     """Normalizes the columns to a list of `Column` objects."""
     cols = [column_from_identifier(col) for col in columns or []]
     star_in_cols = any(col.path == (PATH_WILDCARD,) for col in cols)
@@ -1004,8 +1088,12 @@ class DatasetDuckDB(Dataset):
         cols = [col for col in cols if col.path != (PATH_WILDCARD,)]
     return cols
 
-  def _merge_sorts(self, search_udfs: list[DuckDBSearchUDF], sort_by: Optional[Sequence[Path]],
-                   sort_order: Optional[SortOrder]) -> list[SortResult]:
+  def _merge_sorts(
+    self,
+    search_udfs: list[DuckDBSearchUDF],
+    sort_by: Optional[Sequence[Path]],
+    sort_order: Optional[SortOrder],
+  ) -> list[SortResult]:
     # True when the user has explicitly sorted by the alias of a search UDF (e.g. in ASC order).
     is_explicit_search_sort = False
     for sort_by_path in sort_by or []:
@@ -1034,24 +1122,27 @@ class DatasetDuckDB(Dataset):
           SortResult(
             path=udf_sort_path,
             order=sort_order or udf_sort_order,
-            search_index=len(search_udfs_with_sort) - 1)
+            search_index=len(search_udfs_with_sort) - 1,
+          )
         ]
 
     return sort_results
 
   @override
-  def select_rows(self,
-                  columns: Optional[Sequence[ColumnId]] = None,
-                  searches: Optional[Sequence[Search]] = None,
-                  filters: Optional[Sequence[FilterLike]] = None,
-                  sort_by: Optional[Sequence[Path]] = None,
-                  sort_order: Optional[SortOrder] = SortOrder.DESC,
-                  limit: Optional[int] = None,
-                  offset: Optional[int] = 0,
-                  task_step_id: Optional[TaskStepId] = None,
-                  resolve_span: bool = False,
-                  combine_columns: bool = False,
-                  user: Optional[UserInfo] = None) -> SelectRowsResult:
+  def select_rows(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
+    task_step_id: Optional[TaskStepId] = None,
+    resolve_span: bool = False,
+    combine_columns: bool = False,
+    user: Optional[UserInfo] = None,
+  ) -> SelectRowsResult:
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
     offset = offset or 0
@@ -1068,7 +1159,8 @@ class DatasetDuckDB(Dataset):
         sort_by,
         sort_order,
         searches,
-        combine_columns=True).data_schema
+        combine_columns=True,
+      ).data_schema
 
     self._validate_columns(cols, manifest.data_schema, schema)
 
@@ -1090,8 +1182,9 @@ class DatasetDuckDB(Dataset):
 
     # Decide on the exact sorting order.
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
-    sort_by = cast(list[PathTuple],
-                   [(sort.alias,) if sort.alias else sort.path for sort in sort_results])
+    sort_by = cast(
+      list[PathTuple], [(sort.alias,) if sort.alias else sort.path for sort in sort_results]
+    )
     # Choose the first sort order as we only support a single sort order for now.
     sort_order = sort_results[0].order if sort_results else None
 
@@ -1133,8 +1226,10 @@ class DatasetDuckDB(Dataset):
         vector_index = self._get_vector_db_index(topk_signal.embedding, topk_udf_col.path)
         k = (limit or 0) + offset
         path_id = f'{self.namespace}/{self.dataset_name}:{topk_udf_col.path}'
-        with DebugTimer(f'Computing topk on {path_id} with embedding "{topk_signal.embedding}" '
-                        f'and vector store "{vector_index._vector_store.name}"'):
+        with DebugTimer(
+          f'Computing topk on {path_id} with embedding "{topk_signal.embedding}" '
+          f'and vector store "{vector_index._vector_store.name}"'
+        ):
           topk = topk_signal.vector_compute_topk(k, vector_index, rowids)
         topk_rowids = list(dict.fromkeys([cast(str, rowid) for (rowid, *_), _ in topk]))
         # Update the offset to account for the number of unique rowids.
@@ -1166,9 +1261,11 @@ class DatasetDuckDB(Dataset):
 
       for parquet_id, duckdb_path in duckdb_paths:
         sql = _select_sql(
-          duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from)
+          duckdb_path, flatten=False, unnest=False, empty=empty, span_from=span_from
+        )
         temp_column_name = (
-          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}')
+          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
+        )
         select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
@@ -1177,8 +1274,10 @@ class DatasetDuckDB(Dataset):
           temp_offset_column_name = f'{temp_column_name}/offset'
           temp_offset_column_name = temp_offset_column_name.replace("'", "\\'")
           select_sqls.append(f'{sql} AS {_escape_string_literal(temp_offset_column_name)}')
-          temp_column_to_offset_column[temp_column_name] = (temp_offset_column_name,
-                                                            column.signal_udf.fields())
+          temp_column_to_offset_column[temp_column_name] = (
+            temp_offset_column_name,
+            column.signal_udf.fields(),
+          )
 
       # `select_sqls` can be empty if this column points to a path that will be created by a UDF.
       if select_sqls:
@@ -1206,8 +1305,9 @@ class DatasetDuckDB(Dataset):
       sort_sql = _select_sql(path, flatten=True, unnest=False)
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in path)
       if has_repeated_field:
-        sort_sql = (f'list_min({sort_sql})'
-                    if sort_order == SortOrder.ASC else f'list_max({sort_sql})')
+        sort_sql = (
+          f'list_min({sort_sql})' if sort_order == SortOrder.ASC else f'list_max({sort_sql})'
+        )
 
       # Separate sort columns into two groups: those that need to be sorted before and after UDFs.
       if udf_path:
@@ -1217,8 +1317,9 @@ class DatasetDuckDB(Dataset):
 
     order_query = ''
     if sort_sql_before_udf:
-      order_query = (f'ORDER BY {", ".join(sort_sql_before_udf)} '
-                     f'{cast(SortOrder, sort_order).value}')
+      order_query = (
+        f'ORDER BY {", ".join(sort_sql_before_udf)} ' f'{cast(SortOrder, sort_order).value}'
+      )
 
     limit_query = ''
     if limit:
@@ -1230,16 +1331,19 @@ class DatasetDuckDB(Dataset):
         limit_query = f'LIMIT {limit} OFFSET {offset}'
 
     if not topk_udf_col and where_query:
-      total_num_rows = cast(tuple,
-                            con.execute(f'SELECT COUNT(*) FROM t {where_query}').fetchone())[0]
+      total_num_rows = cast(tuple, con.execute(f'SELECT COUNT(*) FROM t {where_query}').fetchone())[
+        0
+      ]
 
     # Fetch the data from DuckDB.
-    df = con.execute(f"""
+    df = con.execute(
+      f"""
       SELECT {', '.join(select_queries)} FROM t
       {where_query}
       {order_query}
       {limit_query}
-    """).df()
+    """
+    ).df()
     df = _replace_nan_with_none(df)
 
     # Run UDFs on the transformed columns.
@@ -1266,27 +1370,32 @@ class DatasetDuckDB(Dataset):
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
           flat_keys = list(flatten_keys(df[ROWID], input))
           signal_out = sparse_to_dense_compute(
-            iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store))
+            iter(flat_keys),
+            lambda keys: embedding_signal.vector_compute(keys, vector_store),
+          )
           # Add progress.
           if task_step_id is not None:
             signal_out = progress(
               signal_out,
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
-              step_description=step_description)
+              step_description=step_description,
+            )
           df[signal_column] = list(deep_unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
           flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input))
           signal_out = sparse_to_dense_compute(
-            flat_input, lambda x: signal.compute(cast(Iterable[RichData], x)))
+            flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
+          )
           # Add progress.
           if task_step_id is not None:
             signal_out = progress(
               signal_out,
               task_step_id=task_step_id,
               estimated_len=num_rich_data,
-              step_description=step_description)
+              step_description=step_description,
+            )
           signal_out_list = list(signal_out)
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
@@ -1299,7 +1408,8 @@ class DatasetDuckDB(Dataset):
             raise ValueError(
               f'The signal generated {len(signal_out_list)} values but the input data had '
               f"{num_rich_data} values. This means the signal either didn't generate a "
-              '"None" for a sparse output, or generated too many items.')
+              '"None" for a sparse output, or generated too many items.'
+            )
 
           df[signal_column] = list(deep_unflatten(signal_out_list, input))
 
@@ -1366,16 +1476,19 @@ class DatasetDuckDB(Dataset):
     return SelectRowsResult(df, total_num_rows)
 
   @override
-  def select_rows_schema(self,
-                         columns: Optional[Sequence[ColumnId]] = None,
-                         sort_by: Optional[Sequence[Path]] = None,
-                         sort_order: Optional[SortOrder] = None,
-                         searches: Optional[Sequence[Search]] = None,
-                         combine_columns: bool = False) -> SelectRowsSchemaResult:
+  def select_rows_schema(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = None,
+    searches: Optional[Sequence[Search]] = None,
+    combine_columns: bool = False,
+  ) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     if not combine_columns:
       raise NotImplementedError(
-        'select_rows_schema with combine_columns=False is not yet supported.')
+        'select_rows_schema with combine_columns=False is not yet supported.'
+      )
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns)
 
@@ -1411,16 +1524,21 @@ class DatasetDuckDB(Dataset):
     self._validate_columns(cols, manifest.data_schema, new_schema)
 
     return SelectRowsSchemaResult(
-      data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None)
+      data_schema=new_schema,
+      udfs=udfs,
+      search_results=search_results,
+      sorts=sort_results or None,
+    )
 
   @override
-  def add_labels(self,
-                 name: str,
-                 row_ids: Optional[Sequence[str]] = None,
-                 searches: Optional[Sequence[Search]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None,
-                 value: Optional[str] = 'true') -> int:
-
+  def add_labels(
+    self,
+    name: str,
+    row_ids: Optional[Sequence[str]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    value: Optional[str] = 'true',
+  ) -> int:
     created = datetime.now()
 
     # If filters and searches are defined with row_ids, add this as a filter.
@@ -1433,7 +1551,8 @@ class DatasetDuckDB(Dataset):
       insert_row_ids = row_ids
     else:
       insert_row_ids = (
-        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters))
+        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters)
+      )
 
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
@@ -1447,12 +1566,14 @@ class DatasetDuckDB(Dataset):
       sqlite_cur = sqlite_con.cursor()
 
       # Create the table if it doesn't exist.
-      sqlite_cur.execute(f"""
+      sqlite_cur.execute(
+        f"""
         CREATE TABLE IF NOT EXISTS "{name}" (
           {ROWID} VARCHAR NOT NULL PRIMARY KEY,
           label VARCHAR NOT NULL,
           created DATETIME)
-      """)
+      """
+      )
 
       num_labels = 0
       for row_id in insert_row_ids:
@@ -1462,7 +1583,9 @@ class DatasetDuckDB(Dataset):
           f"""
             INSERT INTO "{name}" VALUES (?, ?, ?)
             ON CONFLICT({ROWID}) DO UPDATE SET label=excluded.label;
-          """, (row_id, value, created.isoformat()))
+          """,
+          (row_id, value, created.isoformat()),
+        )
         num_labels += 1
       sqlite_con.commit()
       sqlite_con.close()
@@ -1475,11 +1598,13 @@ class DatasetDuckDB(Dataset):
     return list(self._label_schemas.keys())
 
   @override
-  def remove_labels(self,
-                    name: str,
-                    row_ids: Optional[Sequence[str]] = None,
-                    searches: Optional[Sequence[Search]] = None,
-                    filters: Optional[Sequence[FilterLike]] = None) -> int:
+  def remove_labels(
+    self,
+    name: str,
+    row_ids: Optional[Sequence[str]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+  ) -> int:
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
 
@@ -1508,7 +1633,9 @@ class DatasetDuckDB(Dataset):
           f"""
             DELETE FROM "{name}"
             WHERE {ROWID} = ?
-          """, [(x,) for x in remove_row_ids])
+          """,
+          [(x,) for x in remove_row_ids],
+        )
         conn.commit()
         count = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
         if count == 0:
@@ -1520,17 +1647,19 @@ class DatasetDuckDB(Dataset):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _resolve_span(self, span_path: PathTuple,
-                    manifest: DatasetManifest) -> Optional[tuple[SignalManifest, PathTuple]]:
+  def _resolve_span(
+    self, span_path: PathTuple, manifest: DatasetManifest
+  ) -> Optional[tuple[SignalManifest, PathTuple]]:
     schema = manifest.data_schema
     leafs = schema.leafs
-    is_span = (span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN)
+    is_span = span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN
     if not is_span:
       return None
 
     # Find the signal manifest that contains the span path.
     signal_manifest = next(
-      filter(lambda s: schema_contains_path(s.data_schema, span_path), self._signal_manifests))
+      filter(lambda s: schema_contains_path(s.data_schema, span_path), self._signal_manifests)
+    )
 
     # Find the original text, which is the closest parent of `path` above the signal root.
     text_path: PathTuple
@@ -1545,11 +1674,13 @@ class DatasetDuckDB(Dataset):
 
   def _leaf_path_to_duckdb_path(self, leaf_path: PathTuple, schema: Schema) -> PathTuple:
     [(_, duckdb_path), *rest] = self._column_to_duckdb_paths(
-      Column(leaf_path), schema, combine_columns=False)
+      Column(leaf_path), schema, combine_columns=False
+    )
     return duckdb_path
 
-  def _column_to_duckdb_paths(self, column: Column, schema: Schema,
-                              combine_columns: bool) -> list[tuple[str, PathTuple]]:
+  def _column_to_duckdb_paths(
+    self, column: Column, schema: Schema, combine_columns: bool
+  ) -> list[tuple[str, PathTuple]]:
     path = column.path
     if path[0] in self._label_schemas:
       # This is a label column if it exists in label schemas.
@@ -1601,14 +1732,20 @@ class DatasetDuckDB(Dataset):
     if not duckdb_paths:
       # This path is probably a result of a udf. Make sure the result schema contains it.
       if not schema.has_field(path):
-        raise ValueError(f'Invalid path "{path}": No manifest contains path. Valid paths: '
-                         f'{list(schema.leafs.keys())}')
+        raise ValueError(
+          f'Invalid path "{path}": No manifest contains path. Valid paths: '
+          f'{list(schema.leafs.keys())}'
+        )
 
     return duckdb_paths
 
-  def _normalize_filters(self, filter_likes: Optional[Sequence[FilterLike]],
-                         col_aliases: dict[str, PathTuple], udf_aliases: dict[str, PathTuple],
-                         manifest: DatasetManifest) -> tuple[list[Filter], list[Filter]]:
+  def _normalize_filters(
+    self,
+    filter_likes: Optional[Sequence[FilterLike]],
+    col_aliases: dict[str, PathTuple],
+    udf_aliases: dict[str, PathTuple],
+    manifest: DatasetManifest,
+  ) -> tuple[list[Filter], list[Filter]]:
     """Normalize `FilterLike` to `Filter` and split into filters on source and filters on UDFs."""
     filter_likes = filter_likes or []
     filters: list[Filter] = []
@@ -1634,14 +1771,16 @@ class DatasetDuckDB(Dataset):
     self._validate_filters(filters, col_aliases, manifest)
     return filters, udf_filters
 
-  def _normalize_searches(self, searches: Optional[Sequence[Search]],
-                          manifest: DatasetManifest) -> None:
+  def _normalize_searches(
+    self, searches: Optional[Sequence[Search]], manifest: DatasetManifest
+  ) -> None:
     """Validate searches."""
     if not searches:
       return
 
-  def _search_udfs(self, searches: Optional[Sequence[Search]],
-                   manifest: DatasetManifest) -> list[DuckDBSearchUDF]:
+  def _search_udfs(
+    self, searches: Optional[Sequence[Search]], manifest: DatasetManifest
+  ) -> list[DuckDBSearchUDF]:
     searches = searches or []
     """Create a UDF for each search for finding the location of the text with spans."""
     search_udfs: list[DuckDBSearchUDF] = []
@@ -1653,12 +1792,16 @@ class DatasetDuckDB(Dataset):
           DuckDBSearchUDF(
             udf=udf,
             search_path=search_path,
-            output_path=(*_col_destination_path(udf), PATH_WILDCARD)))
+            output_path=(*_col_destination_path(udf), PATH_WILDCARD),
+          )
+        )
       elif search.type == 'metadata':
         udf = Column(
-          path=search_path, signal_udf=FilterMaskSignal(op=search.op, value=search.value))
+          path=search_path, signal_udf=FilterMaskSignal(op=search.op, value=search.value)
+        )
         search_udfs.append(
-          DuckDBSearchUDF(udf=udf, search_path=search_path, output_path=_col_destination_path(udf)))
+          DuckDBSearchUDF(udf=udf, search_path=search_path, output_path=_col_destination_path(udf))
+        )
       elif search.type == 'semantic' or search.type == 'concept':
         embedding = search.embedding
         if not embedding:
@@ -1669,7 +1812,8 @@ class DatasetDuckDB(Dataset):
         except Exception as e:
           raise ValueError(
             f'Embedding {embedding} has not been computed. '
-            f'Please compute the embedding index before issuing a {search.type} query.') from e
+            f'Please compute the embedding index before issuing a {search.type} query.'
+          ) from e
 
         search_signal: Optional[Signal] = None
         if search.type == 'semantic':
@@ -1678,18 +1822,22 @@ class DatasetDuckDB(Dataset):
           search_signal = ConceptSignal(
             namespace=search.concept_namespace,
             concept_name=search.concept_name,
-            embedding=search.embedding)
+            embedding=search.embedding,
+          )
 
           # Add the label UDF.
           concept_labels_signal = ConceptLabelsSignal(
-            namespace=search.concept_namespace, concept_name=search.concept_name)
+            namespace=search.concept_namespace, concept_name=search.concept_name
+          )
           concept_labels_udf = Column(path=search_path, signal_udf=concept_labels_signal)
           search_udfs.append(
             DuckDBSearchUDF(
               udf=concept_labels_udf,
               search_path=search_path,
               output_path=_col_destination_path(concept_labels_udf),
-              sort=None))
+              sort=None,
+            )
+          )
 
         udf = Column(path=search_path, signal_udf=search_signal)
 
@@ -1699,16 +1847,20 @@ class DatasetDuckDB(Dataset):
             udf=udf,
             search_path=search_path,
             output_path=_col_destination_path(udf),
-            sort=((*output_path, PATH_WILDCARD, 'score'), SortOrder.DESC)))
+            sort=((*output_path, PATH_WILDCARD, 'score'), SortOrder.DESC),
+          )
+        )
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
 
     return search_udfs
 
-  def _create_where(self,
-                    manifest: DatasetManifest,
-                    filters: list[Filter],
-                    searches: Optional[Sequence[Search]] = []) -> list[str]:
+  def _create_where(
+    self,
+    manifest: DatasetManifest,
+    filters: list[Filter],
+    searches: Optional[Sequence[Search]] = [],
+  ) -> list[str]:
     if not filters and not searches:
       return []
     searches = searches or []
@@ -1737,7 +1889,11 @@ class DatasetDuckDB(Dataset):
     for f in filters:
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(
-        duckdb_path, flatten=True, unnest=False, span_from=self._resolve_span(f.path, manifest))
+        duckdb_path,
+        flatten=True,
+        unnest=False,
+        span_from=self._resolve_span(f.path, manifest),
+      )
       is_array = any(subpath == PATH_WILDCARD for subpath in f.path)
 
       nan_filter = ''
@@ -1755,18 +1911,21 @@ class DatasetDuckDB(Dataset):
           filter_val = str(filter_val)
         if is_array:
           nan_filter = 'NOT isnan(x) AND' if filter_nans else ''
-          filter_query = (f'len(list_filter({select_str}, '
-                          f'x -> {nan_filter} x {sql_op} {filter_val})) > 0')
+          filter_query = (
+            f'len(list_filter({select_str}, ' f'x -> {nan_filter} x {sql_op} {filter_val})) > 0'
+          )
         else:
           nan_filter = f'NOT isnan({select_str}) AND' if filter_nans else ''
           filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
       elif f.op in UNARY_OPS:
         if f.op == 'exists':
-          filter_query = (f'ifnull(len({select_str}), 0) > 0'
-                          if is_array else f'{select_str} IS NOT NULL')
+          filter_query = (
+            f'ifnull(len({select_str}), 0) > 0' if is_array else f'{select_str} IS NOT NULL'
+          )
         elif f.op == 'not_exists':
-          filter_query = (f'ifnull(len({select_str}), 0) = 0'
-                          if is_array else f'{select_str} IS NULL')
+          filter_query = (
+            f'ifnull(len({select_str}), 0) = 0' if is_array else f'{select_str} IS NULL'
+          )
         else:
           raise ValueError(f'Unary op: {f.op} is not yet supported')
       elif f.op in LIST_OPS:
@@ -1815,15 +1974,20 @@ class DatasetDuckDB(Dataset):
     """Convert a path to a column name."""
     if isinstance(path, str):
       path = (path,)
-    return '.'.join([
-      f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path
-    ])
+    return '.'.join(
+      [
+        f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp)
+        for path_comp in path
+      ]
+    )
 
-  def _get_selection(self,
-                     columns: Optional[Sequence[ColumnId]] = None,
-                     filters: Optional[Sequence[FilterLike]] = None,
-                     include_labels: Optional[Sequence[str]] = None,
-                     exclude_labels: Optional[Sequence[str]] = None) -> str:
+  def _get_selection(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> str:
     """Get the selection clause for download a dataset."""
     manifest = self.manifest()
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
@@ -1858,7 +2022,8 @@ class DatasetDuckDB(Dataset):
         raise ValueError(f'Cannot download path {column.path} which does not exist in the dataset.')
       if len(duckdb_paths) > 1:
         raise ValueError(
-          f'Cannot download path {column.path} which spans multiple parquet files: {duckdb_paths}')
+          f'Cannot download path {column.path} which spans multiple parquet files: {duckdb_paths}'
+        )
       _, duckdb_path = duckdb_paths[0]
       sql = _select_sql(duckdb_path, flatten=False, unnest=False)
       select_queries.append(f'{sql} AS {_escape_string_literal(col_name)}')
@@ -1882,9 +2047,11 @@ class DatasetDuckDB(Dataset):
     if output_path:
       output_path = normalize_path(output_path)
       if len(output_path) > 1:
-        raise ValueError('Mapping to a nested path is not yet supported. If you need this, please '
-                         'file an issue and we will fix it. '
-                         'For now, the output path needs to be a top-level column.')
+        raise ValueError(
+          'Mapping to a nested path is not yet supported. If you need this, please '
+          'file an issue and we will fix it. '
+          'For now, the output path needs to be a top-level column.'
+        )
 
       output_column = output_path[0]
 
@@ -1895,7 +2062,8 @@ class DatasetDuckDB(Dataset):
             raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
         else:
           raise ValueError(
-            f'Cannot map to path "{output_path}" which already exists in the dataset.')
+            f'Cannot map to path "{output_path}" which already exists in the dataset.'
+          )
     else:
       output_column = map_fn.__name__
 
@@ -1924,9 +2092,11 @@ class DatasetDuckDB(Dataset):
 
       for parquet_id, duckdb_path in duckdb_paths:
         sql = _select_sql(
-          duckdb_path, flatten=False, unnest=False, empty=False, span_from=span_from)
+          duckdb_path, flatten=False, unnest=False, empty=False, span_from=span_from
+        )
         temp_column_name = (
-          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}')
+          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
+        )
         select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
@@ -1944,8 +2114,9 @@ class DatasetDuckDB(Dataset):
     use_jsonl_cache = False
     jsonl_cache_filepath: Optional[str] = None
     if output_path:
-      jsonl_cache_filepath = _map_cache_filepath(self.project_dir, self.namespace,
-                                                 self.dataset_name, output_path)
+      jsonl_cache_filepath = _map_cache_filepath(
+        self.project_dir, self.namespace, self.dataset_name, output_path
+      )
       if not overwrite and os.path.exists(jsonl_cache_filepath):
         with open_file(jsonl_cache_filepath, 'r') as f:
           # Read the first line of the file
@@ -1968,10 +2139,12 @@ class DatasetDuckDB(Dataset):
               format='newline_delimited')) as cache
           ON t.{ROWID} = cache.{ROWID}
         """
-      result = con.execute(f"""
+      result = con.execute(
+        f"""
         SELECT {ROWID}, {', '.join(select_queries)} FROM t
         {anti_join}
-      """)
+      """
+      )
       while True:
         df_chunk = result.fetch_df_chunk()
         if df_chunk.empty:
@@ -1992,8 +2165,9 @@ class DatasetDuckDB(Dataset):
             if final_col_name not in df_chunk:
               df_chunk[final_col_name] = df_chunk[temp_col_name]
             else:
-              df_chunk[final_col_name] = merge_series(df_chunk[final_col_name],
-                                                      df_chunk[temp_col_name])
+              df_chunk[final_col_name] = merge_series(
+                df_chunk[final_col_name], df_chunk[temp_col_name]
+              )
             del df_chunk[temp_col_name]
 
         if combine_columns:
@@ -2010,7 +2184,8 @@ class DatasetDuckDB(Dataset):
         outputs,
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
-        step_description=f'Computing map over {input_paths}')
+        step_description=f'Computing map over {input_paths}',
+      )
 
     if output_path:
       # Use a local disk filesystem.
@@ -2041,7 +2216,8 @@ class DatasetDuckDB(Dataset):
     jsonl_view_name = 'tmp_output'
     tmp_con = duckdb.connect(database=':memory:')
     tmp_con.register_filesystem(fs)
-    tmp_con.execute(f"""
+    tmp_con.execute(
+      f"""
       CREATE VIEW {jsonl_view_name} as (
         SELECT * FROM read_json_auto(
           '{duckdb_filepath}',
@@ -2049,7 +2225,8 @@ class DatasetDuckDB(Dataset):
           FORMAT='newline_delimited'
         )
       );
-    """)
+    """
+    )
     reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
     if output_path:
       # Create the source schema in prepare to share it between process and source_schema.
@@ -2068,13 +2245,15 @@ class DatasetDuckDB(Dataset):
       tmp_con.close()
 
       # Write the map data to the root of the dataset.
-      map_manifest_filepath = os.path.join(self.dataset_path,
-                                           f'{output_column}.{MAP_MANIFEST_SUFFIX}')
+      map_manifest_filepath = os.path.join(
+        self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
+      )
       map_manifest = MapManifest(
         files=[parquet_filename],
         data_schema=output_schema,
         parquet_id=output_column,
-        py_version=metadata.version('lilac'))
+        py_version=metadata.version('lilac'),
+      )
       with open_file(map_manifest_filepath, 'w') as f:
         f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
@@ -2083,47 +2262,56 @@ class DatasetDuckDB(Dataset):
     return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
 
   @override
-  def to_json(self,
-              filepath: Union[str, pathlib.Path],
-              jsonl: bool = True,
-              columns: Optional[Sequence[ColumnId]] = None,
-              filters: Optional[Sequence[FilterLike]] = None,
-              include_labels: Optional[Sequence[str]] = None,
-              exclude_labels: Optional[Sequence[str]] = None) -> None:
+  def to_json(
+    self,
+    filepath: Union[str, pathlib.Path],
+    jsonl: bool = True,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> None:
     selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     filepath = os.path.expanduser(filepath)
-    self._execute(f"COPY ({selection}) TO '{filepath}' "
-                  f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})")
+    self._execute(
+      f"COPY ({selection}) TO '{filepath}' " f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})"
+    )
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_pandas(self,
-                columns: Optional[Sequence[ColumnId]] = None,
-                filters: Optional[Sequence[FilterLike]] = None,
-                include_labels: Optional[Sequence[str]] = None,
-                exclude_labels: Optional[Sequence[str]] = None) -> pd.DataFrame:
+  def to_pandas(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> pd.DataFrame:
     selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     return self._query_df(f'{selection}')
 
   @override
-  def to_csv(self,
-             filepath: Union[str, pathlib.Path],
-             columns: Optional[Sequence[ColumnId]] = None,
-             filters: Optional[Sequence[FilterLike]] = None,
-             include_labels: Optional[Sequence[str]] = None,
-             exclude_labels: Optional[Sequence[str]] = None) -> None:
+  def to_csv(
+    self,
+    filepath: Union[str, pathlib.Path],
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> None:
     selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT CSV, HEADER)")
     log(f'Dataset exported to {filepath}')
 
   @override
-  def to_parquet(self,
-                 filepath: Union[str, pathlib.Path],
-                 columns: Optional[Sequence[ColumnId]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None,
-                 include_labels: Optional[Sequence[str]] = None,
-                 exclude_labels: Optional[Sequence[str]] = None) -> None:
+  def to_parquet(
+    self,
+    filepath: Union[str, pathlib.Path],
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> None:
     selection = self._get_selection(columns, filters, include_labels, exclude_labels)
     filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT PARQUET)")
@@ -2145,10 +2333,12 @@ def _escape_like_value(value: str) -> str:
   return f"'%{value}%' ESCAPE '\\'"
 
 
-def _inner_select(sub_paths: list[PathTuple],
-                  inner_var: Optional[str] = None,
-                  empty: bool = False,
-                  span_from: Optional[tuple[SignalManifest, PathTuple]] = None) -> str:
+def _inner_select(
+  sub_paths: list[PathTuple],
+  inner_var: Optional[str] = None,
+  empty: bool = False,
+  span_from: Optional[tuple[SignalManifest, PathTuple]] = None,
+) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
@@ -2165,11 +2355,15 @@ def _inner_select(sub_paths: list[PathTuple],
       # TODO(smilkov): Remove this once we bump the semver to breaking.
       span_key = SPAN_KEY if manifest.py_version else VALUE_KEY
       derived_col = _select_sql(span_path, flatten=False, unnest=False)
-      path_key = (f'{derived_col}[{path_key}.{span_key}.{TEXT_SPAN_START_FEATURE}+1:'
-                  f'{path_key}.{span_key}.{TEXT_SPAN_END_FEATURE}]')
+      path_key = (
+        f'{derived_col}[{path_key}.{span_key}.{TEXT_SPAN_START_FEATURE}+1:'
+        f'{path_key}.{span_key}.{TEXT_SPAN_END_FEATURE}]'
+      )
     return 'NULL' if empty else path_key
-  return (f'list_transform({path_key}, {lambda_var} -> '
-          f'{_inner_select(sub_paths[1:], lambda_var, empty, span_from)})')
+  return (
+    f'list_transform({path_key}, {lambda_var} -> '
+    f'{_inner_select(sub_paths[1:], lambda_var, empty, span_from)})'
+  )
 
 
 def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
@@ -2180,19 +2374,24 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
   sub_paths: list[PathTuple] = []
   offset = 0
   while offset <= len(leaf_path):
-    new_offset = leaf_path.index(PATH_WILDCARD,
-                                 offset) if PATH_WILDCARD in leaf_path[offset:] else len(leaf_path)
+    new_offset = (
+      leaf_path.index(PATH_WILDCARD, offset)
+      if PATH_WILDCARD in leaf_path[offset:]
+      else len(leaf_path)
+    )
     sub_path = leaf_path[offset:new_offset]
     sub_paths.append(sub_path)
     offset = new_offset + 1
   return sub_paths
 
 
-def _select_sql(path: PathTuple,
-                flatten: bool,
-                unnest: bool,
-                empty: bool = False,
-                span_from: Optional[tuple[SignalManifest, PathTuple]] = None) -> str:
+def _select_sql(
+  path: PathTuple,
+  flatten: bool,
+  unnest: bool,
+  empty: bool = False,
+  span_from: Optional[tuple[SignalManifest, PathTuple]] = None,
+) -> str:
   """Create a select column for a path.
 
   Args:
@@ -2245,8 +2444,9 @@ def _signal_dir(enriched_path: PathTuple) -> str:
   return os.path.join(*path_without_wildcards)
 
 
-def _map_cache_filepath(project_dir: Union[str, pathlib.Path], namespace: str, dataset_name: str,
-                        output_path: Path) -> str:
+def _map_cache_filepath(
+  project_dir: Union[str, pathlib.Path], namespace: str, dataset_name: str, output_path: Path
+) -> str:
   """Get the filepath for a map function's cache file."""
   filename = '.'.join(normalize_path(output_path))
   return os.path.join(
@@ -2279,12 +2479,14 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
     return dest_cell
   if isinstance(dest_cell, dict):
     if isinstance(source_cell, list):
-      raise ValueError(f'Failed to merge cells. Destination is a dict ({dest_cell!r}), '
-                       f'but source is a list ({source_cell!r}).')
+      raise ValueError(
+        f'Failed to merge cells. Destination is a dict ({dest_cell!r}), '
+        f'but source is a list ({source_cell!r}).'
+      )
     if isinstance(source_cell, dict):
       res = {**dest_cell}
       for key, value in source_cell.items():
-        res[key] = (value if key not in dest_cell else _merge_cells(dest_cell[key], value))
+        res[key] = value if key not in dest_cell else _merge_cells(dest_cell[key], value)
       return res
     else:
       return {VALUE_KEY: source_cell, **dest_cell}
@@ -2298,8 +2500,10 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
   else:
     # The destination is a primitive.
     if isinstance(source_cell, list):
-      raise ValueError(f'Failed to merge cells. Destination is a primitive ({dest_cell!r}), '
-                       f'but source is a list ({source_cell!r}).')
+      raise ValueError(
+        f'Failed to merge cells. Destination is a primitive ({dest_cell!r}), '
+        f'but source is a list ({source_cell!r}).'
+      )
     if isinstance(source_cell, dict):
       return {VALUE_KEY: dest_cell, **source_cell}
     else:
@@ -2311,11 +2515,13 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
         # exactly equal.
         if not math.isclose(source_cell, dest_cell, abs_tol=1e-5):
           raise ValueError(
-            f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+            f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"'
+          )
       else:
         if source_cell != dest_cell:
           raise ValueError(
-            f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"')
+            f'Cannot merge source "{source_cell!r}" into destination "{dest_cell!r}"'
+          )
       return dest_cell
 
 
@@ -2338,8 +2544,9 @@ def _path_contains(parent_path: PathTuple, child_path: PathTuple) -> bool:
   return all(parent_path[i] == child_path[i] for i in range(len(parent_path)))
 
 
-def _path_to_udf_duckdb_path(path: PathTuple,
-                             path_to_udf_col_name: dict[PathTuple, str]) -> Optional[PathTuple]:
+def _path_to_udf_duckdb_path(
+  path: PathTuple, path_to_udf_col_name: dict[PathTuple, str]
+) -> Optional[PathTuple]:
   first_subpath, *rest_of_path = path
   for parent_path, udf_col_name in path_to_udf_col_name.items():
     # If the user selected udf(document.*.text) as "udf" and wanted to sort by "udf.len", we need to
@@ -2347,7 +2554,7 @@ def _path_to_udf_duckdb_path(path: PathTuple,
     # "text" fields.
     wildcards = [x for x in parent_path if x == PATH_WILDCARD]
     if _path_contains(parent_path, path):
-      return (udf_col_name, *wildcards, *path[len(parent_path):])
+      return (udf_col_name, *wildcards, *path[len(parent_path) :])
     elif first_subpath == udf_col_name:
       return (udf_col_name, *wildcards, *rest_of_path)
 
@@ -2369,8 +2576,10 @@ def _root_column(manifest: Union[SignalManifest, MapManifest]) -> str:
   """Returns the root column of a signal manifest."""
   field_keys = list(manifest.data_schema.fields.keys())
   if len(field_keys) > 2:
-    raise ValueError('Expected at most two fields in signal manifest, '
-                     f'the rowid and root this signal is enriching. Got {field_keys}.')
+    raise ValueError(
+      'Expected at most two fields in signal manifest, '
+      f'the rowid and root this signal is enriching. Got {field_keys}.'
+    )
   return next(filter(lambda field: field != ROWID, manifest.data_schema.fields.keys()))
 
 

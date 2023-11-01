@@ -35,11 +35,13 @@ from .tasks import (
 from .utils import DebugTimer, get_datasets_dir, log
 
 
-def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
-         config: Optional[Union[str, pathlib.Path, Config]] = None,
-         overwrite: bool = False,
-         task_manager: Optional[TaskManager] = None,
-         load_task_id: Optional[str] = None) -> None:
+def load(
+  project_dir: Optional[Union[str, pathlib.Path]] = None,
+  config: Optional[Union[str, pathlib.Path, Config]] = None,
+  overwrite: bool = False,
+  task_manager: Optional[TaskManager] = None,
+  load_task_id: Optional[str] = None,
+) -> None:
   """Load a project from a project configuration.
 
   Args:
@@ -57,8 +59,10 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   """
   project_dir = project_dir or get_project_dir()
   if not project_dir:
-    raise ValueError('`project_dir` must be defined. Please pass a `project_dir` or set it '
-                     'globally with `set_project_dir(path)`')
+    raise ValueError(
+      '`project_dir` must be defined. Please pass a `project_dir` or set it '
+      'globally with `set_project_dir(path)`'
+    )
 
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
@@ -82,13 +86,16 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   existing_datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)]
 
   if load_task_id:
-    set_worker_steps(load_task_id, [
-      TaskStepInfo(description='Loading datasets...'),
-      TaskStepInfo(description='Updating dataset settings...'),
-      TaskStepInfo(description='Computing embeddings...'),
-      TaskStepInfo(description='Computing signals...'),
-      TaskStepInfo(description='Computing model caches...'),
-    ])
+    set_worker_steps(
+      load_task_id,
+      [
+        TaskStepInfo(description='Loading datasets...'),
+        TaskStepInfo(description='Updating dataset settings...'),
+        TaskStepInfo(description='Computing embeddings...'),
+        TaskStepInfo(description='Computing signals...'),
+        TaskStepInfo(description='Computing model caches...'),
+      ],
+    )
 
   log()
   log('*** Load datasets ***')
@@ -108,7 +115,8 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
     for d in datasets_to_load:
       shutil.rmtree(os.path.join(project_dir, d.name), ignore_errors=True)
       task_id = task_manager.task_id(
-        f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD)
+        f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD
+      )
       task_manager.execute(task_id, process_source, project_dir, d, (task_id, 0))
       dataset_task_ids.append(task_id)
     task_manager.wait(dataset_task_ids)
@@ -156,14 +164,22 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
           for path in d.settings.ui.media_paths or []:
             if d.settings.preferred_embedding:
               embeddings.append(
-                EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding))
+                EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding)
+              )
       for e in embeddings:
         field = manifest.data_schema.get_field(e.path)
         embedding_field = (field.fields or {}).get(e.embedding)
         if embedding_field is None or overwrite:
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
-          task_manager.execute(task_id, _compute_embedding, d.namespace, d.name, e, project_dir,
-                               (task_id, 0))
+          task_manager.execute(
+            task_id,
+            _compute_embedding,
+            d.namespace,
+            d.name,
+            e,
+            project_dir,
+            (task_id, 0),
+          )
           embedding_task_ids.append(task_id)
         else:
           log(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
@@ -205,8 +221,15 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
           signal_field = (field.fields or {}).get(s.signal.key(is_computed_signal=True))
           if signal_field is None or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
-            task_manager.execute(task_id, _compute_signal, d.namespace, d.name, s, project_dir,
-                                 (task_id, 0))
+            task_manager.execute(
+              task_id,
+              _compute_signal,
+              d.namespace,
+              d.name,
+              s,
+              project_dir,
+              (task_id, 0),
+            )
             # Wait for each signal to reduce memory pressure.
             task_manager.wait([task_id])
           else:
@@ -228,7 +251,11 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
         for embedding in config.concept_model_cache_embeddings:
           log('Syncing concept model cache:', concept_info, embedding)
           concept_model_db.sync(
-            concept_info.namespace, concept_info.name, embedding_name=embedding, create=True)
+            concept_info.namespace,
+            concept_info.name,
+            embedding_name=embedding,
+            create=True,
+          )
 
   if load_task_id:
     set_worker_next_step(load_task_id)
@@ -237,8 +264,13 @@ def load(project_dir: Optional[Union[str, pathlib.Path]] = None,
   log('Done!')
 
 
-def _compute_signal(namespace: str, name: str, signal_config: SignalConfig,
-                    project_dir: Union[str, pathlib.Path], task_step_id: TaskStepId) -> None:
+def _compute_signal(
+  namespace: str,
+  name: str,
+  signal_config: SignalConfig,
+  project_dir: Union[str, pathlib.Path],
+  task_step_id: TaskStepId,
+) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
   # Turn off debug logging.
@@ -254,8 +286,13 @@ def _compute_signal(namespace: str, name: str, signal_config: SignalConfig,
   gc.collect()
 
 
-def _compute_embedding(namespace: str, name: str, embedding_config: EmbeddingConfig,
-                       project_dir: str, task_step_id: TaskStepId) -> None:
+def _compute_embedding(
+  namespace: str,
+  name: str,
+  embedding_config: EmbeddingConfig,
+  project_dir: str,
+  task_step_id: TaskStepId,
+) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
   # Turn off debug logging.

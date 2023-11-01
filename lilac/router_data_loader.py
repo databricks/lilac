@@ -28,12 +28,14 @@ router = APIRouter(route_class=RouteErrorHandler)
 
 class ProcessSourceRequest(BaseModel):
   """The interface to the /process_source endpoint."""
+
   username: str
   dataset_name: str
 
 
 class SourcesList(BaseModel):
   """The interface to the /process_source endpoint."""
+
   sources: list[str]
 
 
@@ -55,6 +57,7 @@ def get_source_schema(source_name: str) -> dict[str, Any]:
 
 class LoadDatasetOptions(BaseModel):
   """Options for loading a dataset."""
+
   namespace: str
   dataset_name: str
   config: dict[str, Any]
@@ -62,13 +65,16 @@ class LoadDatasetOptions(BaseModel):
 
 class LoadDatasetResponse(BaseModel):
   """Response of the load dataset endpoint."""
+
   task_id: TaskId
 
 
 @router.post('/{source_name}/load')
 async def load(
-    source_name: str, options: LoadDatasetOptions,
-    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> LoadDatasetResponse:
+  source_name: str,
+  options: LoadDatasetOptions,
+  user: Annotated[Optional[UserInfo], Depends(get_session_user)],
+) -> LoadDatasetResponse:
   """Load a dataset."""
   if not get_user_access(user).create_dataset:
     raise HTTPException(401, 'User does not have access to load a dataset.')
@@ -81,10 +87,14 @@ async def load(
   task_id = get_task_manager().task_id(
     name=f'[{options.namespace}/{options.dataset_name}] Load dataset',
     type=TaskType.DATASET_LOAD,
-    description=f'Loader: {source.name}. \n Config: {source}')
+    description=f'Loader: {source.name}. \n Config: {source}',
+  )
   get_task_manager().execute(
-    task_id, process_source, get_project_dir(),
+    task_id,
+    process_source,
+    get_project_dir(),
     DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
-    (task_id, 0))
+    (task_id, 0),
+  )
 
   return LoadDatasetResponse(task_id=task_id)

@@ -35,29 +35,37 @@ class PaLM(TextEmbeddingSignal):
     api_key = env('PALM_API_KEY')
     gcp_project_id = env('GCP_PROJECT_ID')
     if not api_key and not gcp_project_id:
-      raise ValueError('Neither `PALM_API_KEY` or `GCP_PROJECT_ID` environment variables'
-                       ' are set, please provide one.')
+      raise ValueError(
+        'Neither `PALM_API_KEY` or `GCP_PROJECT_ID` environment variables'
+        ' are set, please provide one.'
+      )
     if api_key:
       try:
         import google.generativeai as palm
+
         palm.configure(api_key=api_key)
         self._connector = 'api'
         self._num_parallel_requests = API_NUM_PARALLEL_REQUESTS
         self._model = palm.generate_embeddings
       except ImportError:
-        raise ImportError('Could not import the "google.generativeai" python package. '
-                          'Please install it with `pip install google-generativeai`.')
+        raise ImportError(
+          'Could not import the "google.generativeai" python package. '
+          'Please install it with `pip install google-generativeai`.'
+        )
     if gcp_project_id:
       try:
         from google.cloud import aiplatform
         from vertexai.language_models import TextEmbeddingModel
+
         aiplatform.init(project=gcp_project_id)
         self._connector = 'vertex'
         self._model = TextEmbeddingModel.from_pretrained(GCP_EMBEDDING_MODEL)
         self._num_parallel_requests = GCP_NUM_PARALLEL_REQUESTS
       except ImportError:
-        raise ImportError('Could not import the "vertex" python package. '
-                          'Please install it with `pip install google-cloud-aiplatform`.')
+        raise ImportError(
+          'Could not import the "vertex" python package. '
+          'Please install it with `pip install google-cloud-aiplatform`.'
+        )
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
@@ -81,4 +89,9 @@ class PaLM(TextEmbeddingSignal):
     docs = cast(Iterable[str], docs)
     split_fn = clustering_spacy_chunker if self._split else None
     yield from compute_split_embeddings(
-      docs, PALM_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=self._num_parallel_requests)
+      docs,
+      PALM_BATCH_SIZE,
+      embed_fn,
+      split_fn,
+      num_parallel_requests=self._num_parallel_requests,
+    )

@@ -101,8 +101,9 @@ def get_datasets_dir(project_dir: Union[str, pathlib.Path]) -> str:
   return os.path.join(project_dir, DATASETS_DIR_NAME)
 
 
-def get_dataset_output_dir(project_dir: Union[str, pathlib.Path], namespace: str,
-                           dataset_name: str) -> str:
+def get_dataset_output_dir(
+  project_dir: Union[str, pathlib.Path], namespace: str, dataset_name: str
+) -> str:
   """Return the output directory for a dataset."""
   return os.path.join(get_datasets_dir(project_dir), namespace, dataset_name)
 
@@ -114,6 +115,7 @@ def get_lilac_cache_dir(project_dir: Union[str, pathlib.Path]) -> str:
 
 class CopyRequest(BaseModel):
   """A request to copy a file from source to destination path. Used to copy media files to GCS."""
+
   from_path: str
   to_path: str
 
@@ -211,9 +213,11 @@ def file_exists(filepath: Union[str, pathlib.PosixPath]) -> bool:
 Tout = TypeVar('Tout')
 
 
-def async_wrap(func: Callable[..., Tout],
-               loop: Optional[AbstractEventLoop] = None,
-               executor: Optional[Executor] = None) -> Callable[..., Awaitable[Tout]]:
+def async_wrap(
+  func: Callable[..., Tout],
+  loop: Optional[AbstractEventLoop] = None,
+  executor: Optional[Executor] = None,
+) -> Callable[..., Awaitable[Tout]]:
   """Wrap a sync function into an async function."""
 
   @wraps(func)
@@ -296,8 +300,9 @@ def to_yaml(input: dict) -> str:
   return yaml.dump(input, Dumper=IndentDumper, sort_keys=False)
 
 
-def get_hf_dataset_repo_id(hf_org: str, hf_space_name: str, namespace: str,
-                           dataset_name: str) -> str:
+def get_hf_dataset_repo_id(
+  hf_org: str, hf_space_name: str, namespace: str, dataset_name: str
+) -> str:
   """Returns the repo name for a given dataset. This does not include the namespace."""
   if hf_space_name == 'lilac':
     # Don't include the space name for lilac datasets to shorten the linked dataset name.

@@ -40,20 +40,27 @@ def get_embed_fn(embedding_name: str, split: bool) -> EmbedFn:
       if not item:
         raise ValueError('Embedding signal returned None.')
 
-      yield [{
-        'vector': item_val[EMBEDDING_KEY].reshape(-1),
-        'span':
-          (item_val[SPAN_KEY][TEXT_SPAN_START_FEATURE], item_val[SPAN_KEY][TEXT_SPAN_END_FEATURE])
-      } for item_val in item]
+      yield [
+        {
+          'vector': item_val[EMBEDDING_KEY].reshape(-1),
+          'span': (
+            item_val[SPAN_KEY][TEXT_SPAN_START_FEATURE],
+            item_val[SPAN_KEY][TEXT_SPAN_END_FEATURE],
+          ),
+        }
+        for item_val in item
+      ]
 
   return _embed_fn
 
 
-def compute_split_embeddings(docs: Iterable[str],
-                             batch_size: int,
-                             embed_fn: Callable[[list[str]], list[np.ndarray]],
-                             split_fn: Optional[Callable[[str], list[TextChunk]]] = None,
-                             num_parallel_requests: int = 1) -> Generator[Item, None, None]:
+def compute_split_embeddings(
+  docs: Iterable[str],
+  batch_size: int,
+  embed_fn: Callable[[list[str]], list[np.ndarray]],
+  split_fn: Optional[Callable[[str], list[TextChunk]]] = None,
+  num_parallel_requests: int = 1,
+) -> Generator[Item, None, None]:
   """Compute text embeddings in batches of chunks, using the provided splitter and embedding fn."""
   pool = ThreadPoolExecutor()
 

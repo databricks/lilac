@@ -34,8 +34,9 @@ class HNSWVectorStore(VectorStore):
 
   @override
   def save(self, base_path: str) -> None:
-    assert self._key_to_label is not None and self._index is not None, (
-      'The vector store has no embeddings. Call load() or add() first.')
+    assert (
+      self._key_to_label is not None and self._index is not None
+    ), 'The vector store has no embeddings. Call load() or add() first.'
     self._index.save_index(base_path + _HNSW_SUFFIX)
     self._key_to_label.to_pickle(base_path + _LOOKUP_SUFFIX)
 
@@ -51,8 +52,9 @@ class HNSWVectorStore(VectorStore):
 
   @override
   def size(self) -> int:
-    assert self._index is not None, (
-      'The vector store has no embeddings. Call load() or add() first.')
+    assert (
+      self._index is not None
+    ), 'The vector store has no embeddings. Call load() or add() first.'
     return self._index.get_current_count()
 
   @override
@@ -72,7 +74,8 @@ class HNSWVectorStore(VectorStore):
 
     if len(keys) != embeddings.shape[0]:
       raise ValueError(
-        f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.')
+        f'Length of keys ({len(keys)}) does not match number of embeddings {embeddings.shape[0]}.'
+      )
 
     with DebugTimer('hnswlib add items'):
       # Cast to float32 since dot product with float32 is 40-50x faster than float16 and 2.5x faster
@@ -92,20 +95,21 @@ class HNSWVectorStore(VectorStore):
 
   @override
   def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
-    assert self._index is not None and self._key_to_label is not None, (
-      'No embeddings exist in this store.')
+    assert (
+      self._index is not None and self._key_to_label is not None
+    ), 'No embeddings exist in this store.'
     if not keys:
       return np.array(self._index.get_items(self._key_to_label.values), dtype=np.float32)
     locs = self._key_to_label.loc[cast(list[str], keys)].values
     return np.array(self._index.get_items(locs), dtype=np.float32)
 
   @override
-  def topk(self,
-           query: np.ndarray,
-           k: int,
-           keys: Optional[Iterable[VectorKey]] = None) -> list[tuple[VectorKey, float]]:
-    assert self._index is not None and self._key_to_label is not None, (
-      'No embeddings exist in this store.')
+  def topk(
+    self, query: np.ndarray, k: int, keys: Optional[Iterable[VectorKey]] = None
+  ) -> list[tuple[VectorKey, float]]:
+    assert (
+      self._index is not None and self._key_to_label is not None
+    ), 'No embeddings exist in this store.'
     labels: Set[int] = set()
     if keys is not None:
       labels = set(self._key_to_label.loc[cast(list[str], keys)].tolist())

@@ -21,7 +21,8 @@ async def test_create_project_and_set_env(tmp_path_factory: pytest.TempPathFacto
 
 
 async def test_create_project_and_set_env_from_env(
-    tmp_path_factory: pytest.TempPathFactory) -> None:
+  tmp_path_factory: pytest.TempPathFactory
+) -> None:
   tmp_path = str(tmp_path_factory.mktemp('test_project'))
 
   os.environ['LILAC_PROJECT_DIR'] = tmp_path

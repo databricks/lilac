@@ -18,8 +18,11 @@ def test_batched_compute() -> None:
 
 
 def test_batched_compute_np() -> None:
-  input = [[np.array([1, 1])], [np.array([2, 2]), np.array([3, 3])],
-           [np.array([4, 4]), np.array([5, 5])]]
+  input = [
+    [np.array([1, 1])],
+    [np.array([2, 2]), np.array([3, 3])],
+    [np.array([4, 4]), np.array([5, 5])],
+  ]
   batch_size = 2  # Does not evenly split any input
 
   def f(inputs: Iterable[np.ndarray]) -> Iterable[float]:
@@ -53,10 +56,7 @@ def test_deep_flatten_primitive() -> None:
 
 
 def test_deep_flatten_np() -> None:
-  input = [
-    [np.array([1, 1])],
-    [np.array([2, 2]), np.array([3, 3])],
-  ]
+  input = [[np.array([1, 1])], [np.array([2, 2]), np.array([3, 3])]]
   result = list(deep_flatten(input))
 
   assert len(result) == 3
@@ -95,10 +95,7 @@ def test_deep_unflatten_primitive_list() -> None:
 
 
 def test_deep_unflatten_np() -> None:
-  input = [
-    [np.array([1, 1])],
-    [np.array([2, 2]), np.array([3, 3])],
-  ]
+  input = [[np.array([1, 1])], [np.array([2, 2]), np.array([3, 3])]]
   result = list(deep_unflatten(deep_flatten(input), input))
 
   assert len(result) == 2

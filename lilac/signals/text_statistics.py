@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 class TextStatisticsSignal(TextSignal):
   """Compute text statistics for a document such as readability scores, type-token-ratio, etc.."""
+
   name: ClassVar[str] = 'text_statistics'
   display_name: ClassVar[str] = 'Text Statistics'
 
@@ -36,8 +37,11 @@ class TextStatisticsSignal(TextSignal):
         READABILITY: 'float32',
         TYPE_TOKEN_RATIO: 'float32',
         FRAC_NON_ASCII: field(
-          'float32', bins=[('Low', None, 0.15), ('Medium', 0.15, 0.3), ('High', 0.3, None)])
-      })
+          'float32',
+          bins=[('Low', None, 0.15), ('Medium', 0.15, 0.3), ('High', 0.3, None)],
+        ),
+      }
+    )
 
   @override
   def setup(self) -> None:
@@ -46,16 +50,26 @@ class TextStatisticsSignal(TextSignal):
       import spacy.cli
       import spacy.util
     except ImportError:
-      raise ImportError('Could not import the "spacy" python package. '
-                        'Please install it with `pip install spacy`.')
+      raise ImportError(
+        'Could not import the "spacy" python package. '
+        'Please install it with `pip install spacy`.'
+      )
 
     if not spacy.util.is_package(SPACY_LANG_MODEL):
       spacy.cli.download(SPACY_LANG_MODEL)
     self._lang = spacy.load(
       SPACY_LANG_MODEL,
       disable=[
-        'parser', 'tagger', 'ner', 'lemmatizer', 'textcat', 'custom', 'tok2vec', 'attribute_ruler'
-      ])
+        'parser',
+        'tagger',
+        'ner',
+        'lemmatizer',
+        'textcat',
+        'custom',
+        'tok2vec',
+        'attribute_ruler',
+      ],
+    )
     self._lang.max_length = SPACY_MAX_LENGTH
 
   @override
@@ -64,8 +78,10 @@ class TextStatisticsSignal(TextSignal):
       import textacy.corpus
       from textacy import text_stats
     except ImportError:
-      raise ImportError('Could not import the "textacy" python package. '
-                        'Please install it with `pip install textacy`.')
+      raise ImportError(
+        'Could not import the "textacy" python package. '
+        'Please install it with `pip install textacy`.'
+      )
     if not self._lang:
       raise RuntimeError('Language model was not loaded.')
 
@@ -99,5 +115,5 @@ class TextStatisticsSignal(TextSignal):
           NUM_CHARS: num_chars,
           READABILITY: readability,
           TYPE_TOKEN_RATIO: ttr,
-          FRAC_NON_ASCII: frac_non_ascii
+          FRAC_NON_ASCII: frac_non_ascii,
         }

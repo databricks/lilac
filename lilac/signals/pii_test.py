@@ -7,11 +7,9 @@ from .pii import EMAILS_KEY, IPS_KEY, SECRETS_KEY, PIISignal
 
 def test_pii_fields() -> None:
   signal = PIISignal()
-  assert signal.fields() == field(fields={
-    EMAILS_KEY: ['string_span'],
-    IPS_KEY: ['string_span'],
-    SECRETS_KEY: ['string_span']
-  })
+  assert signal.fields() == field(
+    fields={EMAILS_KEY: ['string_span'], IPS_KEY: ['string_span'], SECRETS_KEY: ['string_span']}
+  )
 
 
 def test_pii_compute() -> None:
@@ -42,7 +40,8 @@ def test_ip_addresses() -> None:
   text = 'These are some ip addresses: 192.158.1.38 and 2001:db8:3333:4444:5555:6666:7777:8888'
   pii = list(signal.compute([text]))
   expected_spans = text_to_expected_spans(
-    text, ['192.158.1.38', '2001:db8:3333:4444:5555:6666:7777:8888'])
+    text, ['192.158.1.38', '2001:db8:3333:4444:5555:6666:7777:8888']
+  )
   assert pii == [{EMAILS_KEY: [], IPS_KEY: expected_spans, SECRETS_KEY: []}]
 
 

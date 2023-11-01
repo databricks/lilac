@@ -28,6 +28,7 @@ F_BETA_WEIGHT = 0.5
 
 class ConceptType(str, Enum):
   """Enum holding the concept type."""
+
   TEXT = 'text'
   IMAGE = 'image'
 
@@ -37,6 +38,7 @@ class ConceptType(str, Enum):
 
 class ExampleOrigin(BaseModel):
   """The origin of an example."""
+
   # The namespace that holds the dataset.
   dataset_namespace: str
 
@@ -53,6 +55,7 @@ DRAFT_MAIN = 'main'
 
 class ExampleIn(BaseModel):
   """An example in a concept without the id (used for adding new examples)."""
+
   label: bool
   text: Optional[str] = None
   img: Optional[bytes] = None
@@ -69,11 +72,13 @@ class ExampleIn(BaseModel):
 
 class Example(ExampleIn):
   """A single example in a concept used for training a concept model."""
+
   id: str
 
 
 class ConceptMetadata(BaseModel):
   """Metadata associated with a concept."""
+
   # True if the concept is publicly visible.
   is_public: bool = False
   tags: list[str] = []
@@ -82,6 +87,7 @@ class ConceptMetadata(BaseModel):
 
 class Concept(BaseModel):
   """A concept is a collection of examples."""
+
   # The namespace of the concept.
   namespace: str
   # The name of the concept.
@@ -104,6 +110,7 @@ class Concept(BaseModel):
 
 class OverallScore(str, Enum):
   """Enum holding the overall score."""
+
   NOT_GOOD = 'not_good'
   OK = 'ok'
   GOOD = 'good'
@@ -125,6 +132,7 @@ def _get_overall_score(f1_score: float) -> OverallScore:
 
 class ConceptMetrics(BaseModel):
   """Metrics for a concept."""
+
   # The average F1 score for the concept computed using cross validation.
   f1: float
   precision: float
@@ -143,7 +151,8 @@ class LogisticEmbeddingModel:
   def __post_init__(self) -> None:
     # See `notebooks/Toxicity.ipynb` for an example of training a concept model.
     self._model = LogisticRegression(
-      class_weight='balanced', C=30, tol=1e-5, warm_start=True, max_iter=5_000, n_jobs=-1)
+      class_weight='balanced', C=30, tol=1e-5, warm_start=True, max_iter=5_000, n_jobs=-1
+    )
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
@@ -152,8 +161,9 @@ class LogisticEmbeddingModel:
     interpolate_fn = interp1d([0, self._threshold, 1], [0, 0.4999, 1])
     return interpolate_fn(y_probs)
 
-  def _setup_training(self, X_train: np.ndarray,
-                      labels: Union[list[bool], np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
+  def _setup_training(
+    self, X_train: np.ndarray, labels: Union[list[bool], np.ndarray]
+  ) -> tuple[np.ndarray, np.ndarray]:
     y_train = np.array(labels)
     # Shuffle the data in unison.
     p = np.random.permutation(len(X_train))
@@ -173,20 +183,27 @@ class LogisticEmbeddingModel:
 
     if len(labels) != len(embeddings):
       raise ValueError(
-        f'Length of embeddings ({len(embeddings)}) must match length of labels ({len(labels)})')
+        f'Length of embeddings ({len(embeddings)}) must match length of labels ({len(labels)})'
+      )
     X_train, y_train = self._setup_training(embeddings, labels)
     self._model.fit(X_train, y_train)
     self._metrics, self._threshold = self._compute_metrics(embeddings, labels)
 
-  def _compute_metrics(self, embeddings: np.ndarray,
-                       labels: list[bool]) -> tuple[Optional[ConceptMetrics], float]:
+  def _compute_metrics(
+    self, embeddings: np.ndarray, labels: list[bool]
+  ) -> tuple[Optional[ConceptMetrics], float]:
     """Return the concept metrics."""
     labels_np = np.array(labels)
     n_splits = min(len(labels_np), MAX_NUM_CROSS_VAL_MODELS)
     fold = KFold(n_splits, shuffle=True, random_state=42)
 
-    def _fit_and_score(model: LogisticRegression, X_train: np.ndarray, y_train: np.ndarray,
-                       X_test: np.ndarray, y_test: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _fit_and_score(
+      model: LogisticRegression,
+      X_train: np.ndarray,
+      y_train: np.ndarray,
+      X_test: np.ndarray,
+      y_test: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
       if len(set(y_train)) < 2:
         return np.array([]), np.array([])
       model.fit(X_train, y_train)
@@ -195,7 +212,7 @@ class LogisticEmbeddingModel:
 
     # Compute the metrics for each validation fold in parallel.
     jobs: list[Callable] = []
-    for (train_index, test_index) in fold.split(embeddings):
+    for train_index, test_index in fold.split(embeddings):
       X_train, y_train = embeddings[train_index], labels_np[train_index]
       X_train, y_train = self._setup_training(X_train, y_train)
       X_test, y_test = embeddings[test_index], labels_np[test_index]
@@ -222,7 +239,8 @@ class LogisticEmbeddingModel:
       precision=max_f1_prec,
       recall=max_f1_recall,
       roc_auc=float(roc_auc_val),
-      overall=_get_overall_score(max_f1))
+      overall=_get_overall_score(max_f1),
+    )
     return metrics, max_f1_thresh
 
 
@@ -237,7 +255,8 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
 
   if draft not in draft_examples:
     raise ValueError(
-      f'Draft {draft} not found in concept. Found drafts: {list(draft_examples.keys())}')
+      f'Draft {draft} not found in concept. Found drafts: {list(draft_examples.keys())}'
+    )
 
   # Map the text of the draft to its id so we can dedupe with main.
   draft_text_ids = {example.text: id for id, example in draft_examples[draft].items()}
@@ -254,6 +273,7 @@ def draft_examples(concept: Concept, draft: DraftId) -> dict[str, Example]:
 @dataclasses.dataclass
 class ConceptModel:
   """A concept model. Stores all concept model drafts and manages syncing."""
+
   # The concept that this model is for.
   namespace: str
   concept_name: str
@@ -293,8 +313,7 @@ class ConceptModel:
       # The model is up to date.
       return False
 
-    concept_path = (f'{self.namespace}/{self.concept_name}/'
-                    f'{self.embedding_name}')
+    concept_path = f'{self.namespace}/{self.concept_name}/' f'{self.embedding_name}'
     with DebugTimer(f'Computing embeddings for "{concept_path}"'):
       self._compute_embeddings(concept)
 
@@ -318,8 +337,10 @@ class ConceptModel:
       raise ValueError(f'Embedding signal "{self.embedding_name}" not found in the registry.')
     embedding_signal = signal_cls()
     if not isinstance(embedding_signal, TextEmbeddingSignal):
-      raise ValueError(f'Only text embedding signals are currently supported for concepts. '
-                       f'"{self.embedding_name}" is a {type(embedding_signal)}.')
+      raise ValueError(
+        f'Only text embedding signals are currently supported for concepts. '
+        f'"{self.embedding_name}" is a {type(embedding_signal)}.'
+      )
 
     embed_fn = get_embed_fn(self.embedding_name, split=False)
     concept_embeddings: dict[str, np.ndarray] = {}

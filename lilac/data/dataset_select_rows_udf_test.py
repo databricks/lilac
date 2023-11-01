@@ -33,16 +33,19 @@ from ..signals.concept_scorer import ConceptSignal
 from .dataset import BinaryFilterTuple, Column, SortOrder
 from .dataset_test_utils import TestDataMaker, enriched_item
 
-EMBEDDINGS: list[tuple[str, list[float]]] = [('hello.', [1.0, 0.0, 0.0]),
-                                             ('hello2.', [1.0, 1.0, 0.0]),
-                                             ('hello world.', [1.0, 1.0, 1.0]),
-                                             ('hello world2.', [2.0, 1.0, 1.0])]
+EMBEDDINGS: list[tuple[str, list[float]]] = [
+  ('hello.', [1.0, 0.0, 0.0]),
+  ('hello2.', [1.0, 1.0, 0.0]),
+  ('hello world.', [1.0, 1.0, 1.0]),
+  ('hello world2.', [2.0, 1.0, 1.0]),
+]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override
@@ -83,6 +86,7 @@ class TestSignal(TextSignal):
 
 class TestEmbeddingSumSignal(VectorSignal):
   """Sums the embeddings to return a single floating point value."""
+
   name: ClassVar[str] = 'test_embedding_sum'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
@@ -91,8 +95,9 @@ class TestEmbeddingSumSignal(VectorSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[VectorKey],
-                     vector_index: VectorDBIndex) -> Iterable[Item]:
+  def vector_compute(
+    self, keys: Iterable[VectorKey], vector_index: VectorDBIndex
+  ) -> Iterable[Item]:
     # The signal just sums the values of the embedding.
     all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
@@ -137,19 +142,10 @@ def test_udf(make_test_data: TestDataMaker) -> None:
   signal_col = Column('text', signal_udf=TestSignal())
   result = dataset.select_rows(['text', signal_col])
 
-  assert list(result) == [{
-    'text': 'hello',
-    'text.test_signal': {
-      'len': 5,
-      'flen': 5.0
-    }
-  }, {
-    'text': 'everybody',
-    'text.test_signal': {
-      'len': 9,
-      'flen': 9.0
-    }
-  }]
+  assert list(result) == [
+    {'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}},
+    {'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}},
+  ]
 
 
 def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
@@ -163,7 +159,6 @@ def test_udf_with_filters(make_test_data: TestDataMaker) -> None:
 
 
 def test_udf_with_rowid_filter(make_test_data: TestDataMaker) -> None:
-
   dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
 
   # Filter by a specific rowid.
@@ -180,20 +175,14 @@ def test_udf_with_rowid_filter(make_test_data: TestDataMaker) -> None:
 
   # No filters.
   result = dataset.select_rows([ROWID, 'text', udf_col])
-  assert list(result) == [{
-    ROWID: '1',
-    'text': 'hello',
-    'text.length_signal': 5
-  }, {
-    ROWID: '2',
-    'text': 'everybody',
-    'text.length_signal': 9
-  }]
+  assert list(result) == [
+    {ROWID: '1', 'text': 'hello', 'text.length_signal': 5},
+    {ROWID: '2', 'text': 'everybody', 'text.length_signal': 9},
+  ]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 2
 
 
 def test_udf_with_rowid_filter_repeated(make_test_data: TestDataMaker) -> None:
-
   dataset = make_test_data([{'text': ['hello', 'hi']}, {'text': ['everybody', 'bye', 'test']}])
 
   # Filter by a specific rowid.
@@ -206,87 +195,98 @@ def test_udf_with_rowid_filter_repeated(make_test_data: TestDataMaker) -> None:
   # Filter by a specific rowid.
   filters = [(ROWID, 'equals', '2')]
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
-  assert list(result) == [{
-    ROWID: '2',
-    'text': ['everybody', 'bye', 'test'],
-    'text.length_signal': [9, 3, 4]
-  }]
+  assert list(result) == [
+    {ROWID: '2', 'text': ['everybody', 'bye', 'test'], 'text.length_signal': [9, 3, 4]}
+  ]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 3
 
 
 def test_udf_deeply_nested(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': [['hello'], ['hi', 'bye']]
-  }, {
-    'text': [['everybody', 'bye'], ['test']]
-  }])
+  dataset = make_test_data(
+    [{'text': [['hello'], ['hi', 'bye']]}, {'text': [['everybody', 'bye'], ['test']]}]
+  )
 
   udf_col = Column(('text', '*', '*'), signal_udf=LengthSignal())
   result = dataset.select_rows([udf_col])
-  assert list(result) == [{
-    'text.length_signal': [[5], [2, 3]]
-  }, {
-    'text.length_signal': [[9, 3], [4]]
-  }]
+  assert list(result) == [
+    {'text.length_signal': [[5], [2, 3]]},
+    {'text.length_signal': [[9, 3], [4]]},
+  ]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 6
 
 
 def test_udf_with_embedding(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello.',
-  }, {
-    'text': 'hello2.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello.',
+      },
+      {
+        'text': 'hello2.',
+      },
+    ]
+  )
 
   dataset.compute_signal(TestEmbedding(), 'text')
 
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
   result = dataset.select_rows(['text', signal_col])
 
-  expected_result: list[Item] = [{
-    'text': 'hello.',
-    'text.test_embedding_sum(embedding=test_embedding)': 1.0
-  }, {
-    'text': 'hello2.',
-    'text.test_embedding_sum(embedding=test_embedding)': 2.0
-  }]
+  expected_result: list[Item] = [
+    {'text': 'hello.', 'text.test_embedding_sum(embedding=test_embedding)': 1.0},
+    {'text': 'hello2.', 'text.test_embedding_sum(embedding=test_embedding)': 2.0},
+  ]
   assert list(result) == expected_result
 
   # Select rows with alias.
   signal_col = Column(
-    'text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'), alias='emb_sum')
+    'text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'), alias='emb_sum'
+  )
   result = dataset.select_rows(['text', signal_col])
   expected_result = [{'text': 'hello.', 'emb_sum': 1.0}, {'text': 'hello2.', 'emb_sum': 2.0}]
   assert list(result) == expected_result
 
 
 def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': ['hello.', 'hello world.'],
-  }, {
-    'text': ['hello world2.', 'hello2.'],
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': ['hello.', 'hello world.'],
+      },
+      {
+        'text': ['hello world2.', 'hello2.'],
+      },
+    ]
+  )
 
   dataset.compute_signal(TestEmbedding(), ('text', '*'))
 
   signal_col = Column(('text', '*'), signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
   result = dataset.select_rows([('text', '*'), signal_col])
-  expected_result = [{
-    'text.*': ['hello.', 'hello world.'],
-    'text.test_embedding_sum(embedding=test_embedding)': [1.0, 3.0]
-  }, {
-    'text.*': ['hello world2.', 'hello2.'],
-    'text.test_embedding_sum(embedding=test_embedding)': [4.0, 2.0]
-  }]
+  expected_result = [
+    {
+      'text.*': ['hello.', 'hello world.'],
+      'text.test_embedding_sum(embedding=test_embedding)': [1.0, 3.0],
+    },
+    {
+      'text.*': ['hello world2.', 'hello2.'],
+      'text.test_embedding_sum(embedding=test_embedding)': [4.0, 2.0],
+    },
+  ]
   assert list(result) == expected_result
 
 
 def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello.',
-  }, {
-    'text': 'hello2.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello.',
+      },
+      {
+        'text': 'hello2.',
+      },
+    ]
+  )
 
   # Embedding is not precomputed, yet we ask for the embedding.
 
@@ -298,6 +298,7 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
 
 class TestSplitter(TextSignal):
   """Split documents into sentence by splitting on period."""
+
   name: ClassVar[str] = 'test_splitter'
 
   @override
@@ -318,43 +319,53 @@ class TestSplitter(TextSignal):
 
 
 def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'sentence 1. sentence 2 is longer',
-  }, {
-    'text': 'sentence 1 is longer. sent2 is short',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'sentence 1. sentence 2 is longer',
+      },
+      {
+        'text': 'sentence 1 is longer. sent2 is short',
+      },
+    ]
+  )
   dataset.compute_signal(TestSplitter(), 'text')
   udf = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows(['*', udf], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('sentence 1. sentence 2 is longer', {
-      'length_signal': 32,
-      'test_splitter': [lilac_span(0, 10), lilac_span(11, 32)]
-    })
-  }, {
-    'text': enriched_item('sentence 1 is longer. sent2 is short', {
-      'length_signal': 36,
-      'test_splitter': [lilac_span(0, 20), lilac_span(21, 36)]
-    })
-  }]
+  assert list(result) == [
+    {
+      'text': enriched_item(
+        'sentence 1. sentence 2 is longer',
+        {'length_signal': 32, 'test_splitter': [lilac_span(0, 10), lilac_span(11, 32)]},
+      )
+    },
+    {
+      'text': enriched_item(
+        'sentence 1 is longer. sent2 is short',
+        {'length_signal': 36, 'test_splitter': [lilac_span(0, 20), lilac_span(21, 36)]},
+      )
+    },
+  ]
 
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello.',
-  }, {
-    'text': 'hello2.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello.',
+      },
+      {
+        'text': 'hello2.',
+      },
+    ]
+  )
 
   signal_col = Column('text', signal_udf=ComputedKeySignal())
   result = dataset.select_rows(['text', signal_col])
-  assert list(result) == [{
-    'text': 'hello.',
-    'text.key_False': 1
-  }, {
-    'text': 'hello2.',
-    'text.key_False': 1
-  }]
+  assert list(result) == [
+    {'text': 'hello.', 'text.key_False': 1},
+    {'text': 'hello2.', 'text.key_False': 1},
+  ]
 
 
 def test_sparse_embedding_index_with_asc_sort(make_test_data: TestDataMaker) -> None:
@@ -365,36 +376,32 @@ def test_sparse_embedding_index_with_asc_sort(make_test_data: TestDataMaker) -> 
   concept_db = DiskConceptDB()
   concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
   concept_db.edit(
-    'test_namespace', 'test_concept',
+    'test_namespace',
+    'test_concept',
     ConceptUpdate(
-      insert=[ExampleIn(label=False, text='hello.'),
-              ExampleIn(label=True, text='hello world.')]))
+      insert=[
+        ExampleIn(label=False, text='hello.'),
+        ExampleIn(label=True, text='hello world.'),
+      ]
+    ),
+  )
 
   udf = ConceptSignal(
-    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding')
+    namespace='test_namespace', concept_name='test_concept', embedding='test_embedding'
+  )
   result = dataset.select_rows(
     columns=['text', Column('text', signal_udf=udf, alias='udf')],
     sort_by=['udf'],
-    sort_order=SortOrder.ASC)
-  assert list(result) == [{
-    'text': '',
-    'udf': []
-  }, {
-    'text': 'hello.',
-    'udf': [{
-      SPAN_KEY: {
-        'start': 0,
-        'end': 6
-      },
-      'score': approx(0.142, abs=1e-3)
-    }]
-  }, {
-    'text': 'hello world.',
-    'udf': [{
-      SPAN_KEY: {
-        'start': 0,
-        'end': 12
-      },
-      'score': approx(0.958, abs=1e-3)
-    }]
-  }]
+    sort_order=SortOrder.ASC,
+  )
+  assert list(result) == [
+    {'text': '', 'udf': []},
+    {
+      'text': 'hello.',
+      'udf': [{SPAN_KEY: {'start': 0, 'end': 6}, 'score': approx(0.142, abs=1e-3)}],
+    },
+    {
+      'text': 'hello world.',
+      'udf': [{SPAN_KEY: {'start': 0, 'end': 12}, 'score': approx(0.958, abs=1e-3)}],
+    },
+  ]

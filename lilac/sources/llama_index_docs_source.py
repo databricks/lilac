@@ -41,7 +41,8 @@ class LlamaIndexDocsSource(Source):
 
   A detailed example notebook
   [can be found here](https://github.com/lilacai/lilac/blob/main/notebooks/LlamaIndexLoader.ipynb)
-  """ # noqa: D415, D400
+  """  # noqa: D415, D400
+
   name: ClassVar[str] = 'llama_index_docs'
 
   _documents: Optional[Iterable['Document']]

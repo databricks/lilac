@@ -38,20 +38,24 @@ class GithubSource(Source):
   The following extensions are automatically ignored as Lilac does not yet support media:
 
   .png, .jpg, .jpeg, .gif, .mp4, .mov, .avi
-  """ # noqa: D415, D400
+  """  # noqa: D415, D400
+
   name: ClassVar[str] = 'github'
 
   repo: str = Field(description='The GitHub repository to load from. Format: <owner>/<repo>.')
   branch: Optional[str] = Field(
-    default='main', description='The branch to load from. Defaults to the main branch.')
+    default='main', description='The branch to load from. Defaults to the main branch.'
+  )
   ignore_directories: list[str] = Field(
     description='A list of directories to load from. If not specified, loads from '
-    'all directories.')
+    'all directories.'
+  )
   ignore_file_extensions: list[str] = Field(description='A list of file extensions to ignore.')
   github_token: Optional[str] = Field(
     default='',
     description='The GitHub token to use for authentication. If not specified, '
-    'uses the `GITHUB_TOKEN` environment variable.')
+    'uses the `GITHUB_TOKEN` environment variable.',
+  )
 
   @field_serializer('github_token')
   def scrub_github_token(self, github_token: str) -> str:
@@ -66,15 +70,18 @@ class GithubSource(Source):
     try:
       from llama_index import GithubRepositoryReader, download_loader
     except ImportError:
-      raise ImportError('Could not import dependencies for the "github" source. '
-                        'Please install with pip install lilac[github]')
+      raise ImportError(
+        'Could not import dependencies for the "github" source. '
+        'Please install with pip install lilac[github]'
+      )
 
     download_loader('GithubRepositoryReader')
 
     github_token = os.getenv('GITHUB_TOKEN', self.github_token)
     if not github_token:
       raise ValueError(
-        'Environment variable `GITHUB_TOKEN` is not set and the github_token arg is not set.')
+        'Environment variable `GITHUB_TOKEN` is not set and the github_token arg is not set.'
+      )
 
     owner, repo = self.repo.split('/')
 
@@ -85,7 +92,8 @@ class GithubSource(Source):
       ignore_file_extensions=(self.ignore_file_extensions or []) + IGNORE_MEDIA_EXTENSIONS,
       verbose=True,
       concurrent_requests=10,
-      github_token=github_token)
+      github_token=github_token,
+    )
 
     self._llama_index_docs_source = LlamaIndexDocsSource(loader.load_data(branch=self.branch))
     self._llama_index_docs_source.setup()

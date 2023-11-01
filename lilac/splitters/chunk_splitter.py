@@ -74,11 +74,13 @@ def _sep_split(text: str, separator: str) -> list[TextChunk]:
   return chunks
 
 
-def split_text(text: str,
-               chunk_size: int = CHUNK_SIZE,
-               chunk_overlap: int = CHUNK_OVERLAP,
-               separators: list[str] = DEFAULT_SEPARATORS,
-               length_function: Callable[[str], int] = len) -> list[TextChunk]:
+def split_text(
+  text: str,
+  chunk_size: int = CHUNK_SIZE,
+  chunk_overlap: int = CHUNK_OVERLAP,
+  separators: list[str] = DEFAULT_SEPARATORS,
+  length_function: Callable[[str], int] = len,
+) -> list[TextChunk]:
   """Split incoming text and return chunks."""
   text = str(text)
 
@@ -92,10 +94,11 @@ def split_text(text: str,
     for chunk in splits:
       text_chunk, _ = chunk
       _len = length_function(text_chunk)
-      if (total + _len + (separator_len if len(current_doc) > 0 else 0) > chunk_size):
+      if total + _len + (separator_len if len(current_doc) > 0 else 0) > chunk_size:
         if total > chunk_size:
-          log(f'Created a chunk of size {total}, '
-              f'which is longer than the specified {chunk_size}')
+          log(
+            f'Created a chunk of size {total}, ' f'which is longer than the specified {chunk_size}'
+          )
         if len(current_doc) > 0:
           doc = _join_chunks(current_doc, separator)
           if doc is not None:
@@ -104,10 +107,11 @@ def split_text(text: str,
           # - we have a larger chunk than in the chunk overlap
           # - or if we still have any chunks and the length is long
           while total > chunk_overlap or (
-              total + _len +
-            (separator_len if len(current_doc) > 0 else 0) > chunk_size and total > 0):
+            total + _len + (separator_len if len(current_doc) > 0 else 0) > chunk_size and total > 0
+          ):
             total -= length_function(current_doc[0][0]) + (
-              separator_len if len(current_doc) > 1 else 0)
+              separator_len if len(current_doc) > 1 else 0
+            )
             current_doc = current_doc[1:]
       current_doc.append(chunk)
       total += _len + (separator_len if len(current_doc) > 1 else 0)
@@ -126,7 +130,7 @@ def split_text(text: str,
       break
     if _s in text:
       separator = _s
-      new_separators = separators[i + 1:]
+      new_separators = separators[i + 1 :]
       break
   # Now that we have the separator, split the text.
   splits = _sep_split(text, separator)
@@ -141,8 +145,9 @@ def split_text(text: str,
         merged_text = _merge_splits(good_splits, separator)
         final_chunks.extend(merged_text)
         good_splits = []
-      other_chunks = split_text(text_chunk, chunk_size, chunk_overlap, new_separators,
-                                length_function)
+      other_chunks = split_text(
+        text_chunk, chunk_size, chunk_overlap, new_separators, length_function
+      )
       # Adjust the offsets of the other chunks.
       other_chunks = [(t, (s + start, e + start)) for t, (s, e) in other_chunks]
       final_chunks.extend(other_chunks)

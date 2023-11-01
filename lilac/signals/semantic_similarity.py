@@ -22,6 +22,7 @@ class SemanticSimilaritySignal(VectorSignal):
   This is done by embedding the query with the same embedding as the document and computing a
   a similarity score between them.
   """
+
   name: ClassVar[str] = 'semantic_similarity'
   display_name: ClassVar[str] = 'Semantic Similarity'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
@@ -49,11 +50,12 @@ class SemanticSimilaritySignal(VectorSignal):
 
     return self._search_text_embedding
 
-  def _score_span_vectors(self,
-                          span_vectors: Iterable[Iterable[SpanVector]]) -> Iterable[Optional[Item]]:
-
+  def _score_span_vectors(
+    self, span_vectors: Iterable[Iterable[SpanVector]]
+  ) -> Iterable[Optional[Item]]:
     return flat_batched_compute(
-      span_vectors, f=self._compute_span_vector_batch, batch_size=_BATCH_SIZE)
+      span_vectors, f=self._compute_span_vector_batch, batch_size=_BATCH_SIZE
+    )
 
   def _compute_span_vector_batch(self, span_vectors: Iterable[SpanVector]) -> list[Item]:
     batch_matrix = np.array([sv['vector'] for sv in span_vectors])
@@ -67,17 +69,16 @@ class SemanticSimilaritySignal(VectorSignal):
     return self._score_span_vectors(span_vectors)
 
   @override
-  def vector_compute(self, keys: Iterable[PathKey],
-                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+  def vector_compute(
+    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
+  ) -> Iterable[Optional[Item]]:
     span_vectors = vector_index.get(keys)
     return self._score_span_vectors(span_vectors)
 
   @override
   def vector_compute_topk(
-      self,
-      topk: int,
-      vector_index: VectorDBIndex,
-      rowids: Optional[Iterable[str]] = None) -> list[tuple[PathKey, Optional[Item]]]:
+    self, topk: int, vector_index: VectorDBIndex, rowids: Optional[Iterable[str]] = None
+  ) -> list[tuple[PathKey, Optional[Item]]]:
     query = self._get_search_embedding()
     topk_keys = [key for key, _ in vector_index.topk(query, topk, rowids)]
     return list(zip(topk_keys, self.vector_compute(topk_keys, vector_index)))

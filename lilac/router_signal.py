@@ -18,6 +18,7 @@ router = APIRouter(route_class=RouteErrorHandler)
 
 class SignalInfo(BaseModel):
   """Information about a signal."""
+
   name: str
   input_type: SignalInputType
   json_schema: dict[str, Any]
@@ -46,13 +47,16 @@ def get_embeddings() -> list[SignalInfo]:
   embedding_infos = sorted(
     embedding_infos,
     key=lambda s: EMBEDDING_SORT_PRIORITIES.index(s.name)
-    if s.name in EMBEDDING_SORT_PRIORITIES else math.inf)
+    if s.name in EMBEDDING_SORT_PRIORITIES
+    else math.inf,
+  )
 
   return embedding_infos
 
 
 class SignalComputeOptions(BaseModel):
   """The request for the standalone compute signal endpoint."""
+
   signal: SerializeAsAny[Signal]
   # The inputs to compute.
   inputs: list[str]
@@ -66,13 +70,14 @@ class SignalComputeOptions(BaseModel):
 
 class SignalComputeResponse(BaseModel):
   """The response for the standalone compute signal endpoint."""
+
   items: list[Any]
 
 
 @router.post('/compute', response_model_exclude_none=True)
 def compute(
-    options: SignalComputeOptions,
-    user: Annotated[Optional[UserInfo], Depends(get_session_user)]) -> SignalComputeResponse:
+  options: SignalComputeOptions, user: Annotated[Optional[UserInfo], Depends(get_session_user)]
+) -> SignalComputeResponse:
   """Compute a signal over a set of inputs."""
   signal = options.signal
   if isinstance(signal, ConceptSignal):
@@ -85,6 +90,7 @@ def compute(
 
 class SignalSchemaOptions(BaseModel):
   """The request for the signal schema endpoint."""
+
   signal: SerializeAsAny[Signal]
 
   @field_validator('signal', mode='before')
@@ -96,6 +102,7 @@ class SignalSchemaOptions(BaseModel):
 
 class SignalSchemaResponse(BaseModel):
   """The response for the signal schema endpoint."""
+
   fields: Field
 
 

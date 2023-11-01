@@ -12,6 +12,7 @@ from ..signal import TextSignal
 
 class ConceptLabelsSignal(TextSignal):
   """Computes spans where text is labeled for the concept, either positive or negative."""
+
   name: ClassVar[str] = 'concept_labels'
   display_name: ClassVar[str] = 'Concept Labels'
 
@@ -63,12 +64,14 @@ class ConceptLabelsSignal(TextSignal):
             break
           label_spans.append(
             lilac_span(
-              offset, offset + len(example.text), {
+              offset,
+              offset + len(example.text),
+              {
                 'label': example.label,
-                **({
-                  'draft': example.draft
-                } if example.draft != DRAFT_MAIN else {})
-              }))
+                **({'draft': example.draft} if example.draft != DRAFT_MAIN else {}),
+              },
+            )
+          )
           offset += len(example.text)
 
       if label_spans:

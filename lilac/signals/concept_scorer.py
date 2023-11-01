@@ -16,6 +16,7 @@ from ..signal import VectorSignal
 
 class ConceptSignal(VectorSignal):
   """Compute scores along a given concept for documents."""
+
   name: ClassVar[str] = 'concept_score'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
@@ -34,16 +35,19 @@ class ConceptSignal(VectorSignal):
 
   @override
   def fields(self) -> Field:
-    return field(fields=[
-      field(
-        dtype='string_span',
-        fields={
-          'score': field(
-            'float32',
-            bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)],
-          )
-        })
-    ])
+    return field(
+      fields=[
+        field(
+          dtype='string_span',
+          fields={
+            'score': field(
+              'float32',
+              bins=[('Not in concept', None, 0.5), ('In concept', 0.5, None)],
+            )
+          },
+        )
+      ]
+    )
 
   def set_user(self, user: Optional[UserInfo]) -> None:
     """Set the user for this signal."""
@@ -51,19 +55,23 @@ class ConceptSignal(VectorSignal):
 
   def _get_concept_model(self) -> ConceptModel:
     return self._concept_model_db.sync(
-      self.namespace, self.concept_name, self.embedding, self._user, create=True)
+      self.namespace, self.concept_name, self.embedding, self._user, create=True
+    )
 
-  def _score_span_vectors(self,
-                          span_vectors: Iterable[Iterable[SpanVector]]) -> Iterable[Optional[Item]]:
+  def _score_span_vectors(
+    self, span_vectors: Iterable[Iterable[SpanVector]]
+  ) -> Iterable[Optional[Item]]:
     concept_model = self._get_concept_model()
 
     return flat_batched_compute(
       span_vectors,
       f=lambda vectors: self._compute_span_vector_batch(vectors, concept_model),
-      batch_size=concept_model.batch_size)
+      batch_size=concept_model.batch_size,
+    )
 
-  def _compute_span_vector_batch(self, span_vectors: Iterable[SpanVector],
-                                 concept_model: ConceptModel) -> list[Item]:
+  def _compute_span_vector_batch(
+    self, span_vectors: Iterable[SpanVector], concept_model: ConceptModel
+  ) -> list[Item]:
     vectors = [sv['vector'] for sv in span_vectors]
     spans = [sv['span'] for sv in span_vectors]
     scores = concept_model.score_embeddings(self.draft, np.array(vectors)).tolist()
@@ -82,17 +90,16 @@ class ConceptSignal(VectorSignal):
     return self._score_span_vectors(span_vectors)
 
   @override
-  def vector_compute(self, keys: Iterable[PathKey],
-                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+  def vector_compute(
+    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
+  ) -> Iterable[Optional[Item]]:
     span_vectors = vector_index.get(keys)
     return self._score_span_vectors(span_vectors)
 
   @override
   def vector_compute_topk(
-      self,
-      topk: int,
-      vector_index: VectorDBIndex,
-      rowids: Optional[Iterable[str]] = None) -> list[tuple[PathKey, Optional[Item]]]:
+    self, topk: int, vector_index: VectorDBIndex, rowids: Optional[Iterable[str]] = None
+  ) -> list[tuple[PathKey, Optional[Item]]]:
     concept_model = self._get_concept_model()
     query: np.ndarray = concept_model.coef(self.draft).astype(np.float32)
     query /= np.linalg.norm(query)

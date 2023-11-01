@@ -41,10 +41,13 @@ class Cohere(TextEmbeddingSignal):
       raise ValueError('`COHERE_API_KEY` environment variable not set.')
     try:
       import cohere
+
       self._model = cohere.Client(api_key, max_retries=10)
     except ImportError:
-      raise ImportError('Could not import the "cohere" python package. '
-                        'Please install it with `pip install cohere`.')
+      raise ImportError(
+        'Could not import the "cohere" python package. '
+        'Please install it with `pip install cohere`.'
+      )
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
@@ -56,4 +59,5 @@ class Cohere(TextEmbeddingSignal):
     docs = cast(Iterable[str], docs)
     split_fn = clustering_spacy_chunker if self._split else None
     yield from compute_split_embeddings(
-      docs, COHERE_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS)
+      docs, COHERE_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS
+    )

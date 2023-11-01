@@ -45,15 +45,16 @@ def simple_spacy_chunker(text: str, filter_short: int = 4) -> list[TextChunk]:
   """Split text into sentence-based chunks, using SpaCy."""
   sentencizer = get_spacy()
   chunks = [
-    (text[s.start_char:s.end_char], (s.start_char, s.end_char)) for s in sentencizer(text).sents
+    (text[s.start_char : s.end_char], (s.start_char, s.end_char)) for s in sentencizer(text).sents
   ]
   # Filter out stray whitespace, list numberings, etc.
   chunks = [c for c in chunks if len(c[0].strip()) > filter_short]
   return chunks
 
 
-def group_by_embedding(fulltext: str, chunks: list[TextChunk], target_num_groups: int,
-                       max_len: int) -> list[TextChunk]:
+def group_by_embedding(
+  fulltext: str, chunks: list[TextChunk], target_num_groups: int, max_len: int
+) -> list[TextChunk]:
   """Take a series of smaller chunks and cluster them together.
 
   Args:
@@ -80,7 +81,7 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], target_num_groups
   priority_sort_breaks: np.ndarray = potential_breaks[np.argsort(neighbor_distances)]
 
   # If there are fewer sentences than target number of groups, then this should degrade gracefully.
-  breakpoints = [0] + sorted(priority_sort_breaks[:(target_num_groups - 1)]) + [chunks[-1][1][1]]
+  breakpoints = [0] + sorted(priority_sort_breaks[: (target_num_groups - 1)]) + [chunks[-1][1][1]]
 
   def _find_long_spans(breakpoints: list[int]) -> Optional[tuple[int, int]]:
     for i, j in zip(breakpoints[:-1], breakpoints[1:]):
@@ -103,10 +104,9 @@ def group_by_embedding(fulltext: str, chunks: list[TextChunk], target_num_groups
   ]
 
 
-def clustering_spacy_chunker(text: str,
-                             filter_short: int = 4,
-                             max_len: int = 512,
-                             target_num_groups: Optional[int] = None) -> list[TextChunk]:
+def clustering_spacy_chunker(
+  text: str, filter_short: int = 4, max_len: int = 512, target_num_groups: Optional[int] = None
+) -> list[TextChunk]:
   """Split text into sentence-based chunks, with semantic clustering to join related sentences."""
   chunks = simple_spacy_chunker(text, filter_short=filter_short)
 
@@ -114,5 +114,5 @@ def clustering_spacy_chunker(text: str,
     # A rough heuristic for picking a number of target chunks.
     # These magic numbers were chosen by manually chunking 40 texts spanning 50-5000 characters in
     # length, and eyeballing a best-fit line from #num chunks vs. #length on a log-log plot.
-    target_num_groups = max(1, int((len(text)**0.33) / 1.5))
+    target_num_groups = max(1, int((len(text) ** 0.33) / 1.5))
   return group_by_embedding(text, chunks, target_num_groups, max_len)

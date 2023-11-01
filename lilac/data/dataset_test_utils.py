@@ -39,13 +39,16 @@ class TestDataMaker(Protocol):
 
 class TestSource(Source):
   """Test source that does nothing."""
+
   name: ClassVar[str] = 'test_source'
 
 
-def make_dataset(dataset_cls: Type[Dataset],
-                 tmp_path: pathlib.Path,
-                 items: list[Item],
-                 schema: Optional[Schema] = None) -> Dataset:
+def make_dataset(
+  dataset_cls: Type[Dataset],
+  tmp_path: pathlib.Path,
+  items: list[Item],
+  schema: Optional[Schema] = None,
+) -> Dataset:
   """Create a test dataset."""
   schema = schema or infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
@@ -61,8 +64,9 @@ def make_dataset(dataset_cls: Type[Dataset],
   return dataset
 
 
-def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
-                 schema: Schema) -> None:
+def _write_items(
+  tmpdir: pathlib.Path, dataset_name: str, items: list[Item], schema: Schema
+) -> None:
   """Write the items JSON to the dataset format: manifest.json and parquet files."""
   source_dir = get_dataset_output_dir(str(tmpdir), TEST_NAMESPACE, dataset_name)
   os.makedirs(source_dir)
@@ -73,7 +77,13 @@ def _write_items(tmpdir: pathlib.Path, dataset_name: str, items: list[Item],
     item[ROWID] = str(i + 1)
 
   simple_parquet_files, _ = write_items_to_parquet(
-    items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1)
+    items,
+    source_dir,
+    schema,
+    filename_prefix=PARQUET_FILENAME_PREFIX,
+    shard_index=0,
+    num_shards=1,
+  )
   manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema, source=TestSource())
   with open_file(os.path.join(source_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.model_dump_json(indent=2, exclude_none=True))
@@ -84,8 +94,9 @@ def enriched_item(value: Optional[Item] = None, metadata: dict[str, Item] = {}) 
   return {VALUE_KEY: value, **metadata}
 
 
-def make_vector_index(vector_store: str, vector_dict: dict[PathKey,
-                                                           list[list[float]]]) -> VectorDBIndex:
+def make_vector_index(
+  vector_store: str, vector_dict: dict[PathKey, list[list[float]]]
+) -> VectorDBIndex:
   """Make a vector index from a dictionary of vector keys to vectors."""
   embeddings: list[np.ndarray] = []
   spans: list[tuple[PathKey, list[tuple[int, int]]]] = []

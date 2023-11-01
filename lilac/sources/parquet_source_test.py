@@ -15,16 +15,9 @@ from .parquet_source import ParquetSource
 
 
 def test_simple_rows(tmp_path: pathlib.Path) -> None:
-  table = pa.Table.from_pylist([{
-    'name': 'a',
-    'age': 1
-  }, {
-    'name': 'b',
-    'age': 2
-  }, {
-    'name': 'c',
-    'age': 3
-  }])
+  table = pa.Table.from_pylist(
+    [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
+  )
 
   out_file = os.path.join(tmp_path, 'test.parquet')
   pq.write_table(table, out_file)
@@ -33,10 +26,8 @@ def test_simple_rows(tmp_path: pathlib.Path) -> None:
   source.setup()
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({
-      'name': 'string',
-      'age': 'int64'
-    }).fields, num_items=3)
+    fields=schema({'name': 'string', 'age': 'int64'}).fields, num_items=3
+  )
 
   items = list(source.process())
   assert items == [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
@@ -113,7 +104,8 @@ def test_multi_shard_approx_shuffle(tmp_path: pathlib.Path) -> None:
     source = ParquetSource(
       filepaths=[str(tmp_path / 'test-*.parquet')],
       approximate_shuffle=True,
-      sample_size=sample_size)
+      sample_size=sample_size,
+    )
     source.setup()
     items = list(source.process())
     assert len(items) == min(sample_size, len(source_items))
@@ -127,7 +119,8 @@ def test_uniform_shards_approximate_shuffle(tmp_path: pathlib.Path) -> None:
     pq.write_table(table, out_file)
 
   source = ParquetSource(
-    filepaths=[str(tmp_path / 'test-*.parquet')], approximate_shuffle=True, sample_size=20)
+    filepaths=[str(tmp_path / 'test-*.parquet')], approximate_shuffle=True, sample_size=20
+  )
   source.setup()
   items = list(source.process())
   assert len(items) == 20
@@ -144,7 +137,8 @@ def test_nonuniform_shards_approximate_shuffle(tmp_path: pathlib.Path) -> None:
     pq.write_table(table, out_file)
 
   source = ParquetSource(
-    filepaths=[str(tmp_path / 'test-*.parquet')], approximate_shuffle=True, sample_size=20)
+    filepaths=[str(tmp_path / 'test-*.parquet')], approximate_shuffle=True, sample_size=20
+  )
   source.setup()
   items = list(source.process())
   assert len(items) == 20
@@ -171,7 +165,11 @@ def test_approx_shuffle_with_seed(tmp_path: pathlib.Path) -> None:
     pq.write_table(table, out_file)
 
   source = ParquetSource(
-    filepaths=[str(tmp_path / 'test-*.parquet')], approximate_shuffle=True, sample_size=20, seed=42)
+    filepaths=[str(tmp_path / 'test-*.parquet')],
+    approximate_shuffle=True,
+    sample_size=20,
+    seed=42,
+  )
   source.setup()
   items = list(source.process())
   assert len(items) == 20

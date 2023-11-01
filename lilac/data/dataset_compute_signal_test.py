@@ -33,22 +33,11 @@ from .dataset_test_utils import (
   enriched_item,
 )
 
-SIMPLE_ITEMS: list[Item] = [{
-  'str': 'a',
-  'int': 1,
-  'bool': False,
-  'float': 3.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 2.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 1.0
-}]
+SIMPLE_ITEMS: list[Item] = [
+  {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
+]
 
 
 class TestInvalidSignal(TextSignal):
@@ -83,6 +72,7 @@ class TestSparseSignal(TextSignal):
 
 class TestSparseRichSignal(TextSignal):
   """Find personally identifiable information (emails, phone numbers, etc)."""
+
   name: ClassVar[str] = 'test_sparse_rich_signal'
 
   @override
@@ -125,6 +115,7 @@ class TestSignal(TextSignal):
 
 class TestSplitSignal(TextSignal):
   """Split documents into sentence by splitting on period, generating entities."""
+
   name: ClassVar[str] = 'test_split'
 
   @override
@@ -138,8 +129,8 @@ class TestSplitSignal(TextSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        lilac_span(text.index(sentence),
-                   text.index(sentence) + len(sentence)) for sentence in sentences
+        lilac_span(text.index(sentence), text.index(sentence) + len(sentence))
+        for sentence in sentences
       ]
 
 
@@ -147,7 +138,7 @@ EMBEDDINGS: list[tuple[str, Union[list[float], list[list[float]]]]] = [
   ('hello.', [1.0, 0.0, 0.0]),
   # This embedding has an outer dimension of 1.
   ('hello2.', [[1.0, 1.0, 0.0]]),
-  ('hello3.', [[0, 0, 1.]])
+  ('hello3.', [[0, 0, 1.0]]),
 ]
 
 STR_EMBEDDINGS: dict[str, Union[list[float], list[list[float]]]] = {
@@ -157,6 +148,7 @@ STR_EMBEDDINGS: dict[str, Union[list[float], list[list[float]]]] = {
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override
@@ -207,53 +199,68 @@ def setup_teardown() -> Iterable[None]:
 def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
   signal = TestInvalidSignal()
 
-  dataset = make_test_data([{
-    'text': 'hello',
-  }, {
-    'text': 'hello world',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello',
+      },
+      {
+        'text': 'hello world',
+      },
+    ]
+  )
 
   with pytest.raises(
-      ValueError, match='The signal generated a different number of values than was input.'):
+    ValueError, match='The signal generated a different number of values than was input.'
+  ):
     dataset.compute_signal(signal, 'text')
 
 
 def test_sparse_signal(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello',
-  }, {
-    'text': 'hello world',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello',
+      },
+      {
+        'text': 'hello world',
+      },
+    ]
+  )
 
   dataset.compute_signal(TestSparseSignal(), 'text')
 
   result = dataset.select_rows(['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {'test_sparse_signal': None})
-  }, {
-    'text': enriched_item('hello world', {'test_sparse_signal': 11})
-  }]
+  assert list(result) == [
+    {'text': enriched_item('hello', {'test_sparse_signal': None})},
+    {'text': enriched_item('hello world', {'test_sparse_signal': 11})},
+  ]
 
 
 def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello',
-  }, {
-    'text': 'hello world',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello',
+      },
+      {
+        'text': 'hello world',
+      },
+    ]
+  )
 
   dataset.compute_signal(TestSparseRichSignal(), 'text')
 
   result = dataset.select_rows(['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {'test_sparse_rich_signal': None})
-  }, {
-    'text': enriched_item(
-      'hello world',
-      {'test_sparse_rich_signal': {
-        'emails': ['test1@hello.com', 'test2@hello.com']
-      }})
-  }]
+  assert list(result) == [
+    {'text': enriched_item('hello', {'test_sparse_rich_signal': None})},
+    {
+      'text': enriched_item(
+        'hello world',
+        {'test_sparse_rich_signal': {'emails': ['test1@hello.com', 'test2@hello.com']}},
+      )
+    },
+  ]
 
 
 def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
@@ -261,14 +268,17 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'str': 'string',
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32',
-    }),
+    data_schema=schema(
+      {
+        'str': 'string',
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }
+    ),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'str')
@@ -277,75 +287,62 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'str': field(
-        'string',
-        fields={
-          'test_signal': field(
-            signal=test_signal.model_dump(), fields={
-              'len': 'int32',
-              'flen': 'float32'
-            }),
-        }),
-      'int': 'int32',
-      'bool': 'boolean',
-      'float': 'float32',
-    }),
+    data_schema=schema(
+      {
+        'str': field(
+          'string',
+          fields={
+            'test_signal': field(
+              signal=test_signal.model_dump(),
+              fields={'len': 'int32', 'flen': 'float32'},
+            ),
+          },
+        ),
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }
+    ),
     num_items=3,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows(['str'], combine_columns=True)
-  assert list(result) == [{
-    'str': enriched_item('a', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
-  }, {
-    'str': enriched_item('b', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
-  }, {
-    'str': enriched_item('b', {'test_signal': {
-      'len': 1,
-      'flen': 1.0
-    }}),
-  }]
+  assert list(result) == [
+    {
+      'str': enriched_item('a', {'test_signal': {'len': 1, 'flen': 1.0}}),
+    },
+    {
+      'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}}),
+    },
+    {
+      'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}}),
+    },
+  ]
 
   # Select a specific signal leaf test_signal.flen with 'str'.
   result = dataset.select_rows(['str', ('str', 'test_signal', 'flen')])
 
-  assert list(result) == [{
-    'str': 'a',
-    'str.test_signal.flen': 1.0
-  }, {
-    'str': 'b',
-    'str.test_signal.flen': 1.0
-  }, {
-    'str': 'b',
-    'str.test_signal.flen': 1.0
-  }]
+  assert list(result) == [
+    {'str': 'a', 'str.test_signal.flen': 1.0},
+    {'str': 'b', 'str.test_signal.flen': 1.0},
+    {'str': 'b', 'str.test_signal.flen': 1.0},
+  ]
 
   # Select multiple signal leafs with aliasing.
-  result = dataset.select_rows([
-    'str',
-    Column(('str', 'test_signal', 'flen'), alias='flen'),
-    Column(('str', 'test_signal', 'len'), alias='len')
-  ])
+  result = dataset.select_rows(
+    [
+      'str',
+      Column(('str', 'test_signal', 'flen'), alias='flen'),
+      Column(('str', 'test_signal', 'len'), alias='len'),
+    ]
+  )
 
-  assert list(result) == [{
-    'str': 'a',
-    'flen': 1.0,
-    'len': 1
-  }, {
-    'str': 'b',
-    'flen': 1.0,
-    'len': 1
-  }, {
-    'str': 'b',
-    'flen': 1.0,
-    'len': 1
-  }]
+  assert list(result) == [
+    {'str': 'a', 'flen': 1.0, 'len': 1},
+    {'str': 'b', 'flen': 1.0, 'len': 1},
+    {'str': 'b', 'flen': 1.0, 'len': 1},
+  ]
 
 
 def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
@@ -358,37 +355,55 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={
-          'param_signal(param=a)': field('string', test_signal_a.model_dump()),
-          'param_signal(param=b)': field('string', test_signal_b.model_dump()),
-        }),
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'param_signal(param=a)': field('string', test_signal_a.model_dump()),
+            'param_signal(param=b)': field('string', test_signal_b.model_dump()),
+          },
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows(['text'], combine_columns=True)
-  assert list(result) == [{
-    'text': enriched_item('hello', {
-      'param_signal(param=a)': 'hello_a',
-      'param_signal(param=b)': 'hello_b',
-    })
-  }, {
-    'text': enriched_item('everybody', {
-      'param_signal(param=a)': 'everybody_a',
-      'param_signal(param=b)': 'everybody_b',
-    })
-  }]
+  assert list(result) == [
+    {
+      'text': enriched_item(
+        'hello',
+        {
+          'param_signal(param=a)': 'hello_a',
+          'param_signal(param=b)': 'hello_b',
+        },
+      )
+    },
+    {
+      'text': enriched_item(
+        'everybody',
+        {
+          'param_signal(param=a)': 'everybody_a',
+          'param_signal(param=b)': 'everybody_b',
+        },
+      )
+    },
+  ]
 
 
 def test_split_signal(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': '[1, 1] first sentence. [1, 1] second sentence.',
-  }, {
-    'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': '[1, 1] first sentence. [1, 1] second sentence.',
+      },
+      {
+        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+      },
+    ]
+  )
 
   signal = TestSplitSignal()
   dataset.compute_signal(signal, 'text')
@@ -396,34 +411,52 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={'test_split': field(signal=signal.model_dump(), fields=[field('string_span')])})
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={'test_split': field(signal=signal.model_dump(), fields=[field('string_span')])},
+        )
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows(['text'], combine_columns=True)
-  expected_result = [{
-    'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
-                          {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]})
-  }, {
-    'text': enriched_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
-                          {'test_split': [
-                            lilac_span(0, 25),
-                            lilac_span(26, 49),
-                          ]})
-  }]
+  expected_result = [
+    {
+      'text': enriched_item(
+        '[1, 1] first sentence. [1, 1] second sentence.',
+        {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]},
+      )
+    },
+    {
+      'text': enriched_item(
+        'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        {
+          'test_split': [
+            lilac_span(0, 25),
+            lilac_span(26, 49),
+          ]
+        },
+      )
+    },
+  ]
   assert list(result) == expected_result
 
 
 def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': ['hello', 'everybody'],
-  }, {
-    'text': ['hello2', 'everybody2'],
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': ['hello', 'everybody'],
+      },
+      {
+        'text': ['hello2', 'everybody2'],
+      },
+    ]
+  )
   test_signal = TestSignal()
   # Run the signal on the repeated field.
   dataset.compute_signal(test_signal, ('text', '*'))
@@ -432,72 +465,84 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(fields=[
-        field(
-          'string',
-          fields={
-            'test_signal': field(
-              signal=test_signal.model_dump(), fields={
-                'len': 'int32',
-                'flen': 'float32'
-              })
-          })
-      ])
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          fields=[
+            field(
+              'string',
+              fields={
+                'test_signal': field(
+                  signal=test_signal.model_dump(),
+                  fields={'len': 'int32', 'flen': 'float32'},
+                )
+              },
+            )
+          ]
+        )
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows([('text', '*')], combine_columns=True)
 
-  assert list(result) == [{
-    'text': [
-      enriched_item('hello', {'test_signal': {
-        'len': 5,
-        'flen': 5.0
-      }}),
-      enriched_item('everybody', {'test_signal': {
-        'len': 9,
-        'flen': 9.0
-      }})
-    ]
-  }, {
-    'text': [
-      enriched_item('hello2', {'test_signal': {
-        'len': 6,
-        'flen': 6.0
-      }}),
-      enriched_item('everybody2', {'test_signal': {
-        'len': 10,
-        'flen': 10.0
-      }})
-    ]
-  }]
+  assert list(result) == [
+    {
+      'text': [
+        enriched_item('hello', {'test_signal': {'len': 5, 'flen': 5.0}}),
+        enriched_item('everybody', {'test_signal': {'len': 9, 'flen': 9.0}}),
+      ]
+    },
+    {
+      'text': [
+        enriched_item('hello2', {'test_signal': {'len': 6, 'flen': 6.0}}),
+        enriched_item('everybody2', {'test_signal': {'len': 10, 'flen': 10.0}}),
+      ]
+    },
+  ]
 
 
 def test_text_splitter(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': '[1, 1] first sentence. [1, 1] second sentence.',
-  }, {
-    'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': '[1, 1] first sentence. [1, 1] second sentence.',
+      },
+      {
+        'text': 'b2 [2, 1] first sentence. [2, 1] second sentence.',
+      },
+    ]
+  )
 
   dataset.compute_signal(TestSplitSignal(), 'text')
 
   result = dataset.select_rows(['text'], combine_columns=True)
-  expected_result = [{
-    'text': enriched_item('[1, 1] first sentence. [1, 1] second sentence.',
-                          {'test_split': [
-                            lilac_span(0, 22),
-                            lilac_span(23, 46),
-                          ]}),
-  }, {
-    'text': enriched_item('b2 [2, 1] first sentence. [2, 1] second sentence.',
-                          {'test_split': [
-                            lilac_span(0, 25),
-                            lilac_span(26, 49),
-                          ]}),
-  }]
+  expected_result = [
+    {
+      'text': enriched_item(
+        '[1, 1] first sentence. [1, 1] second sentence.',
+        {
+          'test_split': [
+            lilac_span(0, 22),
+            lilac_span(23, 46),
+          ]
+        },
+      ),
+    },
+    {
+      'text': enriched_item(
+        'b2 [2, 1] first sentence. [2, 1] second sentence.',
+        {
+          'test_split': [
+            lilac_span(0, 25),
+            lilac_span(26, 49),
+          ]
+        },
+      ),
+    },
+  ]
   assert list(result) == expected_result
 
 
@@ -513,17 +558,22 @@ def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field(
-        'string',
-        fields={
-          'test_embedding': field(
-            signal=embedding_signal.model_dump(),
-            fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
-        }),
-    }),
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_embedding': field(
+              signal=embedding_signal.model_dump(),
+              fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+            )
+          },
+        ),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows(combine_columns=True)
   expected_result = [{'text': 'hello.'}, {'text': 'hello2.'}]
@@ -531,11 +581,16 @@ def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
 
 def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello. hello2.',
-  }, {
-    'text': 'hello world. hello world2.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello. hello2.',
+      },
+      {
+        'text': 'hello world. hello world2.',
+      },
+    ]
+  )
 
   test_splitter = TestSplitSignal()
   dataset.compute_signal(test_splitter, 'text')
@@ -546,11 +601,16 @@ def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> Non
 
 
 def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello. hello2.',
-  }, {
-    'text': 'hello world. hello world2.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello. hello2.',
+      },
+      {
+        'text': 'hello world. hello world2.',
+      },
+    ]
+  )
 
   test_splitter = TestSplitSignal()
   dataset.compute_signal(test_splitter, 'text')
@@ -569,30 +629,38 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({
-      'text': field('string', fields={'key_True': field('int64', signal=signal.model_dump())}),
-    }),
+    data_schema=schema(
+      {
+        'text': field('string', fields={'key_True': field('int64', signal=signal.model_dump())}),
+      }
+    ),
     num_items=2,
-    source=TestSource())
+    source=TestSource(),
+  )
 
   result = dataset.select_rows(combine_columns=True)
 
-  expected_result = [{
-    'text': enriched_item('hello.', {'key_True': 1})
-  }, {
-    'text': enriched_item('hello2.', {'key_True': 1})
-  }]
+  expected_result = [
+    {'text': enriched_item('hello.', {'key_True': 1})},
+    {'text': enriched_item('hello2.', {'key_True': 1})},
+  ]
   assert list(result) == expected_result
 
 
 def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{
-    'text': 'hello.',
-  }, {
-    'text': 'hello2.',
-  }, {
-    'text': 'hello3.',
-  }])
+  dataset = make_test_data(
+    [
+      {
+        'text': 'hello.',
+      },
+      {
+        'text': 'hello2.',
+      },
+      {
+        'text': 'hello3.',
+      },
+    ]
+  )
 
   embedding_signal = TestEmbedding()
   dataset.compute_signal(embedding_signal, 'text')
@@ -600,23 +668,29 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
   concept_db = DiskConceptDB()
   concept_db.create(namespace='test_namespace', name='test_concept', type=SignalInputType.TEXT)
   concept_db.edit(
-    'test_namespace', 'test_concept',
-    ConceptUpdate(insert=[
-      ExampleIn(label=False, text='hello.'),
-      ExampleIn(label=True, text='hello2.'),
-      ExampleIn(label=False, text='hello3.')
-    ]))
+    'test_namespace',
+    'test_concept',
+    ConceptUpdate(
+      insert=[
+        ExampleIn(label=False, text='hello.'),
+        ExampleIn(label=True, text='hello2.'),
+        ExampleIn(label=False, text='hello3.'),
+      ]
+    ),
+  )
 
   dataset.compute_concept(
     namespace='test_namespace',
     concept_name='test_concept',
     embedding='test_embedding',
-    path='text')
+    path='text',
+  )
 
   concept_key = 'test_namespace/test_concept/test_embedding'
   result = dataset.select_groups(f'text.{concept_key}.*.score')
   assert result.counts == [('Not in concept', 2), ('In concept', 1)]
 
   result = dataset.select_groups(
-    f'text.{concept_key}.*.score', sort_by=GroupsSortBy.COUNT, sort_order=SortOrder.ASC)
+    f'text.{concept_key}.*.score', sort_by=GroupsSortBy.COUNT, sort_order=SortOrder.ASC
+  )
   assert result.counts == [('In concept', 1), ('Not in concept', 2)]

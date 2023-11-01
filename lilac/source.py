@@ -21,12 +21,14 @@ from .schema import (
 
 class SourceSchema(BaseModel):
   """The schema of a source."""
+
   fields: dict[str, Field]
   num_items: Optional[int] = None
 
 
 class SourceProcessResult(BaseModel):
   """The result after processing all the shards of a source dataset."""
+
   filepaths: list[str]
   data_schema: Schema
   num_items: int
@@ -51,6 +53,7 @@ def _source_schema_extra(schema: dict[str, Any], source: Type['Source']) -> None
 
 class Source(BaseModel):
   """Interface for sources to implement. A source processes a set of shards and writes files."""
+
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
   router: ClassVar[Optional[APIRouter]] = None
@@ -107,6 +110,5 @@ def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:
 
   schema = arrow_schema_to_schema(pa.Schema.from_pandas(df, preserve_index=False))
   return SourceSchema(
-    fields={
-      **schema.fields, index_colname: field(dtype=index_dtype)
-    }, num_items=len(df))
+    fields={**schema.fields, index_colname: field(dtype=index_dtype)}, num_items=len(df)
+  )

@@ -45,6 +45,7 @@ EMBEDDING_MAP: dict[str, list[float]] = {
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override
@@ -78,12 +79,13 @@ def test_embedding_does_not_exist(db_cls: Type[ConceptDB]) -> None:
 
   train_data = [
     ExampleIn(label=False, text='not in concept'),
-    ExampleIn(label=True, text='in concept')
+    ExampleIn(label=True, text='in concept'),
   ]
   db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
   signal = ConceptSignal(
-    namespace='test', concept_name='test_concept', embedding='unknown_embedding')
+    namespace='test', concept_name='test_concept', embedding='unknown_embedding'
+  )
   with pytest.raises(ValueError, match='Signal "unknown_embedding" not found in the registry'):
     signal.compute(['a new data point'])
 
@@ -96,8 +98,9 @@ def test_concept_does_not_exist() -> None:
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
-def test_concept_model_score(concept_db_cls: Type[ConceptDB],
-                             model_db_cls: Type[ConceptModelDB]) -> None:
+def test_concept_model_score(
+  concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB]
+) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -106,7 +109,7 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 
   train_data = [
     ExampleIn(label=False, text='not in concept'),
-    ExampleIn(label=True, text='in concept')
+    ExampleIn(label=True, text='in concept'),
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -114,7 +117,8 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True
+  )
 
   result_items = list(signal.compute(['a new data point', 'not in concept']))
   scores = [result_item[0]['score'] for result_item in result_items if result_item]
@@ -125,8 +129,9 @@ def test_concept_model_score(concept_db_cls: Type[ConceptDB],
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
 @pytest.mark.parametrize('vector_store', ALL_VECTOR_STORES)
-def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
-                                    model_db_cls: Type[ConceptModelDB], vector_store: str) -> None:
+def test_concept_model_vector_score(
+  concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB], vector_store: str
+) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -135,7 +140,7 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
 
   train_data = [
     ExampleIn(label=False, text='not in concept'),
-    ExampleIn(label=True, text='in concept')
+    ExampleIn(label=True, text='in concept'),
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -143,27 +148,32 @@ def test_concept_model_vector_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True
+  )
 
   vector_index = make_vector_index(
-    vector_store, {
+    vector_store,
+    {
       ('1',): [EMBEDDING_MAP['in concept']],
       ('2',): [EMBEDDING_MAP['not in concept']],
       ('3',): [EMBEDDING_MAP['a new data point']],
-    })
+    },
+  )
 
   scores = cast(list[Item], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index)))
   assert scores[0][0]['score'] > 0.5  # '1' is in the concept.
   assert scores[1][0]['score'] < 0.5  # '2' is not in the concept.
-  assert scores[2][0]['score'] > 0 and scores[2][0][
-    'score'] < 1  # '3' may or may not be in the concept.
+  assert (
+    scores[2][0]['score'] > 0 and scores[2][0]['score'] < 1
+  )  # '3' may or may not be in the concept.
 
 
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
 @pytest.mark.parametrize('vector_store', ALL_VECTOR_STORES)
-def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
-                                  model_db_cls: Type[ConceptModelDB], vector_store: str) -> None:
+def test_concept_model_topk_score(
+  concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB], vector_store: str
+) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -172,7 +182,7 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
   train_data = [
     ExampleIn(label=False, text='not in concept'),
-    ExampleIn(label=True, text='in concept')
+    ExampleIn(label=True, text='in concept'),
   ]
   concept_db.edit(namespace, concept_name, ConceptUpdate(insert=train_data))
 
@@ -180,12 +190,16 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
-  vector_index = make_vector_index(vector_store, {
-    ('1',): [[0.1, 0.2, 0.3]],
-    ('2',): [[0.1, 0.87, 0.0]],
-    ('3',): [[1.0, 0.0, 0.0]],
-  })
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True
+  )
+  vector_index = make_vector_index(
+    vector_store,
+    {
+      ('1',): [[0.1, 0.2, 0.3]],
+      ('2',): [[0.1, 0.87, 0.0]],
+      ('3',): [[1.0, 0.0, 0.0]],
+    },
+  )
 
   # Compute topk without id restriction.
   topk_result = signal.vector_compute_topk(3, vector_index)
@@ -212,8 +226,9 @@ def test_concept_model_topk_score(concept_db_cls: Type[ConceptDB],
 @pytest.mark.parametrize('concept_db_cls', ALL_CONCEPT_DBS)
 @pytest.mark.parametrize('model_db_cls', ALL_CONCEPT_MODEL_DBS)
 @pytest.mark.parametrize('vector_store', ALL_VECTOR_STORES)
-def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB],
-                             vector_store: str) -> None:
+def test_concept_model_draft(
+  concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB], vector_store: str
+) -> None:
   concept_db = concept_db_cls()
   model_db = model_db_cls(concept_db)
   namespace = 'test'
@@ -229,17 +244,25 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type
 
   signal = ConceptSignal(namespace='test', concept_name='test_concept', embedding='test_embedding')
   draft_signal = ConceptSignal(
-    namespace='test', concept_name='test_concept', embedding='test_embedding', draft='test_draft')
+    namespace='test',
+    concept_name='test_concept',
+    embedding='test_embedding',
+    draft='test_draft',
+  )
 
   # Explicitly sync the model with the concept.
   model_db.sync(
-    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True)
+    namespace='test', concept_name='test_concept', embedding_name='test_embedding', create=True
+  )
 
-  vector_index = make_vector_index(vector_store, {
-    ('1',): [[1.0, 0.0, 0.0]],
-    ('2',): [[0.9, 0.1, 0.0]],
-    ('3',): [[0.1, 0.9, 0.0]],
-  })
+  vector_index = make_vector_index(
+    vector_store,
+    {
+      ('1',): [[1.0, 0.0, 0.0]],
+      ('2',): [[0.9, 0.1, 0.0]],
+      ('3',): [[0.1, 0.9, 0.0]],
+    },
+  )
 
   scores = cast(list[Item], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index)))
   assert scores[0][0]['score'] > 0.5
@@ -247,18 +270,22 @@ def test_concept_model_draft(concept_db_cls: Type[ConceptDB], model_db_cls: Type
   assert scores[2][0]['score'] < 0.5
 
   # Make sure the draft signal works. It has different values than the original signal.
-  vector_index = make_vector_index(vector_store, {
-    ('1',): [[1.0, 0.0, 0.0]],
-    ('2',): [[0.9, 0.1, 0.0]],
-    ('3',): [[0.1, 0.2, 0.3]],
-  })
+  vector_index = make_vector_index(
+    vector_store,
+    {
+      ('1',): [[1.0, 0.0, 0.0]],
+      ('2',): [[0.9, 0.1, 0.0]],
+      ('3',): [[0.1, 0.2, 0.3]],
+    },
+  )
   draft_scores = draft_signal.vector_compute([('1',), ('2',), ('3',)], vector_index)
   assert draft_scores != scores
 
 
 def test_concept_score_preview_key() -> None:
   signal = ConceptSignal(
-    namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
+    namespace='test', concept_name='test_concept', embedding=TestEmbedding.name
+  )
   assert signal.key() == 'test/test_concept/test_embedding/preview'
 
 
@@ -270,5 +297,6 @@ def test_concept_score_compute_signal_key(concept_db_cls: Type[ConceptDB]) -> No
   concept_db.create(namespace=namespace, name=concept_name, type=SignalInputType.TEXT)
 
   signal = ConceptSignal(
-    namespace='test', concept_name='test_concept', embedding=TestEmbedding.name)
+    namespace='test', concept_name='test_concept', embedding=TestEmbedding.name
+  )
   assert signal.key(is_computed_signal=True) == 'test/test_concept/test_embedding'

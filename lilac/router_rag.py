@@ -18,8 +18,10 @@ instructor.patch()
 
 class Completion(OpenAISchema):
   """Generated completion of a prompt."""
-  completion: str = Field(...,
-                          description='The answer to the question, given the context and query.')
+
+  completion: str = Field(
+    ..., description='The answer to the question, given the context and query.'
+  )
 
 
 @router.get('/generate_completion')
@@ -28,8 +30,10 @@ def generate_completion(prompt: str) -> str:
   try:
     import openai
   except ImportError:
-    raise ImportError('Could not import the "openai" python package. '
-                      'Please install it with `pip install openai`.')
+    raise ImportError(
+      'Could not import the "openai" python package. '
+      'Please install it with `pip install openai`.'
+    )
 
   openai.api_key = env('OPENAI_API_KEY')
   if not openai.api_key:
@@ -44,10 +48,9 @@ def generate_completion(prompt: str) -> str:
           'role': 'system',
           'content': 'You must call the `Completion` function with the generated completion.',
         },
-        {
-          'role': 'user',
-          'content': prompt
-        },
+        {'role': 'user', 'content': prompt},
       ],
-      temperature=0))
+      temperature=0,
+    ),
+  )
   return completion.completion

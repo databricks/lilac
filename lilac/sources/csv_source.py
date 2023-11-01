@@ -21,16 +21,19 @@ class CSVSource(Source):
 
   For more details on authorizing access to S3, GCS or R2, see:
   https://duckdb.org/docs/guides/import/s3_import.html
-  """ # noqa: D415, D400
+  """  # noqa: D415, D400
+
   name: ClassVar[str] = 'csv'
 
   filepaths: list[str] = Field(
     description='A list of paths to CSV files. '
-    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.')
+    'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.'
+  )
   delim: Optional[str] = Field(default=',', description='The CSV file delimiter to use.')
   header: Optional[bool] = Field(default=True, description='Whether the CSV file has a header row.')
   names: Optional[list[str]] = Field(
-    default=None, description='Provide header names if the file does not contain a header.')
+    default=None, description='Provide header names if the file does not contain a header.'
+  )
 
   _source_schema: Optional[SourceSchema] = None
   _reader: Optional[pa.RecordBatchReader] = None
@@ -49,7 +52,8 @@ class CSVSource(Source):
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
     # NOTE: We turn off the parallel reader because of https://github.com/lilacai/lilac/issues/373.
-    self._con.execute(f"""
+    self._con.execute(
+      f"""
       CREATE SEQUENCE serial START 1;
       CREATE VIEW t as (SELECT nextval('serial') as "{LINE_NUMBER_COLUMN}", * FROM read_csv_auto(
         {duckdb_paths},
@@ -60,7 +64,8 @@ class CSVSource(Source):
         IGNORE_ERRORS=true,
         PARALLEL=false
     ));
-    """)
+    """
+    )
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
     num_items = cast(tuple[int], res)[0]

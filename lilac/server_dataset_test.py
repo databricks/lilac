@@ -36,43 +36,37 @@ client = TestClient(app)
 
 DATASET_CLASSES = [DatasetDuckDB]
 
-TEST_DATA: list[Item] = [{
-  'erased': False,
-  'people': [{
-    'name': 'A',
-    'zipcode': 0,
-    'locations': [{
-      'city': 'city1',
-      'state': 'state1'
-    }, {
-      'city': 'city2',
-      'state': 'state2'
-    }]
-  }]
-}, {
-  'erased': True,
-  'people': [{
-    'name': 'B',
-    'zipcode': 1,
-    'locations': [{
-      'city': 'city3',
-      'state': 'state3'
-    }, {
-      'city': 'city4'
-    }, {
-      'city': 'city5'
-    }]
-  }, {
-    'name': 'C',
-    'zipcode': 2,
-    'locations': [{
-      'city': 'city1',
-      'state': 'state1'
-    }]
-  }]
-}, {
-  'erased': True
-}]
+TEST_DATA: list[Item] = [
+  {
+    'erased': False,
+    'people': [
+      {
+        'name': 'A',
+        'zipcode': 0,
+        'locations': [
+          {'city': 'city1', 'state': 'state1'},
+          {'city': 'city2', 'state': 'state2'},
+        ],
+      }
+    ],
+  },
+  {
+    'erased': True,
+    'people': [
+      {
+        'name': 'B',
+        'zipcode': 1,
+        'locations': [
+          {'city': 'city3', 'state': 'state3'},
+          {'city': 'city4'},
+          {'city': 'city5'},
+        ],
+      },
+      {'name': 'C', 'zipcode': 2, 'locations': [{'city': 'city1', 'state': 'state1'}]},
+    ],
+  },
+  {'erased': True},
+]
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -88,8 +82,11 @@ def setup_teardown() -> Iterable[None]:
 
 
 @pytest.fixture(scope='module', autouse=True, params=DATASET_CLASSES)
-def test_data(tmp_path_factory: pytest.TempPathFactory, module_mocker: MockerFixture,
-              request: pytest.FixtureRequest) -> None:
+def test_data(
+  tmp_path_factory: pytest.TempPathFactory,
+  module_mocker: MockerFixture,
+  request: pytest.FixtureRequest,
+) -> None:
   tmp_path = tmp_path_factory.mktemp('data')
   module_mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
 
@@ -105,19 +102,22 @@ def test_get_manifest() -> None:
     dataset_manifest=DatasetManifest(
       namespace=TEST_NAMESPACE,
       dataset_name=TEST_DATASET_NAME,
-      data_schema=schema({
-        'erased': 'boolean',
-        'people': [{
-          'name': 'string',
-          'zipcode': 'int32',
-          'locations': [{
-            'city': 'string',
-            'state': 'string'
-          }]
-        }]
-      }),
+      data_schema=schema(
+        {
+          'erased': 'boolean',
+          'people': [
+            {
+              'name': 'string',
+              'zipcode': 'int32',
+              'locations': [{'city': 'string', 'state': 'string'}],
+            }
+          ],
+        }
+      ),
       num_items=3,
-      source=TestSource()))
+      source=TestSource(),
+    )
+  )
 
 
 def test_select_rows_no_options() -> None:
@@ -133,52 +133,65 @@ def test_select_rows_with_cols_and_limit() -> None:
   options = SelectRowsOptions(
     columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
     limit=1,
-    offset=1)
+    offset=1,
+  )
   response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
   assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
-    rows=[{
-      'people.*.zipcode': [1, 2],
-      'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']]
-    }],
-    total_num_rows=3)
+    rows=[
+      {
+        'people.*.zipcode': [1, 2],
+        'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']],
+      }
+    ],
+    total_num_rows=3,
+  )
 
 
 def test_select_rows_with_cols_and_combine() -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/select_rows'
   options = SelectRowsOptions(
     columns=[('people', '*', 'zipcode'), ('people', '*', 'locations', '*', 'city')],
-    combine_columns=True)
+    combine_columns=True,
+  )
   response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
   assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
-    rows=[{
-      'people': [{
-        'zipcode': 0,
-        'locations': [{
-          'city': 'city1',
-        }, {
-          'city': 'city2',
-        }]
-      }]
-    }, {
-      'people': [{
-        'zipcode': 1,
-        'locations': [{
-          'city': 'city3',
-        }, {
-          'city': 'city4'
-        }, {
-          'city': 'city5'
-        }]
-      }, {
-        'zipcode': 2,
-        'locations': [{
-          'city': 'city1'
-        }]
-      }]
-    }, {}],
-    total_num_rows=3)
+    rows=[
+      {
+        'people': [
+          {
+            'zipcode': 0,
+            'locations': [
+              {
+                'city': 'city1',
+              },
+              {
+                'city': 'city2',
+              },
+            ],
+          }
+        ]
+      },
+      {
+        'people': [
+          {
+            'zipcode': 1,
+            'locations': [
+              {
+                'city': 'city3',
+              },
+              {'city': 'city4'},
+              {'city': 'city5'},
+            ],
+          },
+          {'zipcode': 2, 'locations': [{'city': 'city1'}]},
+        ]
+      },
+      {},
+    ],
+    total_num_rows=3,
+  )
 
 
 class LengthSignal(TextSignal):
@@ -199,44 +212,43 @@ def test_select_rows_star_plus_udf() -> None:
   response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
   assert SelectRowsResponse.model_validate(response.json()) == SelectRowsResponse(
-    rows=[{
-      'erased': False,
-      'people': [{
-        'name': enriched_item('A', {'length_signal': 1}),
-        'zipcode': 0,
-        'locations': [{
-          'city': 'city1',
-          'state': 'state1'
-        }, {
-          'city': 'city2',
-          'state': 'state2'
-        }]
-      }]
-    }, {
-      'erased': True,
-      'people': [{
-        'name': enriched_item('B', {'length_signal': 1}),
-        'zipcode': 1,
-        'locations': [{
-          'city': 'city3',
-          'state': 'state3'
-        }, {
-          'city': 'city4'
-        }, {
-          'city': 'city5'
-        }]
-      }, {
-        'name': enriched_item('C', {'length_signal': 1}),
-        'zipcode': 2,
-        'locations': [{
-          'city': 'city1',
-          'state': 'state1'
-        }]
-      }]
-    }, {
-      'erased': True
-    }],
-    total_num_rows=3)
+    rows=[
+      {
+        'erased': False,
+        'people': [
+          {
+            'name': enriched_item('A', {'length_signal': 1}),
+            'zipcode': 0,
+            'locations': [
+              {'city': 'city1', 'state': 'state1'},
+              {'city': 'city2', 'state': 'state2'},
+            ],
+          }
+        ],
+      },
+      {
+        'erased': True,
+        'people': [
+          {
+            'name': enriched_item('B', {'length_signal': 1}),
+            'zipcode': 1,
+            'locations': [
+              {'city': 'city3', 'state': 'state3'},
+              {'city': 'city4'},
+              {'city': 'city5'},
+            ],
+          },
+          {
+            'name': enriched_item('C', {'length_signal': 1}),
+            'zipcode': 2,
+            'locations': [{'city': 'city1', 'state': 'state1'}],
+          },
+        ],
+      },
+      {'erased': True},
+    ],
+    total_num_rows=3,
+  )
 
 
 def test_select_rows_schema_star_plus_udf() -> None:
@@ -247,19 +259,23 @@ def test_select_rows_schema_star_plus_udf() -> None:
   response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
   assert SelectRowsSchemaResult.model_validate(response.json()) == SelectRowsSchemaResult(
-    data_schema=schema({
-      'erased': 'boolean',
-      'people': [{
-        'name': field(
-          'string', fields={'length_signal': field('int32', signal.model_dump(exclude_none=True))}),
-        'zipcode': 'int32',
-        'locations': [{
-          'city': 'string',
-          'state': 'string'
-        }]
-      }]
-    }),
-    udfs=[SelectRowsSchemaUDF(path=('people', '*', 'name', 'length_signal'), alias='len')])
+    data_schema=schema(
+      {
+        'erased': 'boolean',
+        'people': [
+          {
+            'name': field(
+              'string',
+              fields={'length_signal': field('int32', signal.model_dump(exclude_none=True))},
+            ),
+            'zipcode': 'int32',
+            'locations': [{'city': 'string', 'state': 'string'}],
+          }
+        ],
+      }
+    ),
+    udfs=[SelectRowsSchemaUDF(path=('people', '*', 'name', 'length_signal'), alias='len')],
+  )
 
 
 def test_select_rows_schema_no_cols() -> None:
@@ -268,17 +284,19 @@ def test_select_rows_schema_no_cols() -> None:
   response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
   assert SelectRowsSchemaResult.model_validate(response.json()) == SelectRowsSchemaResult(
-    data_schema=schema({
-      'erased': 'boolean',
-      'people': [{
-        'name': 'string',
-        'zipcode': 'int32',
-        'locations': [{
-          'city': 'string',
-          'state': 'string'
-        }]
-      }]
-    }))
+    data_schema=schema(
+      {
+        'erased': 'boolean',
+        'people': [
+          {
+            'name': 'string',
+            'zipcode': 'int32',
+            'locations': [{'city': 'string', 'state': 'string'}],
+          }
+        ],
+      }
+    )
+  )
 
 
 def test_compute_signal_auth(mocker: MockerFixture) -> None:
@@ -287,7 +305,8 @@ def test_compute_signal_auth(mocker: MockerFixture) -> None:
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/compute_signal'
   response = client.post(
     url,
-    json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=('people', 'name')).model_dump())
+    json=ComputeSignalOptions(signal=LengthSignal(), leaf_path=('people', 'name')).model_dump(),
+  )
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to compute signals over this dataset.' in response.text
@@ -298,7 +317,8 @@ def test_delete_signal_auth(mocker: MockerFixture) -> None:
 
   url = f'/api/v1/datasets/{TEST_NAMESPACE}/{TEST_DATASET_NAME}/delete_signal'
   response = client.request(
-    'DELETE', url, json=DeleteSignalOptions(signal_path=('doesnt', 'matter')).model_dump())
+    'DELETE', url, json=DeleteSignalOptions(signal_path=('doesnt', 'matter')).model_dump()
+  )
   assert response.status_code == 401
   assert response.is_error is True
   assert 'User does not have access to delete this signal.' in response.text
@@ -329,7 +349,8 @@ def test_add_labels_auth(mocker: MockerFixture) -> None:
   # Override the session user so we make them an admin.
   def admin_user() -> UserInfo:
     return UserInfo(
-      id='1', email='admin@test.com', name='test', given_name='test', family_name='test')
+      id='1', email='admin@test.com', name='test', given_name='test', family_name='test'
+    )
 
   app.dependency_overrides[get_session_user] = admin_user
 
@@ -352,7 +373,8 @@ def test_add_labels_auth_user_edit_labels(mocker: MockerFixture) -> None:
   # Override the session user so we make them an admin.
   def admin_user() -> UserInfo:
     return UserInfo(
-      id='1', email='admin@test.com', name='test', given_name='test', family_name='test')
+      id='1', email='admin@test.com', name='test', given_name='test', family_name='test'
+    )
 
   app.dependency_overrides[get_session_user] = admin_user
 
@@ -364,7 +386,8 @@ def test_add_labels_auth_user_edit_labels(mocker: MockerFixture) -> None:
   # Make the user a non-admin user.
   def user() -> UserInfo:
     return UserInfo(
-      id='1', email='user@test.com', name='test', given_name='test', family_name='test')
+      id='1', email='user@test.com', name='test', given_name='test', family_name='test'
+    )
 
   app.dependency_overrides[get_session_user] = user
 

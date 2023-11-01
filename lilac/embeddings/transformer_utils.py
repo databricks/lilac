@@ -20,8 +20,10 @@ def _get_model(model_name: str, preferred_device: Optional[str]) -> 'SentenceTra
   try:
     from sentence_transformers import SentenceTransformer
   except ImportError:
-    raise ImportError('Could not import the "sentence_transformers" python package. '
-                      'Please install it with `pip install "lilac[gte]".')
+    raise ImportError(
+      'Could not import the "sentence_transformers" python package. '
+      'Please install it with `pip install "lilac[gte]".'
+    )
   return SentenceTransformer(model_name, device=preferred_device)
 
 
@@ -30,8 +32,10 @@ def get_model(model_name: str) -> 'SentenceTransformer':
   try:
     import torch.backends.mps
   except ImportError:
-    raise ImportError('Could not import the "sentence_transformers" python package. '
-                      'Please install it with `pip install "lilac[gte]".')
+    raise ImportError(
+      'Could not import the "sentence_transformers" python package. '
+      'Please install it with `pip install "lilac[gte]".'
+    )
   preferred_device: Optional[str] = None
   if torch.backends.mps.is_available():
     preferred_device = 'mps'

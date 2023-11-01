@@ -13,10 +13,8 @@ def test_simple_records() -> None:
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({
-      'x': 'int64',
-      'y': 'string'
-    }).fields, num_items=2)
+    fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2
+  )
 
   items = list(source.process())
   assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
@@ -30,19 +28,12 @@ def test_inconsistent_records() -> None:
 
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({
-      'x': 'int64',
-      'y': 'string'
-    }).fields, num_items=3)
+    fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=3
+  )
 
   items = list(source.process())
-  assert items == [{
-    'x': 1,
-    'y': '"ten"'
-  }, {
-    'x': 2,
-    'y': '["twenty"]'
-  }, {
-    'x': 3,
-    'y': '{"thirty":true}'
-  }]
+  assert items == [
+    {'x': 1, 'y': '"ten"'},
+    {'x': 2, 'y': '["twenty"]'},
+    {'x': 3, 'y': '{"thirty":true}'},
+  ]

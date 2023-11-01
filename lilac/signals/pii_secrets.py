@@ -19,68 +19,28 @@ filters = [
   # some filters from
   # https://github.com/Yelp/detect-secrets/blob/master/docs/filters.md#built-in-filters
   # were removed based on their targets
-  {
-    'path': 'detect_secrets.filters.heuristic.is_potential_uuid'
-  },
-  {
-    'path': 'detect_secrets.filters.heuristic.is_likely_id_string'
-  },
-  {
-    'path': 'detect_secrets.filters.heuristic.is_templated_secret'
-  },
-  {
-    'path': 'detect_secrets.filters.heuristic.is_sequential_string'
-  },
+  {'path': 'detect_secrets.filters.heuristic.is_potential_uuid'},
+  {'path': 'detect_secrets.filters.heuristic.is_likely_id_string'},
+  {'path': 'detect_secrets.filters.heuristic.is_templated_secret'},
+  {'path': 'detect_secrets.filters.heuristic.is_sequential_string'},
 ]
 plugins = [
-  {
-    'name': 'ArtifactoryDetector'
-  },
-  {
-    'name': 'AWSKeyDetector'
-  },
-  {
-    'name': 'AzureStorageKeyDetector'
-  },
-  {
-    'name': 'CloudantDetector'
-  },
-  {
-    'name': 'DiscordBotTokenDetector'
-  },
-  {
-    'name': 'GitHubTokenDetector'
-  },
-  {
-    'name': 'IbmCloudIamDetector'
-  },
-  {
-    'name': 'IbmCosHmacDetector'
-  },
-  {
-    'name': 'JwtTokenDetector'
-  },
-  {
-    'name': 'MailchimpDetector'
-  },
-  {
-    'name': 'NpmDetector'
-  },
-  {
-    'name': 'SendGridDetector'
-  },
-  {
-    'name': 'SlackDetector'
-  },
-  {
-    'name': 'SoftlayerDetector'
-  },
-  {
-    'name': 'StripeDetector'
-  },
-  {
-    'name': 'TwilioKeyDetector'
-  },
+  {'name': 'ArtifactoryDetector'},
+  {'name': 'AWSKeyDetector'},
+  {'name': 'AzureStorageKeyDetector'},
+  {'name': 'CloudantDetector'},
+  {'name': 'DiscordBotTokenDetector'},
+  {'name': 'GitHubTokenDetector'},
+  {'name': 'IbmCloudIamDetector'},
+  {'name': 'IbmCosHmacDetector'},
+  {'name': 'JwtTokenDetector'},
+  {'name': 'MailchimpDetector'},
+  {'name': 'NpmDetector'},
+  {'name': 'SendGridDetector'},
+  {'name': 'SlackDetector'},
+  {'name': 'SoftlayerDetector'},
+  {'name': 'StripeDetector'},
+  {'name': 'TwilioKeyDetector'},
   # remove 3 plugins for keyword
   # {'name': 'BasicAuthDetector'},
   # {'name': 'KeywordDetector'},

@@ -20,16 +20,17 @@ class LangDetectionSignal(TextSignal):
   Supports 55 languages returning their
   [ISO 639-1 codes](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
   """
+
   name: ClassVar[str] = 'lang_detection'
   display_name: ClassVar[str] = 'Language detection'
 
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   split_by_paragraph: bool = PydanticField(
-    default=False, description='Compute language scores for each paragraph.')
+    default=False, description='Compute language scores for each paragraph.'
+  )
 
   def _detect(self, text: str, langdetect: Any) -> Optional[str]:
-
     if len(text) < TEXT_LEN_THRESHOLD:
       return 'TOO_SHORT'
     try:
@@ -41,10 +42,13 @@ class LangDetectionSignal(TextSignal):
   def setup(self) -> None:
     try:
       import langdetect
+
       langdetect.DetectorFactory.seed = 42  # For consistent results.
     except ImportError:
-      raise ImportError('Could not import the "langdetect" python package. '
-                        'Please install it with `pip install langdetect`.')
+      raise ImportError(
+        'Could not import the "langdetect" python package. '
+        'Please install it with `pip install langdetect`.'
+      )
 
   @override
   def fields(self) -> Field:
@@ -55,6 +59,7 @@ class LangDetectionSignal(TextSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     import langdetect
+
     data = cast(Iterable[str], data)
     # Split on paragraphs.
     split_symbol = re.compile('(\r?\n){2,}')

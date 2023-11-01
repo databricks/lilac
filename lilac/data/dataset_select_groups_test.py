@@ -14,28 +14,11 @@ from .dataset_test_utils import TestDataMaker
 
 def test_flat_data(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'name': 'Name1',
-      'age': 34,
-      'active': False
-    },
-    {
-      'name': 'Name2',
-      'age': 45,
-      'active': True
-    },
-    {
-      'age': 17,
-      'active': True
-    },  # Missing "name".
-    {
-      'name': 'Name3',
-      'active': True
-    },  # Missing "age".
-    {
-      'name': 'Name4',
-      'age': 55
-    }  # Missing "active".
+    {'name': 'Name1', 'age': 34, 'active': False},
+    {'name': 'Name2', 'age': 45, 'active': True},
+    {'age': 17, 'active': True},  # Missing "name".
+    {'name': 'Name3', 'active': True},  # Missing "age".
+    {'name': 'Name4', 'age': 55},  # Missing "active".
   ]
   dataset = make_test_data(items)
 
@@ -56,19 +39,11 @@ def test_flat_data(make_test_data: TestDataMaker) -> None:
 
 def test_result_counts(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'active': False
-    },
-    {
-      'active': True
-    },
-    {
-      'active': True
-    },
-    {
-      'active': True
-    },
-    {}  # Missing "active".
+    {'active': False},
+    {'active': True},
+    {'active': True},
+    {'active': True},
+    {},  # Missing "active".
   ]
   dataset = make_test_data(items, schema=schema({'active': 'boolean'}))
 
@@ -78,19 +53,11 @@ def test_result_counts(make_test_data: TestDataMaker) -> None:
 
 def test_order_by_value(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'active': False
-    },
-    {
-      'active': False
-    },
-    {
-      'active': True
-    },
-    {
-      'active': False
-    },
-    {}  # Missing "active".
+    {'active': False},
+    {'active': False},
+    {'active': True},
+    {'active': False},
+    {},  # Missing "active".
   ]
   dataset = make_test_data(items, schema=schema({'active': 'boolean'}))
 
@@ -98,30 +65,17 @@ def test_order_by_value(make_test_data: TestDataMaker) -> None:
   assert result.counts == [(True, 1), (False, 3), (None, 1)]
 
   result = dataset.select_groups(
-    leaf_path='active', sort_by=GroupsSortBy.VALUE, sort_order=SortOrder.ASC)
+    leaf_path='active', sort_by=GroupsSortBy.VALUE, sort_order=SortOrder.ASC
+  )
   assert result.counts == [(False, 3), (True, 1), (None, 1)]
 
 
 def test_list_of_structs(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'list_of_structs': [{
-      'name': 'a'
-    }, {
-      'name': 'b'
-    }]
-  }, {
-    'list_of_structs': [{
-      'name': 'c'
-    }, {
-      'name': 'a'
-    }, {
-      'name': 'd'
-    }]
-  }, {
-    'list_of_structs': [{
-      'name': 'd'
-    }]
-  }]
+  items: list[Item] = [
+    {'list_of_structs': [{'name': 'a'}, {'name': 'b'}]},
+    {'list_of_structs': [{'name': 'c'}, {'name': 'a'}, {'name': 'd'}]},
+    {'list_of_structs': [{'name': 'd'}]},
+  ]
   dataset = make_test_data(items)
 
   result = dataset.select_groups(leaf_path='list_of_structs.*.name')
@@ -129,25 +83,11 @@ def test_list_of_structs(make_test_data: TestDataMaker) -> None:
 
 
 def test_nested_lists(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'nested_list': [[{
-      'name': 'a'
-    }], [{
-      'name': 'b'
-    }]]
-  }, {
-    'nested_list': [[{
-      'name': 'c'
-    }, {
-      'name': 'a'
-    }], [{
-      'name': 'd'
-    }]]
-  }, {
-    'nested_list': [[{
-      'name': 'd'
-    }]]
-  }]
+  items: list[Item] = [
+    {'nested_list': [[{'name': 'a'}], [{'name': 'b'}]]},
+    {'nested_list': [[{'name': 'c'}, {'name': 'a'}], [{'name': 'd'}]]},
+    {'nested_list': [[{'name': 'd'}]]},
+  ]
   dataset = make_test_data(items)
 
   result = dataset.select_groups(leaf_path='nested_list.*.*.name')
@@ -156,27 +96,9 @@ def test_nested_lists(make_test_data: TestDataMaker) -> None:
 
 def test_nested_struct(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'nested_struct': {
-        'struct': {
-          'name': 'c'
-        }
-      }
-    },
-    {
-      'nested_struct': {
-        'struct': {
-          'name': 'b'
-        }
-      }
-    },
-    {
-      'nested_struct': {
-        'struct': {
-          'name': 'a'
-        }
-      }
-    },
+    {'nested_struct': {'struct': {'name': 'c'}}},
+    {'nested_struct': {'struct': {'name': 'b'}}},
+    {'nested_struct': {'struct': {'name': 'a'}}},
   ]
   dataset = make_test_data(items)
 
@@ -185,19 +107,20 @@ def test_nested_struct(make_test_data: TestDataMaker) -> None:
 
 
 def test_named_bins(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'age': 34.,
-  }, {
-    'age': 45.,
-  }, {
-    'age': 17.,
-  }, {
-    'age': 80.
-  }, {
-    'age': 55.
-  }, {
-    'age': float('nan')
-  }]
+  items: list[Item] = [
+    {
+      'age': 34.0,
+    },
+    {
+      'age': 45.0,
+    },
+    {
+      'age': 17.0,
+    },
+    {'age': 80.0},
+    {'age': 55.0},
+    {'age': float('nan')},
+  ]
   dataset = make_test_data(items)
 
   result = dataset.select_groups(
@@ -207,64 +130,64 @@ def test_named_bins(make_test_data: TestDataMaker) -> None:
       ('adult', 20, 50),
       ('middle-aged', 50, 65),
       ('senior', 65, None),
-    ])
-  assert result.counts == [('adult', 2), ('middle-aged', 1), ('senior', 1), ('young', 1), (None, 1)]
+    ],
+  )
+  assert result.counts == [
+    ('adult', 2),
+    ('middle-aged', 1),
+    ('senior', 1),
+    ('young', 1),
+    (None, 1),
+  ]
 
 
 def test_schema_with_bins(make_test_data: TestDataMaker) -> None:
-  items: list[Item] = [{
-    'age': 34,
-  }, {
-    'age': 45,
-  }, {
-    'age': 17,
-  }, {
-    'age': 80
-  }, {
-    'age': 55
-  }, {
-    'age': float('nan')
-  }]
-  data_schema = schema({
-    'age': field(
-      'float32',
-      bins=[
-        ('young', None, 20),
-        ('adult', 20, 50),
-        ('middle-aged', 50, 65),
-        ('senior', 65, None),
-      ])
-  })
+  items: list[Item] = [
+    {
+      'age': 34,
+    },
+    {
+      'age': 45,
+    },
+    {
+      'age': 17,
+    },
+    {'age': 80},
+    {'age': 55},
+    {'age': float('nan')},
+  ]
+  data_schema = schema(
+    {
+      'age': field(
+        'float32',
+        bins=[
+          ('young', None, 20),
+          ('adult', 20, 50),
+          ('middle-aged', 50, 65),
+          ('senior', 65, None),
+        ],
+      )
+    }
+  )
   dataset = make_test_data(items, data_schema)
 
   result = dataset.select_groups(leaf_path='age')
-  assert result.counts == [('adult', 2), ('middle-aged', 1), ('senior', 1), ('young', 1), (None, 1)]
+  assert result.counts == [
+    ('adult', 2),
+    ('middle-aged', 1),
+    ('senior', 1),
+    ('young', 1),
+    (None, 1),
+  ]
 
 
 def test_filters(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'name': 'Name1',
-      'age': 34,
-      'active': False
-    },
-    {
-      'name': 'Name2',
-      'age': 45,
-      'active': True
-    },
-    {
-      'age': 17,
-      'active': True
-    },  # Missing "name".
-    {
-      'name': 'Name3',
-      'active': True
-    },  # Missing "age".
-    {
-      'name': 'Name4',
-      'age': 55
-    }  # Missing "active".
+    {'name': 'Name1', 'age': 34, 'active': False},
+    {'name': 'Name2', 'age': 45, 'active': True},
+    {'age': 17, 'active': True},  # Missing "name".
+    {'name': 'Name3', 'active': True},  # Missing "age".
+    {'name': 'Name4', 'age': 55},  # Missing "active".
   ]
   dataset = make_test_data(items)
 
@@ -278,76 +201,55 @@ def test_filters(make_test_data: TestDataMaker) -> None:
 
   # age < 35 and active = True.
   result = dataset.select_groups(
-    leaf_path='name', filters=[('age', 'less', 35), ('active', 'equals', True)])
+    leaf_path='name', filters=[('age', 'less', 35), ('active', 'equals', True)]
+  )
   assert result.counts == [(None, 1)]
 
 
 def test_datetime(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'id': 1,
-      'date': datetime(2023, 1, 1)
-    },
-    {
-      'id': 2,
-      'date': datetime(2023, 1, 15)
-    },
-    {
-      'id': 3,
-      'date': datetime(2023, 2, 1)
-    },
-    {
-      'id': 4,
-      'date': datetime(2023, 3, 1)
-    },
+    {'id': 1, 'date': datetime(2023, 1, 1)},
+    {'id': 2, 'date': datetime(2023, 1, 15)},
+    {'id': 3, 'date': datetime(2023, 2, 1)},
+    {'id': 4, 'date': datetime(2023, 3, 1)},
     {
       'id': 5,
       # Missing datetime.
-    }
+    },
   ]
   dataset = make_test_data(items)
   result = dataset.select_groups('date')
-  assert result.counts == [(datetime(2023, 1, 1), 1), (datetime(2023, 1, 15), 1),
-                           (datetime(2023, 2, 1), 1), (datetime(2023, 3, 1), 1), (None, 1)]
+  assert result.counts == [
+    (datetime(2023, 1, 1), 1),
+    (datetime(2023, 1, 15), 1),
+    (datetime(2023, 2, 1), 1),
+    (datetime(2023, 3, 1), 1),
+    (None, 1),
+  ]
 
 
 def test_invalid_leaf(make_test_data: TestDataMaker) -> None:
   items: list[Item] = [
-    {
-      'nested_struct': {
-        'struct': {
-          'name': 'c'
-        }
-      }
-    },
-    {
-      'nested_struct': {
-        'struct': {
-          'name': 'b'
-        }
-      }
-    },
-    {
-      'nested_struct': {
-        'struct': {
-          'name': 'a'
-        }
-      }
-    },
+    {'nested_struct': {'struct': {'name': 'c'}}},
+    {'nested_struct': {'struct': {'name': 'b'}}},
+    {'nested_struct': {'struct': {'name': 'a'}}},
   ]
   dataset = make_test_data(items)
 
   with pytest.raises(
-      ValueError, match=re.escape("Leaf \"('nested_struct',)\" not found in dataset")):
+    ValueError, match=re.escape('Leaf "(\'nested_struct\',)" not found in dataset')
+  ):
     dataset.select_groups(leaf_path='nested_struct')
 
   with pytest.raises(
-      ValueError, match=re.escape("Leaf \"('nested_struct', 'struct')\" not found in dataset")):
+    ValueError, match=re.escape("Leaf \"('nested_struct', 'struct')\" not found in dataset")
+  ):
     dataset.select_groups(leaf_path='nested_struct.struct')
 
   with pytest.raises(
-      ValueError,
-      match=re.escape("Path ('nested_struct', 'struct', 'wrong_name') not found in schema")):
+    ValueError,
+    match=re.escape("Path ('nested_struct', 'struct', 'wrong_name') not found in schema"),
+  ):
     dataset.select_groups(leaf_path='nested_struct.struct.wrong_name')
 
 

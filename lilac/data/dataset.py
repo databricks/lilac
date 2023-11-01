@@ -87,6 +87,7 @@ class SelectRowsResult:
 
 class StatsResult(BaseModel):
   """The result of a stats() query."""
+
   path: PathTuple
   # The number of leaf values.
   total_count: int
@@ -103,6 +104,7 @@ class StatsResult(BaseModel):
 
 class MediaResult(BaseModel):
   """The result of a media() query."""
+
   data: bytes
 
 
@@ -117,6 +119,7 @@ LIST_OPS = set(['in'])
 
 class SortOrder(str, enum.Enum):
   """The sort order for a database query."""
+
   DESC = 'DESC'
   ASC = 'ASC'
 
@@ -127,12 +130,14 @@ class GroupsSortBy(str, enum.Enum):
   Either "count" which sorts by the count of feature value, or "value" which sorts by the
   feature value itself.
   """
+
   COUNT = 'count'
   VALUE = 'value'
 
 
 class SortResult(BaseModel):
   """The information about what is sorted after combining searches and explicit sorts."""
+
   # The column that was sorted.
   path: PathTuple
   # The sort order.
@@ -145,6 +150,7 @@ class SortResult(BaseModel):
 
 class SearchResultInfo(BaseModel):
   """The resulting sort order returned by the select rows schema."""
+
   # The input path to the search.
   search_path: PathTuple
   # The resulting column that was searched.
@@ -155,12 +161,14 @@ class SearchResultInfo(BaseModel):
 
 class SelectRowsSchemaUDF(BaseModel):
   """The UDF for a select rows schema query."""
+
   path: PathTuple
   alias: Optional[str] = None
 
 
 class SelectRowsSchemaResult(BaseModel):
   """The result of a select rows schema query."""
+
   data_schema: Schema
   udfs: list[SelectRowsSchemaUDF] = []
   search_results: list[SearchResultInfo] = []
@@ -169,17 +177,20 @@ class SelectRowsSchemaResult(BaseModel):
 
 class Column(BaseModel):
   """A column in the dataset."""
+
   path: PathTuple
   alias: Optional[str] = None  # This is the renamed column during querying and response.
 
   # Defined when the feature is another column.
   signal_udf: Optional[Signal] = None
 
-  def __init__(self,
-               path: Path,
-               alias: Optional[str] = None,
-               signal_udf: Optional[Signal] = None,
-               **kwargs: Any):
+  def __init__(
+    self,
+    path: Path,
+    alias: Optional[str] = None,
+    signal_udf: Optional[Signal] = None,
+    **kwargs: Any,
+  ):
     """Initialize a column. We override __init__ to allow positional arguments for brevity."""
     super().__init__(path=normalize_path(path), alias=alias, signal_udf=signal_udf, **kwargs)
 
@@ -197,11 +208,13 @@ ColumnId = Union[Path, Column]
 
 class NoSource(Source):
   """A dummy source that is used when no source is defined, for backwards compat."""
+
   name: ClassVar[str] = 'no_source'
 
 
 class SourceManifest(BaseModel):
   """The manifest that describes the dataset run, including schema and parquet files."""
+
   # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
   files: list[str]
   # The data schema.
@@ -220,6 +233,7 @@ class SourceManifest(BaseModel):
 
 class DatasetManifest(BaseModel):
   """The manifest for a dataset."""
+
   namespace: str
   dataset_name: str
   data_schema: Schema
@@ -252,6 +266,7 @@ FilterOp = Union[BinaryOp, UnaryOp, ListOp]
 
 class SelectGroupsResult(BaseModel):
   """The result of a select groups query."""
+
   too_many_distinct: bool
   counts: list[tuple[Optional[FeatureValue], int]]
   bins: Optional[list[Bin]] = None
@@ -259,6 +274,7 @@ class SelectGroupsResult(BaseModel):
 
 class Filter(BaseModel):
   """A filter on a column."""
+
   path: PathTuple
   op: FilterOp
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
@@ -280,6 +296,7 @@ def _change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any
 
 class KeywordSearch(BaseModel):
   """A keyword search query on a column."""
+
   path: Path
   query: SearchValue
   type: Literal['keyword'] = 'keyword'
@@ -289,6 +306,7 @@ class KeywordSearch(BaseModel):
 
 class SemanticSearch(BaseModel):
   """A semantic search on a column."""
+
   path: Path
   query: SearchValue
   embedding: str
@@ -299,6 +317,7 @@ class SemanticSearch(BaseModel):
 
 class ConceptSearch(BaseModel):
   """A concept search query on a column."""
+
   path: Path
   concept_namespace: str
   concept_name: str
@@ -310,6 +329,7 @@ class ConceptSearch(BaseModel):
 
 class MetadataSearch(BaseModel):
   """A metadata search query on a column."""
+
   path: Path
   op: FilterOp
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
@@ -323,6 +343,7 @@ Search = Union[ConceptSearch, SemanticSearch, KeywordSearch, MetadataSearch]
 
 class DatasetLabel(BaseModel):
   """A label for a row of a dataset."""
+
   label: str
   created: datetime
 
@@ -340,10 +361,12 @@ class Dataset(abc.ABC):
   dataset_name: str
   project_dir: Union[str, pathlib.Path]
 
-  def __init__(self,
-               namespace: str,
-               dataset_name: str,
-               project_dir: Optional[Union[str, pathlib.Path]] = None):
+  def __init__(
+    self,
+    namespace: str,
+    dataset_name: str,
+    project_dir: Optional[Union[str, pathlib.Path]] = None,
+  ):
     """Initialize a dataset.
 
     Args:
@@ -371,7 +394,8 @@ class Dataset(abc.ABC):
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
       raise ValueError(
-        f'Dataset "{self.namespace}/{self.dataset_name}" not found in project config.')
+        f'Dataset "{self.namespace}/{self.dataset_name}" not found in project config.'
+      )
     return dataset_config
 
   def settings(self) -> DatasetSettings:
@@ -384,10 +408,9 @@ class Dataset(abc.ABC):
     update_project_dataset_settings(self.namespace, self.dataset_name, settings, self.project_dir)
 
   @abc.abstractmethod
-  def compute_signal(self,
-                     signal: Signal,
-                     path: Path,
-                     task_step_id: Optional[TaskStepId] = None) -> None:
+  def compute_signal(
+    self, signal: Signal, path: Path, task_step_id: Optional[TaskStepId] = None
+  ) -> None:
     """Compute a signal for a column.
 
     Args:
@@ -398,20 +421,21 @@ class Dataset(abc.ABC):
     """
     pass
 
-  def compute_embedding(self,
-                        embedding: str,
-                        path: Path,
-                        task_step_id: Optional[TaskStepId] = None) -> None:
+  def compute_embedding(
+    self, embedding: str, path: Path, task_step_id: Optional[TaskStepId] = None
+  ) -> None:
     """Compute an embedding for a given field path."""
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
     self.compute_signal(signal, path, task_step_id)
 
-  def compute_concept(self,
-                      namespace: str,
-                      concept_name: str,
-                      embedding: str,
-                      path: Path,
-                      task_step_id: Optional[TaskStepId] = None) -> None:
+  def compute_concept(
+    self,
+    namespace: str,
+    concept_name: str,
+    embedding: str,
+    path: Path,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> None:
     """Compute concept scores for a given field path."""
     signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
     self.compute_signal(signal, path, task_step_id)
@@ -427,13 +451,14 @@ class Dataset(abc.ABC):
 
   @abc.abstractmethod
   def select_groups(
-      self,
-      leaf_path: Path,
-      filters: Optional[Sequence[FilterLike]] = None,
-      sort_by: Optional[GroupsSortBy] = None,
-      sort_order: Optional[SortOrder] = SortOrder.DESC,
-      limit: Optional[int] = None,
-      bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None) -> SelectGroupsResult:
+    self,
+    leaf_path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[GroupsSortBy] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None,
+  ) -> SelectGroupsResult:
     """Select grouped columns to power a histogram.
 
     Args:
@@ -451,18 +476,20 @@ class Dataset(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def select_rows(self,
-                  columns: Optional[Sequence[ColumnId]] = None,
-                  searches: Optional[Sequence[Search]] = None,
-                  filters: Optional[Sequence[FilterLike]] = None,
-                  sort_by: Optional[Sequence[Path]] = None,
-                  sort_order: Optional[SortOrder] = SortOrder.DESC,
-                  limit: Optional[int] = 100,
-                  offset: Optional[int] = 0,
-                  task_step_id: Optional[TaskStepId] = None,
-                  resolve_span: bool = False,
-                  combine_columns: bool = False,
-                  user: Optional[UserInfo] = None) -> SelectRowsResult:
+  def select_rows(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = 100,
+    offset: Optional[int] = 0,
+    task_step_id: Optional[TaskStepId] = None,
+    resolve_span: bool = False,
+    combine_columns: bool = False,
+    user: Optional[UserInfo] = None,
+  ) -> SelectRowsResult:
     """Select a set of rows that match the provided filters, analogous to SQL SELECT.
 
     Args:
@@ -495,22 +522,26 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def select_rows_schema(self,
-                         columns: Optional[Sequence[ColumnId]] = None,
-                         sort_by: Optional[Sequence[Path]] = None,
-                         sort_order: Optional[SortOrder] = SortOrder.DESC,
-                         searches: Optional[Sequence[Search]] = None,
-                         combine_columns: bool = False) -> SelectRowsSchemaResult:
+  def select_rows_schema(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    searches: Optional[Sequence[Search]] = None,
+    combine_columns: bool = False,
+  ) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     pass
 
   @abc.abstractmethod
-  def add_labels(self,
-                 name: str,
-                 row_ids: Optional[Sequence[str]] = None,
-                 searches: Optional[Sequence[Search]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None,
-                 value: Optional[str] = 'true') -> int:
+  def add_labels(
+    self,
+    name: str,
+    row_ids: Optional[Sequence[str]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    value: Optional[str] = 'true',
+  ) -> int:
     """Adds a label to a row, or a set of rows defined by searches and filters.
 
     Returns the number of added labels.
@@ -523,11 +554,13 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def remove_labels(self,
-                    name: str,
-                    row_ids: Optional[Sequence[str]] = None,
-                    searches: Optional[Sequence[Search]] = None,
-                    filters: Optional[Sequence[FilterLike]] = None) -> int:
+  def remove_labels(
+    self,
+    name: str,
+    row_ids: Optional[Sequence[str]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+  ) -> int:
     """Removes labels from a row, or a set of rows defined by searches and filters.
 
     Returns the number of removed labels.
@@ -593,13 +626,15 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_json(self,
-              filepath: Union[str, pathlib.Path],
-              jsonl: bool = True,
-              columns: Optional[Sequence[ColumnId]] = None,
-              filters: Optional[Sequence[FilterLike]] = None,
-              include_labels: Optional[Sequence[str]] = None,
-              exclude_labels: Optional[Sequence[str]] = None) -> None:
+  def to_json(
+    self,
+    filepath: Union[str, pathlib.Path],
+    jsonl: bool = True,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> None:
     """Export the dataset to a JSON file.
 
     Args:
@@ -613,11 +648,13 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_pandas(self,
-                columns: Optional[Sequence[ColumnId]] = None,
-                filters: Optional[Sequence[FilterLike]] = None,
-                include_labels: Optional[Sequence[str]] = None,
-                exclude_labels: Optional[Sequence[str]] = None) -> pd.DataFrame:
+  def to_pandas(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> pd.DataFrame:
     """Export the dataset to a pandas DataFrame.
 
     Args:
@@ -629,12 +666,14 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_parquet(self,
-                 filepath: Union[str, pathlib.Path],
-                 columns: Optional[Sequence[ColumnId]] = None,
-                 filters: Optional[Sequence[FilterLike]] = None,
-                 include_labels: Optional[Sequence[str]] = None,
-                 exclude_labels: Optional[Sequence[str]] = None) -> None:
+  def to_parquet(
+    self,
+    filepath: Union[str, pathlib.Path],
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> None:
     """Export the dataset to a parquet file.
 
     Args:
@@ -647,12 +686,14 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def to_csv(self,
-             filepath: Union[str, pathlib.Path],
-             columns: Optional[Sequence[ColumnId]] = None,
-             filters: Optional[Sequence[FilterLike]] = None,
-             include_labels: Optional[Sequence[str]] = None,
-             exclude_labels: Optional[Sequence[str]] = None) -> None:
+  def to_csv(
+    self,
+    filepath: Union[str, pathlib.Path],
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+  ) -> None:
     """Export the dataset to a csv file.
 
     Args:
@@ -669,13 +710,16 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   """Gets the default settings for a dataset."""
   schema = dataset.manifest().data_schema
   leaf_paths = [
-    path for path, field in schema.leafs.items()
+    path
+    for path, field in schema.leafs.items()
     if field.dtype == DataType.STRING and path != (ROWID,)
   ]
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
-  sorted_stats = sorted([stat for stat in stats if stat.avg_text_length],
-                        key=lambda stat: stat.avg_text_length or -1.0)
+  sorted_stats = sorted(
+    [stat for stat in stats if stat.avg_text_length],
+    key=lambda stat: stat.avg_text_length or -1.0,
+  )
   media_paths: list[PathTuple] = []
   if sorted_stats:
     media_paths = [sorted_stats[-1].path]
@@ -696,7 +740,7 @@ def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
   ]
   signals: list[tuple[PathTuple, Signal]] = []
   embeddings: list[tuple[PathTuple, TextEmbeddingSignal]] = []
-  for (path, s) in all_signals:
+  for path, s in all_signals:
     source_path = path[0:-1]  # Remove the signal name from the path.
     if isinstance(s, TextEmbeddingSignal):
       embeddings.append((source_path, s))
@@ -714,9 +758,9 @@ def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
   )
 
 
-def make_signal_parquet_id(signal: Signal,
-                           source_path: PathTuple,
-                           is_computed_signal: Optional[bool] = False) -> str:
+def make_signal_parquet_id(
+  signal: Signal, source_path: PathTuple, is_computed_signal: Optional[bool] = False
+) -> str:
   """Return a unique identifier for this parquet table."""
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]

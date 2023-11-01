@@ -22,6 +22,7 @@ class ClusterDBSCAN(VectorSignal):
 
   NOTE: This is deprecated in favor of ClusterHDBSCAN.
   """
+
   name: ClassVar[str] = 'cluster_dbscan'
   display_name: ClassVar[str] = 'Cluster with DBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
@@ -29,17 +30,20 @@ class ClusterDBSCAN(VectorSignal):
   eps: float = PyField(
     title='Epsilon',
     default=DBSCAN_EPS,
-    description=
-    'The maximum distance between points so they are considered to be in the same neighborhood.')
+    description='The maximum distance between points so they are considered to be in the same '
+    'neighborhood.',
+  )
   min_samples: int = PyField(
     title='Minimum samples',
     default=MIN_SAMPLES,
-    description='The minimum number of samples in a neighborhood.')
+    description='The minimum number of samples in a neighborhood.',
+  )
 
   @override
   def fields(self) -> Field:
     return field(
-      fields=[field(dtype='string_span', fields={CLUSTER_ID: field('int32', categorical=True)})])
+      fields=[field(dtype='string_span', fields={CLUSTER_ID: field('int32', categorical=True)})]
+    )
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -48,14 +52,15 @@ class ClusterDBSCAN(VectorSignal):
     return self._cluster_span_vectors(span_vectors)
 
   @override
-  def vector_compute(self, keys: Iterable[PathKey],
-                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+  def vector_compute(
+    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
+  ) -> Iterable[Optional[Item]]:
     span_vectors = vector_index.get(keys)
     return self._cluster_span_vectors(span_vectors)
 
-  def _cluster_span_vectors(self,
-                            span_vectors: Iterable[list[SpanVector]]) -> Iterable[Optional[Item]]:
-
+  def _cluster_span_vectors(
+    self, span_vectors: Iterable[list[SpanVector]]
+  ) -> Iterable[Optional[Item]]:
     all_spans: list[list[tuple[int, int]]] = []
     all_vectors: list[np.ndarray] = []
     with DebugTimer('DBSCAN: Reading from vector store'):

@@ -60,6 +60,7 @@ PathKey = VectorKey
 
 class DataType(str, Enum):
   """Enum holding the dtype for a field."""
+
   STRING = 'string'
   # Contains {start, end} offset integers with a reference_column.
   STRING_SPAN = 'string_span'
@@ -102,6 +103,7 @@ class DataType(str, Enum):
 
 class SignalInputType(str, Enum):
   """Enum holding the signal input type."""
+
   TEXT = 'text'
   TEXT_EMBEDDING = 'text_embedding'
   IMAGE = 'image'
@@ -129,6 +131,7 @@ Bin = tuple[str, Optional[Union[float, int]], Optional[Union[float, int]]]
 
 class MapInfo(BaseModel):
   """Holds information about a map that was run on a dataset."""
+
   fn_name: str
   fn_source: str
   date_created: datetime
@@ -136,6 +139,7 @@ class MapInfo(BaseModel):
 
 class Field(BaseModel):
   """Holds information for a field in the schema."""
+
   repeated_field: Optional['Field'] = None
   fields: Optional[dict[str, 'Field']] = None
   dtype: Optional[DataType] = None
@@ -180,7 +184,8 @@ class Field(BaseModel):
       _, _, prev_end = prev_bin
       if start != prev_end:
         raise ValueError(
-          f'Bin {i} start ({start}) should be equal to the previous bin end {prev_end}.')
+          f'Bin {i} start ({start}) should be equal to the previous bin end {prev_end}.'
+        )
     return bins
 
   @field_validator('categorical')
@@ -214,6 +219,7 @@ class Field(BaseModel):
 
 class Schema(BaseModel):
   """Database schema."""
+
   fields: dict[str, Field]
   # Cached leafs.
   _leafs: Optional[dict[PathTuple, Field]] = None
@@ -355,6 +361,7 @@ def field(
 
 class SpanVector(TypedDict):
   """A span with a vector."""
+
   span: tuple[int, int]
   vector: np.ndarray
 
@@ -421,6 +428,7 @@ def column_paths_match(path_match: Path, specific_path: Path) -> bool:
 
 class ImageInfo(BaseModel):
   """Info about an individual image."""
+
   path: Path
 
 
@@ -498,12 +506,13 @@ def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.Data
     # can set this dtype to the relevant pyarrow type.
     return pa.null()
   elif dtype == DataType.STRING_SPAN:
-    return pa.struct({
-      SPAN_KEY: pa.struct({
-        TEXT_SPAN_START_FEATURE: pa.int32(),
-        TEXT_SPAN_END_FEATURE: pa.int32()
-      })
-    })
+    return pa.struct(
+      {
+        SPAN_KEY: pa.struct(
+          {TEXT_SPAN_START_FEATURE: pa.int32(), TEXT_SPAN_END_FEATURE: pa.int32()}
+        )
+      }
+    )
   elif dtype == DataType.NULL:
     return pa.null()
   elif dtype is None:
@@ -628,8 +637,14 @@ def is_float(dtype: DataType) -> bool:
 def is_integer(dtype: DataType) -> bool:
   """Check if a dtype is an integer dtype."""
   return dtype in [
-    DataType.INT8, DataType.INT16, DataType.INT32, DataType.INT64, DataType.UINT8, DataType.UINT16,
-    DataType.UINT32, DataType.UINT64
+    DataType.INT8,
+    DataType.INT16,
+    DataType.INT32,
+    DataType.INT64,
+    DataType.UINT8,
+    DataType.UINT16,
+    DataType.UINT32,
+    DataType.UINT64,
   ]
 
 
@@ -689,8 +704,9 @@ def _infer_field(item: Item, diallow_pedals: bool = False) -> Field:
 
 def infer_schema(items: list[Item]) -> Schema:
   """Infer the schema from a list of items."""
-  merged_field = merge_fields([_infer_field(item, diallow_pedals=True) for item in items],
-                              disallow_pedals=True)
+  merged_field = merge_fields(
+    [_infer_field(item, diallow_pedals=True) for item in items], disallow_pedals=True
+  )
   if not merged_field.fields:
     raise ValueError(f'Failed to infer schema. Got {merged_field}')
   return Schema(fields=merged_field.fields)
@@ -709,8 +725,9 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
   if field.fields:
     if destination.repeated_field:
       _print_fields(field, destination)
-      raise ValueError('Failed to merge fields. New field has fields, but destination is '
-                       'repeated')
+      raise ValueError(
+        'Failed to merge fields. New field has fields, but destination is ' 'repeated'
+      )
     if disallow_pedals and destination.dtype:
       _print_fields(field, destination)
       raise ValueError('Failed to merge fields. New field has fields, but destination has dtype')
@@ -725,13 +742,15 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
   elif field.repeated_field:
     if destination.fields:
       _print_fields(field, destination)
-      raise ValueError('Failed to merge fields. New field is repeated, but destination has '
-                       'fields')
+      raise ValueError(
+        'Failed to merge fields. New field is repeated, but destination has ' 'fields'
+      )
     if destination.dtype:
       if destination.dtype != DataType.NULL:
         _print_fields(field, destination)
-        raise ValueError('Failed to merge fields. New field is repeated, but destination has '
-                         'dtype')
+        raise ValueError(
+          'Failed to merge fields. New field is repeated, but destination has ' 'dtype'
+        )
       else:
         destination.dtype = None
         destination.repeated_field = field.repeated_field.model_copy(deep=True)
@@ -746,16 +765,22 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
       return
     if destination.repeated_field:
       _print_fields(field, destination)
-      raise ValueError('Failed to merge fields. New field has dtype, but destination is '
-                       'repeated')
+      raise ValueError(
+        'Failed to merge fields. New field has dtype, but destination is ' 'repeated'
+      )
     if disallow_pedals and destination.fields:
       _print_fields(field, destination)
       raise ValueError('Failed to merge fields. New field has dtype, but destination has fields')
 
-    if (destination.dtype != DataType.NULL and destination.dtype is not None and
-        destination.dtype != field.dtype):
-      raise ValueError(f'Failed to merge fields. New field has dtype {field.dtype}, but '
-                       f'destination has dtype {destination.dtype}')
+    if (
+      destination.dtype != DataType.NULL
+      and destination.dtype is not None
+      and destination.dtype != field.dtype
+    ):
+      raise ValueError(
+        f'Failed to merge fields. New field has dtype {field.dtype}, but '
+        f'destination has dtype {destination.dtype}'
+      )
     destination.dtype = field.dtype
 
 

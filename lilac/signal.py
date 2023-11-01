@@ -4,9 +4,8 @@ import abc
 import copy
 from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_serializer
 from pydantic import Field as PydanticField
-from pydantic import model_serializer
 from typing_extensions import override
 
 from .embeddings.vector_store import VectorDBIndex
@@ -34,6 +33,7 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
 
 class Signal(BaseModel):
   """Interface for signals to implement. A signal can score documents and a dataset column."""
+
   # ClassVars do not get serialized with pydantic.
   name: ClassVar[str]
   # The display name is just used for rendering in the UI.
@@ -117,6 +117,7 @@ def _args_key_from_dict(args_dict: dict[str, Any]) -> str:
 # Signal base classes, used for inferring the dependency chain required for computing a signal.
 class TextSignal(Signal):
   """An interface for signals that compute over text."""
+
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   @override
@@ -129,6 +130,7 @@ class TextSignal(Signal):
 
 class TextEmbeddingSignal(TextSignal):
   """An interface for signals that compute embeddings for text."""
+
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   _split = True
@@ -171,13 +173,15 @@ def _vector_signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) 
 
 class VectorSignal(Signal, abc.ABC):
   """An interface for signals that can compute items given vector inputs."""
+
   embedding: str = PydanticField(description='The name of the pre-computed embedding.')
 
   model_config = ConfigDict(json_schema_extra=_vector_signal_schema_extra)
 
   @abc.abstractmethod
-  def vector_compute(self, keys: Iterable[PathKey],
-                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+  def vector_compute(
+    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
+  ) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:
@@ -190,10 +194,8 @@ class VectorSignal(Signal, abc.ABC):
     raise NotImplementedError
 
   def vector_compute_topk(
-      self,
-      topk: int,
-      vector_index: VectorDBIndex,
-      rowids: Optional[Iterable[str]] = None) -> Sequence[tuple[PathKey, Optional[Item]]]:
+    self, topk: int, vector_index: VectorDBIndex, rowids: Optional[Iterable[str]] = None
+  ) -> Sequence[tuple[PathKey, Optional[Item]]]:
     """Return signal results only for the top k documents or images.
 
     Signals decide how to rank each document/image in the dataset, usually by a similarity score
@@ -221,8 +223,10 @@ def get_signal_by_type(signal_name: str, signal_type: Type[Tsignal]) -> Type[Tsi
 
   signal_cls = SIGNAL_REGISTRY[signal_name]
   if not issubclass(signal_cls, signal_type):
-    raise ValueError(f'"{signal_name}" is a `{signal_cls.__name__}`, '
-                     f'which is not a subclass of `{signal_type.__name__}`.')
+    raise ValueError(
+      f'"{signal_name}" is a `{signal_cls.__name__}`, '
+      f'which is not a subclass of `{signal_type.__name__}`.'
+    )
   return signal_cls
 
 

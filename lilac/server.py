@@ -46,19 +46,24 @@ register_default_sources()
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
-tags_metadata: list[dict[str, Any]] = [{
-  'name': 'datasets',
-  'description': 'API for querying a dataset.',
-}, {
-  'name': 'concepts',
-  'description': 'API for managing concepts.',
-}, {
-  'name': 'data_loaders',
-  'description': 'API for loading data.',
-}, {
-  'name': 'signals',
-  'description': 'API for managing signals.',
-}]
+tags_metadata: list[dict[str, Any]] = [
+  {
+    'name': 'datasets',
+    'description': 'API for querying a dataset.',
+  },
+  {
+    'name': 'concepts',
+    'description': 'API for managing concepts.',
+  },
+  {
+    'name': 'data_loaders',
+    'description': 'API for loading data.',
+  },
+  {
+    'name': 'signals',
+    'description': 'API for managing signals.',
+  },
+]
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -71,7 +76,8 @@ def _load(load_task_id: str) -> None:
     project_dir=get_project_dir(),
     overwrite=False,
     task_manager=TaskManager(dask_client=get_client()),
-    load_task_id=load_task_id)
+    load_task_id=load_task_id,
+  )
 
 
 @asynccontextmanager
@@ -81,8 +87,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     task_manager = get_task_manager()
     task_id = task_manager.task_id(
       'Loading from project config... ',
-      description=
-      'This can be disabled by setting the environment variable LILAC_LOAD_ON_START_SERVER=false')
+      description='This can be disabled by setting the environment variable '
+      'LILAC_LOAD_ON_START_SERVER=false',
+    )
     task_manager.execute(task_id, _load, task_id)
 
   yield
@@ -95,20 +102,19 @@ app = FastAPI(
   default_response_class=ORJSONResponse,
   generate_unique_id_function=custom_generate_unique_id,
   openapi_tags=tags_metadata,
-  lifespan=lifespan)
+  lifespan=lifespan,
+)
 
 
 @app.exception_handler(ConceptAuthorizationException)
-def concept_authorization_exception(request: Request,
-                                    exc: ConceptAuthorizationException) -> JSONResponse:
+def concept_authorization_exception(
+  request: Request, exc: ConceptAuthorizationException
+) -> JSONResponse:
   """Return a 401 JSON response when an authorization exception is thrown."""
   message = 'Oops! You are not authorized to do this.'
   return JSONResponse(
     status_code=401,
-    content={
-      'detail': message,
-      'message': message
-    },
+    content={'detail': message, 'message': message},
   )
 
 
@@ -118,10 +124,7 @@ def module_not_found_error(request: Request, exc: ModuleNotFoundError) -> JSONRe
   message = 'Oops! You are missing a python dependency. ' + str(exc)
   return JSONResponse(
     status_code=500,
-    content={
-      'detail': message,
-      'message': message
-    },
+    content={'detail': message, 'message': message},
   )
 
 
@@ -154,11 +157,13 @@ def auth_info(user: Annotated[Optional[UserInfo], Depends(get_session_user)]) ->
     access=get_user_access(user),
     auth_enabled=auth_enabled,
     # See: https://huggingface.co/docs/hub/spaces-overview#helper-environment-variables
-    huggingface_space_id=env('SPACE_ID', None))
+    huggingface_space_id=env('SPACE_ID', None),
+  )
 
 
 class ServerStatus(BaseModel):
   """Server status information."""
+
   version: str
   google_analytics_enabled: bool
 
@@ -168,7 +173,8 @@ def status() -> ServerStatus:
   """Returns server status information."""
   return ServerStatus(
     version=metadata.version('lilac'),
-    google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False))
+    google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False),
+  )
 
 
 @app.post('/load_config')
@@ -227,11 +233,13 @@ logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
 SERVER: Optional[uvicorn.Server] = None
 
 
-def start_server(host: str = '127.0.0.1',
-                 port: int = 5432,
-                 open: bool = False,
-                 project_dir: str = '',
-                 load: bool = False) -> None:
+def start_server(
+  host: str = '127.0.0.1',
+  port: int = 5432,
+  open: bool = False,
+  project_dir: str = '',
+  load: bool = False,
+) -> None:
   """Starts the Lilac web server.
 
   Args:

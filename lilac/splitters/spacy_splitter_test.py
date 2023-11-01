@@ -15,7 +15,8 @@ def test_short_snippets_filtered() -> None:
 def test_colon_considered_as_splitter() -> None:
   text = 'Teacher: Tell me the answer. Student: I have no idea.'
   expected_spans = text_to_textchunk(
-    text, ['Teacher:', 'Tell me the answer.', 'Student:', 'I have no idea.'])
+    text, ['Teacher:', 'Tell me the answer.', 'Student:', 'I have no idea.']
+  )
   split_items = simple_spacy_chunker(text)
   assert split_items == expected_spans
 

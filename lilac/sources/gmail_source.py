@@ -50,10 +50,10 @@ class GmailSource(Source):
   name: ClassVar[str] = 'gmail'
 
   credentials_file: str = PydanticField(
-    description=
-    f'Path to the OAuth credentials file. Defaults to `.gmail/{_CREDS_FILENAME}` in your Lilac '
-    'project directory.',
-    default_factory=lambda: os.path.join(_gmail_config_dir(), _CREDS_FILENAME))
+    description=f'Path to the OAuth credentials file. Defaults to `.gmail/{_CREDS_FILENAME}` in '
+    'your Lilac project directory.',
+    default_factory=lambda: os.path.join(_gmail_config_dir(), _CREDS_FILENAME),
+  )
 
   _creds: Optional['Credentials'] = None
   model_config = ConfigDict(json_schema_extra={'required': ['credentials_file']})
@@ -65,8 +65,10 @@ class GmailSource(Source):
       from google.oauth2.credentials import Credentials
       from google_auth_oauthlib.flow import InstalledAppFlow
     except ImportError:
-      raise ImportError('Could not import dependencies for the "gmail" source. '
-                        'Please install with pip install lilac[gmail]')
+      raise ImportError(
+        'Could not import dependencies for the "gmail" source. '
+        'Please install with pip install lilac[gmail]'
+      )
 
     gmail_config_dir = _gmail_config_dir()
     credentials_file = self.credentials_file or os.path.join(gmail_config_dir, _CREDS_FILENAME)
@@ -84,7 +86,8 @@ class GmailSource(Source):
         if not os.path.exists(credentials_file):
           raise ValueError(
             f'Could not find the OAuth credentials file at "{credentials_file}". Make sure to '
-            'download it from the Google Cloud Console and save it to the correct location.')
+            'download it from the Google Cloud Console and save it to the correct location.'
+          )
         flow = InstalledAppFlow.from_client_secrets_file(credentials_file, _SCOPES)
         self._creds = flow.run_local_server()
 
@@ -101,7 +104,8 @@ class GmailSource(Source):
         'snippet': field('string'),
         'dates': field(fields=['string']),
         'subject': field('string'),
-      })
+      }
+    )
 
   @override
   def process(self) -> Iterable[Item]:
@@ -110,8 +114,10 @@ class GmailSource(Source):
       from googleapiclient.discovery import build
       from googleapiclient.errors import HttpError
     except ImportError:
-      raise ImportError('Could not import dependencies for the "gmail" source. '
-                        'Please install with pip install lilac[gmail]')
+      raise ImportError(
+        'Could not import dependencies for the "gmail" source. '
+        'Please install with pip install lilac[gmail]'
+      )
 
     # Call the Gmail API
     service = build('gmail', 'v1', credentials=self._creds)
@@ -135,7 +141,7 @@ class GmailSource(Source):
       subject: Optional[str] = None
 
       for msg in response['messages']:
-        epoch_sec = int(msg['internalDate']) / 1000.
+        epoch_sec = int(msg['internalDate']) / 1000.0
         date = datetime.fromtimestamp(epoch_sec).strftime('%Y-%m-%d %H:%M:%S')
         dates.append(date)
         if 'snippet' in msg:
@@ -157,18 +163,21 @@ class GmailSource(Source):
             parsed_parts.append(text)
         if email_info.sender and parsed_parts:
           parsed_parts = [
-            f'--------------------{email_info.sender}--------------------', *parsed_parts
+            f'--------------------{email_info.sender}--------------------',
+            *parsed_parts,
           ]
         if parsed_parts:
           replies.append('\n'.join(parsed_parts))
 
       if replies:
-        thread_batch.append({
-          'body': '\n\n'.join(replies),
-          'snippet': '\n'.join(snippets) if snippets else None,
-          'dates': dates,
-          'subject': subject,
-        })
+        thread_batch.append(
+          {
+            'body': '\n\n'.join(replies),
+            'snippet': '\n'.join(snippets) if snippets else None,
+            'dates': dates,
+            'subject': subject,
+          }
+        )
       if request_id in retry_batch:
         retry_batch.remove(request_id)
 
@@ -176,7 +185,7 @@ class GmailSource(Source):
     thread_list_req = threads_resource.list(userId='me', includeSpamTrash=False) or None
     thread_list = thread_list_req.execute(num_retries=_NUM_RETRIES) if thread_list_req else None
 
-    while (num_threads_fetched < _MAX_NUM_THREADS and thread_list and thread_list_req):
+    while num_threads_fetched < _MAX_NUM_THREADS and thread_list and thread_list_req:
       batch = service.new_batch_http_request(callback=_thread_fetched)
 
       threads = thread_list['threads'] if 'threads' in thread_list else []
@@ -187,7 +196,8 @@ class GmailSource(Source):
         if not retry_batch or (thread_id in retry_batch):
           batch.add(
             service.users().threads().get(userId='me', id=thread_id, format='full'),
-            request_id=thread_id)
+            request_id=thread_id,
+          )
 
       batch.execute()
       num_threads_fetched += len(thread_batch)
@@ -196,7 +206,7 @@ class GmailSource(Source):
 
       if retry_batch:
         log(f'Failed to fetch {len(retry_batch)} threads. Retrying...')
-        timeout = 2**(num_retries - 1) + random.uniform(0, 1)
+        timeout = 2 ** (num_retries - 1) + random.uniform(0, 1)
         sleep(timeout)
         num_retries += 1
       else:
@@ -210,6 +220,7 @@ class GmailSource(Source):
 @dataclasses.dataclass
 class EmailInfo:
   """Stores parsed information about an email."""
+
   sender: Optional[str] = None
   subject: Optional[str] = None
   parts: list[bytes] = dataclasses.field(default_factory=list)

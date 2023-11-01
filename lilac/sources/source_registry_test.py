@@ -11,6 +11,7 @@ from .source_registry import clear_source_registry, get_source_cls, register_sou
 
 class TestSource(Source):
   """A test source."""
+
   name: ClassVar[str] = 'test_source'
 
   @override

@@ -73,20 +73,20 @@ def _embed_func(
   """
   hashvalues = np.ones(num_perm, dtype=np.uint64) * MAX_HASH
   tokens = {' '.join(t) for t in _ngrams(WHITESPACE.split(content), ngram_size, min_ngram_size)}
-  hv = np.array([_sha1_hash32(token.encode('utf-8')) for token in tokens],
-                dtype=np.uint64)  # noqa: E501
+  hv = np.array([_sha1_hash32(token.encode('utf-8')) for token in tokens], dtype=np.uint64)  # noqa: E501
   a, b = permutations
-  phv = np.bitwise_and(((hv * np.tile(a, (len(hv), 1)).T).T + b) % MERSENNE_PRIME,
-                       MAX_HASH)  # noqa: E501
+  phv = np.bitwise_and(((hv * np.tile(a, (len(hv), 1)).T).T + b) % MERSENNE_PRIME, MAX_HASH)  # noqa: E501
   hashvalues = np.vstack([phv, hashvalues]).min(axis=0)
   Hs: list[bytes] = [bytes(hashvalues[start:end].byteswap().data) for start, end in hashranges]
   return Hs
 
 
-def _optimal_param(threshold: float,
-                   num_perm: int,
-                   false_positive_weight: float = 0.5,
-                   false_negative_weight: float = 0.5) -> tuple[int, int]:
+def _optimal_param(
+  threshold: float,
+  num_perm: int,
+  false_positive_weight: float = 0.5,
+  false_negative_weight: float = 0.5,
+) -> tuple[int, int]:
   """Find optimal `MinHashLSH` parameter that minimizes the weighted sum of false pos and false neg.
 
   Taken from datasketch.
@@ -106,7 +106,7 @@ def _optimal_param(threshold: float,
     """Source: `datasketch.lsh`."""
 
     def proba(s: float) -> float:
-      return 1 - (1 - s**float(r))**float(b)
+      return 1 - (1 - s ** float(r)) ** float(b)
 
     a, _ = integrate(proba, 0.0, threshold)
     return a
@@ -115,7 +115,7 @@ def _optimal_param(threshold: float,
     """Source: `datasketch.lsh`."""
 
     def proba(s: float) -> float:
-      return 1 - (1 - (1 - s**float(r))**float(b))
+      return 1 - (1 - (1 - s ** float(r)) ** float(b))
 
     a, _ = integrate(proba, threshold, 1.0)
     return a
@@ -155,11 +155,13 @@ class UnionFind:
     self.parent[px] = self.parent[py] = min(px, py)
 
 
-def find_clusters(data: Iterable[str],
-                  ngram_size: int = 5,
-                  num_perm: int = 256,
-                  threshold: float = 0.7,
-                  min_ngram_size: int = 1) -> Iterable[int]:
+def find_clusters(
+  data: Iterable[str],
+  ngram_size: int = 5,
+  num_perm: int = 256,
+  threshold: float = 0.7,
+  min_ngram_size: int = 1,
+) -> Iterable[int]:
   """Deduplicates documents and returns cluster ids."""
   uf = UnionFind()
   B, R = _optimal_param(threshold, num_perm)
@@ -168,10 +170,13 @@ def find_clusters(data: Iterable[str],
 
   # Consume the data.
   PERMUTATIONS = np.array(
-    [(
-      RNG.randint(1, MERSENNE_PRIME, dtype=np.uint64),
-      RNG.randint(0, MERSENNE_PRIME, dtype=np.uint64),
-    ) for _ in range(num_perm)],
+    [
+      (
+        RNG.randint(1, MERSENNE_PRIME, dtype=np.uint64),
+        RNG.randint(0, MERSENNE_PRIME, dtype=np.uint64),
+      )
+      for _ in range(num_perm)
+    ],
     dtype=np.uint64,
   ).T
 
@@ -184,14 +189,16 @@ def find_clusters(data: Iterable[str],
       hashranges=HASH_RANGES,
       ngram_size=ngram_size,
       permutations=PERMUTATIONS,
-      min_ngram_size=min_ngram_size)
+      min_ngram_size=min_ngram_size,
+    )
     embedded.append((key, hashes))
 
   batch_size: int = 10000
   for i in tqdm(
-      range(0, len(embedded), batch_size), dynamic_ncols=True, desc='Computing hash collisions...'):
-    batch = embedded[i:i + batch_size]
-    for (key, Hs) in batch:
+    range(0, len(embedded), batch_size), dynamic_ncols=True, desc='Computing hash collisions...'
+  ):
+    batch = embedded[i : i + batch_size]
+    for key, Hs in batch:
       for H, hashtable in zip(Hs, HASH_TABLES):
         hashtable[H].add(key)
 

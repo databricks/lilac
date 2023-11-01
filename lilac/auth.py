@@ -10,11 +10,13 @@ from .env import env
 
 class ConceptAuthorizationException(Exception):
   """Authorization exceptions thrown by the concept database."""
+
   pass
 
 
 class DatasetUserAccess(BaseModel):
   """User access for datasets."""
+
   # Whether the user can compute a signal.
   compute_signals: bool
   # Whether the user can delete a dataset.
@@ -33,12 +35,14 @@ class DatasetUserAccess(BaseModel):
 
 class ConceptUserAccess(BaseModel):
   """User access for concepts."""
+
   # Whether the user can delete any concept (not their own).
   delete_any_concept: bool
 
 
 class UserAccess(BaseModel):
   """User access."""
+
   is_admin: bool = False
 
   create_dataset: bool
@@ -50,6 +54,7 @@ class UserAccess(BaseModel):
 
 class UserInfo(BaseModel):
   """User information."""
+
   id: str
   email: str
   name: str
@@ -59,6 +64,7 @@ class UserInfo(BaseModel):
 
 class AuthenticationInfo(BaseModel):
   """Authentication information for the user."""
+
   user: Optional[UserInfo] = None
   access: UserAccess
   auth_enabled: bool
@@ -109,7 +115,8 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
         edit_labels=bool(env('LILAC_AUTH_USER_EDIT_LABELS', False)),
         label_all=not bool(env('LILAC_AUTH_USER_DISABLE_LABEL_ALL', False)),
       ),
-      concept=ConceptUserAccess(delete_any_concept=False))
+      concept=ConceptUserAccess(delete_any_concept=False),
+    )
 
   return UserAccess(
     is_admin=is_admin,
@@ -121,5 +128,7 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
       update_settings=True,
       create_label_type=True,
       edit_labels=True,
-      label_all=True),
-    concept=ConceptUserAccess(delete_any_concept=True))
+      label_all=True,
+    ),
+    concept=ConceptUserAccess(delete_any_concept=True),
+  )

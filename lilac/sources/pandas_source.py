@@ -12,6 +12,7 @@ PANDAS_INDEX_COLUMN = '__pd_index__'
 
 class PandasSource(Source):
   """Pandas source."""
+
   name: ClassVar[str] = 'pandas'
 
   _df: Optional[pd.DataFrame] = None
@@ -37,7 +38,10 @@ class PandasSource(Source):
     """Process the source."""
     assert self._df is not None, 'df must be set.'
     cols = self._df.columns.tolist()
-    yield from ({
-      PANDAS_INDEX_COLUMN: idx,
-      **dict(zip(cols, item_vals)),
-    } for idx, *item_vals in self._df.itertuples())
+    yield from (
+      {
+        PANDAS_INDEX_COLUMN: idx,
+        **dict(zip(cols, item_vals)),
+      }
+      for idx, *item_vals in self._df.itertuples()
+    )

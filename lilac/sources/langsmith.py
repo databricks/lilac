@@ -19,12 +19,14 @@ DEFAULT_LANGCHAIN_ENDPOINT = 'https://api.smith.langchain.com'
 def get_datasets() -> list[str]:
   """List the datasets in LangSmith."""
   from langsmith import Client
+
   client = Client()
   return [d.name for d in client.list_datasets()]
 
 
 class LangSmithSource(Source):
   """LangSmith data loader."""
+
   name: ClassVar[str] = 'langsmith'
   router: ClassVar[APIRouter] = router
 
@@ -38,18 +40,21 @@ class LangSmithSource(Source):
     api_url = env('LANGCHAIN_ENDPOINT', DEFAULT_LANGCHAIN_ENDPOINT)
     if not api_key or not api_url:
       raise ValueError(
-        '`LANGCHAIN_API_KEY` and `LANGCHAIN_ENDPOINT` environment variables must be set.')
+        '`LANGCHAIN_API_KEY` and `LANGCHAIN_ENDPOINT` environment variables must be set.'
+      )
     try:
       from langsmith import Client
     except ImportError:
-      raise ImportError('Could not import dependencies for the LangSmith source. '
-                        'Please install the dependency via `pip install lilac[langsmith]`.')
+      raise ImportError(
+        'Could not import dependencies for the LangSmith source. '
+        'Please install the dependency via `pip install lilac[langsmith]`.'
+      )
     client = Client(api_key=api_key, api_url=api_url)
 
-    items = [{
-      **example.inputs,
-      **(example.outputs or {})
-    } for example in client.list_examples(dataset_name=self.dataset_name)]
+    items = [
+      {**example.inputs, **(example.outputs or {})}
+      for example in client.list_examples(dataset_name=self.dataset_name)
+    ]
 
     self._dict_source = DictSource(items)
     self._dict_source.setup()

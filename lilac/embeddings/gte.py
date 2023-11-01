@@ -35,7 +35,8 @@ class GTESmall(TextEmbeddingSignal):
     split_fn = clustering_spacy_chunker if self._split else None
     docs = cast(Iterable[str], docs)
     yield from compute_split_embeddings(
-      docs, batch_size=SENTENCE_TRANSFORMER_BATCH_SIZE, embed_fn=embed_fn, split_fn=split_fn)
+      docs, batch_size=SENTENCE_TRANSFORMER_BATCH_SIZE, embed_fn=embed_fn, split_fn=split_fn
+    )
 
 
 class GTEBase(GTESmall):
@@ -44,6 +45,7 @@ class GTEBase(GTESmall):
   <br>This embedding runs on-device. See the [model card](https://huggingface.co/thenlper/gte-base)
   for details.
   """
+
   name: ClassVar[str] = 'gte-base'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (base)'
 

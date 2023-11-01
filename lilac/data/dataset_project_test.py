@@ -24,31 +24,24 @@ from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, reg
 from ..source import Source, SourceSchema
 from ..sources.source_registry import clear_source_registry, register_source
 
-SIMPLE_ITEMS: list[Item] = [{
-  'str': 'a',
-  'int': 1,
-  'bool': False,
-  'float': 3.0
-}, {
-  'str': 'b',
-  'int': 2,
-  'bool': True,
-  'float': 2.0
-}, {
-  'str': 'c',
-  'int': 3,
-  'bool': True,
-  'float': 1.0
-}]
+SIMPLE_ITEMS: list[Item] = [
+  {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+  {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+  {'str': 'c', 'int': 3, 'bool': True, 'float': 1.0},
+]
 
-EMBEDDINGS: list[tuple[str, list[float]]] = [('a', [1.0, 0.0, 0.0]), ('b', [1.0, 1.0, 0.0]),
-                                             ('c', [1.0, 1.0, 0.0])]
+EMBEDDINGS: list[tuple[str, list[float]]] = [
+  ('a', [1.0, 0.0, 0.0]),
+  ('b', [1.0, 1.0, 0.0]),
+  ('c', [1.0, 1.0, 0.0]),
+]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
 class TestSource(Source):
   """A test source."""
+
   name: ClassVar[str] = 'test_source'
 
   @override
@@ -59,9 +52,10 @@ class TestSource(Source):
         'str': field('string'),
         'int': field('int32'),
         'bool': field('boolean'),
-        'float': field('float32')
+        'float': field('float32'),
       },
-      num_items=len(SIMPLE_ITEMS))
+      num_items=len(SIMPLE_ITEMS),
+    )
 
   @override
   def process(self) -> Iterable[Item]:
@@ -71,6 +65,7 @@ class TestSource(Source):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override
@@ -120,14 +115,17 @@ def setup_data_dir(tmp_path: Path) -> None:
 def test_load_dataset_updates_project() -> None:
   config = read_project_config(get_project_dir())
 
-  assert config == Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])))
-  ])
+  assert config == Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        # Settings are automatically computed when not provided.
+        settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+      )
+    ]
+  )
 
 
 def test_delete_dataset_updates_project() -> None:
@@ -143,15 +141,18 @@ def test_compute_signal_updates_project() -> None:
 
   config = read_project_config(get_project_dir())
 
-  assert config == Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
-      signals=[SignalConfig(path=('str',), signal=TestSignal())])
-  ])
+  assert config == Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        # Settings are automatically computed when not provided.
+        settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+        signals=[SignalConfig(path=('str',), signal=TestSignal())],
+      )
+    ]
+  )
 
 
 def test_delete_signal_updates_project() -> None:
@@ -160,30 +161,36 @@ def test_delete_signal_updates_project() -> None:
 
   config = read_project_config(get_project_dir())
 
-  assert config == Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
-      signals=[SignalConfig(path=('str',), signal=TestSignal())])
-  ])
+  assert config == Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        # Settings are automatically computed when not provided.
+        settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+        signals=[SignalConfig(path=('str',), signal=TestSignal())],
+      )
+    ]
+  )
 
   dataset.delete_signal(signal_path=('str', TestSignal.name))
 
   config = read_project_config(get_project_dir())
 
-  assert config == Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
-      # Signals should be deleted.
-      signals=[])
-  ])
+  assert config == Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        # Settings are automatically computed when not provided.
+        settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+        # Signals should be deleted.
+        signals=[],
+      )
+    ]
+  )
 
 
 def test_compute_embedding_updates_project() -> None:
@@ -192,12 +199,15 @@ def test_compute_embedding_updates_project() -> None:
 
   config = read_project_config(get_project_dir())
 
-  assert config == Config(datasets=[
-    DatasetConfig(
-      namespace='namespace',
-      name='test',
-      source=TestSource(),
-      # Settings are automatically computed when not provided.
-      settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
-      embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')])
-  ])
+  assert config == Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+        # Settings are automatically computed when not provided.
+        settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)], markdown_paths=[])),
+        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding')],
+      )
+    ]
+  )

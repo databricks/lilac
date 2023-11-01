@@ -16,13 +16,13 @@ from .semantic_similarity import SemanticSimilaritySignal
 EMBEDDINGS: dict[VectorKey, list[list[float]]] = {
   ('1',): [[1.0, 0.0, 0.0]],
   ('2',): [[0.9, 0.1, 0.0]],
-  ('3',): [[0.0, 0.0, 1.0]]
+  ('3',): [[0.0, 0.0, 1.0]],
 }
 
 STR_EMBEDDINGS: dict[str, list[float]] = {
   'hello': [1.0, 0.0, 0.0],
   'hello world': [0.9, 0.1, 0.0],
-  'far': [0.0, 0.0, 1.0]
+  'far': [0.0, 0.0, 1.0],
 }
 
 
@@ -56,6 +56,7 @@ class TestVectorStore(VectorStore):
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""
+
   name: ClassVar[str] = 'test_embedding'
 
   @override

@@ -21,14 +21,16 @@ from .server import start_server
   '--host',
   help='The host address where the web server will listen to.',
   default='127.0.0.1',
-  type=str)
+  type=str,
+)
 @click.option('--port', help='The port number of the web-server', type=int, default=5432)
 @click.option(
   '--load',
   help='Load from the project config upon bootup.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 def start(project_dir: str, host: str, port: int, load: bool) -> None:
   """Starts the Lilac web server."""
   project_dir = project_dir_from_args(project_dir)
@@ -36,7 +38,9 @@ def start(project_dir: str, host: str, port: int, load: bool) -> None:
     value = str(
       click.prompt(
         f'Lilac will create a project in `{abspath(project_dir)}`. Do you want to continue? (y/n)',
-        type=str)).lower()
+        type=str,
+      )
+    ).lower()
     if value == 'n':
       exit()
 
@@ -52,7 +56,9 @@ def init_command(project_dir: str) -> None:
     value = str(
       click.prompt(
         f'Lilac will create a project in `{abspath(project_dir)}`. Do you want to continue? (y/n)',
-        type=str)).lower()
+        type=str,
+      )
+    ).lower()
     if value == 'n':
       exit()
 
@@ -66,20 +72,23 @@ def init_command(project_dir: str) -> None:
   type=str,
   help='[Optional] The path to a json or yml file describing the configuration. '
   'The file contents should be an instance of `lilac.Config` or `lilac.DatasetConfig`. '
-  'When not defined, uses `LILAC_PROJECT_DIR`/lilac.yml.')
+  'When not defined, uses `LILAC_PROJECT_DIR`/lilac.yml.',
+)
 @click.option(
   '--overwrite',
   help='When True, runs all data from scratch, overwriting existing data. When false, only'
   'load new datasets, embeddings, and signals.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 def load_command(project_dir: str, config_path: str, overwrite: bool) -> None:
   """Load from a project configuration."""
   project_dir = project_dir or get_project_dir()
   if not project_dir:
     raise ValueError(
-      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.')
+      '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.'
+    )
 
   load(project_dir, config_path, overwrite)
 
@@ -100,59 +109,69 @@ def hf_docker_start_command() -> None:
 @click.option(
   '--project_dir',
   help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
-  type=str)
+  type=str,
+)
 @click.option(
   '--hf_space',
   help='The huggingface space. Should be formatted like `SPACE_ORG/SPACE_NAME`.',
   type=str,
-  required=True)
+  required=True,
+)
 @click.option('--dataset', help='The name of a dataset to upload', type=str, multiple=True)
 @click.option(
   '--make_datasets_public',
   help='When true, sets the huggingface datasets uploaded to public. Defaults to false.',
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--concept',
   help='The name of a concept to upload. By default all lilac/ concepts are uploaded.',
   type=str,
-  multiple=True)
+  multiple=True,
+)
 @click.option(
   '--skip_cache',
   help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--skip_data_upload',
   help='When true, only uploads the wheel files without any other changes.',
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--create_space',
   help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
   'with the storage type defined by --hf_space_storage.',
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--load_on_space',
   help='When True, loads the datasets from your project in the space and does not upload data. '
   'NOTE: This could be expensive if your project config locally has embeddings as they will be '
   'recomputed in HuggingFace.',
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--hf_space_storage',
   help='If defined, sets the HuggingFace space persistent storage type. '
   'NOTE: This only actually sets the space storage type when creating the space. '
   'For more details, see https://huggingface.co/docs/hub/spaces-storage',
   type=click.Choice(['small', 'medium', 'large'], case_sensitive=False),
-  default=None)
+  default=None,
+)
 @click.option(
   '--hf_token',
   help='The HuggingFace access token to use when making datasets private. '
   'This can also be set via the `HF_ACCESS_TOKEN` environment flag.',
-  type=str)
+  type=str,
+)
 def deploy_project_command(
   project_dir: str,
   hf_space: str,
@@ -185,7 +204,8 @@ def deploy_project_command(
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,
-    hf_token=hf_token)
+    hf_token=hf_token,
+  )
 
 
 @click.command()

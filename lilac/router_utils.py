@@ -36,15 +36,19 @@ class RouteErrorHandler(APIRoute):
     return custom_route_handler
 
 
-def server_compute_concept(signal: ConceptSignal, examples: Iterable[RichData],
-                           user: Optional[UserInfo]) -> list[Optional[Item]]:
+def server_compute_concept(
+  signal: ConceptSignal, examples: Iterable[RichData], user: Optional[UserInfo]
+) -> list[Optional[Item]]:
   """Compute a concept from the REST endpoints."""
   # TODO(nsthorat): Move this to the setup() method in the concept_scorer.
   concept = DISK_CONCEPT_DB.get(signal.namespace, signal.concept_name, user)
   if not concept:
     raise HTTPException(
-      status_code=404, detail=f'Concept "{signal.namespace}/{signal.concept_name}" was not found')
+      status_code=404,
+      detail=f'Concept "{signal.namespace}/{signal.concept_name}" was not found',
+    )
   DISK_CONCEPT_MODEL_DB.sync(
-    signal.namespace, signal.concept_name, signal.embedding, user=user, create=True)
+    signal.namespace, signal.concept_name, signal.embedding, user=user, create=True
+  )
   texts = [example or '' for example in examples]
   return list(signal.compute(texts))

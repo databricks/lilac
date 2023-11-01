@@ -24,6 +24,7 @@ class ClusterHDBScan(VectorSignal):
   This signal requires a pre-computed embedding. It uses UMAP to reduce the dimensionality
   of the embedding before clustering with HDBSCAN.
   """
+
   name: ClassVar[str] = 'cluster_hdbscan'
   display_name: ClassVar[str] = 'Cluster with HDBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
@@ -31,18 +32,21 @@ class ClusterHDBScan(VectorSignal):
   min_cluster_size: int = PyField(
     title='Minimum cluster size',
     default=MIN_CLUSTER_SIZE,
-    description='The minimum number of samples in a neighborhood.')
+    description='The minimum number of samples in a neighborhood.',
+  )
 
   umap_n_components: int = PyField(
     title='Dimensionality of reduced embedding by UMAP',
     default=UMAP_N_COMPONENTS,
     description='The n_components argument for UMAP. This refers to the dimensionality of the '
-    'reduced embedding by UMAP before it is passed to HDBScan.')
+    'reduced embedding by UMAP before it is passed to HDBScan.',
+  )
 
   @override
   def fields(self) -> Field:
     return field(
-      fields=[field(dtype='string_span', fields={CLUSTER_ID: field('int32', categorical=True)})])
+      fields=[field(dtype='string_span', fields={CLUSTER_ID: field('int32', categorical=True)})]
+    )
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
@@ -51,13 +55,15 @@ class ClusterHDBScan(VectorSignal):
     return self._cluster_span_vectors(span_vectors)
 
   @override
-  def vector_compute(self, keys: Iterable[PathKey],
-                     vector_index: VectorDBIndex) -> Iterable[Optional[Item]]:
+  def vector_compute(
+    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
+  ) -> Iterable[Optional[Item]]:
     span_vectors = vector_index.get(keys)
     return self._cluster_span_vectors(span_vectors)
 
-  def _cluster_span_vectors(self,
-                            span_vectors: Iterable[list[SpanVector]]) -> Iterable[Optional[Item]]:
+  def _cluster_span_vectors(
+    self, span_vectors: Iterable[list[SpanVector]]
+  ) -> Iterable[Optional[Item]]:
     all_spans: list[list[tuple[int, int]]] = []
     all_vectors: list[np.ndarray] = []
     with DebugTimer('DBSCAN: Reading from vector store'):
@@ -69,8 +75,10 @@ class ClusterHDBScan(VectorSignal):
     # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
     # For details on hyperparameters, see:
     # https://umap-learn.readthedocs.io/en/latest/clustering.html
-    with DebugTimer(f'UMAP: Reducing dimensionality of {len(all_vectors)} vectors '
-                    f'of dimensionality {all_vectors[0].size} to {self.umap_n_components}'):
+    with DebugTimer(
+      f'UMAP: Reducing dimensionality of {len(all_vectors)} vectors '
+      f'of dimensionality {all_vectors[0].size} to {self.umap_n_components}'
+    ):
       reducer = umap.UMAP(n_components=self.umap_n_components, n_neighbors=30, min_dist=0.0)
       all_vectors = reducer.fit_transform(all_vectors)
 

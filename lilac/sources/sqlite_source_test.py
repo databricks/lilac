@@ -22,12 +22,14 @@ def test_sqlite(tmp_path: pathlib.Path) -> None:
   rows = [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}, {'x': 3, 'y': 'thirty'}]
   conn = sqlite3.connect(db_file)
   cursor = conn.cursor()
-  cursor.execute("""
+  cursor.execute(
+    """
     CREATE TABLE test (
         x INTEGER,
         y TEXT
     )
-  """)
+  """
+  )
   # Insert sample data.
   for row in rows:
     cursor.execute('INSERT INTO test (x, y) VALUES (?, ?)', tuple(row.values()))
@@ -38,10 +40,8 @@ def test_sqlite(tmp_path: pathlib.Path) -> None:
   source.setup()
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({
-      'x': 'int64',
-      'y': 'string'
-    }).fields, num_items=3)
+    fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=3
+  )
 
   items = list(source.process())
 

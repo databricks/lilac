@@ -19,8 +19,10 @@ if env('LILAC_AUTH_ENABLED'):
     Config(
       environ={
         'GOOGLE_CLIENT_ID': env('GOOGLE_CLIENT_ID'),
-        'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET')
-      }))
+        'GOOGLE_CLIENT_SECRET': env('GOOGLE_CLIENT_SECRET'),
+      }
+    )
+  )
   oauth.register(
     name='google',
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
@@ -48,7 +50,8 @@ async def auth(request: Request) -> Response:
     email=userinfo['email'],
     name=userinfo['name'],
     given_name=userinfo['given_name'],
-    family_name=userinfo['family_name']).model_dump()
+    family_name=userinfo['family_name'],
+  ).model_dump()
 
   return RedirectResponse(url='/')
 

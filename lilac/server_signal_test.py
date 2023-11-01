@@ -20,10 +20,12 @@ from .signal import Signal, clear_signal_registry, register_signal
 
 client = TestClient(app)
 
-EMBEDDINGS: list[tuple[str, list[float]]] = [('hello', [1.0, 0.0, 0.0]), ('hello2', [1.0, 1.0,
-                                                                                     0.0]),
-                                             ('hello world', [1.0, 1.0, 1.0]),
-                                             ('hello world2', [2.0, 1.0, 1.0])]
+EMBEDDINGS: list[tuple[str, list[float]]] = [
+  ('hello', [1.0, 0.0, 0.0]),
+  ('hello2', [1.0, 1.0, 0.0]),
+  ('hello world', [1.0, 1.0, 1.0]),
+  ('hello world2', [2.0, 1.0, 1.0]),
+]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
@@ -65,11 +67,13 @@ def test_compute() -> None:
   # Compute the signal.
   url = '/api/v1/signals/compute'
   create_signal = SignalComputeOptions(
-    signal=TestQueryAndLengthSignal(query='hi'), inputs=['hello', 'hello2'])
+    signal=TestQueryAndLengthSignal(query='hi'), inputs=['hello', 'hello2']
+  )
   response = client.post(url, json=create_signal.model_dump())
   assert response.status_code == 200
-  assert SignalComputeResponse.model_validate(
-    response.json()) == SignalComputeResponse(items=['hi_5', 'hi_6'])
+  assert SignalComputeResponse.model_validate(response.json()) == SignalComputeResponse(
+    items=['hi_5', 'hi_6']
+  )
 
 
 def test_schema() -> None:
@@ -79,5 +83,6 @@ def test_schema() -> None:
   create_signal = SignalSchemaOptions(signal=signal)
   response = client.post(url, json=create_signal.model_dump())
   assert response.status_code == 200
-  assert SignalSchemaResponse.model_validate(
-    response.json()) == SignalSchemaResponse(fields=signal.fields())
+  assert SignalSchemaResponse.model_validate(response.json()) == SignalSchemaResponse(
+    fields=signal.fields()
+  )

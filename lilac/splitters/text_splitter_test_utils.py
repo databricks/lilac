@@ -11,14 +11,14 @@ def spans_to_text(text: str, spans: Optional[list[Item]]) -> list[str]:
   if not spans:
     return []
   return [
-    text[span[SPAN_KEY][TEXT_SPAN_START_FEATURE]:span[SPAN_KEY][TEXT_SPAN_END_FEATURE]]
+    text[span[SPAN_KEY][TEXT_SPAN_START_FEATURE] : span[SPAN_KEY][TEXT_SPAN_END_FEATURE]]
     for span in spans
   ]
 
 
-def text_to_expected_spans(text: str,
-                           splits: Union[list[str], list[tuple[str, Item]]],
-                           allowable_overlap: int = 0) -> list[Item]:
+def text_to_expected_spans(
+  text: str, splits: Union[list[str], list[tuple[str, Item]]], allowable_overlap: int = 0
+) -> list[Item]:
   """Convert text and a list of splits to a list of expected spans."""
   start_offset = 0
   expected_spans: list[Item] = []

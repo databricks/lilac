@@ -16,7 +16,6 @@ ALL_STORES = [NumpyVectorStore, HNSWVectorStore]
 
 @pytest.mark.parametrize('store_cls', ALL_STORES)
 class VectorStoreSuite:
-
   def test_add_chunks(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
 
@@ -24,7 +23,8 @@ class VectorStoreSuite:
     store.add([('c',)], np.array([[5, 6]]))
 
     np.testing.assert_array_equal(
-      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]]))
+      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]])
+    )
 
   def test_get_all(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
@@ -32,7 +32,8 @@ class VectorStoreSuite:
     store.add([('a',), ('b',), ('c',)], np.array([[1, 2], [3, 4], [5, 6]]))
 
     np.testing.assert_array_equal(
-      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]]))
+      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]])
+    )
 
   def test_get_subset(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
@@ -54,7 +55,8 @@ class VectorStoreSuite:
     store.load((str(tmp_path)))
 
     np.testing.assert_array_equal(
-      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]]))
+      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]])
+    )
 
   def test_topk(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()

@@ -42,11 +42,14 @@ class OpenAI(TextEmbeddingSignal):
       raise ValueError('`OPENAI_API_KEY` environment variable not set.')
     try:
       import openai
+
       openai.api_key = api_key
       self._model = openai.Embedding
     except ImportError:
-      raise ImportError('Could not import the "openai" python package. '
-                        'Please install it with `pip install openai`.')
+      raise ImportError(
+        'Could not import the "openai" python package. '
+        'Please install it with `pip install openai`.'
+      )
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
@@ -54,7 +57,6 @@ class OpenAI(TextEmbeddingSignal):
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
-
       # Replace newlines, which can negatively affect performance.
       # See https://github.com/search?q=repo%3Aopenai%2Fopenai-python+replace+newlines&type=code
       texts = [text.replace('\n', ' ') for text in texts]
@@ -65,4 +67,5 @@ class OpenAI(TextEmbeddingSignal):
     docs = cast(Iterable[str], docs)
     split_fn = clustering_spacy_chunker if self._split else None
     yield from compute_split_embeddings(
-      docs, OPENAI_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS)
+      docs, OPENAI_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS
+    )

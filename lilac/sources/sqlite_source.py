@@ -34,6 +34,7 @@ def get_tables(db_file: str) -> list[str]:
 
 class SQLiteSource(Source):
   """SQLite data loader."""
+
   name: ClassVar[str] = 'sqlite'
   router: ClassVar[APIRouter] = router
 
@@ -51,9 +52,11 @@ class SQLiteSource(Source):
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     duckdb_path = convert_path_to_duckdb(self.db_file)
-    self._con.execute(f"""
+    self._con.execute(
+      f"""
       CREATE VIEW t as (SELECT * FROM sqlite_scan('{duckdb_path}', '{self.table}'));
-    """)
+    """
+    )
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
     num_items = cast(tuple[int], res)[0]
