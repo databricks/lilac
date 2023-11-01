@@ -51,7 +51,10 @@
   }
 
   function rowClicked(value: LeafValue) {
-    if (value == null) return;
+    if (value == null) {
+      store.addFilter({path: field.path, op: 'not_exists'});
+      return;
+    }
     if (bins != null) {
       const [min, max] = bins[value.toString()];
       if (min != null) {
