@@ -189,8 +189,6 @@ indent-width = 2
 
 # Enable Pyflakes `F`, pycodestyle "W" and `E`, "Q" quotes, "I" imports.
 fix = true
-# Allow fix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
 ignore = [
   "D105", # Missing docstring in magic method.
   "D106", # Missing docstring in a public nested class.
