@@ -613,9 +613,12 @@ export function stringLength(text: string): number {
 }
 
 /** Returns a short-form field name for displaying. */
-export function shortFieldName(path: Path): string {
+export function shortFieldName(path: Path, label?: string | null): string {
   if (path.length === 0) {
     throw new Error('Cannot get short name for empty path');
+  }
+  if (label != null) {
+    return label;
   }
   return [...path].reverse().find(p => p !== PATH_WILDCARD)!;
 }

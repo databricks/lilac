@@ -43,7 +43,7 @@
       : filter.op === 'not_exists'
       ? `lacks ${displayPath(path)}`
       : `${displayPath(path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
-  $: shortenPath = shortFieldName(path);
+  $: shortenPath = shortFieldName(path, label);
 </script>
 
 <div class="filter-pill items-center" use:hoverTooltip={{text: tooltip}}>
@@ -59,9 +59,7 @@
       })}
     on:remove={() => datasetViewStore.removeFilter(filter)}
   >
-    {#if label != null}
-      is labeled {label}
-    {:else if filter.op === 'exists'}
+    {#if filter.op === 'exists'}
       has <span class="font-mono">{hidePath ? '' : shortenPath}</span>
     {:else if filter.op === 'not_exists'}
       lacks <span class="font-mono">{hidePath ? '' : shortenPath}</span>
