@@ -12,6 +12,10 @@ from datasets import load_dataset_builder
 if 'current_page' not in st.session_state:
   st.session_state.current_page = 'dataset'
 
+query_params = st.experimental_get_query_params()
+if 'dataset' in query_params:
+  st.session_state.hf_dataset_name = query_params['dataset'][0]
+
 
 def _dataset_page():
   is_valid_dataset = False

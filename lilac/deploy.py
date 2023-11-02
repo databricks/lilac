@@ -95,7 +95,11 @@ def deploy_project(
 
   # Atomically commit all the operations so we don't kick the server multiple times.
   hf_api.create_commit(
-    repo_id=hf_space, repo_type='space', operations=operations, commit_message='Push to HF space'
+    repo_id=hf_space,
+    repo_type='space',
+    operations=operations,
+    commit_message='Push to HF space',
+    token=hf_token,
   )
 
   link = f'https://huggingface.co/spaces/{hf_space}'
@@ -142,7 +146,7 @@ def deploy_project_operations(
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
   try:
-    repo_info = hf_api.repo_info(hf_space, repo_type='space')
+    repo_info = hf_api.repo_info(hf_space, repo_type='space', token=hf_token)
   except RepositoryNotFoundError as e:
     if not create_space:
       raise ValueError(
@@ -155,7 +159,7 @@ def deploy_project_operations(
     log('The space will be created as private. You can change this from the UI.')
 
     if hf_space_storage:
-      hf_api.request_space_storage(repo_id=hf_space, storage=hf_space_storage)
+      hf_api.request_space_storage(repo_id=hf_space, storage=hf_space_storage, token=hf_token)
 
     hf_api.create_repo(
       repo_id=hf_space,
@@ -163,11 +167,12 @@ def deploy_project_operations(
       space_storage=hf_space_storage,
       repo_type='space',
       space_sdk='docker',
+      token=hf_token,
     )
 
     log(f'Created: https://huggingface.co/spaces/{hf_space}')
 
-  repo_runtime = hf_api.get_space_runtime(repo_id=hf_space)
+  repo_runtime = hf_api.get_space_runtime(repo_id=hf_space, token=hf_token)
 
   log('Deploying project:', project_dir)
   log()
@@ -189,7 +194,7 @@ def deploy_project_operations(
   ##
   ##  Create the empty wheel directory. If uploading a local wheel, use scripts.deploy_staging.
   ##
-  operations.extend(_make_wheel_dir(hf_api, hf_space))
+  operations.extend(_make_wheel_dir(hf_api, hf_space, hf_token))
 
   ##
   ##  Upload datasets.
@@ -206,6 +211,7 @@ def deploy_project_operations(
       hf_space=hf_space,
       datasets=datasets,
       make_datasets_public=make_datasets_public,
+      hf_token=hf_token,
     )
   else:
     lilac_hf_datasets = []
@@ -231,7 +237,7 @@ def deploy_project_operations(
       + '\n---'
     )
     readme_filename = 'README.md'
-    if hf_api.file_exists(hf_space, readme_filename, repo_type='space'):
+    if hf_api.file_exists(hf_space, readme_filename, repo_type='space', token=hf_token):
       operations.append(CommitOperationDelete(path_in_repo=readme_filename))
 
     operations.append(
@@ -248,7 +254,7 @@ def deploy_project_operations(
       for dataset in project_config.datasets
       if f'{dataset.namespace}/{dataset.name}' in datasets
     ]
-    if hf_api.file_exists(hf_space, project_config_filename, repo_type='space'):
+    if hf_api.file_exists(hf_space, project_config_filename, repo_type='space', token=hf_token):
       operations.append(CommitOperationDelete(path_in_repo=project_config_filename))
     operations.append(
       CommitOperationAdd(
@@ -272,28 +278,34 @@ def deploy_project_operations(
     operations.extend(_upload_cache(hf_space, project_dir, uploaded_concepts))
 
   if repo_runtime.storage:
-    hf_api.add_space_variable(hf_space, 'LILAC_PROJECT_DIR', '/data')
-    hf_api.add_space_variable(hf_space, 'HF_HOME', '/data/.huggingface')
-    hf_api.add_space_variable(hf_space, 'XDG_CACHE_HOME', '/data/.cache')
-    hf_api.add_space_variable(hf_space, 'TRANSFORMERS_CACHE', '/data/.cache')
+    hf_api.add_space_variable(hf_space, 'LILAC_PROJECT_DIR', '/data', token=hf_token)
+    hf_api.add_space_variable(hf_space, 'HF_HOME', '/data/.huggingface', token=hf_token)
+    hf_api.add_space_variable(hf_space, 'XDG_CACHE_HOME', '/data/.cache', token=hf_token)
+    hf_api.add_space_variable(hf_space, 'TRANSFORMERS_CACHE', '/data/.cache', token=hf_token)
   else:
-    hf_api.add_space_variable(hf_space, 'LILAC_PROJECT_DIR', './data')
-    hf_api.delete_space_variable(hf_space, 'HF_HOME')
-    hf_api.delete_space_variable(hf_space, 'XDG_CACHE_HOME')
-    hf_api.delete_space_variable(hf_space, 'TRANSFORMERS_CACHE')
+    hf_api.add_space_variable(hf_space, 'LILAC_PROJECT_DIR', './data', token=hf_token)
+    hf_api.delete_space_variable(hf_space, 'HF_HOME', token=hf_token)
+    hf_api.delete_space_variable(hf_space, 'XDG_CACHE_HOME', token=hf_token)
+    hf_api.delete_space_variable(hf_space, 'TRANSFORMERS_CACHE', token=hf_token)
 
   if load_on_space:
-    hf_api.add_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER', 'true')
+    hf_api.add_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER', 'true', token=hf_token)
   else:
-    hf_api.delete_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER')
+    hf_api.delete_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER', token=hf_token)
 
   if hf_token:
-    hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', hf_token or env('HF_ACCESS_TOKEN'))
+    hf_api.add_space_secret(
+      hf_space, 'HF_ACCESS_TOKEN', hf_token or env('HF_ACCESS_TOKEN'), token=hf_token
+    )
 
   return operations
 
 
-def _make_wheel_dir(api: Any, hf_space: str) -> list:
+def _make_wheel_dir(
+  api: Any,
+  hf_space: str,
+  hf_token: Optional[str] = None,
+) -> list:
   """Creates the wheel directory README. This does not upload local wheels.
 
   For local wheels, use deploy_local.
@@ -325,7 +337,7 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
 
   # Remove everything that exists in dist.
   remote_readme_filepath = os.path.join(PY_DIST_DIR, 'README.md')
-  if hf_api.file_exists(hf_space, remote_readme_filepath, repo_type='space'):
+  if hf_api.file_exists(hf_space, remote_readme_filepath, repo_type='space', token=hf_token):
     operations.append(CommitOperationDelete(path_in_repo=f'{PY_DIST_DIR}/'))
 
   operations.append(
@@ -439,6 +451,7 @@ def _upload_datasets(
   hf_space: str,
   datasets: list[str],
   make_datasets_public: Optional[bool] = False,
+  hf_token: Optional[str] = None,
 ) -> list[str]:
   """Uploads local datasets to HuggingFace datasets."""
   if not make_datasets_public:
@@ -471,7 +484,11 @@ def _upload_datasets(
     )
 
     hf_api.create_repo(
-      dataset_repo_id, repo_type='dataset', private=not make_datasets_public, exist_ok=True
+      dataset_repo_id,
+      repo_type='dataset',
+      private=not make_datasets_public,
+      exist_ok=True,
+      token=hf_token,
     )
     dataset_output_dir = get_dataset_output_dir(project_dir, namespace, name)
     hf_api.upload_folder(
@@ -481,6 +498,7 @@ def _upload_datasets(
       repo_type='dataset',
       # Delete all data on the server.
       delete_patterns='*',
+      token=hf_token,
     )
 
     config = read_project_config(project_dir)
@@ -505,7 +523,11 @@ def _upload_datasets(
       f'```{dataset_config_yaml}```\n\n'
     ).encode()
     hf_api.upload_file(
-      path_or_fileobj=readme, path_in_repo='README.md', repo_id=dataset_repo_id, repo_type='dataset'
+      path_or_fileobj=readme,
+      path_in_repo='README.md',
+      repo_id=dataset_repo_id,
+      repo_type='dataset',
+      token=hf_token,
     )
 
     lilac_hf_datasets.append(dataset_repo_id)
