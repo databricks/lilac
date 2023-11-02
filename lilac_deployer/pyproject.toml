@@ -10,5 +10,3 @@ streamlit = "^1.28.0"
 watchdog = "^3.0.0"
 datasets = "^2.14.6"
 lilac = "^0.1.13"
-# This is temporary until we publish a package with spacy as a required dep.
-spacy = "^3.7.2"
