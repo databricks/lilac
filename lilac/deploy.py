@@ -182,7 +182,7 @@ def deploy_project_operations(
   ##
   ##  Create the empty wheel directory. If uploading a local wheel, use scripts.deploy_staging.
   ##
-  operations.extend(_make_wheel_dir(hf_api, hf_space, hf_token))
+  operations.extend(_make_wheel_dir(hf_api, hf_space))
 
   ##
   ##  Upload datasets.
@@ -286,11 +286,7 @@ def deploy_project_operations(
   return operations
 
 
-def _make_wheel_dir(
-  api: Any,
-  hf_space: str,
-  hf_token: Optional[str] = None,
-) -> list:
+def _make_wheel_dir(api: Any, hf_space: str) -> list:
   """Creates the wheel directory README. This does not upload local wheels.
 
   For local wheels, use deploy_local.
