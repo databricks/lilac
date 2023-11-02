@@ -90,6 +90,7 @@ def deploy_project(
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,
+    hf_token=hf_token,
   )
 
   # Atomically commit all the operations so we don't kick the server multiple times.
