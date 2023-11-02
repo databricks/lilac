@@ -432,7 +432,6 @@ def _upload_datasets(
   hf_space: str,
   datasets: list[str],
   make_datasets_public: Optional[bool] = False,
-  hf_token: Optional[str] = None,
 ) -> list[str]:
   """Uploads local datasets to HuggingFace datasets."""
   if not make_datasets_public:
