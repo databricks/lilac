@@ -140,6 +140,7 @@ numpy = "*"
 packaging = "*"
 pandas = ">=0.25"
 toolz = "*"
+typing-extensions = {version = ">=4.0.1", markers = "python_version < \"3.11\""}
 
 [package.extras]
 dev = ["anywidget", "black (<24)", "hatch", "ipython", "m2r", "mypy", "pandas-stubs", "pyarrow (>=11)", "pytest", "pytest-cov", "ruff", "types-jsonschema", "types-setuptools", "vega-datasets", "vegafusion[embed] (>=1.4.0)", "vl-convert-python (>=0.14.0)"]
@@ -168,6 +169,7 @@ files = [
 ]
 
 [package.dependencies]
+exceptiongroup = {version = "*", markers = "python_version < \"3.11\""}
 idna = ">=2.8"
 sniffio = ">=1.1"
 
@@ -497,6 +499,9 @@ files = [
     {file = "cloudpathlib-0.16.0.tar.gz", hash = "sha256:cdfcd35d46d529587d744154a0bdf962aca953b725c8784cd2ec478354ea63a3"},
 ]
 
+[package.dependencies]
+typing_extensions = {version = ">4", markers = "python_version < \"3.11\""}
+
 [package.extras]
 all = ["cloudpathlib[azure]", "cloudpathlib[gs]", "cloudpathlib[s3]"]
 azure = ["azure-storage-blob (>=12)"]
@@ -809,6 +814,20 @@ files = [
     {file = "duckdb-0.9.1-cp39-cp39-win_amd64.whl", hash = "sha256:e666795887d9cf1d6b6f6cbb9d487270680e5ff6205ebc54b2308151f13b8cff"},
     {file = "duckdb-0.9.1.tar.gz", hash = "sha256:603a878746015a3f2363a65eb48bcbec816261b6ee8d71eee53061117f6eef9d"},
 ]
+
+[[package]]
+name = "exceptiongroup"
+version = "1.1.3"
+description = "Backport of PEP 654 (exception groups)"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "exceptiongroup-1.1.3-py3-none-any.whl", hash = "sha256:343280667a4585d195ca1cf9cef84a4e178c4b6cf2274caef9859782b567d5e3"},
+    {file = "exceptiongroup-1.1.3.tar.gz", hash = "sha256:097acd85d473d75af5bb98e41b61ff7fe35efe6675e4f9370ec6ec5126d160e9"},
+]
+
+[package.extras]
+test = ["pytest (>=6)"]
 
 [[package]]
 name = "fastapi"
@@ -1534,13 +1553,13 @@ data = ["language-data (>=1.1,<2.0)"]
 
 [[package]]
 name = "lilac"
-version = "0.1.13"
+version = "0.1.14"
 description = "Organize unstructured data"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "lilac-0.1.13-py3-none-any.whl", hash = "sha256:a04f15e37508a713bfe92881d00fc30bdefa705b3ecd914258ae267431c0276c"},
-    {file = "lilac-0.1.13.tar.gz", hash = "sha256:0e3e47db9d8674c19a857600f3f9ad1aa48d63dba76e61c5ca50492a0e9ffb51"},
+    {file = "lilac-0.1.14-py3-none-any.whl", hash = "sha256:86b0b95e99206b6f6c0fe2377a115de09df99510ced4cb106b5d3760da6f46f2"},
+    {file = "lilac-0.1.14.tar.gz", hash = "sha256:68cba78e848951f84ec33497ed164c9d41a590cbb3fa9cde3b9da332bacd62d8"},
 ]
 
 [package.dependencies]
@@ -1570,6 +1589,7 @@ python-dotenv = ">=1.0.0,<2.0.0"
 pyyaml = ">=6.0.1,<7.0.0"
 requests = ">=2,<3"
 scikit-learn = ">=1.3.0,<2.0.0"
+spacy = ">=3.5.1,<4.0.0"
 tenacity = ">=8.2.2,<9.0.0"
 tiktoken = ">=0.5.1,<0.6.0"
 tqdm = ">=4.65.0,<5.0.0"
@@ -1579,7 +1599,7 @@ umap-learn = ">=0.5.4,<0.6.0"
 uvicorn = {version = ">=0.23.2,<0.24.0", extras = ["standard"]}
 
 [package.extras]
-all = ["cohere (>=3.7.0,<4.0.0)", "detect-secrets (>=1.4.0,<2.0.0)", "email-reply-parser (>=0.5.12,<0.6.0)", "google-api-python-client (>=2.88.0,<3.0.0)", "google-auth-httplib2 (>=0.1.0,<0.2.0)", "google-auth-oauthlib (>=1.0.0,<2.0.0)", "google-cloud-aiplatform[grpcio] (>=1.35.0,<2.0.0)", "google-generativeai (>=0.1.0,<0.2.0)", "langdetect (>=1.0.9,<2.0.0)", "langsmith (>=0.0.41,<0.0.42)", "llama-index (>=0.8.38,<0.9.0)", "openai (>=0.27.8,<0.28.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "spacy (>=3.5.1,<4.0.0)", "textacy (>=0.13.0,<0.14.0)"]
+all = ["cohere (>=3.7.0,<4.0.0)", "detect-secrets (>=1.4.0,<2.0.0)", "email-reply-parser (>=0.5.12,<0.6.0)", "google-api-python-client (>=2.88.0,<3.0.0)", "google-auth-httplib2 (>=0.1.0,<0.2.0)", "google-auth-oauthlib (>=1.0.0,<2.0.0)", "google-cloud-aiplatform[grpcio] (>=1.35.0,<2.0.0)", "google-generativeai (>=0.1.0,<0.2.0)", "langdetect (>=1.0.9,<2.0.0)", "langsmith (>=0.0.41,<0.0.42)", "llama-index (>=0.8.38,<0.9.0)", "openai (>=0.27.8,<0.28.0)", "sentence-transformers (>=2.2.2,<3.0.0)", "textacy (>=0.13.0,<0.14.0)"]
 cohere = ["cohere (>=3.7.0,<4.0.0)"]
 embeddings = ["cohere (>=3.7.0,<4.0.0)", "google-cloud-aiplatform[grpcio] (>=1.35.0,<2.0.0)", "google-generativeai (>=0.1.0,<0.2.0)", "openai (>=0.27.8,<0.28.0)", "sentence-transformers (>=2.2.2,<3.0.0)"]
 github = ["llama-index (>=0.8.38,<0.9.0)"]
@@ -1588,14 +1608,13 @@ gte = ["sentence-transformers (>=2.2.2,<3.0.0)"]
 lang-detection = ["langdetect (>=1.0.9,<2.0.0)"]
 langsmith = ["langsmith (>=0.0.41,<0.0.42)"]
 llms = ["openai (>=0.27.8,<0.28.0)"]
-ner = ["spacy (>=3.5.1,<4.0.0)"]
 openai = ["openai (>=0.27.8,<0.28.0)"]
 palm = ["google-cloud-aiplatform[grpcio] (>=1.35.0,<2.0.0)", "google-generativeai (>=0.1.0,<0.2.0)"]
 pii = ["detect-secrets (>=1.4.0,<2.0.0)", "regex (>=2023.6.3,<2024.0.0)"]
 sbert = ["sentence-transformers (>=2.2.2,<3.0.0)"]
-signals = ["detect-secrets (>=1.4.0,<2.0.0)", "langdetect (>=1.0.9,<2.0.0)", "spacy (>=3.5.1,<4.0.0)", "textacy (>=0.13.0,<0.14.0)"]
+signals = ["detect-secrets (>=1.4.0,<2.0.0)", "langdetect (>=1.0.9,<2.0.0)", "textacy (>=0.13.0,<0.14.0)"]
 sources = ["langsmith (>=0.0.41,<0.0.42)"]
-text-stats = ["spacy (>=3.5.1,<4.0.0)", "textacy (>=0.13.0,<0.14.0)"]
+text-stats = ["textacy (>=0.13.0,<0.14.0)"]
 
 [[package]]
 name = "llvmlite"
@@ -2222,7 +2241,10 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.23.2,<2", markers = "python_version == \"3.11\""}
+numpy = [
+    {version = ">=1.22.4,<2", markers = "python_version < \"3.11\""},
+    {version = ">=1.23.2,<2", markers = "python_version == \"3.11\""},
+]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
 tzdata = ">=2022.1"
@@ -3817,6 +3839,7 @@ h11 = ">=0.8"
 httptools = {version = ">=0.5.0", optional = true, markers = "extra == \"standard\""}
 python-dotenv = {version = ">=0.13", optional = true, markers = "extra == \"standard\""}
 pyyaml = {version = ">=5.1", optional = true, markers = "extra == \"standard\""}
+typing-extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
 uvloop = {version = ">=0.14.0,<0.15.0 || >0.15.0,<0.15.1 || >0.15.1", optional = true, markers = "(sys_platform != \"win32\" and sys_platform != \"cygwin\") and platform_python_implementation != \"PyPy\" and extra == \"standard\""}
 watchfiles = {version = ">=0.13", optional = true, markers = "extra == \"standard\""}
 websockets = {version = ">=10.4", optional = true, markers = "extra == \"standard\""}
@@ -4365,5 +4388,5 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.11,<4.0"
-content-hash = "495701aeb557bf83360c319064ca9d658d102cbe9d110479b0f1e5056e7e3c81"
+python-versions = ">=3.10,<4.0"
+content-hash = "7826a78803a2e1ef42c07108675245f26dd876bbcbd06381ae25fcadeaa68acd"

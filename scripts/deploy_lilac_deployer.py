@@ -52,6 +52,8 @@ def main() -> None:
     repo_id=HF_SPACE_ID, repo_type='space', operations=operations, commit_message='Push to HF space'
   )
 
+  print(f'Success! https://huggingface.co/spaces/{HF_SPACE_ID}')
+
 
 def run(cmd: str) -> subprocess.CompletedProcess[bytes]:
   """Run a command and return the result."""
