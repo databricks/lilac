@@ -45,11 +45,10 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[python]": {
-    "editor.formatOnSave": true,
     "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll": false,
-      "source.organizeImports": true,
       "source.fixAll.ruff": true
     }
   },
@@ -79,7 +78,6 @@
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.indexing": true,
   "python.analysis.useLibraryCodeForTypes": false,
-
   "python.analysis.ignore": [
     "**/node_modules",
     "**/.venv",

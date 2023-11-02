@@ -35,7 +35,7 @@ def deploy_project(
   load_on_space: Optional[bool] = False,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
   hf_token: Optional[str] = None,
-) -> None:
+) -> str:
   """Deploy a project to huggingface.
 
   Args:
@@ -98,7 +98,9 @@ def deploy_project(
     repo_id=hf_space, repo_type='space', operations=operations, commit_message='Push to HF space'
   )
 
-  log(f'Done! View your space at https://huggingface.co/spaces/{hf_space}')
+  link = f'https://huggingface.co/spaces/{hf_space}'
+  log(f'Done! View your space at {link}')
+  return link
 
 
 def deploy_project_operations(
@@ -286,7 +288,7 @@ def deploy_project_operations(
     hf_api.delete_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER')
 
   if hf_token:
-    hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', env('HF_ACCESS_TOKEN'))
+    hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', hf_token or env('HF_ACCESS_TOKEN'))
 
   return operations
 
@@ -516,7 +518,7 @@ def deploy_config(
   create_space: Optional[bool] = False,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
   hf_token: Optional[str] = None,
-) -> None:
+) -> str:
   """Deploys a Lilac config object to a HuggingFace Space.
 
   Data will be loaded on the HuggingFace space.
@@ -537,7 +539,7 @@ def deploy_config(
     # Write the project config to the temp directory.
     write_project_config(tmp_project_dir, config)
 
-    deploy_project(
+    return deploy_project(
       hf_space=hf_space,
       project_dir=tmp_project_dir,
       create_space=create_space,

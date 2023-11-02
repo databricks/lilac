@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "lilac-hf-deploy-ui"
+version = "0.0.0"
+authors = ["Lilac AI Inc. <info@lilacml.com>"]
+description = "Deploy a HuggingFace space with a HF dataset from a UI."
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+streamlit = "^1.28.0"
+watchdog = "^3.0.0"
+datasets = "^2.14.6"
+lilac = "^0.1.13"
+# This is temporary until we publish a package with spacy as a required dep.
+spacy = "^3.7.2"

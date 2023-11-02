@@ -434,7 +434,7 @@ export class DatasetsService {
 
     /**
      * Add Labels
-     * "Add a label to the dataset.
+     * Add a label to the dataset.
      * @param namespace
      * @param datasetName
      * @param requestBody
@@ -463,7 +463,7 @@ export class DatasetsService {
 
     /**
      * Remove Labels
-     * "Add a label to the dataset.
+     * Remove a label from the dataset.
      * @param namespace
      * @param datasetName
      * @param requestBody
