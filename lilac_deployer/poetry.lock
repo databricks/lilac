@@ -1553,13 +1553,13 @@ data = ["language-data (>=1.1,<2.0)"]
 
 [[package]]
 name = "lilac"
-version = "0.1.14"
+version = "0.1.15"
 description = "Organize unstructured data"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "lilac-0.1.14-py3-none-any.whl", hash = "sha256:86b0b95e99206b6f6c0fe2377a115de09df99510ced4cb106b5d3760da6f46f2"},
-    {file = "lilac-0.1.14.tar.gz", hash = "sha256:68cba78e848951f84ec33497ed164c9d41a590cbb3fa9cde3b9da332bacd62d8"},
+    {file = "lilac-0.1.15-py3-none-any.whl", hash = "sha256:90d55b5cef69fd15bbaaf8634bf0f75c88441c24de3ec066015d31367396c889"},
+    {file = "lilac-0.1.15.tar.gz", hash = "sha256:9e7b75f5bb3a3e55155aa52826b105c7ce60f6f20118c4c6987d5b000b4204dc"},
 ]
 
 [package.dependencies]
@@ -4387,4 +4387,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "7826a78803a2e1ef42c07108675245f26dd876bbcbd06381ae25fcadeaa68acd"
+content-hash = "dd4a95b31cc98302d2cfb6d862d163aa3723a827a84e3eb3be484fe61b5b0373"
