@@ -20,48 +20,48 @@ if 'dataset' in query_params:
 def _dataset_page():
   is_valid_dataset = False
 
-  st.header('Deploy a HuggingFace dataset to a space in Lilac 🌸', anchor=False)
+  st.header('Deploy Lilac for a HuggingFace dataset to a space', anchor=False)
   st.subheader(
-    'Step 1: Choose a dataset',
+    'Step 1: select a dataset',
     divider='violet',
     anchor=False,
     help='For a list of datasets see: https://huggingface.co/datasets',
   )
-
   hf_dataset_name = st.text_input(
-    'HuggingFace dataset',
+    'dataset id',
     help='Either in the format `user/dataset` or `dataset`, for example: `Open-Orca/OpenOrca`',
     placeholder='dataset or user/dataset',
     value=st.session_state.get('hf_dataset_name', None),
   )
-  hf_config_name = st.text_input(
-    'Config',
-    help='Some datasets required this field.',
-    placeholder='(optional)',
-    value=st.session_state.get('hf_config_name', None),
-  )
-  hf_split = st.text_input(
-    'Split',
-    help='Loads all splits by default.',
-    placeholder='(optional)',
-    value=st.session_state.get('hf_split', None),
-  )
-  sample_size = st.number_input(
-    'Sample size',
-    help='Number of rows to sample from the dataset, for each split.',
-    placeholder='(optional)',
-    min_value=1,
-    step=1,
-    key='sample_size',
-    value=st.session_state.get('sample_size', None),
-  )
-  hf_read_token = st.text_input(
-    'HuggingFace read access token',
-    type='password',
-    help='The access token is used to authenticate you with HuggingFace to read the dataset. '
-    'https://huggingface.co/docs/hub/security-tokens',
-    placeholder='(optional if dataset is public)',
-  )
+  with st.expander('advanced options'):
+    hf_config_name = st.text_input(
+      'config',
+      help='Some datasets required this field.',
+      placeholder='(optional)',
+      value=st.session_state.get('hf_config_name', None),
+    )
+    hf_split = st.text_input(
+      'split',
+      help='Loads all splits by default.',
+      placeholder='(optional)',
+      value=st.session_state.get('hf_split', None),
+    )
+    sample_size = st.number_input(
+      'sample size',
+      help='Number of rows to sample from the dataset, for each split.',
+      placeholder='(optional)',
+      min_value=1,
+      step=1,
+      key='sample_size',
+      value=st.session_state.get('sample_size', None),
+    )
+    hf_read_token = st.text_input(
+      'huggingface [read token](https://huggingface.co/settings/tokens)',
+      type='password',
+      help='The access token is used to authenticate you with HuggingFace to read the dataset. '
+      'https://huggingface.co/docs/hub/security-tokens',
+      placeholder='(optional if dataset is public)',
+    )
 
   def _next():
     st.session_state.current_page = 'space'
@@ -117,7 +117,7 @@ def _space_page():
 
   _back_button()
   st.subheader(
-    'Step 2: Choose HuggingFace Space settings',
+    'Step 2: create huggingface space',
     divider='violet',
     anchor=False,
     help='See HuggingFace Spaces [documentation](https://huggingface.co/docs/hub/spaces-overview)',
@@ -129,15 +129,14 @@ def _space_page():
   if st.session_state.get('sample_size', None):
     st.write(f'Sample size: {session["sample_size"]}')
 
-  st.write('##### HuggingFace space to create')
   hf_space_name = st.text_input(
-    'HuggingFace space name',
+    'space id',
     help='This space will be created if it does not exist',
     placeholder='org/name',
     value=hf_space_name,
   )
   hf_access_token = st.text_input(
-    'HuggingFace write access token',
+    'huggingface [write token](https://huggingface.co/settings/tokens)',
     type='password',
     help='The access token is used to authenticate you with HuggingFace to create the space. '
     'https://huggingface.co/docs/hub/security-tokens',
@@ -145,9 +144,12 @@ def _space_page():
   )
   storage_options = ['None', 'small', 'medium', 'large']
   hf_storage = st.selectbox(
-    'Persistent storage',
+    'persistent storage',
     ['None', 'small', 'medium', 'large'],
-    help='You will get charged for persistent storage. See https://huggingface.co/docs/hub/spaces-storage',
+    help='Persistent storage is required if you want data to persist past the lifetime of the '
+    'space docker image. This is recommended when running computations like signals or embeddings,'
+    'or if you want labels to persist. You will get charged for persistent storage. See '
+    'https://huggingface.co/docs/hub/spaces-storage',
     index=storage_options.index(hf_storage if hf_storage else 'None'),
   )
 
@@ -224,12 +226,11 @@ dataset_name = st.session_state.get('ds_dataset_name', None) or st.session_state
   'hf_dataset_name', None
 )
 if st.session_state.get('ds_loaded', False):
-  st.sidebar.write('# HuggingFace dataset')
-
   st.sidebar.header(
     f'[{dataset_name}](https://huggingface.co/datasets/{dataset_name})',
     divider='rainbow',
     anchor=False,
+    help='Dataset information from HuggingFace datasets.',
   )
 
   st.sidebar.write(st.session_state.get('ds_description', None))
