@@ -134,8 +134,8 @@ class DatasetConfig(BaseModel):
 
   # Deprecated.
   tags: Optional[list[str]] = PydanticField(
-    description='This field is *deprecated* in favor of DatasetSettings.tags and will be removed in '
-    'the next major version release.',
+    description='This field is *deprecated* in favor of DatasetSettings.tags and will be removed '
+    'in a later release.',
     default=[],
   )
 
