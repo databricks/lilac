@@ -11,5 +11,9 @@ import type { DatasetUISettings } from './DatasetUISettings';
 export type DatasetSettings = {
     ui?: (DatasetUISettings | null);
     preferred_embedding?: (string | null);
+    /**
+     * A list of tags for the dataset to organize in the UI.
+     */
+    tags?: (Array<string> | null);
 };
 

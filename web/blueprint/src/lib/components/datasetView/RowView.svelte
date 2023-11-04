@@ -17,7 +17,7 @@
     getMediaFields
   } from '$lib/view_utils';
   import {L, ROWID, valueAtPath} from '$lilac';
-  import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
+  import {InlineNotification} from 'carbon-components-svelte';
   import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import {writable} from 'svelte/store';
@@ -79,8 +79,6 @@
     title="Could not fetch schema:"
     subtitle={$selectRowsSchema.error.body?.detail || $selectRowsSchema?.error.message}
   />
-{:else if $rows?.isFetching}
-  <SkeletonText paragraph lines={3} />
 {:else if $rows?.isSuccess && rowIds && rowIds.length === 0}
   <div class="mx-4 mt-8 w-full text-gray-600">No results.</div>
 {/if}
