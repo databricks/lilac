@@ -132,6 +132,13 @@ class DatasetConfig(BaseModel):
   namespace: str = PydanticField(description='The namespace of the dataset.')
   name: str = PydanticField(description='The name of the dataset.')
 
+  # Deprecated.
+  tags: Optional[list[str]] = PydanticField(
+    description='This field is *deprecated* in favor of DatasetSettings.tags and will be removed in '
+    'the next major version release.',
+    default=[],
+  )
+
   # The source configuration.
   source: SerializeAsAny[Source] = PydanticField(
     description='The source configuration. This config determines where data is loaded '
