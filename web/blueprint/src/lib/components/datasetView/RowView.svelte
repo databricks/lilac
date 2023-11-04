@@ -17,7 +17,7 @@
     getMediaFields
   } from '$lib/view_utils';
   import {L, ROWID, valueAtPath} from '$lilac';
-  import {InlineNotification} from 'carbon-components-svelte';
+  import {InlineNotification, SkeletonText} from 'carbon-components-svelte';
   import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import {writable} from 'svelte/store';
@@ -95,4 +95,8 @@
       <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />
     {/if}
   </div>
+{/if}
+
+{#if $rows?.isFetching}
+  <SkeletonText paragraph lines={3} />
 {/if}
