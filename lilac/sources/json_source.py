@@ -1,6 +1,5 @@
 """JSON source."""
-import itertools
-from typing import Any, ClassVar, Iterable, Iterator, Optional, cast
+from typing import ClassVar, Iterable, Optional, cast
 
 import duckdb
 import pyarrow as pa
@@ -58,13 +57,17 @@ class JSONSource(Source):
     """
     )
 
+    res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
+    num_items = cast(tuple[int], res)[0]
     if self.sample_size:
-      num_items = self.sample_size
-    else:
-      res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
-      num_items = cast(tuple[int], res)[0]
+      num_items = min(num_items, self.sample_size)
 
-    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(rows_per_batch=10_000)
+    if self.sample_size:
+      self._reader = self._con.execute(
+        'SELECT * FROM t LIMIT ?', [self.sample_size]
+      ).fetch_record_batch(rows_per_batch=10_000)
+    else:
+      self._reader = self._con.execute('SELECT * FROM t').fetch_record_batch(rows_per_batch=10_000)
     # Create the source schema in prepare to share it between process and source_schema.
     schema = arrow_schema_to_schema(self._reader.schema)
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
@@ -81,11 +84,8 @@ class JSONSource(Source):
     if not self._reader or not self._con:
       raise RuntimeError('JSON source is not initialized.')
 
-    items: Iterator[Any] = itertools.chain.from_iterable(
-        batch.to_pylist() for batch in self._reader)
-    if self.sample_size:
-      items = itertools.islice(items, self.sample_size)
-    yield from items
+    for batch in self._reader:
+      yield from batch.to_pylist()
 
     self._reader.close()
     self._con.close()
