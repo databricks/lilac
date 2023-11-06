@@ -1,5 +1,6 @@
 """JSON source."""
-from typing import ClassVar, Iterable, Optional, cast
+import itertools
+from typing import Any, ClassVar, Iterable, Iterator, Optional, cast
 
 import duckdb
 import pyarrow as pa
@@ -30,6 +31,12 @@ class JSONSource(Source):
     'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.'
   )
 
+  sample_size: Optional[int] = PydanticField(
+    title='Sample size',
+    description='Number of rows to sample from the dataset.',
+    default=None,
+  )
+
   _source_schema: Optional[SourceSchema] = None
   _reader: Optional[pa.RecordBatchReader] = None
   _con: Optional[duckdb.DuckDBPyConnection] = None
@@ -51,8 +58,11 @@ class JSONSource(Source):
     """
     )
 
-    res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
-    num_items = cast(tuple[int], res)[0]
+    if self.sample_size:
+      num_items = self.sample_size
+    else:
+      res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
+      num_items = cast(tuple[int], res)[0]
 
     self._reader = self._con.execute('SELECT * from t').fetch_record_batch(rows_per_batch=10_000)
     # Create the source schema in prepare to share it between process and source_schema.
@@ -71,8 +81,11 @@ class JSONSource(Source):
     if not self._reader or not self._con:
       raise RuntimeError('JSON source is not initialized.')
 
-    for batch in self._reader:
-      yield from batch.to_pylist()
+    items: Iterator[Any] = itertools.chain.from_iterable(
+        batch.to_pylist() for batch in self._reader)
+    if self.sample_size:
+      items = itertools.islice(items, self.sample_size)
+    yield from items
 
     self._reader.close()
     self._con.close()
