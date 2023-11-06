@@ -121,6 +121,9 @@ class DatasetSettings(BaseModel):
   ui: Optional[DatasetUISettings] = None
   preferred_embedding: Optional[str] = DEFAULT_EMBEDDING
   model_config = ConfigDict(extra='forbid')
+  tags: Optional[list[str]] = PydanticField(
+    description='A list of tags for the dataset to organize in the UI.', default=[]
+  )
 
 
 class DatasetConfig(BaseModel):
@@ -128,8 +131,12 @@ class DatasetConfig(BaseModel):
 
   namespace: str = PydanticField(description='The namespace of the dataset.')
   name: str = PydanticField(description='The name of the dataset.')
-  tags: list[str] = PydanticField(
-    description='A list of tags for the dataset to organize in the UI.', default=[]
+
+  # Deprecated.
+  tags: Optional[list[str]] = PydanticField(
+    description='[Deprecated] This field is *deprecated* in favor of DatasetSettings.tags and '
+    'will be removed in a later release.',
+    default=[],
   )
 
   # The source configuration.

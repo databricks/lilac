@@ -22,7 +22,7 @@
       <button
         data-active={item === _item.value}
         on:click={() => dispatch('select', _item.value)}
-        class="mb-1 flex items-center justify-between"
+        class="my-1 flex items-center justify-between"
       >
         {_item.title}
         {#if _item.tag} <Tag size="sm" type={_item.tag.type}>{_item.tag.value}</Tag> {/if}

@@ -18,6 +18,7 @@ Args:
     files.
   --skip_data_upload: When true, only uploads the wheel + ts files without any other changes.
   --create_space: When true, creates the space if it doesn't exist.
+
 """
 
 import os
@@ -27,7 +28,6 @@ from typing import Optional, Union
 
 import click
 from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
-
 from lilac.deploy import PY_DIST_DIR, deploy_project_operations
 from lilac.env import env
 from lilac.utils import log
@@ -38,51 +38,60 @@ from lilac.utils import log
   '--hf_space',
   help='The huggingface space. Defaults to env.HF_STAGING_DEMO_REPO. '
   'Should be formatted like `SPACE_ORG/SPACE_NAME`.',
-  type=str)
+  type=str,
+)
 @click.option('--dataset', help='The name of a dataset to upload', type=str, multiple=True)
 @click.option(
   '--concept',
   help='The name of a concept to upload. By default all lilac/ concepts are uploaded.',
   type=str,
-  multiple=True)
+  multiple=True,
+)
 @click.option(
   '--skip_ts_build',
   help='Skip building the web server TypeScript. '
   'Useful to speed up the build if you are only changing python or data.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--skip_cache_upload',
   help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--skip_ts_build',
   help='Skip building the web server TypeScript. '
   'Useful to speed up the build if you are only changing python or data.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--create_space',
   help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
   'with the storage type defined by --hf_space_storage.',
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--skip_data_upload',
   help='When true, only uploads the wheel files without any other changes.',
   is_flag=True,
-  default=False)
-def deploy_staging(hf_space: Optional[str] = None,
-                   dataset: Optional[list[str]] = None,
-                   concept: Optional[list[str]] = None,
-                   skip_cache_upload: Optional[bool] = False,
-                   skip_ts_build: Optional[bool] = False,
-                   skip_data_upload: Optional[bool] = False,
-                   create_space: Optional[bool] = False) -> None:
+  default=False,
+)
+def deploy_staging(
+  hf_space: Optional[str] = None,
+  dataset: Optional[list[str]] = None,
+  concept: Optional[list[str]] = None,
+  skip_cache_upload: Optional[bool] = False,
+  skip_ts_build: Optional[bool] = False,
+  skip_data_upload: Optional[bool] = False,
+  create_space: Optional[bool] = False,
+) -> None:
   """Generate the huggingface space app."""
   hf_space = hf_space or env('HF_STAGING_DEMO_REPO')
   if not hf_space:
@@ -119,7 +128,9 @@ def deploy_staging(hf_space: Optional[str] = None,
       make_datasets_public=False,
       skip_data_upload=skip_data_upload,
       hf_space_storage=None,
-      create_space=create_space))
+      create_space=create_space,
+    )
+  )
 
   # Unconditionally remove dist. dist is unconditionally uploaded so it is empty when using
   # the public package.
@@ -143,7 +154,9 @@ def deploy_staging(hf_space: Optional[str] = None,
     operations.append(
       CommitOperationAdd(
         path_in_repo=os.path.join(PY_DIST_DIR, upload_file),
-        path_or_fileobj=os.path.join(PY_DIST_DIR, upload_file)))
+        path_or_fileobj=os.path.join(PY_DIST_DIR, upload_file),
+      )
+    )
 
   # Atomically commit all the operations so we don't kick the server multiple times.
   hf_api.create_commit(

@@ -27,6 +27,8 @@
   export let isFetching: boolean;
   export let tagGroups: NavigationTagGroup[];
   export let expanded = true;
+
+  $: hasTags = tagGroups.some(({tag}) => tag != '');
 </script>
 
 <div class="my-1 w-full px-1">
@@ -51,13 +53,17 @@
       {:else}
         <div class="mt-1">
           {#each tagGroups as { tag, groups }}
-            {#if tag != ''}
+            {#if hasTags}
               <div
                 class="flex flex-row justify-between pl-3
             text-sm opacity-80"
               >
                 <div class="py-1 text-xs">
-                  <Tag type="purple" size="sm">{tag}</Tag>
+                  {#if tag != ''}
+                    <Tag type="purple" size="sm">{tag}</Tag>
+                  {:else}
+                    <Tag type="cool-gray" size="sm">no tag</Tag>
+                  {/if}
                 </div>
               </div>
             {/if}

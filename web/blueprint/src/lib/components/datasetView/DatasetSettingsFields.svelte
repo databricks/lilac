@@ -76,6 +76,7 @@
   $: {
     if (selectedMediaFields != null) {
       settings = {
+        ...settings,
         ui: {
           media_paths: selectedMediaFields.map(f => f.path),
           markdown_paths: markdownMediaFields?.map(f => f.path)
