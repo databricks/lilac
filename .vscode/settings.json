@@ -61,7 +61,6 @@
   "eslint.workingDirectories": ["auto"],
   "eslint.validate": ["typescript", "svelte"],
   "python.envFile": "${workspaceFolder}/.venv",
-  "python.linting.mypyEnabled": true,
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "git.enableSmartCommit": true,
   "git.confirmSync": false,

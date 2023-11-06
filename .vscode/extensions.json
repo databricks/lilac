@@ -18,7 +18,8 @@
     "ZixuanChen.vitest-explorer",
     "ryanluker.vscode-coverage-gutters",
     "bradlc.vscode-tailwindcss",
-    "svelte.svelte-vscode"
+    "svelte.svelte-vscode",
+    "ms-python.mypy-type-checker"
   ],
   // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
   "unwantedRecommendations": []

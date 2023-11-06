@@ -39,6 +39,9 @@ class ParquetSource(Source):
     description='If true, the reader will read a fraction of rows from each shard, '
     'avoiding a pass over the entire dataset.',
   )
+  approximate_shuffle_num_shards: int = Field(
+    default=10, description='Number of shards to sample from when using approximate_shuffle.'
+  )
 
   _source_schema: Optional[SourceSchema] = None
   _readers: list[pa.RecordBatchReader] = []
@@ -77,6 +80,8 @@ class ParquetSource(Source):
         f'SELECT * FROM GLOB({duckdb_paths})'
       ).fetchall()
       duckdb_files: list[str] = list(set([row[0] for row in glob_rows]))
+      # Sub-sample shards so we don't open too many files.
+      duckdb_files = random.sample(duckdb_files, self.approximate_shuffle_num_shards)
       batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
       for duckdb_file in duckdb_files:
         # Since we are not fetching the entire results immediately, we need a seperate cursor
