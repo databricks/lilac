@@ -30,6 +30,12 @@ class JSONSource(Source):
     'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.'
   )
 
+  sample_size: Optional[int] = PydanticField(
+    title='Sample size',
+    description='Number of rows to sample from the dataset.',
+    default=None,
+  )
+
   _source_schema: Optional[SourceSchema] = None
   _reader: Optional[pa.RecordBatchReader] = None
   _con: Optional[duckdb.DuckDBPyConnection] = None
@@ -53,8 +59,15 @@ class JSONSource(Source):
 
     res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
     num_items = cast(tuple[int], res)[0]
+    if self.sample_size:
+      num_items = min(num_items, self.sample_size)
 
-    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(rows_per_batch=10_000)
+    if self.sample_size:
+      self._reader = self._con.execute(
+        f'SELECT * FROM t USING SAMPLE {num_items}'
+      ).fetch_record_batch(rows_per_batch=10_000)
+    else:
+      self._reader = self._con.execute('SELECT * FROM t').fetch_record_batch(rows_per_batch=10_000)
     # Create the source schema in prepare to share it between process and source_schema.
     schema = arrow_schema_to_schema(self._reader.schema)
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)

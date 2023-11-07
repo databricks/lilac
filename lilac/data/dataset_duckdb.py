@@ -36,6 +36,7 @@ from ..config import (
   SignalConfig,
   get_dataset_config,
 )
+from ..db_manager import remove_dataset_from_cache
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
 from ..project import (
@@ -284,6 +285,7 @@ class DatasetDuckDB(Dataset):
     self.con.close()
     shutil.rmtree(self.dataset_path, ignore_errors=True)
     delete_project_dataset_config(self.namespace, self.dataset_name, self.project_dir)
+    remove_dataset_from_cache(self.namespace, self.dataset_name)
 
   def _create_view(
     self, view_name: str, files: list[str], type: Literal['parquet', 'sqlite']

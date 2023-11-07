@@ -59,3 +59,45 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
   items = list(source.process())
 
   assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
+
+
+def test_sampling_jsonl(tmp_path: pathlib.Path) -> None:
+  json_records = [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}, {'x': 3, 'y': 'thirty'}]
+  json_lines = [json.dumps(record) + '\n' for record in json_records]
+
+  filename = 'test-dataset.jsonl'
+  filepath = os.path.join(tmp_path, filename)
+  with open(filepath, 'w') as f:
+    f.writelines(json_lines)
+
+  source = JSONSource(filepaths=[filepath], sample_size=2)
+  source.setup()
+
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2
+  )
+
+  items = list(source.process())
+  assert len(items) == 2
+
+
+def test_sampling_greater_than_dataset(tmp_path: pathlib.Path) -> None:
+  json_records = [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}, {'x': 3, 'y': 'thirty'}]
+  json_lines = [json.dumps(record) + '\n' for record in json_records]
+
+  filename = 'test-dataset.jsonl'
+  filepath = os.path.join(tmp_path, filename)
+  with open(filepath, 'w') as f:
+    f.writelines(json_lines)
+
+  source = JSONSource(filepaths=[filepath], sample_size=4)
+  source.setup()
+
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=3
+  )
+
+  items = list(source.process())
+  assert len(items) == 3
