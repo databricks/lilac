@@ -42,6 +42,8 @@ class ClusterHDBScan(VectorSignal):
     'reduced embedding by UMAP before it is passed to HDBScan.',
   )
 
+  umap_random_state: Optional[int] = PyField(description='Random seed for UMAP.', default=None)
+
   @override
   def fields(self) -> Field:
     return field(
@@ -79,7 +81,12 @@ class ClusterHDBScan(VectorSignal):
       f'UMAP: Reducing dimensionality of {len(all_vectors)} vectors '
       f'of dimensionality {all_vectors[0].size} to {self.umap_n_components}'
     ):
-      reducer = umap.UMAP(n_components=self.umap_n_components, n_neighbors=30, min_dist=0.0)
+      reducer = umap.UMAP(
+        n_components=self.umap_n_components,
+        n_neighbors=30,
+        min_dist=0.0,
+        random_state=self.umap_random_state,
+      )
       all_vectors = reducer.fit_transform(all_vectors)
 
     with DebugTimer('HDBSCAN: Clustering'):

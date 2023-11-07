@@ -56,7 +56,10 @@ class TestEmbedding(TextEmbeddingSignal):
 def test_simple_data(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
   dataset.compute_embedding('test_embedding', 'text')
-  signal = ClusterHDBScan(embedding='test_embedding', min_cluster_size=2, umap_n_components=2)
+
+  signal = ClusterHDBScan(
+    embedding='test_embedding', min_cluster_size=2, umap_n_components=2, umap_random_state=1337
+  )
   dataset.compute_signal(signal, 'text')
   signal_key = signal.key(is_computed_signal=True)
   result = dataset.select_rows(combine_columns=True)
