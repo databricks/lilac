@@ -121,6 +121,8 @@ The `ParquetSource` takes a few optional arguments related to sampling:
   with reservoir sampling. When `True`, we read a fraction of rows from the start of each shard, to
   avoid shard skew, without doing a full pass over the entire dataset. This is useful when your
   dataset is very large and consists of a large number of shards.
+- `pseudo_shuffle_num_shards`, the maximum number of shards to read from when `pseudo_shuffle` is
+  `True`. Defaults to `10`.
 - `seed`, the random seed to use for sampling.
 
 ```python
