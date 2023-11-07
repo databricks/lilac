@@ -64,7 +64,7 @@ class JSONSource(Source):
 
     if self.sample_size:
       self._reader = self._con.execute(
-        'SELECT * FROM t LIMIT ?', [self.sample_size]
+        f'SELECT * FROM t USING SAMPLE {num_items}'
       ).fetch_record_batch(rows_per_batch=10_000)
     else:
       self._reader = self._con.execute('SELECT * FROM t').fetch_record_batch(rows_per_batch=10_000)
