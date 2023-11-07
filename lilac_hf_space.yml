@@ -1,8 +1,8 @@
 datasets:
   - name: imdb
     namespace: lilac
-    tags: [machine-learning]
     settings:
+      tags: [machine-learning]
       ui:
         media_paths:
           - text
@@ -13,8 +13,8 @@ datasets:
 
   - name: open-asssistant-conversations
     namespace: lilac
-    tags: [machine-learning]
     settings:
+      tags: [machine-learning]
       ui:
         media_paths:
           - text
@@ -25,8 +25,8 @@ datasets:
 
   - name: wikitext-2-raw-v1
     namespace: lilac
-    tags: [machine-learning]
     settings:
+      tags: [machine-learning]
       ui:
         media_paths:
           - text
@@ -39,11 +39,11 @@ datasets:
 
   - name: textbook_quality_programming
     namespace: lilac
-    tags: [machine-learning]
     source:
       dataset_name: vikp/textbook_quality_programming
       source_name: huggingface
     settings:
+      tags: [machine-learning]
       ui:
         media_paths:
           - - outline
@@ -57,8 +57,8 @@ datasets:
 
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
-    tags: [machine-learning]
     settings:
+      tags: [machine-learning]
       ui:
         media_paths:
           - original-instruction
@@ -80,8 +80,8 @@ datasets:
 
   - name: 'OpenOrca-100k'
     namespace: lilac
-    tags: [machine-learning]
     settings:
+      tags: [machine-learning]
       ui:
         media_paths:
           - question
@@ -94,8 +94,8 @@ datasets:
 
   - name: opus100-en-es-validation
     namespace: lilac
-    tags: [machine-learning]
     settings:
+      tags: [machine-learning]
       ui:
         media_paths:
           - [translation, es]
@@ -110,8 +110,8 @@ datasets:
   # Science datasets
   - name: science-qa-derek-thomas
     namespace: lilac
-    tags: [science]
     settings:
+      tags: [science]
       ui:
         media_paths: [lecture]
       preferred_embedding: 'gte-small'
@@ -122,8 +122,8 @@ datasets:
   # Business datasets.
   - name: enron-emails
     namespace: lilac
-    tags: [business]
     settings:
+      tags: [business]
       ui:
         media_paths: [text]
       preferred_embedding: 'gte-small'
@@ -136,8 +136,8 @@ datasets:
   # Other datasets.
   - name: the_movies_dataset
     namespace: lilac
-    tags: [other]
     settings:
+      tags: [other]
       ui:
         media_paths: [overview]
       preferred_embedding: 'gte-small'

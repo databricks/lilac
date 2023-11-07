@@ -245,6 +245,8 @@ export const updateDatasetSettingsMutation = createApiMutation(DatasetsService.u
   onSuccess: () => {
     queryClient.invalidateQueries([DATASETS_SETTINGS_TAG]);
     queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
+    // Datasets get invalidated because tags may have changed.
+    queryClient.invalidateQueries([DATASETS_TAG]);
   }
 });
 export const exportDatasetMutation = createApiMutation(DatasetsService.exportDataset);

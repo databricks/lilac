@@ -205,9 +205,11 @@ export function getTaggedDatasets(
     }
   }
   const tagSortPriorities = ['machine-learning'];
-  const sortedTags = Object.keys(tagDatasets).sort(
-    (a, b) => tagSortPriorities.indexOf(b) - tagSortPriorities.indexOf(a) || a.localeCompare(b)
-  );
+  const sortedTags = Object.keys(tagDatasets).sort((a, b) => {
+    if (a === '') return 1;
+    if (b === '') return -1;
+    return tagSortPriorities.indexOf(b) - tagSortPriorities.indexOf(a) || a.localeCompare(b);
+  });
 
   const namespaceSortPriorities = ['lilac'];
   // TODO(nsthorat): Don't hard-code this. Let's make this a config.
