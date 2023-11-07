@@ -34,13 +34,13 @@ class ParquetSource(Source):
   sample_size: Optional[int] = Field(
     title='Sample size', description='Number of rows to sample from the dataset', default=None
   )
-  approximate_shuffle: bool = Field(
+  pseudo_shuffle: bool = Field(
     default=False,
     description='If true, the reader will read a fraction of rows from each shard, '
     'avoiding a pass over the entire dataset.',
   )
-  approximate_shuffle_num_shards: int = Field(
-    default=10, description='Number of shards to sample from when using approximate_shuffle.'
+  pseudo_shuffle_num_shards: int = Field(
+    default=10, description='Number of shards to sample from when using pseudo shuffle.'
   )
 
   _source_schema: Optional[SourceSchema] = None
@@ -63,25 +63,26 @@ class ParquetSource(Source):
       raise ValueError('sample_size must be greater than 0.')
     return sample_size
 
-  @field_validator('approximate_shuffle')
+  @field_validator('pseudo_shuffle')
   @classmethod
-  def validate_approximate_shuffle(cls, approximate_shuffle: bool, info: ValidationInfo) -> bool:
+  def validate_pseudo_shuffle(cls, pseudo_shuffle: bool, info: ValidationInfo) -> bool:
     """Validate shuffle before sampling."""
-    if approximate_shuffle and not info.data['sample_size']:
-      raise ValueError('`approximate_shuffle` requires `sample_size` to be set.')
-    return approximate_shuffle
+    if pseudo_shuffle and not info.data['sample_size']:
+      raise ValueError('`pseudo_shuffle` requires `sample_size` to be set.')
+    return pseudo_shuffle
 
   def _setup_sampling(self, duckdb_paths: list[str]) -> Schema:
     assert self._con, 'setup() must be called first.'
-    if self.approximate_shuffle:
-      assert self.sample_size, 'approximate_shuffle requires sample_size to be set.'
+    if self.pseudo_shuffle:
+      assert self.sample_size, 'pseudo_shuffle requires sample_size to be set.'
       # Find each individual file.
       glob_rows: list[tuple[str]] = self._con.execute(
         f'SELECT * FROM GLOB({duckdb_paths})'
       ).fetchall()
       duckdb_files: list[str] = list(set([row[0] for row in glob_rows]))
       # Sub-sample shards so we don't open too many files.
-      duckdb_files = random.sample(duckdb_files, self.approximate_shuffle_num_shards)
+      num_shards = min(self.pseudo_shuffle_num_shards, len(duckdb_files))
+      duckdb_files = random.sample(duckdb_files, num_shards)
       batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
       for duckdb_file in duckdb_files:
         # Since we are not fetching the entire results immediately, we need a seperate cursor

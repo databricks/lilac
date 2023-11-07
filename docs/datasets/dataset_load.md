@@ -117,17 +117,17 @@ use a glob pattern to load multiple files.
 The `ParquetSource` takes a few optional arguments related to sampling:
 
 - `sample_size`, the number of rows to sample.
-- `approximate_shuffle`, defaulting to `False`. When `False`, we take an entire pass over the
-  dataset with reservoir sampling. When `True`, we read a fraction of rows from the start of each
-  shard, to avoid shard skew, without doing a full pass over the entire dataset. This is useful when
-  your dataset is very large and consists of a large number of shards.
+- `pseudo_shuffle`, defaulting to `False`. When `False`, we take an entire pass over the dataset
+  with reservoir sampling. When `True`, we read a fraction of rows from the start of each shard, to
+  avoid shard skew, without doing a full pass over the entire dataset. This is useful when your
+  dataset is very large and consists of a large number of shards.
 - `seed`, the random seed to use for sampling.
 
 ```python
 source = ll.ParquetSource(
   filepaths=['s3://lilac-public-data/test-*.parquet'],
   sample_size=100,
-  approximate_shuffle=True)
+  pseudo_shuffle=True)
 config = ll.DatasetConfig(namespace='local', name='parquet-test', source=source)
 dataset = ll.create_dataset(config)
 ```
