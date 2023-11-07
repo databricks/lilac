@@ -6,10 +6,12 @@ from .lang_detection import LangDetectionSignal
 from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
 from .pii import PIISignal
+from .text_statistics import TextStatisticsSignal
 
 __all__ = [
   'Signal',
   'TextEmbeddingSignal',
+  'TextStatisticsSignal',
   'TextSignal',
   'register_signal',
   'SignalInputType',

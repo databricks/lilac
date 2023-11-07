@@ -323,7 +323,8 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
     operations.append(CommitOperationDelete(path_in_repo=f'{PY_DIST_DIR}/'))
 
   operations.append(
-    CommitOperationAdd(path_in_repo=remote_readme_filepath, path_or_fileobj=readme_contents)
+    # The path in the remote doesn't os.path.join as it is specific to Linux.
+    CommitOperationAdd(path_in_repo=f'{PY_DIST_DIR}/README.md', path_or_fileobj=readme_contents)
   )
 
   return operations
@@ -364,7 +365,8 @@ def _upload_cache(hf_space: str, project_dir: str, concepts: Optional[list[str]]
         cache_files.append(os.path.join(relative_root, file))
         operations.append(
           CommitOperationAdd(
-            path_in_repo=os.path.join(remote_cache_dir, relative_root, file),
+            # The path in the remote doesn't os.path.join as it is specific to Linux.
+            path_in_repo=f'{remote_cache_dir}/{relative_root}/{file}',
             path_or_fileobj=os.path.join(cache_dir, relative_root, file),
           )
         )
@@ -417,7 +419,8 @@ def _upload_concepts(
     for upload_file in os.listdir(concept_dir):
       operations.append(
         CommitOperationAdd(
-          path_in_repo=os.path.join(remote_concept_dir, upload_file),
+          # The path in the remote doesn't os.path.join as it is specific to Linux.
+          path_in_repo=f'{remote_concept_dir}/{upload_file}',
           path_or_fileobj=os.path.join(concept_dir, upload_file),
         )
       )
