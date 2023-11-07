@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 NUM_PARALLEL_REQUESTS = 10
 COHERE_BATCH_SIZE = 96
+COHERE_EMBED_MODEL = 'embed-english-light-v3.0'
 
 
 class Cohere(TextEmbeddingSignal):
@@ -54,7 +55,9 @@ class Cohere(TextEmbeddingSignal):
     """Compute embeddings for the given documents."""
 
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
-      return self._model.embed(texts, truncate='END').embeddings
+      return self._model.embed(
+        texts, truncate='END', model=COHERE_EMBED_MODEL, input_type='search_document'
+      ).embeddings
 
     docs = cast(Iterable[str], docs)
     split_fn = clustering_spacy_chunker if self._split else None
