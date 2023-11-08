@@ -4484,7 +4484,7 @@ ptyprocess = ">=0.5"
 name = "phonenumbers"
 version = "8.13.24"
 description = "Python version of Google's common library for parsing, formatting, storing and validating international phone numbers."
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "phonenumbers-8.13.24-py2.py3-none-any.whl", hash = "sha256:7dd66c57da00c0f373de83074e78d66a0801381cface4d010cfe07be2fa77fe5"},
@@ -4661,7 +4661,7 @@ murmurhash = ">=0.28.0,<1.1.0"
 name = "presidio-analyzer"
 version = "2.2.350"
 description = "Presidio analyzer package"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "presidio_analyzer-2.2.350-py3-none-any.whl", hash = "sha256:27989af82e6c78ecb4b6f85f587c5d954e126234f3aa091fd2bd1c1d3c637489"},
@@ -5540,7 +5540,7 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 name = "requests-file"
 version = "1.5.1"
 description = "File transport adapter for Requests"
-optional = false
+optional = true
 python-versions = "*"
 files = [
     {file = "requests-file-1.5.1.tar.gz", hash = "sha256:07d74208d3389d01c38ab89ef403af0cfec63957d53a0081d8eca738d0247d8e"},
@@ -6679,7 +6679,7 @@ test = ["flake8", "isort", "pytest"]
 name = "tldextract"
 version = "5.1.0"
 description = "Accurately separates a URL's subdomain, domain, and public suffix, using the Public Suffix List (PSL). By default, this includes the public ICANN TLDs and their exceptions. You can optionally support the Public Suffix List's private domains as well."
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "tldextract-5.1.0-py3-none-any.whl", hash = "sha256:c8eecb15f556b43db6eebd21667640fb6fba9bc9539b48707432014913a78d13"},
@@ -7846,7 +7846,7 @@ langsmith = ["langsmith"]
 llms = ["openai"]
 openai = ["openai"]
 palm = ["google-cloud-aiplatform", "google-generativeai"]
-pii = ["detect-secrets"]
+pii = ["detect-secrets", "presidio_analyzer"]
 sbert = ["sentence-transformers"]
 signals = ["detect-secrets", "langdetect", "textacy"]
 sources = ["langsmith"]
@@ -7855,4 +7855,4 @@ text-stats = ["textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "dddc05bd500448404f6ecb256379f7b2c7b2c89b77e12695f4de56693638ba89"
+content-hash = "a954d37ea51fbda18db93d1ddab19bfba7083f585b663514c7d0676410be38be"
