@@ -5,9 +5,20 @@ from typing_extensions import override
 
 from ..schema import Field, Item, RichData, SignalInputType, field
 from ..signal import TextSignal
-from .pii_presidio import PII_CATEGORIES, find_pii
 
 SECRETS_KEY = 'secrets'
+# Selected categories. For all categories, see:
+# https://microsoft.github.io/presidio/supported_entities/
+
+PII_CATEGORIES = [
+  'CREDIT_CARD',
+  'CRYPTO',
+  'EMAIL_ADDRESS',
+  'IBAN_CODE',
+  'IP_ADDRESS',
+  'PHONE_NUMBER',
+  'MEDICAL_LICENSE',
+]
 
 
 class PIISignal(TextSignal):
@@ -27,6 +38,7 @@ class PIISignal(TextSignal):
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     try:
+      from .pii_presidio import find_pii
       from .pii_secrets import find_secrets
     except ImportError:
       raise ImportError(
