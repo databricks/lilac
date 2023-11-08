@@ -103,11 +103,7 @@ export const computeSignalMutation = createApiMutation(DatasetsService.computeSi
   }
 });
 
-export const deleteDatasetMutation = createApiMutation(DatasetsService.deleteDataset, {
-  onSuccess: () => {
-    queryClient.invalidateQueries([DATASETS_TAG]);
-  }
-});
+export const deleteDatasetMutation = createApiMutation(DatasetsService.deleteDataset);
 
 export const deleteSignalMutation = createApiMutation(DatasetsService.deleteSignal, {
   onSuccess: () => {
