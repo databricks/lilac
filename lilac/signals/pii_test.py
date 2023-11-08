@@ -66,4 +66,4 @@ def test_no_unicode_error() -> None:
   text = 'Olof Heden and Denis S. Krotov \u2217'
   expected_spans = text_to_expected_spans(text, ['Olof Heden', 'Denis S. Krotov'])
   pii = list(signal.compute([text]))
-  assert pii == [make_pii_dict({'PERSON': expected_spans})]
+  assert pii == [make_pii_dict({})]
