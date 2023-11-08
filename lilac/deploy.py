@@ -476,7 +476,8 @@ def _upload_datasets(
     dataset_output_dir = get_dataset_output_dir(project_dir, namespace, name)
     hf_api.upload_folder(
       folder_path=dataset_output_dir,
-      path_in_repo=os.path.join(namespace, name),
+      # The path in the remote doesn't os.path.join as it is specific to Linux.
+      path_in_repo=f'{namespace}/{name}',
       repo_id=dataset_repo_id,
       repo_type='dataset',
       # Delete all data on the server.
