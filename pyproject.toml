@@ -70,6 +70,7 @@ spacy = { version = "^3.5.1" }
 
 # For PII and secrets.
 detect-secrets = { version = "^1.4.0", optional = true }
+presidio_analyzer = { version = "^2.2", optional = true }
 
 # For language detection.
 langdetect = { version = "^1.0.9", optional = true }
