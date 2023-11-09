@@ -178,12 +178,12 @@
 
 <style lang="postcss">
   .tag {
-    @apply opacity-60;
+    @apply opacity-100;
   }
   .tag-active {
     @apply opacity-100;
   }
   :global(.tag-active button.bx--tag) {
-    @apply border-none shadow-none outline outline-purple-500;
+    @apply border-none font-bold shadow-none outline outline-purple-500;
   }
 </style>
