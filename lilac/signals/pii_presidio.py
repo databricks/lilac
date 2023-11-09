@@ -42,8 +42,8 @@ def _get_analyzer() -> AnalyzerEngine:
 
 def find_pii(text: str) -> dict[str, list[Item]]:
   """Find personally identifiable information (emails, phone numbers, etc)."""
-  results = _get_analyzer().analyze(text, entities=PII_CATEGORIES, language='en')
-  pii_dict: dict[str, list[Item]] = {cat: [] for cat in PII_CATEGORIES}
+  results = _get_analyzer().analyze(text, entities=list(PII_CATEGORIES), language='en')
+  pii_dict: dict[str, list[Item]] = {cat: [] for cat in PII_CATEGORIES.values()}
   for result in results:
-    pii_dict[result.entity_type].append(lilac_span(result.start, result.end))
+    pii_dict[PII_CATEGORIES[result.entity_type]].append(lilac_span(result.start, result.end))
   return pii_dict

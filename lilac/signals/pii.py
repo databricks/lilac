@@ -10,15 +10,15 @@ SECRETS_KEY = 'secrets'
 # Selected categories. For all categories, see:
 # https://microsoft.github.io/presidio/supported_entities/
 
-PII_CATEGORIES = [
-  'CREDIT_CARD',
-  'CRYPTO',
-  'EMAIL_ADDRESS',
-  'IBAN_CODE',
-  'IP_ADDRESS',
-  'PHONE_NUMBER',
-  'MEDICAL_LICENSE',
-]
+# Map from Presidio category to UI-visible category name.
+PII_CATEGORIES = {
+  'CREDIT_CARD': 'credit_card',
+  'CRYPTO': 'crypto_address',
+  'EMAIL_ADDRESS': 'email_address',
+  'IBAN_CODE': 'bank_number',
+  'IP_ADDRESS': 'ip_address',
+  'PHONE_NUMBER': 'phone_number',
+}
 
 
 class PIISignal(TextSignal):
@@ -32,7 +32,10 @@ class PIISignal(TextSignal):
   @override
   def fields(self) -> Field:
     return field(
-      fields={**{cat: ['string_span'] for cat in PII_CATEGORIES}, SECRETS_KEY: ['string_span']}
+      fields={
+        **{cat: ['string_span'] for cat in PII_CATEGORIES.values()},
+        SECRETS_KEY: ['string_span'],
+      }
     )
 
   @override
