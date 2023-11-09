@@ -28,6 +28,11 @@ IGNORED_SPACY_ENTITIES = [
 
 SPACY_MODEL = 'en_core_web_sm'  # Small model, ~12MB. See https://spacy.io/models/en
 
+# Presidio spits out some false positives; set a confidence threshold for certain categories.
+CATEGORY_THRESHOLDS = {
+  'PHONE_NUMBER': 0.5,
+}
+
 
 @functools.lru_cache()
 def _get_analyzer() -> AnalyzerEngine:
@@ -45,5 +50,9 @@ def find_pii(text: str) -> dict[str, list[Item]]:
   results = _get_analyzer().analyze(text, entities=list(PII_CATEGORIES), language='en')
   pii_dict: dict[str, list[Item]] = {cat: [] for cat in PII_CATEGORIES.values()}
   for result in results:
-    pii_dict[PII_CATEGORIES[result.entity_type]].append(lilac_span(result.start, result.end))
+    if CATEGORY_THRESHOLDS.get(result.entity_type, 0) > result.score:
+      continue
+    pii_dict[PII_CATEGORIES[result.entity_type]].append(
+      lilac_span(result.start, result.end, {'confidence_score': result.score})
+    )
   return pii_dict
