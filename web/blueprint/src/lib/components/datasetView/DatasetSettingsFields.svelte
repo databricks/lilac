@@ -10,7 +10,9 @@
     type DatasetSettings,
     type LilacField
   } from '$lilac';
-  import {Select, SelectItem, SelectSkeleton, SkeletonText} from 'carbon-components-svelte';
+  import {Select, SelectItem, SelectSkeleton, SkeletonText, Tag} from 'carbon-components-svelte';
+  import {Document, Table} from 'carbon-icons-svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import FieldList from './FieldList.svelte';
 
   export let namespace: string;
@@ -20,7 +22,9 @@
   $: schema = queryDatasetSchema(namespace, datasetName);
   const embeddings = queryEmbeddings();
 
-  $: currentSettings = querySettings(namespace, datasetName);
+  $: settingsQuery = querySettings(namespace, datasetName);
+  $: settings = $settingsQuery.data;
+  $: viewType = settings?.ui?.view_type || 'scroll';
 
   const appSettings = getSettingsContext();
 
@@ -36,19 +40,8 @@
       : null;
 
   $: {
-    if ($currentSettings.isFetching) {
-      selectedMediaFields = null;
-      markdownMediaFields = null;
-    }
-  }
-  $: {
-    if (
-      selectedMediaFields == null &&
-      mediaFields != null &&
-      $currentSettings.data != null &&
-      !$currentSettings.isFetching
-    ) {
-      const mediaPathsFromSettings = ($currentSettings.data.ui?.media_paths || []).map(p =>
+    if (selectedMediaFields == null && mediaFields != null) {
+      const mediaPathsFromSettings = ($settingsQuery.data?.ui?.media_paths || []).map(p =>
         Array.isArray(p) ? p : [p]
       );
       selectedMediaFields = mediaFields.filter(f =>
@@ -58,13 +51,8 @@
   }
 
   $: {
-    if (
-      markdownMediaFields == null &&
-      mediaFields != null &&
-      $currentSettings.data != null &&
-      !$currentSettings.isFetching
-    ) {
-      const mardownPathsFromSettings = ($currentSettings.data?.ui?.markdown_paths || []).map(p =>
+    if (markdownMediaFields == null && mediaFields != null) {
+      const mardownPathsFromSettings = ($settingsQuery.data?.ui?.markdown_paths || []).map(p =>
         Array.isArray(p) ? p : [p]
       );
       markdownMediaFields = mediaFields.filter(f =>
@@ -74,15 +62,15 @@
   }
 
   $: {
-    if (selectedMediaFields != null) {
-      settings = {
-        ...settings,
-        ui: {
-          media_paths: selectedMediaFields.map(f => f.path),
-          markdown_paths: markdownMediaFields?.map(f => f.path)
-        },
-        preferred_embedding: preferredEmbedding
-      };
+    if (settings?.ui != null) {
+      settings.ui.media_paths = selectedMediaFields?.map(f => f.path);
+      settings.ui.markdown_paths = markdownMediaFields?.map(f => f.path);
+    }
+  }
+
+  $: {
+    if (settings != null) {
+      settings.preferred_embedding = preferredEmbedding;
     }
   }
 
@@ -95,7 +83,7 @@
   }
 </script>
 
-{#if $currentSettings.isFetching}
+{#if $settingsQuery.isFetching}
   <SkeletonText />
 {:else}
   <div class="flex flex-col gap-y-6">
@@ -113,28 +101,6 @@
     </section>
 
     <section class="flex flex-col gap-y-1">
-      <div class="text-lg text-gray-700">Preferred embedding</div>
-      <div class="text-sm text-gray-500">
-        This embedding will be used by default when indexing and querying the data.
-      </div>
-      <div class="w-60">
-        {#if $embeddings.isFetching}
-          <SelectSkeleton />
-        {:else}
-          <Select
-            selected={$currentSettings.data?.preferred_embedding || undefined}
-            on:change={embeddingChanged}
-          >
-            <SelectItem value={undefined} text="None" />
-            {#each $embeddings.data || [] as emdField}
-              <SelectItem value={emdField.name} />
-            {/each}
-          </Select>
-        {/if}
-      </div>
-    </section>
-
-    <section class="flex flex-col gap-y-1">
       <div class="text-lg text-gray-700">Render media as markdown</div>
       <div class="text-sm text-gray-500">
         These media fields will be rendered as markdown in the dataset viewer.
@@ -145,5 +111,79 @@
         <SelectSkeleton />
       {/if}
     </section>
+
+    <section class="flex flex-col gap-y-1">
+      <div class="text-lg text-gray-700">View type</div>
+      <div class="flex">
+        <div
+          class="tag"
+          class:tag-active={viewType == 'scroll'}
+          use:hoverTooltip={{text: 'Infinite scroll with snippet previews'}}
+        >
+          <Tag
+            interactive={true}
+            icon={Table}
+            on:click={() => {
+              if (settings?.ui != null) {
+                settings.ui.view_type = 'scroll';
+              }
+            }}
+          >
+            Scroll
+          </Tag>
+        </div>
+        <div
+          class="tag"
+          class:tag-active={viewType == 'single_item'}
+          use:hoverTooltip={{text: 'Individual item at a time'}}
+        >
+          <Tag
+            interactive={true}
+            icon={Document}
+            on:click={() => {
+              if (settings?.ui != null) {
+                settings.ui.view_type = 'single_item';
+              }
+            }}
+          >
+            Single item
+          </Tag>
+        </div>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-y-1">
+      <div class="text-lg text-gray-700">Preferred embedding</div>
+      <div class="text-sm text-gray-500">
+        This embedding will be used by default when indexing and querying the data.
+      </div>
+      <div class="w-60">
+        {#if $embeddings.isFetching}
+          <SelectSkeleton />
+        {:else}
+          <Select
+            selected={settings?.preferred_embedding || undefined}
+            on:change={embeddingChanged}
+          >
+            <SelectItem value={undefined} text="None" />
+            {#each $embeddings.data || [] as emdField}
+              <SelectItem value={emdField.name} />
+            {/each}
+          </Select>
+        {/if}
+      </div>
+    </section>
   </div>
 {/if}
+
+<style lang="postcss">
+  .tag {
+    @apply opacity-60;
+  }
+  .tag-active {
+    @apply opacity-100;
+  }
+  :global(.tag-active button.bx--tag) {
+    @apply border-none shadow-none outline outline-purple-500;
+  }
+</style>

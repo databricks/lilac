@@ -435,7 +435,7 @@ class ImageInfo(BaseModel):
 def normalize_path(path: Path) -> PathTuple:
   """Normalizes a dot seperated path, but ignores dots inside quotes, like regular SQL.
 
-  Examples
+  Examples:
   - 'a.b.c' will be parsed as ('a', 'b', 'c').
   - '"a.b".c' will be parsed as ('a.b', 'c').
   - '"a".b.c' will be parsed as ('a', 'b', 'c').
