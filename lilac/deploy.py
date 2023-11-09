@@ -8,11 +8,11 @@ import os
 import subprocess
 import tempfile
 from importlib import resources
-from typing import Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
 from .config import Config, get_dataset_config
-from .env import env, get_project_dir
+from .env import get_project_dir
 from .project import PROJECT_CONFIG_FILENAME, read_project_config, write_project_config
 from .sources.huggingface_source import HuggingFaceSource
 from .utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cache_dir, log, to_yaml
@@ -20,6 +20,9 @@ from .utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cac
 HF_SPACE_DIR = '.hf_spaces'
 PY_DIST_DIR = 'dist'
 REMOTE_DATA_DIR = 'data'
+
+if TYPE_CHECKING:
+  from huggingface_hub import HfApi
 
 
 def deploy_project(
@@ -57,9 +60,7 @@ def deploy_project(
     hf_space_storage: If defined, sets the HuggingFace space persistent storage type. NOTE: This
       only actually sets the space storage type when creating the space. For more details, see
       https://huggingface.co/docs/hub/spaces-storage
-    hf_token: The HuggingFace access token to use when making datasets private. This can also be set
-      via the `HF_ACCESS_TOKEN` environment flag.
-
+    hf_token: The HuggingFace access token to upload so that the space can access private datasets.
   """
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
@@ -78,7 +79,7 @@ def deploy_project(
   hf_api = HfApi(token=hf_token)
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = deploy_project_operations(
-    api=hf_api,
+    hf_api=hf_api,
     project_dir=project_dir,
     hf_space=hf_space,
     datasets=datasets,
@@ -90,7 +91,6 @@ def deploy_project(
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,
-    hf_token=hf_token,
   )
 
   # Atomically commit all the operations so we don't kick the server multiple times.
@@ -107,7 +107,7 @@ def deploy_project(
 
 
 def deploy_project_operations(
-  api: Any,
+  hf_api: 'HfApi',
   project_dir: str,
   hf_space: str,
   datasets: Optional[list[str]] = None,
@@ -119,19 +119,16 @@ def deploy_project_operations(
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
-  hf_token: Optional[str] = None,
 ) -> list:
   """The commit operations for a project deployment."""
   try:
-    from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
+    from huggingface_hub import CommitOperationAdd, CommitOperationDelete
     from huggingface_hub.utils._errors import RepositoryNotFoundError
   except ImportError as e:
     raise ImportError(
       'Could not import the "huggingface_hub" python package. '
       'Please install it with `pip install "huggingface_hub".'
     ) from e
-
-  hf_api: HfApi = api
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
@@ -281,8 +278,8 @@ def deploy_project_operations(
   else:
     hf_api.delete_space_variable(hf_space, 'LILAC_LOAD_ON_START_SERVER')
 
-  if hf_token:
-    hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', hf_token or env('HF_ACCESS_TOKEN'))
+  if hf_api.token:
+    hf_api.add_space_secret(hf_space, 'HF_ACCESS_TOKEN', hf_api.token)
 
   return operations
 
