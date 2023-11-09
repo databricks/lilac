@@ -5,7 +5,7 @@ import io
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Sequence, Union, cast
+from typing import Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -111,6 +111,9 @@ class SignalInputType(str, Enum):
 
   def __repr__(self) -> str:
     return self.value
+
+
+EmbeddingInputType = Literal['question', 'document']
 
 
 SIGNAL_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {

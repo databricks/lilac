@@ -39,6 +39,7 @@ from ..schema import (
   ROWID,
   Bin,
   DataType,
+  EmbeddingInputType,
   ImageInfo,
   Item,
   Path,
@@ -47,7 +48,6 @@ from ..schema import (
   normalize_path,
 )
 from ..signal import (
-  EmbeddingInputType,
   Signal,
   TextEmbeddingSignal,
   get_signal_by_type,

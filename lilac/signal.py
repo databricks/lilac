@@ -7,7 +7,6 @@ from typing import (
   Callable,
   ClassVar,
   Iterable,
-  Literal,
   Optional,
   Sequence,
   Type,
@@ -20,9 +19,16 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from .embeddings.vector_store import VectorDBIndex
-from .schema import EMBEDDING_KEY, Field, Item, PathKey, RichData, SignalInputType, field
-
-EmbeddingInputType = Literal['question', 'document']
+from .schema import (
+  EMBEDDING_KEY,
+  EmbeddingInputType,
+  Field,
+  Item,
+  PathKey,
+  RichData,
+  SignalInputType,
+  field,
+)
 
 
 def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:

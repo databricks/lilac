@@ -10,8 +10,18 @@ from typing_extensions import override
 from ..batch_utils import flat_batched_compute
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
-from ..signal import EmbeddingInputType, VectorSignal
+from ..schema import (
+  EmbeddingInputType,
+  Field,
+  Item,
+  PathKey,
+  RichData,
+  SignalInputType,
+  SpanVector,
+  field,
+  lilac_span,
+)
+from ..signal import VectorSignal
 
 _BATCH_SIZE = 4096
 

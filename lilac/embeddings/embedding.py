@@ -11,12 +11,13 @@ from ..schema import (
   SPAN_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
+  EmbeddingInputType,
   Item,
   RichData,
   SpanVector,
   lilac_embedding,
 )
-from ..signal import EmbeddingInputType, TextEmbeddingSignal, get_signal_by_type
+from ..signal import TextEmbeddingSignal, get_signal_by_type
 from ..splitters.chunk_splitter import TextChunk
 from ..utils import chunks
 
