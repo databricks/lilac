@@ -14,10 +14,11 @@ from .embedding import compute_split_embeddings
 if TYPE_CHECKING:
   import openai
 
-NUM_PARALLEL_REQUESTS = 10
-OPENAI_BATCH_SIZE = 128
-EMBEDDING_MODEL = 'text-embedding-ada-002'
-
+API_NUM_PARALLEL_REQUESTS = 10
+API_OPENAI_BATCH_SIZE = 128
+API_EMBEDDING_MODEL = 'text-embedding-ada-002'
+AZURE_NUM_PARALLEL_REQUESTS = 1
+AZURE_OPENAI_BATCH_SIZE = 16
 
 class OpenAI(TextEmbeddingSignal):
   """Computes embeddings using OpenAI's embedding API.
@@ -38,18 +39,38 @@ class OpenAI(TextEmbeddingSignal):
   @override
   def setup(self) -> None:
     api_key = env('OPENAI_API_KEY')
+    api_type = env('OPENAI_API_TYPE')
+    api_base = env('OPENAI_API_BASE')
+    api_version = env('OPENAI_API_VERSION')
+    api_engine = env('OPENAI_API_ENGINE_EMBEDDING')
     if not api_key:
       raise ValueError('`OPENAI_API_KEY` environment variable not set.')
     try:
       import openai
 
-      openai.api_key = api_key
-      self._model = openai.Embedding
     except ImportError:
       raise ImportError(
         'Could not import the "openai" python package. '
         'Please install it with `pip install openai`.'
       )
+    else:
+      openai.api_key = api_key
+      self._api_engine = api_engine
+
+      if api_type:
+        openai.api_type = api_type
+        openai.api_base = api_base
+        openai.api_version = api_version
+
+    try:
+      openai.Model.list()
+    except openai.error.AuthenticationError:
+      raise openai.error.AuthenticationError(
+        'Your `OPENAI_API_KEY` environment variable need to be completed with '
+        '`OPENAI_API_TYPE`, `OPENAI_API_BASE`, `OPENAI_API_VERSION`, `OPENAI_API_ENGINE_EMBEDDING`'
+      )
+    else:
+      self._model = openai.Embedding
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
@@ -61,11 +82,21 @@ class OpenAI(TextEmbeddingSignal):
       # See https://github.com/search?q=repo%3Aopenai%2Fopenai-python+replace+newlines&type=code
       texts = [text.replace('\n', ' ') for text in texts]
 
-      response: Any = self._model.create(input=texts, model=EMBEDDING_MODEL)
+      response: Any = self._model.create(
+        input=texts,
+        model=API_EMBEDDING_MODEL,
+        engine=self._api_engine
+      )
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 
     docs = cast(Iterable[str], docs)
     split_fn = clustering_spacy_chunker if self._split else None
     yield from compute_split_embeddings(
-      docs, OPENAI_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS
+      docs,
+      AZURE_OPENAI_BATCH_SIZE if self._api_engine else API_OPENAI_BATCH_SIZE,
+      embed_fn,
+      split_fn,
+      num_parallel_requests=(AZURE_NUM_PARALLEL_REQUESTS
+                             if self._api_engine
+                             else API_NUM_PARALLEL_REQUESTS)
     )

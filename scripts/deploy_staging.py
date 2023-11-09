@@ -63,14 +63,6 @@ from lilac.utils import log
   default=False,
 )
 @click.option(
-  '--skip_ts_build',
-  help='Skip building the web server TypeScript. '
-  'Useful to speed up the build if you are only changing python or data.',
-  type=bool,
-  is_flag=True,
-  default=False,
-)
-@click.option(
   '--create_space',
   help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
   'with the storage type defined by --hf_space_storage.',
@@ -99,7 +91,7 @@ def deploy_staging(
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
-  hf_api = HfApi()
+  hf_api = HfApi(token=env('HF_ACCESS_TOKEN'))
 
   ##
   ##  Build the web server Svelte & TypeScript.

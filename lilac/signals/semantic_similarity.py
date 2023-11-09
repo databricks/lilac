@@ -3,13 +3,24 @@ from functools import cached_property
 from typing import ClassVar, Iterable, Optional
 
 import numpy as np
+from pydantic import Field as PydanticField
 from scipy.interpolate import interp1d
 from typing_extensions import override
 
 from ..batch_utils import flat_batched_compute
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
+from ..schema import (
+  EmbeddingInputType,
+  Field,
+  Item,
+  PathKey,
+  RichData,
+  SignalInputType,
+  SpanVector,
+  field,
+  lilac_span,
+)
 from ..signal import VectorSignal
 
 _BATCH_SIZE = 4096
@@ -28,10 +39,19 @@ class SemanticSimilaritySignal(VectorSignal):
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
+  query_type: EmbeddingInputType = PydanticField(
+    title='Query Type',
+    default='document',
+    description='The input type of the query, used for the query embedding.',
+  )
 
   @cached_property
-  def _embed_fn(self) -> EmbedFn:
-    return get_embed_fn(self.embedding, split=False)
+  def _document_embed_fn(self) -> EmbedFn:
+    return get_embed_fn(self.embedding, split=False, input_type='document')
+
+  @cached_property
+  def _query_embed_fn(self) -> EmbedFn:
+    return get_embed_fn(self.embedding, split=False, input_type=self.query_type)
 
   # Dot products are in the range [-1, 1]. We want to map this to [0, 1] for the similarity score
   # with a slight bias towards 1 since dot product of <0.2 is not really relevant.
@@ -45,7 +65,7 @@ class SemanticSimilaritySignal(VectorSignal):
   def _get_search_embedding(self) -> np.ndarray:
     """Return the embedding for the search text."""
     if self._search_text_embedding is None:
-      span_vector = list(self._embed_fn([self.query]))[0][0]
+      span_vector = list(self._query_embed_fn([self.query]))[0][0]
       self._search_text_embedding = span_vector['vector'].reshape(-1)
 
     return self._search_text_embedding
@@ -65,7 +85,7 @@ class SemanticSimilaritySignal(VectorSignal):
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    span_vectors = self._embed_fn(data)
+    span_vectors = self._document_embed_fn(data)
     return self._score_span_vectors(span_vectors)
 
   @override

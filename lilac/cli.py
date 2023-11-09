@@ -8,7 +8,7 @@ import click
 from . import __version__
 from .concepts.db_concept import DISK_CONCEPT_DB
 from .deploy import deploy_project
-from .env import get_project_dir
+from .env import env, get_project_dir
 from .hf_docker_start import hf_docker_start
 from .load import load
 from .project import dir_is_project, init, project_dir_from_args
@@ -188,6 +188,8 @@ def deploy_project_command(
   # When datasets aren't defined, set to None so we upload all datasets.
   if not concept:
     concept = None
+
+  hf_token = hf_token or env('HF_ACCESS_TOKEN')
 
   deploy_project(
     project_dir=project_dir,

@@ -8,5 +8,9 @@
  */
 export type TextEmbeddingSignal = {
     signal_name: string;
+    /**
+     * The input type to the embedding.
+     */
+    embed_input_type?: 'question' | 'document';
 };
 

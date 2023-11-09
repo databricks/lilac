@@ -16,5 +16,9 @@ export type SemanticSimilaritySignal = {
      */
     embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base';
     query: string;
+    /**
+     * The input type of the query, used for the query embedding.
+     */
+    query_type?: 'question' | 'document';
 };
 

@@ -243,28 +243,52 @@ class Examples(OpenAISchema):
 @router.get('/generate_examples')
 def generate_examples(description: str) -> list[str]:
   """Generate positive examples for a given concept using an LLM model."""
+  api_key = env('OPENAI_API_KEY')
+  api_type = env('OPENAI_API_TYPE')
+  api_base = env('OPENAI_API_BASE')
+  api_version = env('OPENAI_API_VERSION')
+  api_engine = env('OPENAI_API_ENGINE_CHAT')
+  if not api_key:
+    raise ValueError('`OPENAI_API_KEY` environment variable not set.')
   try:
     import openai
+
   except ImportError:
     raise ImportError(
       'Could not import the "openai" python package. '
       'Please install it with `pip install openai`.'
     )
+  else:
+    openai.api_key = api_key
+    api_engine = api_engine
 
-  openai.api_key = env('OPENAI_API_KEY')
-  completion = openai.ChatCompletion.create(
-    model='gpt-3.5-turbo-0613',
-    functions=[Examples.openai_schema],
-    messages=[
-      {
-        'role': 'system',
-        'content': 'You must call the `Examples` function with the generated examples',
-      },
-      {
-        'role': 'user',
-        'content': f'Write 5 diverse, unnumbered, and concise examples of "{description}"',
-      },
-    ],
-  )
-  result = Examples.from_response(completion)
-  return result.examples
+    if api_type:
+      openai.api_type = api_type
+      openai.api_base = api_base
+      openai.api_version = api_version
+
+  try:
+    openai.Model.list()
+  except openai.error.AuthenticationError:
+    raise openai.error.AuthenticationError(
+      'Your `OPENAI_API_KEY` environment variable need to be completed with '
+      '`OPENAI_API_TYPE`, `OPENAI_API_BASE`, `OPENAI_API_VERSION`, `OPENAI_API_ENGINE_CHAT`'
+    )
+  else:
+    completion = openai.ChatCompletion.create(
+      model=None if api_engine else 'gpt-3.5-turbo-0613',
+      engine=api_engine,
+      functions=[Examples.openai_schema],
+      messages=[
+        {
+          'role': 'system',
+          'content': 'You must call the `Examples` function with the generated examples',
+        },
+        {
+          'role': 'user',
+          'content': f'Write 5 diverse, unnumbered, and concise examples of "{description}"',
+        },
+      ],
+    )
+    result = Examples.from_response(completion)
+    return result.examples

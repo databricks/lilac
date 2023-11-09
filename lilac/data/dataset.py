@@ -20,6 +20,7 @@ from pydantic import (
   StrictStr,
   field_validator,
 )
+from pydantic import Field as PydanticField
 from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
@@ -38,6 +39,7 @@ from ..schema import (
   ROWID,
   Bin,
   DataType,
+  EmbeddingInputType,
   ImageInfo,
   Item,
   Path,
@@ -45,7 +47,12 @@ from ..schema import (
   Schema,
   normalize_path,
 )
-from ..signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
+from ..signal import (
+  Signal,
+  TextEmbeddingSignal,
+  get_signal_by_type,
+  resolve_signal,
+)
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source
 from ..sources.source_registry import resolve_source
@@ -311,6 +318,11 @@ class SemanticSearch(BaseModel):
   query: SearchValue
   embedding: str
   type: Literal['semantic'] = 'semantic'
+  query_type: EmbeddingInputType = PydanticField(
+    title='Query Type',
+    default='document',
+    description='The input type of the query, used for the query embedding.',
+  )
 
   model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'semantic'))
 

@@ -11,5 +11,9 @@ export type SemanticSearch = {
     query: string;
     embedding: string;
     type?: 'semantic';
+    /**
+     * The input type of the query, used for the query embedding.
+     */
+    query_type?: 'question' | 'document';
 };
 
