@@ -146,10 +146,7 @@ class TextEmbeddingSignal(TextSignal):
 
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
   embed_input_type: EmbeddingInputType = PydanticField(
-    title='Embedding Input Type',
-    default='document',
-    description='The input type to the embedding. Use `document` to embed documents, '
-    'and `query` to embed a query from a user.',
+    title='Embedding Input Type', default='document', description='The input type to the embedding.'
   )
 
   _split = True

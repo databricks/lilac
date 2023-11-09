@@ -9,7 +9,7 @@
 export type TextEmbeddingSignal = {
     signal_name: string;
     /**
-     * The input type to the embedding. Use `document` to embed documents, and `query` to embed a query from a user.
+     * The input type to the embedding.
      */
     embed_input_type?: 'question' | 'document';
 };
