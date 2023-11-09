@@ -26,7 +26,7 @@ from .data.dataset import (
 )
 from .data.dataset import Column as DBColumn
 from .data.dataset import Filter as PyFilter
-from .db_manager import DatasetInfo, get_dataset, list_datasets, remove_dataset_from_cache
+from .db_manager import DatasetInfo, get_dataset, list_datasets
 from .env import get_project_dir
 from .router_utils import RouteErrorHandler
 from .schema import Bin, Path, normalize_path
@@ -87,7 +87,6 @@ def delete_dataset(
 
   dataset = get_dataset(namespace, dataset_name)
   dataset.delete()
-  remove_dataset_from_cache(namespace, dataset_name)
 
 
 class ComputeSignalResponse(BaseModel):

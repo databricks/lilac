@@ -48,7 +48,7 @@ uvicorn = { extras = ["standard"], version = "^0.23.2" }
 ### Optional dependencies. ###
 
 # LLM providers.
-cohere = { version = "^3.7.0", optional = true }
+cohere = { version = "^4.32", optional = true }
 google-generativeai = { version = "^0.1.0", optional = true } # PaLM / MakerSuite.
 google-cloud-aiplatform = { version = "^1.35.0", optional = true, extras = [
   "grpcio",

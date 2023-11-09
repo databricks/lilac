@@ -1,11 +1,13 @@
 <script lang="ts">
   import {goto} from '$app/navigation';
   import {
+    DATASETS_TAG,
     deleteDatasetMutation,
     queryDatasets,
     querySettings,
     updateDatasetSettingsMutation
   } from '$lib/queries/datasetQueries';
+  import {queryClient} from '$lib/queries/queryClient';
   import {datasetIdentifier} from '$lib/utils';
   import type {DatasetSettings} from '$lilac';
   import {
@@ -172,7 +174,12 @@
                 class:opacity-50={deleteDatasetInputName != identifier}
                 disabled={deleteDatasetInputName != identifier}
                 on:click={() =>
-                  $deleteDataset.mutate([namespace, name], {onSuccess: () => goto('/')})}
+                  $deleteDataset.mutate([namespace, name], {
+                    onSuccess: () =>
+                      // Invalidate the query after the redirect to avoid invalid queries to the
+                      // dataset after it's deleted.
+                      goto('/').then(() => queryClient.invalidateQueries([DATASETS_TAG]))
+                  })}
               >
                 I understand, delete this dataset
                 <TrashCan />
