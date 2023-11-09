@@ -58,7 +58,6 @@ class Cohere(TextEmbeddingSignal):
       cohere_input_type = (
         'search_document' if self.embed_input_type == 'document' else 'search_query'
       )
-      print('it', cohere_input_type)
       return self._model.embed(
         texts, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
       ).embeddings
