@@ -16,7 +16,7 @@ DEFAULT_LANGCHAIN_ENDPOINT = 'https://api.smith.langchain.com'
 
 
 @router.get('/datasets')
-def get_datasets() -> list[str]:
+def get_langsmith_datasets() -> list[str]:
   """List the datasets in LangSmith."""
   from langsmith import Client
 

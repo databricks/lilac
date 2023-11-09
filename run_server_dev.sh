@@ -15,11 +15,13 @@ poetry run uvicorn lilac.server:app --reload --port 5432 --host 0.0.0.0 \
   --reload-dir lilac &
 pid[1]=$!
 
-poetry run watchmedo shell-command \
+poetry run watchmedo auto-restart \
   --patterns="*.py" \
+  --debounce-interval=1 \
+  --no-restart-on-command-exit \
   --recursive \
-  --command='poetry run python -m scripts.make_fastapi_client' \
-  ./lilac &
+  --directory=lilac \
+  poetry -- -- run python -m scripts.make_fastapi_client &
 pid[0]=$!
 
 # When control+c is pressed, kill all process ids.
