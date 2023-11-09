@@ -1,7 +1,7 @@
 """Signals enrich a document with additional metadata."""
 
 from ..signal import Signal, SignalInputType, TextEmbeddingSignal, TextSignal, register_signal
-from .cluster_dbscan import ClusterDBSCAN
+from .cluster_hdbscan import ClusterHDBScan
 from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
 from .near_dup import NearDuplicateSignal
@@ -21,5 +21,5 @@ __all__ = [
   'SpacyNER',
   'PIISignal',
   'ConceptSignal',
-  'ClusterDBSCAN',
+  'ClusterHDBScan',
 ]
