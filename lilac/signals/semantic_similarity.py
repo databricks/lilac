@@ -3,6 +3,7 @@ from functools import cached_property
 from typing import ClassVar, Iterable, Optional
 
 import numpy as np
+from pydantic import Field as PydanticField
 from scipy.interpolate import interp1d
 from typing_extensions import override
 
@@ -10,7 +11,7 @@ from ..batch_utils import flat_batched_compute
 from ..embeddings.embedding import EmbedFn, get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
-from ..signal import VectorSignal
+from ..signal import EmbeddingInputType, VectorSignal
 
 _BATCH_SIZE = 4096
 
@@ -28,6 +29,11 @@ class SemanticSimilaritySignal(VectorSignal):
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
   query: str
+  query_type: EmbeddingInputType = PydanticField(
+    title='Query Type',
+    default='document',
+    description='The input type of the query, used for the query embedding.',
+  )
 
   @cached_property
   def _document_embed_fn(self) -> EmbedFn:
@@ -35,7 +41,7 @@ class SemanticSimilaritySignal(VectorSignal):
 
   @cached_property
   def _query_embed_fn(self) -> EmbedFn:
-    return get_embed_fn(self.embedding, split=False, input_type='query')
+    return get_embed_fn(self.embedding, split=False, input_type=self.query_type)
 
   # Dot products are in the range [-1, 1]. We want to map this to [0, 1] for the similarity score
   # with a slight bias towards 1 since dot product of <0.2 is not really relevant.

@@ -162,6 +162,7 @@
     datasetViewStore.addSearch({
       path: field.path,
       type: 'semantic',
+      query_type: 'document',
       query: text,
       embedding
     });

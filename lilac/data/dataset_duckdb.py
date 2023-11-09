@@ -1812,7 +1812,9 @@ class DatasetDuckDB(Dataset):
 
         search_signal: Optional[Signal] = None
         if search.type == 'semantic':
-          search_signal = SemanticSimilaritySignal(query=search.query, embedding=search.embedding)
+          search_signal = SemanticSimilaritySignal(
+            query=search.query, embedding=search.embedding, query_type=search.query_type
+          )
         elif search.type == 'concept':
           search_signal = ConceptSignal(
             namespace=search.concept_namespace,

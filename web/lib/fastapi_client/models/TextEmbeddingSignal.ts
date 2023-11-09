@@ -11,6 +11,6 @@ export type TextEmbeddingSignal = {
     /**
      * The input type to the embedding. Use `document` to embed documents, and `query` to embed a query from a user.
      */
-    embed_input_type?: 'query' | 'document';
+    embed_input_type?: 'question' | 'document';
 };
 

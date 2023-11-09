@@ -59,6 +59,7 @@
       path: field.path,
       type: 'semantic',
       query: searchText as string,
+      embed_input_type: 'document',
       embedding
     });
   }

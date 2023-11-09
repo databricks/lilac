@@ -32,6 +32,7 @@
   $: semanticSearch = {
     path: $ragViewStore.path,
     query: $ragViewStore.query,
+    query_type: 'question',
     embedding: $ragViewStore.embedding,
     type: 'semantic'
   } as SemanticSearch;

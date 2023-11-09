@@ -22,7 +22,7 @@ from typing_extensions import override
 from .embeddings.vector_store import VectorDBIndex
 from .schema import EMBEDDING_KEY, Field, Item, PathKey, RichData, SignalInputType, field
 
-EmbeddingInputType = Literal['query', 'document']
+EmbeddingInputType = Literal['question', 'document']
 
 
 def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
