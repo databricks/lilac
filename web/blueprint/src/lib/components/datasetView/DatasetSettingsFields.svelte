@@ -10,9 +10,9 @@
     type DatasetSettings,
     type LilacField
   } from '$lilac';
-  import {Select, SelectItem, SelectSkeleton, SkeletonText, Tag} from 'carbon-components-svelte';
+  import {Select, SelectItem, SelectSkeleton, SkeletonText} from 'carbon-components-svelte';
   import {Document, Table} from 'carbon-icons-svelte';
-  import {hoverTooltip} from '../common/HoverTooltip';
+  import Chip from './Chip.svelte';
   import FieldList from './FieldList.svelte';
 
   export let namespace: string;
@@ -114,41 +114,29 @@
 
     <section class="flex flex-col gap-y-1">
       <div class="text-lg text-gray-700">View type</div>
-      <div class="flex">
-        <div
-          class="tag"
-          class:tag-active={viewType == 'scroll'}
-          use:hoverTooltip={{text: 'Infinite scroll with snippet previews'}}
-        >
-          <Tag
-            interactive={true}
-            icon={Table}
-            on:click={() => {
-              if (settings?.ui != null) {
-                settings.ui.view_type = 'scroll';
-              }
-            }}
-          >
-            Scroll
-          </Tag>
-        </div>
-        <div
-          class="tag"
-          class:tag-active={viewType == 'single_item'}
-          use:hoverTooltip={{text: 'Individual item at a time'}}
-        >
-          <Tag
-            interactive={true}
-            icon={Document}
-            on:click={() => {
-              if (settings?.ui != null) {
-                settings.ui.view_type = 'single_item';
-              }
-            }}
-          >
-            Single item
-          </Tag>
-        </div>
+      <div class="flex gap-x-2">
+        <Chip
+          icon={Table}
+          label="Scroll"
+          active={viewType == 'scroll'}
+          tooltip="Infinite scroll with snippets"
+          on:click={() => {
+            if (settings?.ui != null) {
+              settings.ui.view_type = 'scroll';
+            }
+          }}
+        />
+        <Chip
+          icon={Document}
+          label="Single Item"
+          active={viewType == 'single_item'}
+          tooltip="Individual item"
+          on:click={() => {
+            if (settings?.ui != null) {
+              settings.ui.view_type = 'single_item';
+            }
+          }}
+        />
       </div>
     </section>
 
@@ -175,15 +163,3 @@
     </section>
   </div>
 {/if}
-
-<style lang="postcss">
-  .tag {
-    @apply opacity-100;
-  }
-  .tag-active {
-    @apply opacity-100;
-  }
-  :global(.tag-active button.bx--tag) {
-    @apply border-none font-bold shadow-none outline outline-purple-500;
-  }
-</style>
