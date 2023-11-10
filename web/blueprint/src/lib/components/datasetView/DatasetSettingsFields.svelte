@@ -72,11 +72,7 @@
     if (selectedMediaFields == null || selectedMediaFields.includes(mediaField)) return;
     selectedMediaFields = [...selectedMediaFields, mediaField];
     mediaFieldsComboBox.clear();
-    requestAnimationFrame(() => {
-      // comboBox.clear({focus: true}) does not open the combo box automatically, so we
-      // programmatically set it.
-      mediaFieldsComboBox.$set({open: true});
-    });
+    addMediaFieldButtonOpen = false;
   }
   function removeMediaField(mediaField: LilacField) {
     if (selectedMediaFields == null) return;
