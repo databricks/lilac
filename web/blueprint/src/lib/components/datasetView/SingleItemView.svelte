@@ -64,7 +64,7 @@
   <div class="flex-0">
     {#if rowId != null}
       <button on:click={() => updateRowId(false)}>
-        <ChevronLeft title="Previous group" size={24} />
+        <ChevronLeft title="Previous item" size={24} />
       </button>
     {/if}
   </div>
@@ -81,14 +81,14 @@
   <div class="flex-0">
     {#if rowId != null}
       <button on:click={() => updateRowId(true)}>
-        <ChevronRight title="Next group" size={24} />
+        <ChevronRight title="Next item" size={24} />
       </button>
     {/if}
   </div>
 </div>
 
 {#if rowId != null}
-  <div class="mx-5">
+  <div class="mx-5 flex h-full w-full flex-col overflow-y-scroll">
     <RowItem isExpanded={true} {rowId} {mediaFields} {highlightedFields} />
   </div>
 {/if}
