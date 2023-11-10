@@ -9,12 +9,12 @@ import { request as __request } from '../core/request';
 export class LangsmithService {
 
     /**
-     * Get Datasets
+     * Get Langsmith Datasets
      * List the datasets in LangSmith.
      * @returns string Successful Response
      * @throws ApiError
      */
-    public static getDatasets(): CancelablePromise<Array<string>> {
+    public static getLangsmithDatasets(): CancelablePromise<Array<string>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/langsmith/datasets',
