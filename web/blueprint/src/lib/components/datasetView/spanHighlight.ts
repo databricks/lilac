@@ -163,13 +163,6 @@ export function getSnippetSpans(
   renderSpans: RenderSpan[],
   isExpanded: boolean
 ): {snippetSpans: SnippetSpan[]; someSnippetsHidden: boolean} {
-  if (isExpanded) {
-    // If the span is expanded, we don't need to do any snippetting.
-    return {
-      snippetSpans: renderSpans.map(renderSpan => ({renderSpan, snippetText: renderSpan.text})),
-      someSnippetsHidden: false
-    };
-  }
   let someSnippetsHidden = false;
   let someSnippetsHighlighted = false;
   // If the doc is not expanded, we need to do snippetting.
@@ -239,6 +232,9 @@ export function getSnippetSpans(
       snippetSpans.push({isEllipsis: true});
       someSnippetsHidden = true;
     }
+  }
+  if (isExpanded) {
+    snippetSpans = renderSpans.map(renderSpan => ({renderSpan, snippetText: renderSpan.text}));
   }
   return {snippetSpans, someSnippetsHidden};
 }

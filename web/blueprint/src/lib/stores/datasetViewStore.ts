@@ -40,6 +40,9 @@ export interface DatasetViewState {
   // View.
   schemaCollapsed: boolean;
   insightsOpen: boolean;
+
+  // Currently selected rowid.
+  rowId?: string;
 }
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
@@ -245,6 +248,12 @@ export function createDatasetViewStore(
     setInsightsOpen(open: boolean) {
       update(state => {
         state.insightsOpen = open;
+        return state;
+      });
+    },
+    setRowId(rowId: string | undefined | null) {
+      update(state => {
+        state.rowId = rowId || undefined;
         return state;
       });
     }

@@ -31,6 +31,7 @@
   export let rowId: string;
   export let mediaFields: LilacField[];
   export let highlightedFields: LilacField[];
+  export let isExpanded = false;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
@@ -154,7 +155,13 @@
             class:pb-2={i < mediaFields.length - 1}
             class="flex h-full w-full flex-col border-neutral-200"
           >
-            <ItemMedia {row} path={mediaField.path} field={mediaField} {highlightedFields} />
+            <ItemMedia
+              {row}
+              path={mediaField.path}
+              field={mediaField}
+              {highlightedFields}
+              {isExpanded}
+            />
           </div>
         {/each}
       {/if}

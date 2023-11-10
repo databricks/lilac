@@ -52,6 +52,8 @@
 
   // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
+  export let isExpanded = false;
+
   const urlHashContext = getUrlHashContext();
 
   const spanHoverOpacity = 0.9;
@@ -149,7 +151,6 @@
     $conceptEdit.mutate([conceptNamespace, conceptName, {insert: [{text, label}]}]);
   };
 
-  let isExpanded = false;
   // Snippets.
   $: ({snippetSpans, someSnippetsHidden} = getSnippetSpans(renderSpans, isExpanded));
 
@@ -221,7 +222,7 @@
       </span>
     {/if}
   {/each}
-  {#if someSnippetsHidden || isExpanded}
+  {#if someSnippetsHidden}
     <div class="flex flex-row justify-center">
       <div class="w-30 mt-2 rounded border border-neutral-300 text-center">
         {#if !isExpanded}
