@@ -31,7 +31,7 @@
   export let rowId: string;
   export let mediaFields: LilacField[];
   export let highlightedFields: LilacField[];
-  export let isExpanded = false;
+  export let alwaysExpand = false;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
@@ -160,7 +160,7 @@
               path={mediaField.path}
               field={mediaField}
               {highlightedFields}
-              {isExpanded}
+              {alwaysExpand}
             />
           </div>
         {/each}

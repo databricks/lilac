@@ -88,8 +88,8 @@
 </div>
 
 {#if rowId != null}
-  <div class="mx-5 flex h-full w-full flex-col overflow-y-scroll">
-    <RowItem isExpanded={true} {rowId} {mediaFields} {highlightedFields} />
+  <div class="flex h-full w-full flex-col overflow-y-scroll px-5 pb-32">
+    <RowItem alwaysExpand={true} {rowId} {mediaFields} {highlightedFields} />
   </div>
 {/if}
 

@@ -26,7 +26,7 @@
   export let row: LilacValueNode;
   export let field: LilacField;
   export let highlightedFields: LilacField[];
-  export let isExpanded = false;
+  export let alwaysExpand = false;
 
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
@@ -101,7 +101,7 @@
           {path}
           {field}
           {markdown}
-          {isExpanded}
+          {alwaysExpand}
           spanPaths={spanValuePaths.spanPaths}
           valuePaths={spanValuePaths.valuePaths}
           {datasetViewStore}
