@@ -11,6 +11,7 @@ from ..schema import (
   SPAN_KEY,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
+  EmbeddingInputType,
   Item,
   RichData,
   SpanVector,
@@ -27,10 +28,12 @@ EmbeddingId = Union[StrictStr, TextEmbeddingSignal]
 EmbedFn = Callable[[Iterable[RichData]], Iterable[list[SpanVector]]]
 
 
-def get_embed_fn(embedding_name: str, split: bool) -> EmbedFn:
+def get_embed_fn(
+  embedding_name: str, split: bool, input_type: EmbeddingInputType = 'document'
+) -> EmbedFn:
   """Return a function that returns the embedding matrix for the given embedding signal."""
   embedding_cls = get_signal_by_type(embedding_name, TextEmbeddingSignal)
-  embedding = embedding_cls(split=split)
+  embedding = embedding_cls(split=split, embed_input_type=input_type)
   embedding.setup()
 
   def _embed_fn(data: Iterable[RichData]) -> Iterable[list[SpanVector]]:

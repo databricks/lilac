@@ -55,8 +55,11 @@ class Cohere(TextEmbeddingSignal):
     """Compute embeddings for the given documents."""
 
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
+      cohere_input_type = (
+        'search_document' if self.embed_input_type == 'document' else 'search_query'
+      )
       return self._model.embed(
-        texts, truncate='END', model=COHERE_EMBED_MODEL, input_type='search_document'
+        texts, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
       ).embeddings
 
     docs = cast(Iterable[str], docs)

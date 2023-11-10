@@ -60,6 +60,7 @@
       path: field.path,
       type: 'semantic',
       query: searchText as string,
+      query_type: 'document',
       embedding
     });
   }

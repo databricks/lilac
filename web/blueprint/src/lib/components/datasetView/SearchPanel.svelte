@@ -379,6 +379,7 @@
         path: searchPath,
         type: 'semantic',
         query: searchText,
+        query_type: 'document',
         embedding: selectedEmbedding
       });
     } else if (e.detail.selectedId == 'compute-embedding') {

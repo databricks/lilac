@@ -2,14 +2,33 @@
 
 import abc
 import copy
-from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, Type, TypeVar, Union
+from typing import (
+  Any,
+  Callable,
+  ClassVar,
+  Iterable,
+  Optional,
+  Sequence,
+  Type,
+  TypeVar,
+  Union,
+)
 
 from pydantic import BaseModel, ConfigDict, model_serializer
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from .embeddings.vector_store import VectorDBIndex
-from .schema import EMBEDDING_KEY, Field, Item, PathKey, RichData, SignalInputType, field
+from .schema import (
+  EMBEDDING_KEY,
+  EmbeddingInputType,
+  Field,
+  Item,
+  PathKey,
+  RichData,
+  SignalInputType,
+  field,
+)
 
 
 def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
@@ -132,6 +151,9 @@ class TextEmbeddingSignal(TextSignal):
   """An interface for signals that compute embeddings for text."""
 
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
+  embed_input_type: EmbeddingInputType = PydanticField(
+    title='Embedding Input Type', default='document', description='The input type to the embedding.'
+  )
 
   _split = True
 
