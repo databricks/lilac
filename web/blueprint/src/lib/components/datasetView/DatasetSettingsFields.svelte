@@ -55,7 +55,6 @@
     id: LilacField;
     text: string;
   }
-  let comboBoxText = '';
   $: mediaFieldOptionsItems = (mediaFieldOptions || [])
     .filter(f => !selectedMediaFields?.includes(f))
     .map(f => {
@@ -305,7 +304,6 @@
               open={false}
               items={mediaFieldOptionsItems}
               bind:this={mediaFieldsComboBox}
-              bind:value={comboBoxText}
               on:select={selectMediaField}
               shouldFilterItem={(item, value) =>
                 item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
