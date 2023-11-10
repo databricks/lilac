@@ -70,7 +70,7 @@ spacy = { version = "^3.5.1" }
 
 # For PII and secrets.
 detect-secrets = { version = "^1.4.0", optional = true }
-regex = "^2023.6.3"
+presidio_analyzer = { version = "^2.2", optional = true }
 
 # For language detection.
 langdetect = { version = "^1.0.9", optional = true }
@@ -130,9 +130,9 @@ github = ["llama-index"]
 signals = ["textacy", "detect-secrets", "langdetect", "hdbscan"]
 
 ## Individual signals.
-lang_detection = ["langdetect"]   # Language detection.
-pii = ["detect-secrets", "regex"] # PII.
-text_stats = ["textacy"]          # Text statistics.
+lang_detection = ["langdetect"]               # Language detection.
+pii = ["detect-secrets", "presidio_analyzer"] # PII.
+text_stats = ["textacy"]                      # Text statistics.
 
 # Individual embeddings.
 gte = ["sentence-transformers"]
