@@ -26,7 +26,7 @@ export interface GroupByState {
   value: LeafValue;
 }
 
-interface ColumnComparisonState {
+export interface ColumnComparisonState {
   column: Path;
   compareToColumn: Path;
   // True when the diff direction is swapped.
