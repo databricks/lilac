@@ -1,6 +1,5 @@
 <script lang="ts">
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {isPreviewSignal} from '$lib/view_utils';
   import {
     L,
@@ -25,8 +24,6 @@
   export let row: LilacValueNode;
   export let selectRowsSchema: LilacSelectRowsSchema | undefined = undefined;
   export let highlightedFields: LilacField[];
-
-  const datasetViewStore = getDatasetViewContext();
 
   const embeddings = queryEmbeddings();
 

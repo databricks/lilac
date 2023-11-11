@@ -41,9 +41,6 @@
   $: namespace = $datasetViewStore.namespace;
   $: datasetName = $datasetViewStore.datasetName;
 
-  // Diff columns.
-  $: console.log('dc', $datasetViewStore.compareColumns);
-
   const authInfo = queryAuthInfo();
   $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
 

@@ -76,7 +76,6 @@
       ...labelsQuery,
       label_name: selectedLabel
     };
-    labelMenuOpen = false;
 
     function message(numRows: number): string {
       return options.row_ids != null
