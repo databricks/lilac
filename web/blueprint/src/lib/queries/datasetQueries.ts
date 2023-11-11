@@ -137,16 +137,20 @@ export function queryBatchStats(
 export const querySelectRows = (
   namespace: string,
   datasetName: string,
-  selectRowsOptions: SelectRowsOptions,
+  options: SelectRowsOptions,
   schema?: LilacSchema | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): CreateQueryResult<Awaited<{rows: Record<string, any>[]; total_num_rows: number}>, ApiError> =>
-  createApiQuery(DatasetsService.selectRows, [DATASETS_TAG, 'selectRows', namespace, datasetName], {
-    select: data => ({
-      rows: schema == null ? data.rows : data.rows.map(row => deserializeRow(row, schema)),
-      total_num_rows: data.total_num_rows
-    })
-  })(namespace, datasetName, selectRowsOptions);
+  createApiQuery(
+    DatasetsService.selectRows,
+    [DATASETS_TAG, 'selectRows', namespace, datasetName, options],
+    {
+      select: data => ({
+        rows: schema == null ? data.rows : data.rows.map(row => deserializeRow(row, schema)),
+        total_num_rows: data.total_num_rows
+      })
+    }
+  )(namespace, datasetName, options);
 
 // Create a cache of the batcher so we reuse the same batcher for the same dataset and options.
 const ROW_METADATA_BATCH_WINDOW_MS = 10;
