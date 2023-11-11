@@ -58,16 +58,9 @@
       lineDecorationsWidth: 0,
       roundedSelection: true,
       domReadOnly: true,
-      overviewRulerLanes: 4,
       scrollBeyondLastLine: false,
       wordWrap: 'on',
       wrappingStrategy: 'advanced',
-      minimap: {
-        enabled: true,
-        size: 'fill',
-        renderCharacters: true
-      },
-
       readOnlyMessage: {value: ''}
     });
     editor.onDidChangeModel(() => {
@@ -104,8 +97,8 @@
   $: {
     if (editor != null && leftValue != null && rightValue != null && !isEditorInitialized) {
       editor.setModel({
-        original: monaco.editor.createModel(leftValue, 'html'),
-        modified: monaco.editor.createModel(rightValue, 'html')
+        original: monaco.editor.createModel(leftValue, 'text/plain'),
+        modified: monaco.editor.createModel(rightValue, 'text/plain')
       });
 
       isEditorInitialized = true;
@@ -121,7 +114,7 @@
 <div class="relative flex h-fit w-full flex-col gap-x-4">
   <div class="flex flex-row items-center font-mono text-xs font-medium text-neutral-500">
     <div class="w-1/2">{displayPath(leftPath)}</div>
-    <div class="-ml-4 w-1/2">{displayPath(rightPath)}</div>
+    <div class="ml-4 w-1/2">{displayPath(rightPath)}</div>
     <div>
       <button
         class="mb-1 mr-3 flex flex-row"
