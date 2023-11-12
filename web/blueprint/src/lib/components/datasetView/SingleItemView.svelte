@@ -18,12 +18,11 @@
   import RowItem from './RowItem.svelte';
 
   const store = getDatasetViewContext();
+  const DEFAULT_LIMIT_SELECT_ROW_IDS = 100;
 
-  let limit = 5;
+  let limit = DEFAULT_LIMIT_SELECT_ROW_IDS;
   let index: number | undefined = undefined;
 
-  // Reset the index to 0 if the row id is not set.
-  $: index = $store.rowId === undefined ? 0 : index;
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
     $store.datasetName,
@@ -39,41 +38,32 @@
 
   $: manifest = queryDatasetManifest($store.namespace, $store.datasetName);
 
-  // Find the index if the row id is set.
-  $: {
-    if ((index == null || index < 0) && $store.rowId != null && $rowsQuery?.data?.rows != null) {
-      index = $rowsQuery?.data?.rows.findIndex(
-        row => L.value(row[ROWID], 'string') === $store.rowId
-      );
-    }
-  }
+  // Reset the index to 0 if the row id is not set.
+  $: index = $store.rowId === undefined ? 0 : index;
 
-  // Find the row id if the index is set.
-  $: {
-    if (
-      $store.rowId == null &&
-      $rowsQuery?.data?.rows != null &&
-      $rowsQuery.isFetched &&
-      index != null &&
-      index >= 0 &&
-      index < $rowsQuery?.data?.rows.length
-    ) {
-      const newRowId = L.value($rowsQuery?.data?.rows[index][ROWID], 'string')!;
-      store.setRowId(newRowId);
-    }
-  }
+  // Find the index if the row id is known.
+  $: findIndexFromRowId = $store.rowId != null && $rowsQuery?.data?.rows != null;
+  $: index = findIndexFromRowId
+    ? $rowsQuery?.data?.rows.findIndex(row => L.value(row[ROWID], 'string') === $store.rowId)
+    : index;
 
-  // Double the limit of select rows if the row id index is not yet found.
-  $: {
-    if (
-      index != null &&
-      (index === -1 || index >= ($rowsQuery?.data?.rows?.length || 0)) &&
-      $rowsQuery?.data?.total_num_rows &&
-      limit < $rowsQuery?.data?.total_num_rows
-    ) {
-      limit = limit * 2;
-    }
-  }
+  // Set the row id if the index is known.
+  $: setRowIdFromIndex =
+    $store.rowId == null &&
+    $rowsQuery?.data?.rows != null &&
+    $rowsQuery.isFetched &&
+    index != null &&
+    index >= 0 &&
+    index < $rowsQuery?.data?.rows.length;
+  $: setRowIdFromIndex && store.setRowId(L.value($rowsQuery?.data?.rows[index!][ROWID], 'string')!);
+
+  // Double the limit of select rows if the row id was not found.
+  $: rowIdWasNotFound =
+    index != null && (index === -1 || index >= ($rowsQuery?.data?.rows?.length || 0));
+  $: limit =
+    rowIdWasNotFound && $rowsQuery?.data?.total_num_rows
+      ? Math.min(limit * 2, $rowsQuery.data.total_num_rows)
+      : limit;
 
   $: settings = querySettings($store.namespace, $store.datasetName);
   $: mediaFields = $settings.data
@@ -82,13 +72,12 @@
   $: highlightedFields = getHighlightedFields($store.query, $selectRowsSchema?.data);
 
   function updateRowId(next: boolean) {
-    if ($rowsQuery?.data?.rows == null || index == null || index < 0) {
+    if (index == null) {
       return;
     }
-    let newIndex = next ? index + 1 : index - 1;
     // Unset the row id and set the new index.
     store.setRowId(null);
-    index = Math.max(newIndex, 0);
+    index = next ? index + 1 : Math.max(index - 1, 0);
   }
 </script>
 
@@ -126,7 +115,7 @@
     </div>
   </div>
   <div class="flex-0">
-    {#if $store.rowId != null}
+    {#if index != null && index < ($rowsQuery?.data?.total_num_rows || 0) - 1}
       <button on:click={() => updateRowId(true)}>
         <ChevronRight title="Next item" size={24} />
       </button>
