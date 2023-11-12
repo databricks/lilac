@@ -32,18 +32,22 @@
 
   $: selectOptions = getSelectRowsOptions($store, true /* implicitSortByRowID */);
 
+  $: console.log('select options changed', selectOptions);
+
   $: rowsQuery = querySelectRows(
     $store.namespace,
     $store.datasetName,
     {...selectOptions, columns: [ROWID], limit},
     $selectRowsSchema.data?.schema
   );
+  $: console.log('rows query changed', $rowsQuery);
   $: totalNumRows = $rowsQuery?.data?.total_num_rows;
-  $: rows = $rowsQuery?.data?.rows;
+  $: rows = $rowsQuery.data?.rows;
+  $: console.log('rows changed', L.value(rows?.[0][ROWID]));
 
   // Set the index to 0 if both the row id and index are not set.
   $: {
-    if (index == null && $store.rowId == null) {
+    if ($store.rowId === undefined) {
       console.log('setting index to 0');
       index = 0;
     }
@@ -62,11 +66,12 @@
     if (
       $store.rowId == null &&
       rows != null &&
+      $rowsQuery.isFetched &&
       index != null &&
       index >= 0 &&
       index < rows.length
     ) {
-      console.log('Index is set, finding row id');
+      console.log('Index is set to', index, '. Finding row id');
       const newRowId = L.value(rows[index][ROWID], 'string')!;
       store.setRowId(newRowId);
     }
@@ -103,7 +108,7 @@
     }
     let newIndex = next ? index + 1 : index - 1;
     // Unset the row id and set the new index.
-    store.setRowId(undefined);
+    store.setRowId(null);
     index = Math.max(newIndex, 0);
   }
 </script>

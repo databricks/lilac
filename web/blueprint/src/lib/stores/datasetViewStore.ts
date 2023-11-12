@@ -265,7 +265,7 @@ export function createDatasetViewStore(
     },
     setRowId(rowId: string | undefined | null) {
       update(state => {
-        state.rowId = rowId || undefined;
+        state.rowId = rowId;
         return state;
       });
     }
