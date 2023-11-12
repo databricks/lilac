@@ -41,7 +41,7 @@
 
   // Find the index if the row id is set.
   $: {
-    if (index == null && $store.rowId != null && $rowsQuery?.data?.rows != null) {
+    if ((index == null || index < 0) && $store.rowId != null && $rowsQuery?.data?.rows != null) {
       index = $rowsQuery?.data?.rows.findIndex(
         row => L.value(row[ROWID], 'string') === $store.rowId
       );
@@ -66,15 +66,11 @@
   // Double the limit of select rows if the row id index is not yet found.
   $: {
     if (
-      $store.rowId != null &&
       index != null &&
       (index === -1 || index >= ($rowsQuery?.data?.rows?.length || 0)) &&
       $rowsQuery?.data?.total_num_rows &&
       limit < $rowsQuery?.data?.total_num_rows
     ) {
-      if (index === -1) {
-        index = undefined;
-      }
       limit = limit * 2;
     }
   }
