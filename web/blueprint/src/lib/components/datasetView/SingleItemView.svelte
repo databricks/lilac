@@ -19,10 +19,11 @@
 
   const store = getDatasetViewContext();
 
-  let index: number | undefined = undefined;
   let limit = 5;
-  $: console.log('rowId', $store.rowId, 'index', index);
+  let index: number | undefined = undefined;
 
+  // Set the index to 0 if both the row id and index are not set.
+  $: index = $store.rowId === undefined ? 0 : index;
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
     $store.datasetName,
@@ -38,18 +39,9 @@
 
   $: manifest = queryDatasetManifest($store.namespace, $store.datasetName);
 
-  // Set the index to 0 if both the row id and index are not set.
-  $: {
-    if ($store.rowId === undefined) {
-      console.log('setting index to 0');
-      index = 0;
-    }
-  }
-
   // Find the index if the row id is set.
   $: {
     if (index == null && $store.rowId != null && $rowsQuery?.data?.rows != null) {
-      console.log('row id is set, finding index');
       index = $rowsQuery?.data?.rows.findIndex(
         row => L.value(row[ROWID], 'string') === $store.rowId
       );
@@ -66,7 +58,6 @@
       index >= 0 &&
       index < $rowsQuery?.data?.rows.length
     ) {
-      console.log('Index is set to', index, '. Finding row id');
       const newRowId = L.value($rowsQuery?.data?.rows[index][ROWID], 'string')!;
       store.setRowId(newRowId);
     }
@@ -75,17 +66,14 @@
   // Double the limit of select rows if the row id index is not yet found.
   $: {
     if (
-      $rowsQuery?.data?.rows != null &&
+      $store.rowId != null &&
       index != null &&
-      (index === -1 || index >= $rowsQuery?.data?.rows.length) &&
+      (index === -1 || index >= ($rowsQuery?.data?.rows?.length || 0)) &&
       $rowsQuery?.data?.total_num_rows &&
       limit < $rowsQuery?.data?.total_num_rows
     ) {
       if (index === -1) {
         index = undefined;
-        console.log('Index was not found, doubling limit');
-      } else if (index >= $rowsQuery?.data?.rows.length) {
-        console.log('Index was out of bounds, doubling limit');
       }
       limit = limit * 2;
     }
@@ -126,7 +114,7 @@
       Item
       <span class="inline-flex">
         {#if index != null && index >= 0}
-          {index}
+          {index + 1}
         {:else}
           <SkeletonText lines={1} class="!w-10" />
         {/if}
