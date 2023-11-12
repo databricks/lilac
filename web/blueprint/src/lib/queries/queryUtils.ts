@@ -10,7 +10,7 @@ import {
   type CreateQueryOptions
 } from '@tanstack/svelte-query';
 
-const apiQueryKey = (tags: unknown[], endpoint: string, ...args: unknown[]) => [
+const apiQueryKey = (tags: string[], endpoint: string, ...args: unknown[]) => [
   ...tags,
   endpoint,
   ...args
@@ -24,13 +24,13 @@ export function createApiQuery<
   TData = TQueryFnData
 >(
   endpoint: TQueryFn,
-  tags: unknown | unknown[],
+  tags: string | string[],
   queryArgs: CreateQueryOptions<TQueryFnData, TError, TData> = {}
 ) {
   tags = Array.isArray(tags) ? tags : [tags];
   return (...args: Parameters<TQueryFn>) =>
     createQuery<TQueryFnData, TError, TData>({
-      queryKey: apiQueryKey(tags as unknown[], endpoint.name, ...args),
+      queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
       queryFn: () => endpoint(...args),
       // Allow the result of the query to contain non-serializable data, such as `LilacField` which
       // has pointers to parents: https://tanstack.com/query/v4/docs/react/reference/useQuery

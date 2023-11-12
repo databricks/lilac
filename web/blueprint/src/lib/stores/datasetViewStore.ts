@@ -47,8 +47,11 @@ export interface DatasetViewState {
   // View.
   schemaCollapsed: boolean;
   insightsOpen: boolean;
-  // Currently selected rowid.
+
+  // Currently selected rowid. null is a temp state of loading the next page of row ids to find
+  // the next row id.
   rowId?: string | null;
+
   compareColumns: ColumnComparisonState[];
   // TODO: make this better
   showMetadataPanel: boolean;

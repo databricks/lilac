@@ -22,7 +22,7 @@
   let limit = 5;
   let index: number | undefined = undefined;
 
-  // Set the index to 0 if both the row id and index are not set.
+  // Reset the index to 0 if the row id is not set.
   $: index = $store.rowId === undefined ? 0 : index;
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
