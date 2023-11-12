@@ -69,7 +69,7 @@ export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
   null: NotAvailable
 };
 
-export const SIDEBAR_TRANSITION_TIME_MS = 250;
+export const SIDEBAR_TRANSITION_TIME_MS = 150;
 
 export function getHighlightedFields(
   selectRowsOptions: SelectRowsOptions,
