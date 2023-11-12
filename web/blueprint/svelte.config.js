@@ -1,6 +1,7 @@
 import adapter from '@sveltejs/adapter-static';
 import {vitePreprocess} from '@sveltejs/kit/vite';
-import {optimizeImports} from 'carbon-preprocess-svelte';
+// See https://github.com/carbon-design-system/carbon-preprocess-svelte#sample-sveltekit-set-up
+import {optimizeCss, optimizeImports} from 'carbon-preprocess-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -13,6 +14,9 @@ const config = {
     adapter: adapter(),
     alias: {
       $lilac: '../lib'
+    },
+    vite: {
+      plugins: [process.env.NODE_ENV === 'production' && optimizeCss()]
     }
   }
 };
