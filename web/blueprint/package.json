@@ -44,7 +44,7 @@
   "type": "module",
   "dependencies": {
     "@monaco-editor/loader": "~1.4.0",
-    "@tanstack/svelte-query": "^4.29.11",
+    "@tanstack/svelte-query": "^4.36.1",
     "@yornaath/batshit": "^0.8.0",
     "carbon-components-svelte": "^0.74.0",
     "carbon-icons-svelte": "^11.4.0",

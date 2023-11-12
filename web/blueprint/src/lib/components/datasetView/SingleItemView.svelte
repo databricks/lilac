@@ -42,7 +42,11 @@
   $: index = $store.rowId === undefined ? 0 : index;
 
   // Find the index if the row id is known.
-  $: findIndexFromRowId = $store.rowId != null && $rowsQuery?.data?.rows != null;
+  $: findIndexFromRowId =
+    $store.rowId != null &&
+    $rowsQuery &&
+    !$rowsQuery.isPreviousData &&
+    $rowsQuery.data?.rows != null;
   $: index = findIndexFromRowId
     ? $rowsQuery?.data?.rows.findIndex(row => L.value(row[ROWID], 'string') === $store.rowId)
     : index;
