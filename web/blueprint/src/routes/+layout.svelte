@@ -20,6 +20,7 @@
   import {slide} from 'svelte/transition';
 
   import GoogleAnalytics from '$lib/components/GoogleAnalytics.svelte';
+  import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import '../app.css';
 
   let showError: ApiError | undefined = undefined;
@@ -101,7 +102,10 @@
   <GoogleAnalytics />
   <main class="flex h-screen w-full flex-row">
     {#if $navStore.open}
-      <div class="flex-shrink-0" transition:slide={{axis: 'x'}}>
+      <div
+        class="flex-shrink-0"
+        transition:slide={{axis: 'x', duration: SIDEBAR_TRANSITION_TIME_MS}}
+      >
         <Navigation />
       </div>
     {/if}

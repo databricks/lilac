@@ -14,17 +14,10 @@
     type DatasetSettings,
     type LilacField
   } from '$lilac';
-  import {
-    ComboBox,
-    Select,
-    SelectItem,
-    SelectSkeleton,
-    SkeletonText,
-    Toggle
-  } from 'carbon-components-svelte';
+  import {Select, SelectItem, SelectSkeleton, SkeletonText, Toggle} from 'carbon-components-svelte';
   import {Add, ArrowDown, ArrowUp, Close, Document, Table} from 'carbon-icons-svelte';
+  import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
-  import {clickOutside} from '../common/clickOutside';
   import Chip from './Chip.svelte';
 
   export let namespace: string;
@@ -64,17 +57,10 @@
       const serializedPath = serializePath(f.path);
       return {id: f, text: serializedPath};
     });
-  let mediaFieldsComboBox: ComboBox;
-  function selectMediaField(
-    e: CustomEvent<{
-      selectedItem: MediaFieldComboBoxItem;
-    }>
-  ) {
-    const mediaField = e.detail.selectedItem.id;
+  function selectMediaField(e: CustomEvent<MediaFieldComboBoxItem>) {
+    const mediaField = e.detail.id;
     if (selectedMediaFields == null || selectedMediaFields.includes(mediaField)) return;
     selectedMediaFields = [...selectedMediaFields, mediaField];
-    mediaFieldsComboBox.clear();
-    addMediaFieldButtonOpen = false;
   }
   function removeMediaField(mediaField: LilacField) {
     if (selectedMediaFields == null) return;
@@ -120,16 +106,6 @@
   function removeMarkdownField(field: LilacField) {
     if (markdownMediaFields == null) return;
     markdownMediaFields = markdownMediaFields.filter(f => f !== field);
-  }
-
-  let addMediaFieldButtonOpen = false;
-  function openMediaFieldComboBox() {
-    addMediaFieldButtonOpen = true;
-    requestAnimationFrame(() => {
-      // comboBox.clear({focus: true}) does not open the combo box automatically, so we
-      // programmatically set it.
-      mediaFieldsComboBox.$set({open: true});
-    });
   }
 
   $: {
@@ -281,28 +257,15 @@
           {/if}
         </div>
         <div class="h-12">
-          <button
-            on:click={openMediaFieldComboBox}
-            class="flex w-fit flex-row items-center gap-x-2 border border-gray-300"
-            class:hidden={addMediaFieldButtonOpen}
-          >
-            <Add /> Add media field
-          </button>
-          <div
-            class:hidden={!addMediaFieldButtonOpen}
-            use:clickOutside={() => (addMediaFieldButtonOpen = false)}
-          >
-            <ComboBox
-              size="sm"
-              open={false}
-              items={mediaFieldOptionsItems}
-              bind:this={mediaFieldsComboBox}
-              on:select={selectMediaField}
-              shouldFilterItem={(item, value) =>
-                item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
-              placeholder={'Add a media field'}
-            />
-          </div>
+          <ButtonDropdown
+            buttonOutline
+            disabled={selectedMediaFields.length === 0}
+            buttonIcon={Add}
+            items={mediaFieldOptionsItems}
+            buttonText="Add media field"
+            comboBoxPlaceholder="Add media field"
+            on:select={selectMediaField}
+          />
         </div>
       {:else}
         <SelectSkeleton />

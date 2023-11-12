@@ -13,6 +13,7 @@
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
+  import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import {
     getRowLabels,
     getSchemaLabels,
@@ -22,7 +23,9 @@
     type RemoveLabelsOptions
   } from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
-  import {Tag} from 'carbon-icons-svelte';
+  import {SidePanelClose, SidePanelOpen, Tag} from 'carbon-icons-svelte';
+  import {slide} from 'svelte/transition';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import EditLabel from './EditLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
   import ItemMetadata from './ItemMetadata.svelte';
@@ -126,7 +129,12 @@
   {#if row == null}
     <SkeletonText lines={4} paragraph class="w-full" />
   {:else}
-    <div class="flex flex-col gap-y-1 p-4 md:w-2/3" bind:clientHeight={mediaHeight}>
+    <div
+      class={`flex flex-col gap-y-1 p-4 ${
+        !$datasetViewStore.showMetadataPanel ? 'grow' : 'w-full'
+      }`}
+      bind:clientHeight={mediaHeight}
+    >
       <div class="flex flex-wrap items-center gap-x-2 gap-y-2" class:opacity-50={disableLabels}>
         {#each schemaLabels || [] as label}
           <div class:opacity-50={labelsInProgress.has(label)}>
@@ -165,16 +173,37 @@
           </div>
         {/each}
       {/if}
-    </div>
-    <div class="flex h-full bg-neutral-100 md:w-1/3">
-      <div class="sticky top-0 w-full self-start">
-        <div
-          style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
-          class="overflow-y-auto"
+      <div class="absolute right-0 top-0">
+        <button
+          class="mr-1 mt-1 opacity-60 hover:bg-gray-200"
+          use:hoverTooltip={{
+            text: $datasetViewStore.showMetadataPanel ? 'Close metadata' : 'Open metadata'
+          }}
+          on:click={() =>
+            ($datasetViewStore.showMetadataPanel = !$datasetViewStore.showMetadataPanel)}
         >
-          <ItemMetadata {row} selectRowsSchema={$selectRowsSchema.data} {highlightedFields} />
-        </div>
+          {#if $datasetViewStore.showMetadataPanel}
+            <SidePanelOpen />
+          {:else}
+            <SidePanelClose />
+          {/if}</button
+        >
       </div>
     </div>
+    {#if $datasetViewStore.showMetadataPanel}
+      <div
+        class="flex h-full bg-neutral-100 md:w-1/3"
+        transition:slide={{axis: 'x', duration: SIDEBAR_TRANSITION_TIME_MS}}
+      >
+        <div class="sticky top-0 w-full self-start">
+          <div
+            style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
+            class="overflow-y-auto"
+          >
+            <ItemMetadata {row} selectRowsSchema={$selectRowsSchema.data} {highlightedFields} />
+          </div>
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>

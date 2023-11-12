@@ -13,11 +13,10 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {getSchemaLabels, type AddLabelsOptions, type RemoveLabelsOptions} from '$lilac';
-  import {ComboBox, InlineLoading, Modal} from 'carbon-components-svelte';
+  import {Modal} from 'carbon-components-svelte';
   import {Tag, type CarbonIcon} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
-  import {hoverTooltip} from '../common/HoverTooltip';
-  import {clickOutside} from '../common/clickOutside';
+  import ButtonDropdown from '../ButtonDropdown.svelte';
 
   export let labelsQuery: LabelsQuery;
   export let hideLabels: string[] | undefined = undefined;
@@ -29,8 +28,6 @@
   export let totalNumRows: number | undefined = undefined;
   const dispatch = createEventDispatcher();
 
-  let labelMenuOpen = false;
-  let comboBox: ComboBox;
   let comboBoxText = '';
   let selectedLabel: string | null = null;
 
@@ -66,15 +63,6 @@
 
   $: disableLabels = disabled || !canEditLabels;
 
-  function addLabel() {
-    labelMenuOpen = true;
-    requestAnimationFrame(() => {
-      // comboBox.clear({focus: true}) does not open the combo box automatically, so we
-      // programmatically set it.
-      comboBox.$set({open: true});
-    });
-  }
-
   interface LabelItem {
     id: 'new-label' | string;
     text: string;
@@ -88,7 +76,6 @@
       ...labelsQuery,
       label_name: selectedLabel
     };
-    labelMenuOpen = false;
 
     function message(numRows: number): string {
       return options.row_ids != null
@@ -120,71 +107,46 @@
     selectedLabel = null;
   }
 
-  function selectLabelItem(
-    e: CustomEvent<{
-      selectedItem: LabelItem;
-    }>
-  ) {
-    selectedLabel = e.detail.selectedItem.text;
-    comboBox.clear();
+  function selectLabelItem(e: CustomEvent<LabelItem>) {
+    selectedLabel = e.detail.text;
     if (totalNumRows == null) {
       editLabels();
     }
   }
 </script>
 
-<div
-  use:hoverTooltip={{
-    text: !canEditLabels ? 'You do not have access to add labels.' : disabled ? disabledMessage : ''
-  }}
+<ButtonDropdown
+  disabled={disableLabels || inProgress}
+  {helperText}
+  disabledMessage={!canEditLabels
+    ? 'You do not have access to add labels.'
+    : disabled
+    ? disabledMessage
+    : ''}
+  buttonOutline
+  buttonIcon={icon}
+  bind:comboBoxText
+  on:select={selectLabelItem}
+  items={labelItems}
+  comboBoxPlaceholder={!remove ? 'Select or type a new label' : 'Select a label to remove'}
+  shouldFilterItem={(item, value) =>
+    item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
 >
-  <button
-    disabled={disableLabels || inProgress}
-    class:opacity-30={disableLabels}
-    class:text-red-600={remove}
-    on:click={addLabel}
-    use:hoverTooltip={{text: helperText}}
-    class="flex items-center gap-x-2 border border-gray-300"
-    class:hidden={labelMenuOpen}
-  >
-    {#if inProgress}
-      <InlineLoading />
-    {/if}
-    <svelte:component this={icon} />
-  </button>
-</div>
-<div
-  class="z-50 w-60"
-  class:hidden={!labelMenuOpen}
-  use:clickOutside={() => (labelMenuOpen = false)}
->
-  <ComboBox
-    size="sm"
-    open={labelMenuOpen}
-    bind:this={comboBox}
-    items={labelItems}
-    bind:value={comboBoxText}
-    on:select={selectLabelItem}
-    shouldFilterItem={(item, value) =>
-      item.text.toLowerCase().includes(value.toLowerCase()) || item.id === 'new-label'}
-    placeholder={!remove ? 'Select or type a new label' : 'Select a label to remove'}
-    let:item={it}
-  >
-    {@const item = labelItems.find(p => p.id === it.id)}
+  <div slot="item" let:item let:inputText>
     {#if item == null}
       <div />
     {:else if item.id === 'new-label'}
       <div class="new-concept flex flex-row items-center justify-items-center">
         <Tag />
         <div class="ml-2">
-          New label: {comboBoxText}
+          New label: {inputText}
         </div>
       </div>
     {:else}
       <div class="flex justify-between gap-x-8">{item.text}</div>
     {/if}
-  </ComboBox>
-</div>
+  </div>
+</ButtonDropdown>
 
 <Modal
   size="xs"

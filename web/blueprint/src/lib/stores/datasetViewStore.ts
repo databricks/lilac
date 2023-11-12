@@ -26,6 +26,13 @@ export interface GroupByState {
   value: LeafValue;
 }
 
+export interface ColumnComparisonState {
+  column: Path;
+  compareToColumn: Path;
+  // True when the diff direction is swapped.
+  swapDirection: boolean;
+}
+
 export interface DatasetViewState {
   namespace: string;
   datasetName: string;
@@ -40,9 +47,11 @@ export interface DatasetViewState {
   // View.
   schemaCollapsed: boolean;
   insightsOpen: boolean;
-
   // Currently selected rowid.
   rowId?: string | null;
+  compareColumns: ColumnComparisonState[];
+  // TODO: make this better
+  showMetadataPanel: boolean;
 }
 
 export type DatasetViewStore = ReturnType<typeof createDatasetViewStore>;
@@ -64,7 +73,9 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
       combine_columns: true
     },
     schemaCollapsed: true,
-    insightsOpen: false
+    insightsOpen: false,
+    compareColumns: [],
+    showMetadataPanel: false
   };
 }
 
@@ -266,6 +277,27 @@ export function createDatasetViewStore(
     setRowId(rowId: string | undefined | null) {
       update(state => {
         state.rowId = rowId;
+        return state;
+      });
+    },
+    addCompareColumn(diffCols: [Path, Path]) {
+      update(state => {
+        const [column, compareToColumn] = diffCols;
+        state.compareColumns.push({column, compareToColumn, swapDirection: false});
+        return state;
+      });
+    },
+    swapCompareColumn(path: Path) {
+      update(state => {
+        const compareColumn = state.compareColumns.find(c => pathIsEqual(c.column, path));
+        if (compareColumn == null) return state;
+        compareColumn.swapDirection = !compareColumn.swapDirection;
+        return state;
+      });
+    },
+    removeCompareColumn(path: Path) {
+      update(state => {
+        state.compareColumns = state.compareColumns.filter(c => !pathIsEqual(c.column, path));
         return state;
       });
     }
