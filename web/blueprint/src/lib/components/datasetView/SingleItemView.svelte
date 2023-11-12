@@ -23,27 +23,20 @@
   let limit = 5;
   $: console.log('rowId', $store.rowId, 'index', index);
 
-  $: manifest = queryDatasetManifest($store.namespace, $store.datasetName);
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
     $store.datasetName,
     getSelectRowsSchemaOptions($store)
   );
-
   $: selectOptions = getSelectRowsOptions($store, true /* implicitSortByRowID */);
-
-  $: console.log('select options changed', selectOptions);
-
   $: rowsQuery = querySelectRows(
     $store.namespace,
     $store.datasetName,
     {...selectOptions, columns: [ROWID], limit},
     $selectRowsSchema.data?.schema
   );
-  $: console.log('rows query changed', $rowsQuery);
-  $: totalNumRows = $rowsQuery?.data?.total_num_rows;
-  $: rows = $rowsQuery.data?.rows;
-  $: console.log('rows changed', L.value(rows?.[0][ROWID]));
+
+  $: manifest = queryDatasetManifest($store.namespace, $store.datasetName);
 
   // Set the index to 0 if both the row id and index are not set.
   $: {
@@ -55,9 +48,11 @@
 
   // Find the index if the row id is set.
   $: {
-    if (index == null && $store.rowId != null && rows != null) {
+    if (index == null && $store.rowId != null && $rowsQuery?.data?.rows != null) {
       console.log('row id is set, finding index');
-      index = rows.findIndex(row => L.value(row[ROWID], 'string') === $store.rowId);
+      index = $rowsQuery?.data?.rows.findIndex(
+        row => L.value(row[ROWID], 'string') === $store.rowId
+      );
     }
   }
 
@@ -65,14 +60,14 @@
   $: {
     if (
       $store.rowId == null &&
-      rows != null &&
+      $rowsQuery?.data?.rows != null &&
       $rowsQuery.isFetched &&
       index != null &&
       index >= 0 &&
-      index < rows.length
+      index < $rowsQuery?.data?.rows.length
     ) {
       console.log('Index is set to', index, '. Finding row id');
-      const newRowId = L.value(rows[index][ROWID], 'string')!;
+      const newRowId = L.value($rowsQuery?.data?.rows[index][ROWID], 'string')!;
       store.setRowId(newRowId);
     }
   }
@@ -80,16 +75,16 @@
   // Double the limit of select rows if the row id index is not yet found.
   $: {
     if (
-      rows != null &&
+      $rowsQuery?.data?.rows != null &&
       index != null &&
-      (index === -1 || index >= rows.length) &&
-      totalNumRows &&
-      limit < totalNumRows
+      (index === -1 || index >= $rowsQuery?.data?.rows.length) &&
+      $rowsQuery?.data?.total_num_rows &&
+      limit < $rowsQuery?.data?.total_num_rows
     ) {
       if (index === -1) {
         index = undefined;
         console.log('Index was not found, doubling limit');
-      } else if (index >= rows.length) {
+      } else if (index >= $rowsQuery?.data?.rows.length) {
         console.log('Index was out of bounds, doubling limit');
       }
       limit = limit * 2;
@@ -103,7 +98,7 @@
   $: highlightedFields = getHighlightedFields($store.query, $selectRowsSchema?.data);
 
   function updateRowId(next: boolean) {
-    if (rows == null || index == null || index < 0) {
+    if ($rowsQuery?.data?.rows == null || index == null || index < 0) {
       return;
     }
     let newIndex = next ? index + 1 : index - 1;
@@ -113,7 +108,7 @@
   }
 </script>
 
-<FilterPanel {totalNumRows} manifest={$manifest.data} />
+<FilterPanel totalNumRows={$rowsQuery?.data?.total_num_rows} manifest={$manifest.data} />
 
 <div
   class="mx-5 my-2 flex items-center justify-between rounded-lg border border-neutral-300 bg-neutral-100 py-2"
@@ -138,8 +133,8 @@
       </span>
       of
       <span class="inline-flex">
-        {#if totalNumRows != null}
-          {formatValue(totalNumRows)}
+        {#if $rowsQuery?.data?.total_num_rows != null}
+          {formatValue($rowsQuery?.data?.total_num_rows)}
         {:else}
           <SkeletonText lines={1} class="!w-20" />
         {/if}
