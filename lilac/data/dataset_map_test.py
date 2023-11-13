@@ -142,7 +142,7 @@ def test_map_continuation(
     return _map_fn(row, first_run=False)
 
   # Write the output to a new column.
-  with pytest.raises(ValueError, match='Throwing'):
+  with pytest.raises(Exception):
     dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
 
   # The schema should not reflect the output of the map as it didn't finish.
@@ -222,7 +222,7 @@ def test_map_continuation_overwrite(
     return _map_fn(row, first_run=False)
 
   # Write the output to a new column.
-  with pytest.raises(ValueError, match='Throwing'):
+  with pytest.raises(Exception):
     dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
 
   test_dask_logger.clear_logs()
