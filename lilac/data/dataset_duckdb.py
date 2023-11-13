@@ -280,7 +280,7 @@ class DatasetDuckDB(Dataset):
 
       add_project_dataset_config(dataset_config, self.project_dir)
 
-  def __getstate__(self):
+  def __getstate__(self) -> dict[str, Any]:
     """Return the state to pickle. This is necessary so we can pickle the dataset when using dask.
 
     This serializes the arguments to the constructor only as they are used to unpickle the dataset.
@@ -292,9 +292,9 @@ class DatasetDuckDB(Dataset):
       'project_dir': self.project_dir,
     }
 
-  def __setstate__(self, state: dict[str, Any]):
+  def __setstate__(self, state: dict[str, Any]) -> None:
     """Unpickle the dataset. We go through the constructor."""
-    self.__init__(**state)
+    self.__init__(**state)  # type: ignore
 
   @override
   def delete(self) -> None:

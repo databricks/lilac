@@ -52,7 +52,5 @@ def find_pii(text: str) -> dict[str, list[Item]]:
   for result in results:
     if CATEGORY_THRESHOLDS.get(result.entity_type, 0) > result.score:
       continue
-    pii_dict[PII_CATEGORIES[result.entity_type]].append(
-      lilac_span(result.start, result.end, {'confidence_score': result.score})
-    )
+    pii_dict[PII_CATEGORIES[result.entity_type]].append(lilac_span(result.start, result.end))
   return pii_dict

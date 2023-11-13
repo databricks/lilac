@@ -30,7 +30,7 @@ import psutil
 from dask import config as cfg
 from dask.distributed import Client
 from distributed import Future, get_client, get_worker, wait
-from pydantic import BaseModel, ConfigDict, TypeAdapter, field_serializer
+from pydantic import BaseModel, TypeAdapter
 from tqdm import tqdm
 
 from .env import env
@@ -75,8 +75,6 @@ class TaskStepInfo(BaseModel):
 class TaskInfo(BaseModel):
   """Metadata about a task."""
 
-  model_config = ConfigDict(arbitrary_types_allowed=True)
-
   name: str
   type: Optional[TaskType] = None
   status: TaskStatus
@@ -92,11 +90,6 @@ class TaskInfo(BaseModel):
   start_timestamp: str
   end_timestamp: Optional[str] = None
   error: Optional[str] = None
-
-  @field_serializer('error')
-  def serialize_path(self, error: Exception) -> str:
-    """Serialize an error."""
-    return str(error)
 
 
 class TaskManifest(BaseModel):
