@@ -15,10 +15,11 @@
   import {SkeletonText} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight} from 'carbon-icons-svelte';
   import FilterPanel from './FilterPanel.svelte';
+  import PrefetchRowItem from './PrefetchRowItem.svelte';
   import RowItem from './RowItem.svelte';
 
   const store = getDatasetViewContext();
-  const DEFAULT_LIMIT_SELECT_ROW_IDS = 100;
+  const DEFAULT_LIMIT_SELECT_ROW_IDS = 20;
 
   let limit = DEFAULT_LIMIT_SELECT_ROW_IDS;
   let index: number | undefined = undefined;
@@ -83,6 +84,14 @@
     store.setRowId(null);
     index = next ? index + 1 : Math.max(index - 1, 0);
   }
+
+  function onKeyDown(key: KeyboardEvent) {
+    if (key.code === 'ArrowLeft') {
+      updateRowId(false);
+    } else if (key.code === 'ArrowRight') {
+      updateRowId(true);
+    }
+  }
 </script>
 
 <FilterPanel totalNumRows={$rowsQuery?.data?.total_num_rows} manifest={$manifest.data} />
@@ -127,11 +136,15 @@
   </div>
 </div>
 
+{#each $rowsQuery?.data?.rows || [] as row}
+  {@const rowId = L.value(row[ROWID], 'string')}
+  <PrefetchRowItem {rowId} />
+{/each}
+
 {#if $store.rowId != null}
   <div class="flex h-full w-full flex-col overflow-y-scroll px-5 pb-32">
     <RowItem alwaysExpand={true} rowId={$store.rowId} {mediaFields} {highlightedFields} />
   </div>
 {/if}
 
-<style lang="postcss">
-</style>
+<svelte:window on:keydown|preventDefault={onKeyDown} />
