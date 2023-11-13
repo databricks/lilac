@@ -197,9 +197,10 @@ class TaskManager:
 
     for task_id in task_ids or []:
       task = self._tasks[task_id]
+      future = self._futures[task_id]
 
-      if task.status == TaskStatus.ERROR:
-        task_error = self._futures[task_id].exception()
+      if future.status == 'error':
+        task_error = future.exception()
         if asyncio.iscoroutine(task_error):
           task_error = asyncio.get_event_loop().run_until_complete(task_error)
         raise task_error

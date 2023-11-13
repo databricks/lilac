@@ -30,7 +30,6 @@ import subprocess
 
 import click
 from huggingface_hub import HfApi, snapshot_download
-
 from lilac.config import read_config
 from lilac.db_manager import list_datasets
 from lilac.deploy import deploy_project
@@ -43,42 +42,56 @@ from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
 @click.option('--config', help='The Lilac config path.', type=str, required=True)
 @click.option('--hf_space', help='The huggingface space.', type=str, required=True)
 @click.option(
-  '--project_dir', help='The local output dir to use to sync the data.', type=str, required=True)
+  '--project_dir', help='The local output dir to use to sync the data.', type=str, required=True
+)
 @click.option(
   '--load_overwrite',
   help='When True, runs all all data from scratch, overwriting existing data. When false, only'
   'load new datasets, embeddings, and signals.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--skip_sync',
   help='Skip syncing data from the HuggingFace space data.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option('--skip_load', help='Skip loading the data.', type=bool, is_flag=True, default=False)
 @click.option(
   '--skip_data_upload',
   help='Skip uploading data. This just uploads the wheel file from the local build.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--skip_deploy',
   help='Skip deploying to HuggingFace. Useful to test locally.',
   type=bool,
   is_flag=True,
-  default=False)
+  default=False,
+)
 @click.option(
   '--create_space',
   help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
   'with small persistent storage.',
   is_flag=True,
-  default=False)
-def deploy_demo(config: str, hf_space: str, project_dir: str, load_overwrite: bool, skip_sync: bool,
-                skip_load: bool, skip_data_upload: bool, skip_deploy: bool,
-                create_space: bool) -> None:
+  default=False,
+)
+def deploy_demo(
+  config: str,
+  hf_space: str,
+  project_dir: str,
+  load_overwrite: bool,
+  skip_sync: bool,
+  skip_load: bool,
+  skip_data_upload: bool,
+  skip_deploy: bool,
+  create_space: bool,
+) -> None:
   """Deploys the public demo."""
   hf_space_org, hf_space_name = hf_space.split('/')
 
@@ -98,14 +111,18 @@ def deploy_demo(config: str, hf_space: str, project_dir: str, load_overwrite: bo
         repo_type='dataset',
         token=env('HF_ACCESS_TOKEN'),
         local_dir=get_datasets_dir(project_dir),
-        ignore_patterns=['.gitattributes', 'README.md'])
+        ignore_patterns=['.gitattributes', 'README.md'],
+      )
 
   if not skip_load:
     load(project_dir, config, load_overwrite)
 
   if not skip_deploy:
-    datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)
-               ] if not skip_data_upload else []
+    datasets = (
+      [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)]
+      if not skip_data_upload
+      else []
+    )
     deploy_project(
       hf_space=hf_space,
       project_dir=project_dir,
@@ -120,7 +137,8 @@ def deploy_demo(config: str, hf_space: str, project_dir: str, load_overwrite: bo
       skip_concept_upload=True,
       create_space=create_space,
       hf_space_storage='small',
-      load_on_space=False)
+      load_on_space=False,
+    )
 
   # Enable google analytics.
   hf_api = HfApi()
