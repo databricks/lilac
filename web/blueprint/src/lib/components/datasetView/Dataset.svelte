@@ -2,7 +2,7 @@
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
-  import RowView from '$lib/components/datasetView/RowView.svelte';
+  import ScrollView from '$lib/components/datasetView/ScrollView.svelte';
   import SearchPanel from '$lib/components/datasetView/SearchPanel.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
   import {queryConfig, queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
@@ -154,7 +154,7 @@
     </div>
     <div class="h-full w-2/3 flex-grow">
       {#if viewType == 'scroll'}
-        <RowView />
+        <ScrollView />
       {:else if viewType == 'single_item'}
         <SingleItemView />
       {/if}
