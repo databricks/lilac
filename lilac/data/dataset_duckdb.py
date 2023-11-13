@@ -2092,14 +2092,14 @@ class DatasetDuckDB(Dataset):
       output_column = map_fn.__name__
 
     num_items = self.manifest().num_items + 1
-    num_workers = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
-    worker_chunk_size = math.ceil(num_items / num_workers)
+    num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
+    job_chunk_size = math.ceil(num_items / num_jobs)
     # Get ranges for each worker.
-    worker_ranges = []
-    for i in range(num_workers):
-      start = i * worker_chunk_size
-      end = min((i + 1) * worker_chunk_size, num_items)
-      worker_ranges.append((start, end))
+    job_ranges = []
+    for i in range(num_jobs):
+      start = i * job_chunk_size
+      end = min((i + 1) * job_chunk_size, num_items)
+      job_ranges.append((start, end))
 
     # When the map is being written to a column, use the cache dir for restarts. Otherwise, create
     # a temporary output file that will get cleaned up.
@@ -2114,9 +2114,9 @@ class DatasetDuckDB(Dataset):
 
     task_ids = []
     shard_output_filepaths = []
-    for i, worker_range in enumerate(worker_ranges):
-      shard_output_filepath = _map_cache_filepath(shard_cache_dir, worker_range, output_path)
-      shard_prefix = f'[{i+1}/{num_workers}]' if num_workers != 1 else ''
+    for i, job_range in enumerate(job_ranges):
+      shard_output_filepath = _map_cache_filepath(shard_cache_dir, job_range, output_path)
+      shard_prefix = f'[{i+1}/{num_jobs}]' if num_jobs != 1 else ''
       output_col_suffix = f' to "{output_column}"' if output_path else ''
       task_id = get_task_manager().task_id(
         name=f'[{self.namespace}/{self.dataset_name}]{shard_prefix} map '
@@ -2126,7 +2126,7 @@ class DatasetDuckDB(Dataset):
         task_id,
         self._map_worker,
         map_fn,
-        worker_range,
+        job_range,
         shard_output_filepath,
         output_column,
         input_paths,
@@ -2190,7 +2190,7 @@ class DatasetDuckDB(Dataset):
   def _map_worker(
     self,
     map_fn: Callable[[Item], Optional[Item]],
-    worker_range: tuple[int, int],
+    job_range: tuple[int, int],
     shard_output_filepath: str,
     output_column: str,
     input_paths: Optional[Sequence[Path]] = None,
@@ -2271,8 +2271,8 @@ class DatasetDuckDB(Dataset):
         CREATE OR REPLACE VIEW t_shard as (
           SELECT * FROM t
           ORDER BY {ROWID}
-          LIMIT {worker_range[1] - worker_range[0]}
-          OFFSET {worker_range[0]}
+          LIMIT {job_range[1] - job_range[0]}
+          OFFSET {job_range[0]}
         );
       """
       )
