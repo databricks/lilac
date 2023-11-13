@@ -2282,7 +2282,7 @@ class DatasetDuckDB(Dataset):
           SELECT * FROM t
           ORDER BY {ROWID}
           LIMIT {job_request.end_idx - job_request.start_idx}
-          OFFSET { job_request.start_idx}
+          OFFSET {job_request.start_idx}
         );
       """
       )
@@ -2353,12 +2353,10 @@ class DatasetDuckDB(Dataset):
     fs = fsspec.filesystem('file')
     write_mode = 'a'
 
-    c = 0
     with fs.open(shard_output_filepath, write_mode) as file:
       for item in outputs:
         json.dump(item, file)
         file.write('\n')
-        c += 1
 
   @override
   def to_json(
