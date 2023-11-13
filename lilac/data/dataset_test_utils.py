@@ -1,8 +1,9 @@
 """Tests utils of for dataset_test."""
+import json
 import os
 import pathlib
 from copy import deepcopy
-from typing import ClassVar, Optional, Type
+from typing import Any, ClassVar, Optional, Type
 
 import numpy as np
 from typing_extensions import Protocol
@@ -105,3 +106,25 @@ def make_vector_index(
   vector_index = VectorDBIndex(vector_store)
   vector_index.add(spans, np.array(embeddings))
   return vector_index
+
+
+class TestDaskLogger:
+  """A simple utility for unit tests that need logging between dask workers and the scheduler."""
+
+  def __init__(self, tmp_dir: pathlib.Path):
+    self.tmp_dir = tmp_dir
+
+  def log_event(self, value: Any) -> None:
+    """Logs an event to the log file for communicate between worker & test."""
+    with open(os.path.join(self.tmp_dir, 'log.jsonl'), 'a') as f:
+      f.write(f'{value}\n')
+
+  def clear_logs(self) -> None:
+    """Clears the logs."""
+    with open(os.path.join(self.tmp_dir, 'log.jsonl'), 'w') as f:
+      f.write('')
+
+  def get_logs(self) -> list[Any]:
+    """Gets the logs."""
+    with open(os.path.join(self.tmp_dir, 'log.jsonl'), 'r') as f:
+      return [json.loads(line) for line in f.readlines()]

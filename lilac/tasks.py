@@ -2,8 +2,8 @@
 
 import asyncio
 import functools
+import multiprocessing
 import time
-import traceback
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
@@ -16,6 +16,7 @@ from typing import (
   Generator,
   Iterable,
   Iterator,
+  Literal,
   Optional,
   TypeVar,
   Union,
@@ -23,15 +24,21 @@ from typing import (
 )
 
 import dask
+import nest_asyncio
 import psutil
 from dask import config as cfg
 from dask.distributed import Client
 from distributed import Future, get_client, get_worker, wait
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter, field_serializer
 from tqdm import tqdm
 
 from .env import env
 from .utils import log, pretty_timedelta
+
+# nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
+# run from a Jyupter notebook.
+# https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
+nest_asyncio.apply()
 
 # Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
 cfg.set({'distributed.scheduler.worker-ttl': None})
@@ -67,6 +74,8 @@ class TaskStepInfo(BaseModel):
 class TaskInfo(BaseModel):
   """Metadata about a task."""
 
+  model_config = ConfigDict(arbitrary_types_allowed=True)
+
   name: str
   type: Optional[TaskType] = None
   status: TaskStatus
@@ -82,6 +91,11 @@ class TaskInfo(BaseModel):
   start_timestamp: str
   end_timestamp: Optional[str] = None
   error: Optional[str] = None
+
+  @field_serializer('error')
+  def serialize_path(self, error: Exception) -> str:
+    """Serialize an error."""
+    return str(error)
 
 
 class TaskManifest(BaseModel):
@@ -109,12 +123,19 @@ class TaskManager:
     # Set dasks workers to be non-daemonic so they can spawn child processes if they need to. This
     # is particularly useful for signals that use libraries with multiprocessing support.
     dask.config.set({'distributed.worker.daemon': False})
-    dask.config.set(scheduler='threads')
 
+    self.n_workers = multiprocessing.cpu_count()
     total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
-      asynchronous=not env('LILAC_TEST'), memory_limit=f'{total_memory_gb} GB', processes=False
+      asynchronous=not env('LILAC_TEST'),
+      memory_limit=f'{total_memory_gb} GB',
+      processes=True,
+      n_workers=self.n_workers,
     )
+
+  def set_client(self, dask_client: Client) -> None:
+    """Sets the dask client."""
+    self._dask_client = dask_client
 
   async def _update_tasks(self) -> None:
     adapter = TypeAdapter(list[TaskStepInfo])
@@ -171,10 +192,34 @@ class TaskManager:
       futures = list(self._futures.values())
 
     if futures:
-      wait(futures)
+      print('....waiting')
+      wait_result = wait(futures)
+      if asyncio.iscoroutinefunction(wait_result):
+        asyncio.get_event_loop().run_until_complete(wait_result)
+      print('...done waiting')
+
+    for task_id in task_ids or []:
+      task = self._tasks[task_id]
+      print('task ==== ', task.status, task.error)
+
+      if task.status == TaskStatus.ERROR:
+        task_error = self._futures[task_id].exception()
+        if asyncio.iscoroutinefunction(task_error):
+          task_error = asyncio.get_event_loop().run_until_complete(task_error)
+        print('YEP GOT A RAISE BABY')
+        raise task_error
+
+  def get_task_status(self, task_id: TaskId) -> Literal['pending', 'cancelled', 'finished']:
+    """Get the status of a task."""
+    future = self._futures[task_id]
+    future.traceback
+    return cast(Literal['pending', 'cancelled', 'finished'], future.status)
 
   def task_id(
-    self, name: str, type: Optional[TaskType] = None, description: Optional[str] = None
+    self,
+    name: str,
+    type: Optional[TaskType] = None,
+    description: Optional[str] = None,
   ) -> TaskId:
     """Create a unique ID for a task."""
     task_id = uuid.uuid4().hex
@@ -199,10 +244,12 @@ class TaskManager:
 
     if task_future.status == 'error':
       self._tasks[task_id].status = TaskStatus.ERROR
-      tb = traceback.format_tb(cast(TracebackType, task_future.traceback()))
+      print('setting status to error.')
+      # tb = traceback.format_tb(cast(TracebackType, task_future.traceback()))
+      tb = cast(TracebackType, task_future.traceback())
       e = cast(Exception, task_future.exception())
       self._tasks[task_id].error = f'{e}: \n{tb}'
-      raise e
+      print('RAISING E here', e)
     else:
       # This runs in dask callback thread, so we have to make a new event loop.
       loop = asyncio.new_event_loop()
@@ -214,7 +261,10 @@ class TaskManager:
       self._tasks[task_id].progress = 1.0
       self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
 
-    log(f'Task completed "{task_id}": "{self._tasks[task_id].name}" in ' f'{elapsed_formatted}.')
+    log(
+      f'Task {task_future.status} "{task_id}": "{self._tasks[task_id].name}" in '
+      f'{elapsed_formatted}.'
+    )
 
   def execute(self, task_id: str, task: TaskFn, *args: Any) -> None:
     """Execute a task."""
@@ -234,6 +284,10 @@ class TaskManager:
     """Stop the task manager and close the dask client."""
     await cast(Coroutine, self._dask_client.close())
 
+  def get_num_workers(self) -> int:
+    """Get the number of workers."""
+    return self.n_workers
+
 
 def get_is_dask_worker() -> bool:
   """Returns True if the current process is a dask worker."""
@@ -244,10 +298,16 @@ def get_is_dask_worker() -> bool:
     return False
 
 
-@functools.cache
+_TASK_MANAGER: Optional[TaskManager] = None
+
+
 def get_task_manager() -> TaskManager:
   """The global singleton for the task manager."""
-  return TaskManager()
+  global _TASK_MANAGER
+  if _TASK_MANAGER:
+    return _TASK_MANAGER
+  _TASK_MANAGER = TaskManager()
+  return _TASK_MANAGER
 
 
 def _execute_task(task: TaskFn, task_info: TaskInfo, task_id: str, *args: Any) -> None:

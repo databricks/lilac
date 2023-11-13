@@ -98,6 +98,8 @@
   "notebook.lineNumbers": "on",
   "notebook.formatOnSave.enabled": true,
   "jupyter.notebookFileRoot": "${workspaceFolder}",
+  // Auto-reload modules in notebooks.
+  "jupyter.runStartupCommands": ["%load_ext autoreload", "%autoreload 2"],
   "svelte.enable-ts-plugin": true,
   "coverage-gutters.coverageBaseDir": "web/**",
   "vitest.commandLine": "npm run test --workspace web/blueprint --"
