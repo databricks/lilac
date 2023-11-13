@@ -4,6 +4,7 @@ import asyncio
 import functools
 import multiprocessing
 import time
+import traceback
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
@@ -192,22 +193,18 @@ class TaskManager:
       futures = list(self._futures.values())
 
     if futures:
-      print('....waiting')
       wait_result = wait(futures)
       if asyncio.iscoroutinefunction(wait_result):
-        asyncio.get_event_loop().run_until_complete(wait_result)
-      print('...done waiting')
+        asyncio.get_event_loop().run_until_complete(wait_result)  # type: ignore
 
     for task_id in task_ids or []:
       task = self._tasks[task_id]
-      print('task ==== ', task.status, task.error)
 
       if task.status == TaskStatus.ERROR:
         task_error = self._futures[task_id].exception()
         if asyncio.iscoroutinefunction(task_error):
-          task_error = asyncio.get_event_loop().run_until_complete(task_error)
-        print('YEP GOT A RAISE BABY')
-        raise task_error
+          task_error = asyncio.get_event_loop().run_until_complete(task_error)  # type: ignore
+        raise task_error  # type: ignore
 
   def get_task_status(self, task_id: TaskId) -> Literal['pending', 'cancelled', 'finished']:
     """Get the status of a task."""
@@ -244,12 +241,9 @@ class TaskManager:
 
     if task_future.status == 'error':
       self._tasks[task_id].status = TaskStatus.ERROR
-      print('setting status to error.')
-      # tb = traceback.format_tb(cast(TracebackType, task_future.traceback()))
-      tb = cast(TracebackType, task_future.traceback())
       e = cast(Exception, task_future.exception())
+      tb = traceback.format_tb(cast(TracebackType, task_future.traceback()))
       self._tasks[task_id].error = f'{e}: \n{tb}'
-      print('RAISING E here', e)
     else:
       # This runs in dask callback thread, so we have to make a new event loop.
       loop = asyncio.new_event_loop()
