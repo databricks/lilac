@@ -57,6 +57,9 @@ def setup_teardown() -> Iterable[None]:
   clear_source_registry()
   clear_signal_registry()
 
+  dask_client.close()
+  dask_cluster.close()
+
 
 @pytest.mark.parametrize('num_jobs', [1, 2])
 def test_map(num_jobs: Literal[1, 2], make_test_data: TestDataMaker) -> None:

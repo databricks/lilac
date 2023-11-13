@@ -41,14 +41,14 @@ def allow_any_datetime(cls: Type[BaseModel]) -> None:
         self[key] = TEST_TIME
         other[key] = TEST_TIME
 
-  def _new_eq(self: cls, other: object) -> bool:
+  def _new_eq(self: BaseModel, other: object) -> bool:
     self_dict = self.model_dump()
-    other_dict = cast(cls, other).model_dump()
+    other_dict = cast(BaseModel, other).model_dump()
     _replace_datetimes(self_dict, other_dict)
     _replace_datetimes(other_dict, self_dict)
     return self_dict == other_dict
 
-  cls.__eq__ = _new_eq
+  cls.__eq__ = _new_eq  # type: ignore
 
 
 def fake_uuid(id: bytes) -> uuid.UUID:

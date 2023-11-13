@@ -195,7 +195,7 @@ class TaskManager:
     if futures:
       wait_result = wait(futures)
       if asyncio.iscoroutinefunction(wait_result):
-        asyncio.get_event_loop().run_until_complete(wait_result)  # type: ignore
+        asyncio.get_event_loop().run_until_complete(wait_result)
 
     for task_id in task_ids or []:
       task = self._tasks[task_id]
@@ -203,8 +203,8 @@ class TaskManager:
       if task.status == TaskStatus.ERROR:
         task_error = self._futures[task_id].exception()
         if asyncio.iscoroutinefunction(task_error):
-          task_error = asyncio.get_event_loop().run_until_complete(task_error)  # type: ignore
-        raise task_error  # type: ignore
+          task_error = asyncio.get_event_loop().run_until_complete(task_error)
+        raise task_error
 
   def get_task_status(self, task_id: TaskId) -> Literal['pending', 'cancelled', 'finished']:
     """Get the status of a task."""
