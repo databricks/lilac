@@ -67,7 +67,7 @@ def test_map(num_jobs: Literal[1, 2], make_test_data: TestDataMaker) -> None:
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
 
-  def _map_fn(row: Item) -> Item:
+  def _map_fn(row: Item, job_id: int) -> Item:
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
   # Write the output to a new column.
@@ -115,6 +115,26 @@ def test_map(num_jobs: Literal[1, 2], make_test_data: TestDataMaker) -> None:
   ]
 
 
+def test_map_job_id(make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger) -> None:
+  dataset = make_test_data(
+    [
+      {'text': 'a sentence'},
+      {'text': 'b sentence'},
+      {'text': 'c sentence'},
+      {'text': 'd sentence'},
+      {'text': 'e sentence'},
+    ]
+  )
+
+  def _map_fn(row: Item, job_id: int) -> Item:
+    test_dask_logger.log_event(job_id)
+    return {}
+
+  dataset.map(_map_fn, output_path='map_id', combine_columns=False, num_jobs=3)
+
+  assert set(test_dask_logger.get_logs()) == set([0, 1, 2])
+
+
 @pytest.mark.parametrize('num_jobs', [1, 2])
 def test_map_continuation(
   num_jobs: Literal[1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
@@ -135,10 +155,10 @@ def test_map_continuation(
 
     return row['id']
 
-  def _map_fn_1(row: Item) -> Item:
+  def _map_fn_1(row: Item, job_id: int) -> Item:
     return _map_fn(row, first_run=True)
 
-  def _map_fn_2(row: Item) -> Item:
+  def _map_fn_2(row: Item, job_id: int) -> Item:
     return _map_fn(row, first_run=False)
 
   # Write the output to a new column.
@@ -215,10 +235,10 @@ def test_map_continuation_overwrite(
 
     return row['id']
 
-  def _map_fn_1(row: Item) -> Item:
+  def _map_fn_1(row: Item, job_id: int) -> Item:
     return _map_fn(row, first_run=True)
 
-  def _map_fn_2(row: Item) -> Item:
+  def _map_fn_2(row: Item, job_id: int) -> Item:
     return _map_fn(row, first_run=False)
 
   # Write the output to a new column.
@@ -266,7 +286,7 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
 
   prefix = '0'
 
-  def _map_fn(row: Item) -> Item:
+  def _map_fn(row: Item, job_id: int) -> Item:
     nonlocal prefix
     return prefix + row['text']
 
@@ -311,7 +331,7 @@ def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
 
-  def _map_fn(row: Item) -> Item:
+  def _map_fn(row: Item, job_id: int) -> Item:
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
   dataset.map(_map_fn, combine_columns=False)
@@ -349,7 +369,7 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
 
-  def _map_fn(row: Item) -> Item:
+  def _map_fn(row: Item, job_id: int) -> Item:
     assert 'extra' not in row
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
@@ -407,12 +427,12 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
 def test_map_chained(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
-  def _split_fn(row: Item) -> Item:
+  def _split_fn(row: Item, job_id: int) -> Item:
     return row['text'].split(' ')
 
   dataset.map(_split_fn, output_path='splits', combine_columns=False)
 
-  def _rearrange_fn(row: Item) -> Item:
+  def _rearrange_fn(row: Item, job_id: int) -> Item:
     return row['splits'][1] + ' ' + row['splits'][0]
 
   dataset.map(_rearrange_fn, output_path='rearrange', combine_columns=False)
@@ -456,7 +476,7 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
 
-  def _map_fn(row: Item) -> Item:
+  def _map_fn(row: Item, job_id: int) -> Item:
     # We use the combine_columns=True input here.
     return {'result': f'{row["text"]["test_signal"]["firstchar"]}_{len(row["text"][VALUE_KEY])}'}
 
@@ -506,7 +526,7 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
-  def _map_fn(row: Item) -> Item:
+  def _map_fn(row: Item, job_id: int) -> Item:
     return row['text'] + ' ' + row['text']
 
   dataset.map(_map_fn, output_path='double', combine_columns=False)
@@ -561,7 +581,7 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
 def test_map_non_root_output_errors(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
-  def _map_fn(row: Item) -> Item:
+  def _map_fn(row: Item, job_id: int) -> Item:
     return row['text'] + ' ' + row['text']
 
   with pytest.raises(ValueError, match='Mapping to a nested path is not yet supported'):
