@@ -40,7 +40,7 @@ class TestFirstCharSignal(TextSignal):
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
-  dask_cluster = LocalCluster(n_workers=2, threads_per_worker=2)
+  dask_cluster = LocalCluster(n_workers=2, threads_per_worker=2, processes=False)
   dask_client = Client(dask_cluster)
   tasks._TASK_MANAGER = tasks.TaskManager(dask_client=dask_client)
 
@@ -57,8 +57,7 @@ def setup_teardown() -> Iterable[None]:
   clear_source_registry()
   clear_signal_registry()
 
-  dask_client.close()
-  dask_cluster.close()
+  dask_client.shutdown()
 
 
 @pytest.mark.parametrize('num_jobs', [1, 2])
@@ -233,7 +232,7 @@ def test_map_continuation_overwrite(
   )
 
   # Map should be called for all ids.
-  assert test_dask_logger.get_logs() == [0, 1, 2]
+  assert sorted(test_dask_logger.get_logs()) == [0, 1, 2]
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
