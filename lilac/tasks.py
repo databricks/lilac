@@ -39,7 +39,12 @@ from .utils import log, pretty_timedelta
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jyupter notebook.
 # https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
-nest_asyncio.apply()
+try:
+  # Check if in an iPython environment, then apply nest_asyncio.
+  eval('__IPYTHON__')
+  nest_asyncio.apply()
+except Exception as e:
+  pass
 
 # Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
 cfg.set({'distributed.scheduler.worker-ttl': None})
@@ -187,7 +192,7 @@ class TaskManager:
 
     if futures:
       wait_result = wait(futures)
-      if asyncio.iscoroutinefunction(wait_result):
+      if asyncio.iscoroutine(wait_result):
         asyncio.get_event_loop().run_until_complete(wait_result)
 
     for task_id in task_ids or []:
@@ -195,7 +200,7 @@ class TaskManager:
 
       if task.status == TaskStatus.ERROR:
         task_error = self._futures[task_id].exception()
-        if asyncio.iscoroutinefunction(task_error):
+        if asyncio.iscoroutine(task_error):
           task_error = asyncio.get_event_loop().run_until_complete(task_error)
         raise task_error
 
@@ -270,6 +275,7 @@ class TaskManager:
   async def stop(self) -> None:
     """Stop the task manager and close the dask client."""
     await cast(Coroutine, self._dask_client.close())
+    self._dask_client.shutdown()
 
   def get_num_workers(self) -> int:
     """Get the number of workers."""
