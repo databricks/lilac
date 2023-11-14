@@ -60,8 +60,8 @@ def setup_teardown() -> Iterable[None]:
   dask_client.shutdown()
 
 
-@pytest.mark.parametrize('num_jobs', [1, 2])
-def test_map(num_jobs: Literal[1, 2], make_test_data: TestDataMaker) -> None:
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+def test_map(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   signal = TestFirstCharSignal()
@@ -115,9 +115,9 @@ def test_map(num_jobs: Literal[1, 2], make_test_data: TestDataMaker) -> None:
   ]
 
 
-@pytest.mark.parametrize('num_jobs', [1, 2])
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 def test_map_continuation(
-  num_jobs: Literal[1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
+  num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
 ) -> None:
   dataset = make_test_data(
     [
@@ -195,9 +195,9 @@ def test_map_continuation(
   ]
 
 
-@pytest.mark.parametrize('num_jobs', [1, 2])
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 def test_map_continuation_overwrite(
-  num_jobs: Literal[1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
+  num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
 ) -> None:
   dataset = make_test_data(
     [

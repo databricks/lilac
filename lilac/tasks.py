@@ -1,6 +1,7 @@
 """Manage FastAPI background tasks."""
 
 import asyncio
+import builtins
 import functools
 import multiprocessing
 import time
@@ -39,7 +40,7 @@ from .utils import log, pretty_timedelta
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jyupter notebook.
 # https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
-if hasattr(__builtins__, '__IPYTHON__'):
+if hasattr(builtins, '__IPYTHON__'):
   # Check if in an iPython environment, then apply nest_asyncio.
   nest_asyncio.apply()
 
@@ -277,7 +278,7 @@ class TaskManager:
 
   def get_num_workers(self) -> int:
     """Get the number of workers."""
-    return self.n_workers
+    return len(self._dask_client.scheduler_info()['workers'])
 
 
 def get_is_dask_worker() -> bool:
