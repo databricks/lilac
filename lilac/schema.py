@@ -143,8 +143,6 @@ class MapFn(Protocol):
     Argumnets:
       row: An Item, a dictionary of an entire row.
       job_id: The job id.
-      *args: Additional arguments.
-      **kwargs: Additional keyword arguments.
     """
     ...
 
