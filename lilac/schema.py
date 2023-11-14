@@ -5,7 +5,7 @@ import io
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal, Optional, Sequence, Union, cast
+from typing import Any, Literal, Optional, Protocol, Sequence, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -130,6 +130,21 @@ def signal_type_supports_dtype(input_type: SignalInputType, dtype: DataType) -> 
 
 
 Bin = tuple[str, Optional[Union[float, int]], Optional[Union[float, int]]]
+
+
+class MapFn(Protocol):
+  """Interface for a map function."""
+
+  __name__: str
+
+  def __call__(self, row: Item, job_id: int) -> Item:
+    """Calls the map function, mapping an item to an item.
+
+    Argumnets:
+      row: An Item, a dictionary of an entire row.
+      job_id: The job id.
+    """
+    ...
 
 
 class MapInfo(BaseModel):
