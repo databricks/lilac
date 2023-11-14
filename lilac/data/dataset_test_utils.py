@@ -21,9 +21,9 @@ from ..schema import (
   Schema,
   infer_schema,
 )
-from ..source import Source
+from ..source import Source, SourceManifest
 from ..utils import get_dataset_output_dir, open_file
-from .dataset import Dataset, SourceManifest, default_settings
+from .dataset import Dataset, default_settings
 from .dataset_utils import write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'

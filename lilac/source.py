@@ -6,9 +6,10 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 from fastapi import APIRouter
-from pydantic import BaseModel, ConfigDict, model_serializer
+from pydantic import BaseModel, ConfigDict, SerializeAsAny, field_validator, model_serializer
 
-from .data.dataset import SourceManifest
+import lilac.sources.source_registry
+
 from .schema import (
   Field,
   ImageInfo,
@@ -108,6 +109,31 @@ class Source(BaseModel):
     flexibility of an item stream API.
     """
     raise NotImplementedError
+
+
+class NoSource(Source):
+  """A dummy source that is used when no source is defined, for backwards compat."""
+
+  name: ClassVar[str] = 'no_source'
+
+
+class SourceManifest(BaseModel):
+  """The manifest that describes the dataset run, including schema and parquet files."""
+
+  # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
+  files: list[str]
+  # The data schema.
+  data_schema: Schema
+  source: SerializeAsAny[Source] = NoSource()
+
+  # Image information for the dataset.
+  images: Optional[list[ImageInfo]] = None
+
+  @field_validator('source', mode='before')
+  @classmethod
+  def parse_source(cls, source: dict) -> Source:
+    """Parse a source to its specific subclass instance."""
+    return lilac.sources.source_registry.resolve_source(source)
 
 
 def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:

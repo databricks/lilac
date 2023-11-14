@@ -15,13 +15,13 @@ from typing import Iterable, Optional, Union
 import pandas as pd
 
 from .config import DatasetConfig
-from .data.dataset import Dataset, SourceManifest, default_settings
+from .data.dataset import Dataset, default_settings
 from .data.dataset_utils import write_items_to_parquet
 from .db_manager import get_dataset
 from .env import get_project_dir
 from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
-from .source import Source
+from .source import Source, SourceManifest
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 
