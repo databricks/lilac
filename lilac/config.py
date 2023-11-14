@@ -2,7 +2,7 @@
 
 import json
 import pathlib
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 import yaml
 from pydantic import (
@@ -89,6 +89,7 @@ class DatasetUISettings(BaseModel):
   media_paths: list[PathTuple] = []
   markdown_paths: list[PathTuple] = []
   model_config = ConfigDict(extra='forbid')
+  view_type: Literal['scroll', 'single_item'] = 'scroll'
 
   @field_validator('media_paths', mode='before')
   @classmethod

@@ -16,7 +16,7 @@ import threading
 from contextlib import closing
 from datetime import datetime
 from importlib import metadata
-from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
+from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
 import fsspec
@@ -60,6 +60,7 @@ from ..schema import (
   DataType,
   Field,
   Item,
+  MapFn,
   MapInfo,
   Path,
   PathKey,
@@ -156,6 +157,14 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   'less': '<',
   'less_equal': '<=',
 }
+
+
+class MapFnJobRequest(BaseModel):
+  """The job information passed to worker for a map function."""
+
+  job_id: int
+  start_idx: int
+  end_idx: int
 
 
 class DuckDBSearchUDF(BaseModel):
@@ -2049,7 +2058,7 @@ class DatasetDuckDB(Dataset):
   @override
   def map(
     self,
-    map_fn: Callable[[Item], Optional[Item]],
+    map_fn: MapFn,
     output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
     overwrite: bool = False,
@@ -2122,11 +2131,12 @@ class DatasetDuckDB(Dataset):
         name=f'[{self.namespace}/{self.dataset_name}]{shard_prefix} map '
         f'"{map_fn.__name__}"{output_col_suffix}',
       )
+      start_idx, end_idx = job_range
       get_task_manager().execute(
         task_id,
         self._map_worker,
         map_fn,
-        job_range,
+        MapFnJobRequest(job_id=i, start_idx=start_idx, end_idx=end_idx),
         shard_output_filepath,
         output_column,
         input_paths,
@@ -2189,8 +2199,8 @@ class DatasetDuckDB(Dataset):
 
   def _map_worker(
     self,
-    map_fn: Callable[[Item], Optional[Item]],
-    job_range: tuple[int, int],
+    map_fn: MapFn,
+    job_request: MapFnJobRequest,
     shard_output_filepath: str,
     output_column: str,
     input_paths: Optional[Sequence[Path]] = None,
@@ -2271,8 +2281,8 @@ class DatasetDuckDB(Dataset):
         CREATE OR REPLACE VIEW t_shard as (
           SELECT * FROM t
           ORDER BY {ROWID}
-          LIMIT {job_range[1] - job_range[0]}
-          OFFSET {job_range[0]}
+          LIMIT {job_request.end_idx - job_request.start_idx}
+          OFFSET {job_request.start_idx}
         );
       """
       )
@@ -2326,7 +2336,9 @@ class DatasetDuckDB(Dataset):
           df_chunk = pd.DataFrame.from_records(df_chunk['*'])
         yield from df_chunk.to_dict('records')
 
-    outputs = ({ROWID: row[ROWID], output_column: map_fn(row)} for row in _rows())
+    outputs = (
+      {ROWID: row[ROWID], output_column: map_fn(row, job_request.job_id)} for row in _rows()
+    )
 
     # Add progress.
     if task_step_id is not None:

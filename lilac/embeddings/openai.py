@@ -20,6 +20,7 @@ API_EMBEDDING_MODEL = 'text-embedding-ada-002'
 AZURE_NUM_PARALLEL_REQUESTS = 1
 AZURE_OPENAI_BATCH_SIZE = 16
 
+
 class OpenAI(TextEmbeddingSignal):
   """Computes embeddings using OpenAI's embedding API.
 
@@ -83,9 +84,7 @@ class OpenAI(TextEmbeddingSignal):
       texts = [text.replace('\n', ' ') for text in texts]
 
       response: Any = self._model.create(
-        input=texts,
-        model=API_EMBEDDING_MODEL,
-        engine=self._api_engine
+        input=texts, model=API_EMBEDDING_MODEL, engine=self._api_engine
       )
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 
@@ -96,7 +95,7 @@ class OpenAI(TextEmbeddingSignal):
       AZURE_OPENAI_BATCH_SIZE if self._api_engine else API_OPENAI_BATCH_SIZE,
       embed_fn,
       split_fn,
-      num_parallel_requests=(AZURE_NUM_PARALLEL_REQUESTS
-                             if self._api_engine
-                             else API_NUM_PARALLEL_REQUESTS)
+      num_parallel_requests=(
+        AZURE_NUM_PARALLEL_REQUESTS if self._api_engine else API_NUM_PARALLEL_REQUESTS
+      ),
     )

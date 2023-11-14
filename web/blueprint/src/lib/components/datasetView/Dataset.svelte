@@ -2,10 +2,10 @@
   import {goto} from '$app/navigation';
   import Page from '$lib/components/Page.svelte';
   import {hoverTooltip} from '$lib/components/common/HoverTooltip';
-  import RowView from '$lib/components/datasetView/RowView.svelte';
+  import ScrollView from '$lib/components/datasetView/ScrollView.svelte';
   import SearchPanel from '$lib/components/datasetView/SearchPanel.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {queryConfig, queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {queryConfig, queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
@@ -30,12 +30,16 @@
   import {fade} from 'svelte/transition';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import ExportModal from './ExportModal.svelte';
+  import SingleItemView from './SingleItemView.svelte';
   import Insights from './insights/Insights.svelte';
 
   export let namespace: string;
   export let datasetName: string;
 
   const datasetViewStore = getDatasetViewContext();
+
+  $: settingsQuery = querySettings(namespace, datasetName);
+  $: viewType = $settingsQuery.data?.ui?.view_type || 'scroll';
 
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
   function toggleSchemaCollapsed() {
@@ -148,7 +152,13 @@
     >
       <SchemaView />
     </div>
-    <div class="h-full w-2/3 flex-grow"><RowView /></div>
+    <div class="h-full w-2/3 flex-grow">
+      {#if viewType == 'scroll'}
+        <ScrollView />
+      {:else if viewType == 'single_item'}
+        <SingleItemView />
+      {/if}
+    </div>
   </div>
 
   {#if $schema.data}

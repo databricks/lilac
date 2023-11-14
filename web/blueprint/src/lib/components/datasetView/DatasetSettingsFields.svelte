@@ -15,9 +15,10 @@
     type LilacField
   } from '$lilac';
   import {Select, SelectItem, SelectSkeleton, SkeletonText, Toggle} from 'carbon-components-svelte';
-  import {Add, ArrowDown, ArrowUp, Close} from 'carbon-icons-svelte';
+  import {Add, ArrowDown, ArrowUp, Close, Document, Table} from 'carbon-icons-svelte';
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
+  import Chip from './Chip.svelte';
 
   export let namespace: string;
   export let datasetName: string;
@@ -26,7 +27,9 @@
   $: schema = queryDatasetSchema(namespace, datasetName);
   const embeddings = queryEmbeddings();
 
-  $: currentSettings = querySettings(namespace, datasetName);
+  $: settingsQuery = querySettings(namespace, datasetName);
+  $: settings = $settingsQuery.data;
+  $: viewType = settings?.ui?.view_type || 'scroll';
 
   const appSettings = getSettingsContext();
 
@@ -106,19 +109,14 @@
   }
 
   $: {
-    if ($currentSettings.isFetching) {
+    if ($settingsQuery.isFetching) {
       selectedMediaFields = null;
       markdownMediaFields = null;
     }
   }
   $: {
-    if (
-      selectedMediaFields == null &&
-      mediaFieldOptions != null &&
-      $currentSettings.data != null &&
-      !$currentSettings.isFetching
-    ) {
-      const mediaPathsFromSettings = ($currentSettings.data.ui?.media_paths || []).map(p =>
+    if (selectedMediaFields == null && mediaFieldOptions != null) {
+      const mediaPathsFromSettings = ($settingsQuery.data?.ui?.media_paths || []).map(p =>
         Array.isArray(p) ? p : [p]
       );
       selectedMediaFields = mediaFieldOptions.filter(f =>
@@ -128,13 +126,8 @@
   }
 
   $: {
-    if (
-      markdownMediaFields == null &&
-      mediaFieldOptions != null &&
-      $currentSettings.data != null &&
-      !$currentSettings.isFetching
-    ) {
-      const mardownPathsFromSettings = ($currentSettings.data?.ui?.markdown_paths || []).map(p =>
+    if (markdownMediaFields == null && mediaFieldOptions != null) {
+      const mardownPathsFromSettings = ($settingsQuery.data?.ui?.markdown_paths || []).map(p =>
         Array.isArray(p) ? p : [p]
       );
       markdownMediaFields = mediaFieldOptions.filter(f =>
@@ -144,15 +137,15 @@
   }
 
   $: {
-    if (selectedMediaFields != null) {
-      settings = {
-        ...settings,
-        ui: {
-          media_paths: selectedMediaFields.map(f => f.path),
-          markdown_paths: markdownMediaFields?.map(f => f.path)
-        },
-        preferred_embedding: preferredEmbedding
-      };
+    if (settings?.ui != null) {
+      settings.ui.media_paths = selectedMediaFields?.map(f => f.path);
+      settings.ui.markdown_paths = markdownMediaFields?.map(f => f.path);
+    }
+  }
+
+  $: {
+    if (settings != null) {
+      settings.preferred_embedding = preferredEmbedding;
     }
   }
 
@@ -165,7 +158,7 @@
   }
 </script>
 
-{#if $currentSettings.isFetching}
+{#if $settingsQuery.isFetching}
   <SkeletonText />
 {:else}
   <div class="flex flex-col gap-y-6">
@@ -280,6 +273,34 @@
     </section>
 
     <section class="flex flex-col gap-y-1">
+      <div class="text-lg text-gray-700">View type</div>
+      <div class="flex gap-x-2">
+        <Chip
+          icon={Table}
+          label="Scroll"
+          active={viewType == 'scroll'}
+          tooltip="Infinite scroll with snippets"
+          on:click={() => {
+            if (settings?.ui != null) {
+              settings.ui.view_type = 'scroll';
+            }
+          }}
+        />
+        <Chip
+          icon={Document}
+          label="Single Item"
+          active={viewType == 'single_item'}
+          tooltip="Individual item"
+          on:click={() => {
+            if (settings?.ui != null) {
+              settings.ui.view_type = 'single_item';
+            }
+          }}
+        />
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-y-1">
       <div class="text-lg text-gray-700">Preferred embedding</div>
       <div class="text-sm text-gray-500">
         This embedding will be used by default when indexing and querying the data.
@@ -289,7 +310,7 @@
           <SelectSkeleton />
         {:else}
           <Select
-            selected={$currentSettings.data?.preferred_embedding || undefined}
+            selected={settings?.preferred_embedding || undefined}
             on:change={embeddingChanged}
           >
             <SelectItem value={undefined} text="None" />

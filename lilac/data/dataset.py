@@ -42,6 +42,7 @@ from ..schema import (
   EmbeddingInputType,
   ImageInfo,
   Item,
+  MapFn,
   Path,
   PathTuple,
   Schema,
@@ -604,7 +605,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def map(
     self,
-    map_fn: Callable[[Item], Optional[Item]],
+    map_fn: MapFn,
     output_path: Optional[Path] = None,
     input_paths: Optional[Sequence[Path]] = None,
     overwrite: bool = False,

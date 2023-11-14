@@ -70,7 +70,7 @@ class Source(BaseModel):
   def source_schema(self) -> SourceSchema:
     """Return the source schema for this source.
 
-    Returns
+    Returns:
       A SourceSchema with
         fields: mapping top-level columns to fields that describes the schema of the source.
         num_items: the number of items in the source, used for progress.

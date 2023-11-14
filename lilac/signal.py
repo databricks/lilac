@@ -73,7 +73,7 @@ class Signal(BaseModel):
   def fields(self) -> Field:
     """Return the fields schema for this signal.
 
-    Returns
+    Returns:
       A Field object that describes the schema of the signal.
     """
     raise NotImplementedError
@@ -84,7 +84,7 @@ class Signal(BaseModel):
     Args:
       data: An iterable of rich data to compute the signal over.
       user: User information, if the user is logged in. This is useful if signals are access
-      controlled, like concepts.
+        controlled, like concepts.
 
     Returns:
       An iterable of items. Sparse signals should return "None" for skipped inputs.

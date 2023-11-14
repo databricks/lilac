@@ -52,6 +52,10 @@
 
   // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
+  export let alwaysExpand = false;
+
+  let isExpanded = alwaysExpand;
+
   const urlHashContext = getUrlHashContext();
 
   const spanHoverOpacity = 0.9;
@@ -149,9 +153,8 @@
     $conceptEdit.mutate([conceptNamespace, conceptName, {insert: [{text, label}]}]);
   };
 
-  let isExpanded = false;
   // Snippets.
-  $: ({snippetSpans, someSnippetsHidden} = getSnippetSpans(renderSpans, isExpanded));
+  $: ({snippetSpans, textIsOverBudget} = getSnippetSpans(renderSpans, isExpanded));
 
   let itemScrollContainer = getContext<Writable<HTMLDivElement | null>>(
     ITEM_SCROLL_CONTAINER_CTX_KEY
@@ -222,7 +225,7 @@
       </span>
     {/if}
   {/each}
-  {#if someSnippetsHidden || isExpanded}
+  {#if textIsOverBudget && !alwaysExpand}
     <div class="flex flex-row justify-center">
       <div class="w-30 mt-2 rounded border border-neutral-300 text-center">
         {#if !isExpanded}

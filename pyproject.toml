@@ -255,5 +255,8 @@ inline-quotes = "single"
 # Allow Pydantic's `@validator` decorator to trigger class method treatment.
 classmethod-decorators = ["classmethod", "pydantic.validator"]
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
 # Consider enabling these options for more compact code.
 # split_before_named_assigns = false

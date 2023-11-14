@@ -3,7 +3,7 @@
 import abc
 import os
 import pickle
-from typing import Iterable, Optional, Type, cast
+from typing import Iterable, Optional, Sequence, Type, cast
 
 import numpy as np
 
@@ -109,7 +109,7 @@ class VectorDBIndex:
     self._vector_store.save(os.path.join(base_path, self._vector_store.name))
 
   def add(
-    self, all_spans: list[tuple[PathKey, list[tuple[int, int]]]], embeddings: np.ndarray
+    self, all_spans: Sequence[tuple[PathKey, list[tuple[int, int]]]], embeddings: np.ndarray
   ) -> None:
     """Add the given spans and embeddings.
 
@@ -176,7 +176,10 @@ class VectorDBIndex:
     if rowids is not None:
       span_keys = []
       for rowid in rowids:
-        path_keys = self._rowid_to_path_keys[rowid]
+        path_keys = self._rowid_to_path_keys.get(rowid)
+        if path_keys is None:
+          continue
+
         span_keys.extend(
           [
             (*path_key, i)
