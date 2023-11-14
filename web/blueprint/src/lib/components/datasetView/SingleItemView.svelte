@@ -19,10 +19,9 @@
   import RowItem from './RowItem.svelte';
 
   const store = getDatasetViewContext();
-  const DEFAULT_LIMIT_SELECT_ROW_IDS = 20;
+  const DEFAULT_LIMIT_SELECT_ROW_IDS = 5;
 
   let limit = DEFAULT_LIMIT_SELECT_ROW_IDS;
-  let index: number | undefined = undefined;
 
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
@@ -36,35 +35,26 @@
     {...selectOptions, columns: [ROWID], limit},
     $selectRowsSchema.data?.schema
   );
+  $: nextRowsQuery = querySelectRows(
+    $store.namespace,
+    $store.datasetName,
+    {...selectOptions, columns: [ROWID], limit: limit * 2},
+    $selectRowsSchema.data?.schema
+  );
+
+  $: rows = $rowsQuery?.data?.rows != null ? [...$rowsQuery.data.rows] : undefined;
 
   $: manifest = queryDatasetManifest($store.namespace, $store.datasetName);
-
-  // Reset the index to 0 if the row id is not set.
-  $: index = $store.rowId === undefined ? 0 : index;
+  $: rowId = $store.rowId || L.value(rows?.[0]?.[ROWID], 'string');
 
   // Find the index if the row id is known.
-  $: findIndexFromRowId =
-    $store.rowId != null &&
-    $rowsQuery &&
-    !$rowsQuery.isPreviousData &&
-    $rowsQuery.data?.rows != null;
-  $: index = findIndexFromRowId
-    ? $rowsQuery?.data?.rows.findIndex(row => L.value(row[ROWID], 'string') === $store.rowId)
-    : index;
-
-  // Set the row id if the index is known.
-  $: setRowIdFromIndex =
-    $store.rowId == null &&
-    $rowsQuery?.data?.rows != null &&
-    $rowsQuery.isFetched &&
-    index != null &&
-    index >= 0 &&
-    index < $rowsQuery?.data?.rows.length;
-  $: setRowIdFromIndex && store.setRowId(L.value($rowsQuery?.data?.rows[index!][ROWID], 'string')!);
+  $: index =
+    rowId != null && rows != null
+      ? rows.findIndex(row => L.value(row[ROWID], 'string') === $store.rowId)
+      : undefined;
 
   // Double the limit of select rows if the row id was not found.
-  $: rowIdWasNotFound =
-    index != null && (index === -1 || index >= ($rowsQuery?.data?.rows?.length || 0));
+  $: rowIdWasNotFound = rows != null && index != null && (index === -1 || index >= rows.length);
   $: limit =
     rowIdWasNotFound && $rowsQuery?.data?.total_num_rows
       ? Math.min(limit * 2, $rowsQuery.data.total_num_rows)
@@ -80,9 +70,12 @@
     if (index == null) {
       return;
     }
-    // Unset the row id and set the new index.
-    store.setRowId(null);
-    index = next ? index + 1 : Math.max(index - 1, 0);
+    const newIndex = next ? index + 1 : Math.max(index - 1, 0);
+    const newRowId = L.value($nextRowsQuery.data?.rows[newIndex][ROWID], 'string');
+    if (newRowId != null) {
+      store.setRowId(newRowId);
+      return;
+    }
   }
 
   function onKeyDown(key: KeyboardEvent) {
@@ -100,7 +93,7 @@
   class="mx-5 my-2 flex items-center justify-between rounded-lg border border-neutral-300 bg-neutral-100 py-2"
 >
   <div class="flex-0">
-    {#if $store.rowId != null && index != null && index > 0}
+    {#if rowId != null && index != null && index > 0}
       <button on:click={() => updateRowId(false)}>
         <ChevronLeft title="Previous item" size={24} />
       </button>
@@ -114,6 +107,7 @@
         {#if index != null && index >= 0}
           {index + 1}
         {:else}
+          {index}
           <SkeletonText lines={1} class="!w-10" />
         {/if}
       </span>
@@ -136,14 +130,14 @@
   </div>
 </div>
 
-{#each $rowsQuery?.data?.rows || [] as row}
+{#each rows || [] as row}
   {@const rowId = L.value(row[ROWID], 'string')}
   <PrefetchRowItem {rowId} />
 {/each}
 
-{#if $store.rowId != null}
+{#if rowId != null}
   <div class="flex h-full w-full flex-col overflow-y-scroll px-5 pb-32">
-    <RowItem alwaysExpand={true} rowId={$store.rowId} {mediaFields} {highlightedFields} />
+    <RowItem alwaysExpand={true} {rowId} {mediaFields} {highlightedFields} />
   </div>
 {/if}
 
