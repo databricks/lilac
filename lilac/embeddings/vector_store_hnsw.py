@@ -132,7 +132,8 @@ class HNSWVectorStore(VectorStore):
         locs, dists = self._index.knn_query(query, k=k, filter=filter_func if labels else None)
       except RuntimeError:
         # If K is too large compared to M and construction-time ef, HNSW will throw an error.
-        # In this case we return no results, which is ok for the caller of this method (VectorIndex).
+        # In this case we return no results, which is ok for the caller of this method
+        # (VectorIndex).
         return []
       locs = locs[0]
       dists = dists[0]
