@@ -92,7 +92,6 @@
         {#if index != null && index >= 0}
           {index + 1}
         {:else}
-          {index}
           <SkeletonText lines={1} class="!w-10" />
         {/if}
       </span>
