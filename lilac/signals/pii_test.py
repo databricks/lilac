@@ -8,14 +8,14 @@ from .pii import PII_CATEGORIES, SECRETS_KEY, PIISignal
 
 def make_pii_dict(entries: dict[str, list[Item]]) -> dict[str, list[Item]]:
   """Make a PII dictionary with the given kwargs."""
-  return {**{cat: [] for cat in PII_CATEGORIES + [SECRETS_KEY]}, **entries}
+  return {**{cat: [] for cat in list(PII_CATEGORIES.values()) + [SECRETS_KEY]}, **entries}
 
 
 def test_pii_fields() -> None:
   signal = PIISignal()
   fields = signal.fields().fields
   assert fields is not None
-  assert fields.keys() == set(PII_CATEGORIES + [SECRETS_KEY])
+  assert fields.keys() == set(list(PII_CATEGORIES.values()) + [SECRETS_KEY])
 
 
 def test_pii_compute() -> None:
@@ -26,7 +26,7 @@ def test_pii_compute() -> None:
 
   expected_spans = text_to_expected_spans(text, ['nik@test.com', 'pii@gmail.com'])
 
-  assert emails == [make_pii_dict({'EMAIL_ADDRESS': expected_spans})]
+  assert emails == [make_pii_dict({'email_address': expected_spans})]
 
 
 def test_pii_case_insensitive() -> None:
@@ -37,7 +37,7 @@ def test_pii_case_insensitive() -> None:
 
   expected_spans = text_to_expected_spans(text, ['NIK@Test.com', 'pII@gmAIL.COM'])
 
-  assert emails == [make_pii_dict({'EMAIL_ADDRESS': expected_spans})]
+  assert emails == [make_pii_dict({'email_address': expected_spans})]
 
 
 def test_ip_addresses() -> None:
@@ -48,7 +48,7 @@ def test_ip_addresses() -> None:
   expected_spans = text_to_expected_spans(
     text, ['192.158.1.38', '2001:db8:3333:4444:5555:6666:7777:8888']
   )
-  assert pii == [make_pii_dict({'IP_ADDRESS': expected_spans})]
+  assert pii == [make_pii_dict({'ip_address': expected_spans})]
 
 
 def test_secrets() -> None:

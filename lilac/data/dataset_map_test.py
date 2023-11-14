@@ -1,26 +1,29 @@
 """Tests for dataset.map()."""
 
 import inspect
-from datetime import datetime
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Literal, Optional
 
 import pytest
-from freezegun import freeze_time
+from distributed import Client, LocalCluster
 from typing_extensions import override
 
+from .. import tasks
 from ..schema import PATH_WILDCARD, VALUE_KEY, Field, Item, MapInfo, RichData, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from ..sources.source_registry import clear_source_registry, register_source
+from ..test_utils import (
+  TEST_TIME,
+  allow_any_datetime,
+)
 from .dataset import DatasetManifest
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
+  TestDaskLogger,
   TestDataMaker,
   TestSource,
   enriched_item,
 )
-
-TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
 
 
 class TestFirstCharSignal(TextSignal):
@@ -37,6 +40,12 @@ class TestFirstCharSignal(TextSignal):
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
+  dask_cluster = LocalCluster(n_workers=2, threads_per_worker=2, processes=False)
+  dask_client = Client(dask_cluster)
+  tasks._TASK_MANAGER = tasks.TaskManager(dask_client=dask_client)
+
+  allow_any_datetime(DatasetManifest)
+
   # Setup.
   clear_signal_registry()
   register_source(TestSource)
@@ -48,9 +57,11 @@ def setup_teardown() -> Iterable[None]:
   clear_source_registry()
   clear_signal_registry()
 
+  dask_client.shutdown()
 
-@freeze_time(TEST_TIME)
-def test_map(make_test_data: TestDataMaker) -> None:
+
+@pytest.mark.parametrize('num_jobs', [1, 2])
+def test_map(num_jobs: Literal[1, 2], make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   signal = TestFirstCharSignal()
@@ -60,7 +71,7 @@ def test_map(make_test_data: TestDataMaker) -> None:
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_path='output_text', combine_columns=False)
+  dataset.map(_map_fn, output_path='output_text', combine_columns=False, num_jobs=num_jobs)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -78,7 +89,9 @@ def test_map(make_test_data: TestDataMaker) -> None:
         'output_text': field(
           fields={'result': 'string'},
           map=MapInfo(
-            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
           ),
         ),
       }
@@ -102,46 +115,58 @@ def test_map(make_test_data: TestDataMaker) -> None:
   ]
 
 
-@freeze_time(TEST_TIME)
-def test_map_continuation(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{'id': 0, 'text': 'a sentence'}, {'id': 1, 'text': 'b sentence'}])
+@pytest.mark.parametrize('num_jobs', [1, 2])
+def test_map_continuation(
+  num_jobs: Literal[1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
+) -> None:
+  dataset = make_test_data(
+    [
+      {'id': 0, 'text': 'a sentence'},
+      {'id': 1, 'text': 'b sentence'},
+      {'id': 2, 'text': 'c sentence'},
+    ]
+  )
 
-  first_run = True
-  map_call_ids = []
-
-  def _map_fn(row: Item) -> Item:
-    nonlocal first_run, map_call_ids
-    map_call_ids.append(row['id'])
+  def _map_fn(row: Item, first_run: bool) -> Item:
+    test_dask_logger.log_event(row['id'])
 
     if first_run and row['id'] == 1:
       raise ValueError('Throwing')
 
     return row['id']
 
-  # Write the output to a new column.
-  with pytest.raises(ValueError, match='Throwing'):
-    dataset.map(_map_fn, output_path='map_id', combine_columns=False)
+  def _map_fn_1(row: Item) -> Item:
+    return _map_fn(row, first_run=True)
 
-  # Map should be called twice. The second time it throws.
-  assert map_call_ids == [0, 1]
+  def _map_fn_2(row: Item) -> Item:
+    return _map_fn(row, first_run=False)
+
+  # Write the output to a new column.
+  with pytest.raises(Exception):
+    dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+
   # The schema should not reflect the output of the map as it didn't finish.
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema({'text': 'string', 'id': 'int32'}),
-    num_items=2,
+    num_items=3,
     source=TestSource(),
   )
   # The rows should not reflect the output of the unfinished map.
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [{'text': 'a sentence', 'id': 0}, {'text': 'b sentence', 'id': 1}]
+  assert rows == [
+    {'text': 'a sentence', 'id': 0},
+    {'text': 'b sentence', 'id': 1},
+    {'text': 'c sentence', 'id': 2},
+  ]
 
-  first_run = False
-  map_call_ids = []
-  dataset.map(_map_fn, output_path='map_id', combine_columns=False)
+  test_dask_logger.clear_logs()
 
-  # Map should only be called one more time for the remaining row id.
-  assert map_call_ids == [1]
+  dataset.map(_map_fn_2, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+
+  # The row_id=1 should be called for the continuation.
+  assert 1 in test_dask_logger.get_logs()
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -153,12 +178,12 @@ def test_map_continuation(make_test_data: TestDataMaker) -> None:
         'map_id': field(
           dtype='int64',
           map=MapInfo(
-            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
+            fn_name='_map_fn_2', fn_source=inspect.getsource(_map_fn_2), date_created=TEST_TIME
           ),
         ),
       }
     ),
-    num_items=2,
+    num_items=3,
     source=TestSource(),
   )
 
@@ -166,38 +191,48 @@ def test_map_continuation(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {'text': 'a sentence', 'id': 0, 'map_id': 0},
     {'text': 'b sentence', 'id': 1, 'map_id': 1},
+    {'text': 'c sentence', 'id': 2, 'map_id': 2},
   ]
 
 
-@freeze_time(TEST_TIME)
-def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{'id': 0, 'text': 'a sentence'}, {'id': 1, 'text': 'b sentence'}])
+@pytest.mark.parametrize('num_jobs', [1, 2])
+def test_map_continuation_overwrite(
+  num_jobs: Literal[1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
+) -> None:
+  dataset = make_test_data(
+    [
+      {'id': 0, 'text': 'a sentence'},
+      {'id': 1, 'text': 'b sentence'},
+      {'id': 2, 'text': 'c sentence'},
+    ]
+  )
 
-  first_run = True
-  map_call_ids = []
-
-  def _map_fn(row: Item) -> Item:
-    nonlocal first_run, map_call_ids
-    map_call_ids.append(row['id'])
+  def _map_fn(row: Item, first_run: bool) -> Item:
+    test_dask_logger.log_event(row['id'])
 
     if first_run and row['id'] == 1:
       raise ValueError('Throwing')
 
     return row['id']
 
+  def _map_fn_1(row: Item) -> Item:
+    return _map_fn(row, first_run=True)
+
+  def _map_fn_2(row: Item) -> Item:
+    return _map_fn(row, first_run=False)
+
   # Write the output to a new column.
-  with pytest.raises(ValueError, match='Throwing'):
-    dataset.map(_map_fn, output_path='map_id', combine_columns=False)
+  with pytest.raises(Exception):
+    dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
 
-  # Map should be called twice. The second time it throws.
-  assert map_call_ids == [0, 1]
+  test_dask_logger.clear_logs()
 
-  first_run = False
-  map_call_ids = []
-  dataset.map(_map_fn, output_path='map_id', combine_columns=False, overwrite=True)
+  dataset.map(
+    _map_fn_2, output_path='map_id', combine_columns=False, overwrite=True, num_jobs=num_jobs
+  )
 
-  # Map should be called again for both ids.
-  assert map_call_ids == [0, 1]
+  # Map should be called for all ids.
+  assert sorted(test_dask_logger.get_logs()) == [0, 1, 2]
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -209,12 +244,12 @@ def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
         'map_id': field(
           dtype='int64',
           map=MapInfo(
-            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
+            fn_name='_map_fn_2', fn_source=inspect.getsource(_map_fn_2), date_created=TEST_TIME
           ),
         ),
       }
     ),
-    num_items=2,
+    num_items=3,
     source=TestSource(),
   )
 
@@ -222,10 +257,10 @@ def test_map_continuation_overwrite(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {'text': 'a sentence', 'id': 0, 'map_id': 0},
     {'text': 'b sentence', 'id': 1, 'map_id': 1},
+    {'text': 'c sentence', 'id': 2, 'map_id': 2},
   ]
 
 
-@freeze_time(TEST_TIME)
 def test_map_overwrite(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}])
 
@@ -270,7 +305,6 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
   assert rows == [{'text': 'a', 'map_text': '1a'}, {'text': 'b', 'map_text': '1b'}]
 
 
-@freeze_time(TEST_TIME)
 def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
@@ -309,7 +343,6 @@ def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
   ]
 
 
-@freeze_time(TEST_TIME)
 def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence', 'extra': 1}, {'text': 'b sentence', 'extra': 2}])
 
@@ -371,7 +404,6 @@ def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
   ]
 
 
-@freeze_time(TEST_TIME)
 def test_map_chained(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
@@ -418,7 +450,6 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
   )
 
 
-@freeze_time(TEST_TIME)
 def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
@@ -472,7 +503,6 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
   ]
 
 
-@freeze_time(TEST_TIME)
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 

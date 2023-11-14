@@ -610,7 +610,7 @@ class Dataset(abc.ABC):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    task_step_id: Optional[TaskStepId] = None,
+    num_jobs: int = 1,
   ) -> Iterable[Item]:
     """Maps a function over all rows in the dataset and writes the result to a new column.
 
@@ -626,7 +626,9 @@ class Dataset(abc.ABC):
         reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
         fields.
       resolve_span: Whether to resolve the spans into text before calling the map function.
-      task_step_id: The task step id if this is running in a task.
+      num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
+        jobs will correspond to the number of processors.. If `num_jobs` is greater than the number
+        of processors, it split the work into `num_jobs` and distribute amongst processors.
 
     Returns:
       An iterable of items that are the result of map. The result item does not have the column name

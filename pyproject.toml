@@ -84,6 +84,10 @@ llama-index = { version = "^0.8.38", optional = true }
 # For HDBScan to reduce dimensionality before running clustering.
 umap-learn = { version = "^0.5.4" }
 tiktoken = "^0.5.1"
+# nest-asyncio is required so that asyncio operations can be executed from within a Jupyter
+# notebook.
+# https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
+nest-asyncio = "^1.5.8"
 
 [tool.poetry.extras]
 all = [

@@ -11,6 +11,7 @@ import pathlib
 import re
 import shutil
 import sqlite3
+import tempfile
 import threading
 from contextlib import closing
 from datetime import datetime
@@ -81,7 +82,7 @@ from ..signals.concept_scorer import ConceptSignal
 from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
-from ..tasks import TaskStepId, progress
+from ..tasks import TaskStepId, get_is_dask_worker, get_task_manager, progress
 from ..utils import (
   DebugTimer,
   delete_file,
@@ -279,6 +280,22 @@ class DatasetDuckDB(Dataset):
 
       add_project_dataset_config(dataset_config, self.project_dir)
 
+  def __getstate__(self) -> dict[str, Any]:
+    """Return the state to pickle. This is necessary so we can pickle the dataset when using dask.
+
+    This serializes the arguments to the constructor only as they are used to unpickle the dataset.
+    """
+    return {
+      'namespace': self.namespace,
+      'dataset_name': self.dataset_name,
+      'vector_store': self.vector_store,
+      'project_dir': self.project_dir,
+    }
+
+  def __setstate__(self, state: dict[str, Any]) -> None:
+    """Unpickle the dataset. We go through the constructor."""
+    self.__init__(**state)  # type: ignore
+
   @override
   def delete(self) -> None:
     """Deletes the dataset."""
@@ -417,8 +434,13 @@ class DatasetDuckDB(Dataset):
       + [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
     )
     view_or_table = 'TABLE'
-    use_views = env('DUCKDB_USE_VIEWS', 0) or 0
-    if int(use_views):
+    # When in a dask worker, always use views to reduce memory overhead.
+    if get_is_dask_worker():
+      use_views = True
+    else:
+      use_views = bool(env('DUCKDB_USE_VIEWS', 0) or 0)
+
+    if use_views:
       view_or_table = 'VIEW'
     sql_cmd = f"""
       CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})
@@ -2033,11 +2055,8 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    task_step_id: Optional[TaskStepId] = None,
+    num_jobs: int = 1,
   ) -> Iterable[Item]:
-    manifest = self.manifest()
-    schema = manifest.data_schema
-
     if output_path:
       output_path = normalize_path(output_path)
       if len(output_path) > 1:
@@ -2049,17 +2068,145 @@ class DatasetDuckDB(Dataset):
 
       output_column = output_path[0]
 
+      manifest = self.manifest()
       if manifest.data_schema.has_field(output_path):
         if overwrite:
           field = manifest.data_schema.get_field(output_path)
           if field.map is None:
             raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
+          # Delete the parquet file and map manifest.
+          parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
+          parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
+          delete_file(parquet_filepath)
+
+          map_manifest_filepath = os.path.join(
+            self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
+          )
+          delete_file(map_manifest_filepath)
+
         else:
           raise ValueError(
             f'Cannot map to path "{output_path}" which already exists in the dataset.'
           )
     else:
       output_column = map_fn.__name__
+
+    num_items = self.manifest().num_items + 1
+    num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
+    job_chunk_size = math.ceil(num_items / num_jobs)
+    # Get ranges for each worker.
+    job_ranges = []
+    for i in range(num_jobs):
+      start = i * job_chunk_size
+      end = min((i + 1) * job_chunk_size, num_items)
+      job_ranges.append((start, end))
+
+    # When the map is being written to a column, use the cache dir for restarts. Otherwise, create
+    # a temporary output file that will get cleaned up.
+    tmp_dir: Optional[tempfile.TemporaryDirectory] = None
+    if output_path:
+      cache_dir = get_lilac_cache_dir(self.project_dir)
+    else:
+      tmp_dir = tempfile.TemporaryDirectory()
+      cache_dir = tmp_dir.name
+
+    shard_cache_dir = os.path.join(cache_dir, self.namespace, self.dataset_name)
+
+    task_ids = []
+    shard_output_filepaths = []
+    for i, job_range in enumerate(job_ranges):
+      shard_output_filepath = _map_cache_filepath(shard_cache_dir, job_range, output_path)
+      shard_prefix = f'[{i+1}/{num_jobs}]' if num_jobs != 1 else ''
+      output_col_suffix = f' to "{output_column}"' if output_path else ''
+      task_id = get_task_manager().task_id(
+        name=f'[{self.namespace}/{self.dataset_name}]{shard_prefix} map '
+        f'"{map_fn.__name__}"{output_col_suffix}',
+      )
+      get_task_manager().execute(
+        task_id,
+        self._map_worker,
+        map_fn,
+        job_range,
+        shard_output_filepath,
+        output_column,
+        input_paths,
+        overwrite,
+        combine_columns,
+        resolve_span,
+        (task_id, 0),
+      )
+      task_ids.append(task_id)
+      shard_output_filepaths.append(shard_output_filepath)
+
+    # Wait for the tasks to finish before reading the outputs.
+    get_task_manager().wait(task_ids)
+
+    # Merge all the shard outputs.
+    jsonl_view_name = 'tmp_output'
+    tmp_con = duckdb.connect(database=':memory:')
+    tmp_con.execute(
+      f"""
+      CREATE VIEW {jsonl_view_name} as (
+        SELECT * FROM read_json_auto(
+          {shard_output_filepaths},
+          IGNORE_ERRORS=true,
+          FORMAT='newline_delimited'
+        )
+      );
+    """
+    )
+    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
+    if output_path:
+      # Create the source schema in prepare to share it between process and source_schema.
+      output_schema = arrow_schema_to_schema(reader.schema)
+      output_schema.fields[output_column].map = MapInfo(
+        fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
+      )
+
+      parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
+      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
+      tmp_con.execute(f"COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);")
+
+      del output_schema.fields[ROWID]
+      tmp_con.close()
+
+      # Write the map data to the root of the dataset.
+      map_manifest_filepath = os.path.join(
+        self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
+      )
+      map_manifest = MapManifest(
+        files=[parquet_filename],
+        data_schema=output_schema,
+        parquet_id=output_column,
+        py_version=metadata.version('lilac'),
+      )
+      with open_file(map_manifest_filepath, 'w') as f:
+        f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
+
+      log(f'Wrote map output to {parquet_filepath}')
+
+    return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
+
+  def _map_worker(
+    self,
+    map_fn: Callable[[Item], Optional[Item]],
+    job_range: tuple[int, int],
+    shard_output_filepath: str,
+    output_column: str,
+    input_paths: Optional[Sequence[Path]] = None,
+    overwrite: bool = False,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> None:
+    manifest = self.manifest()
+    schema = manifest.data_schema
+
+    assert shard_output_filepath is not None
+    os.makedirs(os.path.dirname(shard_output_filepath), exist_ok=True)
+    # Overwrite the file if overwrite is True.
+    if overwrite:
+      open(shard_output_filepath, 'w').close()
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
@@ -2106,21 +2253,29 @@ class DatasetDuckDB(Dataset):
     con = self.con.cursor()
 
     use_jsonl_cache = False
-    jsonl_cache_filepath: Optional[str] = None
-    if output_path:
-      jsonl_cache_filepath = _map_cache_filepath(
-        self.project_dir, self.namespace, self.dataset_name, output_path
-      )
-      if not overwrite and os.path.exists(jsonl_cache_filepath):
-        with open_file(jsonl_cache_filepath, 'r') as f:
-          # Read the first line of the file
-          first_line = f.readline()
+    if not overwrite and os.path.exists(shard_output_filepath):
+      with open_file(shard_output_filepath, 'r') as f:
+        # Read the first line of the file
+        first_line = f.readline()
 
-        # Don't use the cache if it's empty. This can happen if the first call to map() throws.
-        use_jsonl_cache = True if first_line.strip() else False
+      # Don't use the cache if it's empty. This can happen if the first call to map() throws.
+      use_jsonl_cache = True if first_line.strip() else False
 
     def _rows() -> Iterable[Item]:
       nonlocal select_queries, con
+
+      # Create a view for the work of the shard before anti-joining.
+      select_queries_sql = ', '.join(select_queries)
+      con.execute(
+        f"""
+        CREATE OR REPLACE VIEW t_shard as (
+          SELECT * FROM t
+          ORDER BY {ROWID}
+          LIMIT {job_range[1] - job_range[0]}
+          OFFSET {job_range[0]}
+        );
+      """
+      )
 
       # Anti-join removes rows that are already in the cache.
       anti_join = ''
@@ -2128,17 +2283,18 @@ class DatasetDuckDB(Dataset):
         anti_join = f"""
           ANTI JOIN (
             SELECT * FROM read_json_auto(
-              '{jsonl_cache_filepath}',
+              '{shard_output_filepath}',
               IGNORE_ERRORS=true,
               format='newline_delimited')) as cache
-          ON t.{ROWID} = cache.{ROWID}
+          ON t_shard.{ROWID} = cache.{ROWID}
         """
       result = con.execute(
         f"""
-        SELECT {ROWID}, {', '.join(select_queries)} FROM t
+        SELECT {ROWID}, {select_queries_sql} FROM t_shard
         {anti_join}
       """
       )
+
       while True:
         df_chunk = result.fetch_df_chunk()
         if df_chunk.empty:
@@ -2181,77 +2337,14 @@ class DatasetDuckDB(Dataset):
         step_description=f'Computing map over {input_paths}',
       )
 
-    if output_path:
-      # Use a local disk filesystem.
-      fs = fsspec.filesystem('file')
-      assert jsonl_cache_filepath is not None
-      jsonl_filepath = jsonl_cache_filepath
+    # Use a local disk filesystem.
+    fs = fsspec.filesystem('file')
+    write_mode = 'a'
 
-      os.makedirs(os.path.dirname(jsonl_filepath), exist_ok=True)
-      # Overwrite the file if overwrite is True.
-      if overwrite:
-        open(jsonl_filepath, 'w').close()
-
-      duckdb_filepath = jsonl_filepath
-      write_mode = 'a'
-    else:
-      # Write the output rows to a temporary file to avoid writing to disk as these results are not
-      # cached.
-      fs = fsspec.filesystem('memory')
-      jsonl_filepath = 'tmp.jsonl'
-      duckdb_filepath = f'memory://{jsonl_filepath}'
-      write_mode = 'w'
-
-    with fs.open(jsonl_filepath, write_mode) as file:
+    with fs.open(shard_output_filepath, write_mode) as file:
       for item in outputs:
         json.dump(item, file)
         file.write('\n')
-
-    jsonl_view_name = 'tmp_output'
-    tmp_con = duckdb.connect(database=':memory:')
-    tmp_con.register_filesystem(fs)
-    tmp_con.execute(
-      f"""
-      CREATE VIEW {jsonl_view_name} as (
-        SELECT * FROM read_json_auto(
-          '{duckdb_filepath}',
-          IGNORE_ERRORS=true,
-          FORMAT='newline_delimited'
-        )
-      );
-    """
-    )
-    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
-    if output_path:
-      # Create the source schema in prepare to share it between process and source_schema.
-      output_schema = arrow_schema_to_schema(reader.schema)
-      output_schema.fields[output_column].map = MapInfo(
-        fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
-      )
-
-      parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
-      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
-      tmp_con.execute(f"COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);")
-
-      del output_schema.fields[ROWID]
-      tmp_con.close()
-
-      # Write the map data to the root of the dataset.
-      map_manifest_filepath = os.path.join(
-        self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
-      )
-      map_manifest = MapManifest(
-        files=[parquet_filename],
-        data_schema=output_schema,
-        parquet_id=output_column,
-        py_version=metadata.version('lilac'),
-      )
-      with open_file(map_manifest_filepath, 'w') as f:
-        f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
-
-      log(f'Wrote map output to {parquet_filepath}')
-
-    return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
 
   @override
   def to_json(
@@ -2437,12 +2530,20 @@ def _signal_dir(enriched_path: PathTuple) -> str:
 
 
 def _map_cache_filepath(
-  project_dir: Union[str, pathlib.Path], namespace: str, dataset_name: str, output_path: Path
+  cache_dir: Union[str, pathlib.Path],
+  worker_range: tuple[int, int],
+  output_path: Optional[Path] = None,
 ) -> str:
   """Get the filepath for a map function's cache file."""
-  filename = '.'.join(normalize_path(output_path))
+  if output_path:
+    filename_prefix = '.'.join(normalize_path(output_path))
+  else:
+    filename_prefix = 'map_tmp'
+
+  worker_range_suffix = f'.{worker_range[0]}-{worker_range[1]}'
   return os.path.join(
-    get_lilac_cache_dir(project_dir), namespace, dataset_name, f'{filename}.jsonl'
+    cache_dir,
+    f'{filename_prefix}{worker_range_suffix}.jsonl',
   )
 
 
