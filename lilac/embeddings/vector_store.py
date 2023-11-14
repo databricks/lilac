@@ -176,7 +176,10 @@ class VectorDBIndex:
     if rowids is not None:
       span_keys = []
       for rowid in rowids:
-        path_keys = self._rowid_to_path_keys[rowid]
+        path_keys = self._rowid_to_path_keys.get(rowid)
+        if path_keys is None:
+          continue
+
         span_keys.extend(
           [
             (*path_key, i)

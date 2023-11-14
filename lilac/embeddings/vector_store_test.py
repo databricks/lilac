@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from sklearn.preprocessing import normalize
 
-from .vector_store import VectorStore
+from .vector_store import VectorDBIndex, VectorStore
 from .vector_store_hnsw import HNSWVectorStore
 from .vector_store_numpy import NumpyVectorStore
 
@@ -15,7 +15,7 @@ ALL_STORES = [NumpyVectorStore, HNSWVectorStore]
 
 
 @pytest.mark.parametrize('store_cls', ALL_STORES)
-class VectorStoreSuite:
+class VectorStoreImplSuite:
   def test_add_chunks(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
 
@@ -97,3 +97,19 @@ class VectorStoreSuite:
 
     result = store.topk(query, k=10, keys=[('b', 0), ('a', 1), ('a', 0)])
     assert result == [(('a', 1), 9.0), (('a', 0), 8.0), (('b', 0), 3.0)]
+
+
+class VectorStoreWrapperSuite:
+  def test_topk_with_missing_keys(self) -> None:
+    store = VectorDBIndex('numpy')
+    all_spans = [
+      (('a',), [(0, 1), (2, 3)]),
+      (('b',), [(0, 1), (2, 3)]),
+      (('c',), [(0, 1), (2, 3)]),
+    ]
+    embedding = np.array([[8], [9], [3], [10], [11], [12]])
+    store.add(all_spans, embedding)
+
+    query = np.array([1])
+    result = store.topk(query, k=2, rowids=['a', 'b', 'c', 'd'])
+    assert result == [(('c',), 12.0), (('b',), 10.0)]
