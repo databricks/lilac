@@ -644,7 +644,7 @@ class DatasetDuckDB(Dataset):
         step_description=f'Computing signal {signal} over {input_path}',
       )
 
-    parquet_filename, _ = write_items_to_parquet(
+    parquet_filename = write_items_to_parquet(
       items=output_items,
       output_dir=output_dir,
       schema=signal_schema,

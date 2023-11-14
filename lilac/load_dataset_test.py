@@ -60,14 +60,13 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   source = TestSource()
   setup_mock = mocker.spy(TestSource, 'setup')
 
-  output_dir, num_items = process_source(
+  output_dir = process_source(
     tmp_path, DatasetConfig(namespace='test_namespace', name='test_dataset', source=source)
   )
 
   assert setup_mock.call_count == 1
 
   assert output_dir == os.path.join(tmp_path, DATASETS_DIR_NAME, 'test_namespace', 'test_dataset')
-  assert num_items == 2
 
   source_manifest = read_source_manifest(output_dir)
 

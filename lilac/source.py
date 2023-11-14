@@ -8,6 +8,7 @@ import pyarrow as pa
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, model_serializer
 
+from .data.dataset import SourceManifest
 from .schema import (
   Field,
   ImageInfo,
@@ -96,6 +97,15 @@ class Source(BaseModel):
     Args:
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
+    """
+    raise NotImplementedError
+
+  def fast_process(self) -> SourceManifest:
+    """Process the source, bypassing python object creation.
+
+    This shortcut exists for sources where we can download the dataset and process it entirely
+    through DuckDB queries. This avoids the overhead of creating python objects, but loses the
+    flexibility of an item stream API.
     """
     raise NotImplementedError
 

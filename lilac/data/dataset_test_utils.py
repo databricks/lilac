@@ -77,7 +77,7 @@ def _write_items(
   for i, item in enumerate(items):
     item[ROWID] = str(i + 1)
 
-  simple_parquet_files, _ = write_items_to_parquet(
+  simple_parquet_files = write_items_to_parquet(
     items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1
   )
   manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema, source=TestSource())
