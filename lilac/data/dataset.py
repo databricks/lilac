@@ -54,8 +54,7 @@ from ..signal import (
   resolve_signal,
 )
 from ..signals.concept_scorer import ConceptSignal
-from ..source import Source
-from ..sources.source_registry import resolve_source
+from ..source import Source, resolve_source
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.

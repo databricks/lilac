@@ -8,7 +8,7 @@ from .langsmith import LangSmithSource
 from .llama_index_docs_source import LlamaIndexDocsSource
 from .pandas_source import PandasSource
 from .parquet_source import ParquetSource
-from .source_registry import register_source
+from ..source import register_source
 from .sqlite_source import SQLiteSource
 
 

@@ -22,7 +22,7 @@ from ..project import create_project_and_set_env, read_project_config
 from ..schema import Field, Item, RichData, field, lilac_embedding
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..source import Source, SourceSchema
-from ..sources.source_registry import clear_source_registry, register_source
+from ..source import clear_source_registry, register_source
 
 SIMPLE_ITEMS: list[Item] = [
   {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},

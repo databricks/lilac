@@ -1,6 +1,6 @@
 """Interface for implementing a source."""
 
-from typing import Any, Callable, ClassVar, Iterable, Optional, Type
+from typing import Any, Callable, ClassVar, Iterable, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -8,7 +8,6 @@ import pyarrow as pa
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, SerializeAsAny, field_validator, model_serializer
 
-import lilac.sources.source_registry
 
 from .schema import (
   Field,
@@ -93,7 +92,9 @@ class Source(BaseModel):
     pass
 
   def process(self) -> Iterable[Item]:
-    """Process the source.
+    """Process the source, yielding individual rows of the source data.
+
+    This method exists to facilitate customized sources.
 
     Args:
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
@@ -101,7 +102,7 @@ class Source(BaseModel):
     """
     raise NotImplementedError
 
-  def fast_process(self) -> SourceManifest:
+  def fast_process(self) -> 'SourceManifest':
     """Process the source, bypassing python object creation.
 
     This shortcut exists for sources where we can download the dataset and process it entirely
@@ -118,7 +119,7 @@ class NoSource(Source):
 
 
 class SourceManifest(BaseModel):
-  """The manifest that describes the dataset run, including schema and parquet files."""
+  """The raw dataset contents, converted to Parquet, prior to any Lilac-specific annotations."""
 
   # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
   files: list[str]
@@ -133,7 +134,7 @@ class SourceManifest(BaseModel):
   @classmethod
   def parse_source(cls, source: dict) -> Source:
     """Parse a source to its specific subclass instance."""
-    return lilac.sources.source_registry.resolve_source(source)
+    return resolve_source(source)
 
 
 def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:
@@ -148,3 +149,46 @@ def schema_from_df(df: pd.DataFrame, index_colname: str) -> SourceSchema:
   return SourceSchema(
     fields={**schema.fields, index_colname: field(dtype=index_dtype)}, num_items=len(df)
   )
+
+
+SOURCE_REGISTRY: dict[str, Type[Source]] = {}
+
+
+def register_source(source_cls: Type[Source]) -> None:
+  """Register a source configuration globally."""
+  if source_cls.name in SOURCE_REGISTRY:
+    raise ValueError(f'Source "{source_cls.name}" has already been registered!')
+
+  SOURCE_REGISTRY[source_cls.name] = source_cls
+
+
+def get_source_cls(source_name: str) -> Optional[Type[Source]]:
+  """Return a registered source given the name in the registry."""
+  return SOURCE_REGISTRY.get(source_name)
+
+
+def registered_sources() -> dict[str, Type[Source]]:
+  """Return all registered sources."""
+  return SOURCE_REGISTRY
+
+
+def resolve_source(source: Union[dict, Source]) -> Source:
+  """Resolve a generic source base class to a specific source class."""
+  if isinstance(source, Source):
+    # The source is already parsed.
+    return source
+
+  source_name = source.get('source_name')
+  if not source_name:
+    raise ValueError('"source_name" needs to be defined in the json dict.')
+
+  source_cls = get_source_cls(source_name)
+  if not source_cls:
+    # Make a metaclass so we get a valid `Source` class.
+    source_cls = type(f'Source_{source_name}', (Source,), {'name': source_name})
+  return source_cls(**source)
+
+
+def clear_source_registry() -> None:
+  """Clear the source registry."""
+  SOURCE_REGISTRY.clear()

@@ -18,8 +18,7 @@ from pydantic import Field as PydanticField
 from .embeddings.embedding import EMBEDDING_SORT_PRIORITIES
 from .schema import Path, PathTuple, normalize_path
 from .signal import Signal, TextEmbeddingSignal, get_signal_by_type, resolve_signal
-from .source import Source
-from .sources.source_registry import resolve_source
+from .source import Source, resolve_source
 
 DEFAULT_EMBEDDING = EMBEDDING_SORT_PRIORITIES[0]
 

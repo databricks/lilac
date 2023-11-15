@@ -22,7 +22,7 @@ from ..schema import (
 )
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
-from ..sources.source_registry import clear_source_registry, register_source
+from ..source import clear_source_registry, register_source
 from . import dataset_utils as dataset_utils_module
 from .dataset import Column, DatasetManifest, GroupsSortBy, SortOrder
 from .dataset_test_utils import (
