@@ -127,6 +127,7 @@ class TestSplitSignal(TextSignal):
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
+      print('text=', text)
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
         lilac_span(text.index(sentence), text.index(sentence) + len(sentence))

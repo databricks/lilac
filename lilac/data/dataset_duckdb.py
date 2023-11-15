@@ -692,6 +692,8 @@ class DatasetDuckDB(Dataset):
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        flat_input = list(flat_input)
+        print('FLAT INPUT', flat_input)
         compute_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
