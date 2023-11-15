@@ -64,10 +64,55 @@ def setup_teardown() -> Iterable[None]:
 def test_map(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
+  def _map_fn(row: Item, job_id: int) -> Item:
+    print('MAPPING OVER', row)
+    return row['text'].upper()
+
+  # Write the output to a new column.
+  dataset.map(_map_fn, output_path='text_upper', combine_columns=False, num_jobs=num_jobs)
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': 'string',
+        'text_upper': field(
+          dtype='string',
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
+    num_items=2,
+    source=TestSource(),
+  )
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'text_upper': 'A SENTENCE',
+    },
+    {
+      'text': 'b sentence',
+      'text_upper': 'B SENTENCE',
+    },
+  ]
+
+
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+def test_map_signal(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
+
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
 
   def _map_fn(row: Item, job_id: int) -> Item:
+    print('MAPPING OVER', row)
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
   # Write the output to a new column.

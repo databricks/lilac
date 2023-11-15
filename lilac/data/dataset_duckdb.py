@@ -16,10 +16,9 @@ import threading
 from contextlib import closing
 from datetime import datetime
 from importlib import metadata
-from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
+from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
-import fsspec
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -56,6 +55,7 @@ from ..schema import (
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
+  AnnotateFn,
   Bin,
   DataType,
   Field,
@@ -163,8 +163,7 @@ class MapFnJobRequest(BaseModel):
   """The job information passed to worker for a map function."""
 
   job_id: int
-  start_idx: int
-  end_idx: int
+  job_count: int
 
 
 class DuckDBSearchUDF(BaseModel):
@@ -522,73 +521,262 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
-  def _select_iterable_values(
-    self, path: PathTuple, data_schema: Schema
-  ) -> Iterable[tuple[str, RichData]]:
+  def _compute_cached(
+    self,
+    transform_fn: Union[Signal, AnnotateFn, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
+    output_path: Optional[PathTuple] = None,
+    unflatten_input_path: Optional[PathTuple] = None,
+    overwrite: Optional[bool] = False,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+    shard_id: Optional[int] = None,
+    shard_count: Optional[int] = None,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> None:
+    manifest = self.manifest()
+
+    num_items = self.manifest().num_items
+    shard_size = math.ceil(num_items / shard_count) if shard_count else num_items
+    shard_start_idx = shard_id * shard_size if shard_id is not None else 0
+    shard_end_idx = (
+      min((shard_id + 1) * shard_size, num_items) if shard_id is not None else num_items
+    )
+
+    output_path = output_path if output_path is not None else (transform_fn.__name__,)
+    shard_cache_filepath = _jsonl_cache_filepath(
+      key=output_path,
+      project_dir=self.project_dir,
+      is_temporary=output_path is None,
+      shard_id=shard_id,
+      shard_count=shard_count,
+    )
+    os.makedirs(os.path.dirname(shard_cache_filepath), exist_ok=True)
+    # Overwrite the file if overwrite is True.
+    if overwrite:
+      open(shard_cache_filepath, 'w').close()
+
     # Fetch the data from DuckDB.
     con = self.con.cursor()
 
-    duckdb_path = self._leaf_path_to_duckdb_path(path, data_schema)
+    use_jsonl_cache = False
+    if not overwrite and os.path.exists(shard_cache_filepath):
+      with open_file(shard_cache_filepath, 'r') as f:
+        # Read the first line of the file
+        first_line = f.readline()
 
-    sql = _select_sql(duckdb_path, flatten=False, unnest=False, empty=False)
-    result = con.execute(
+      # Don't use the cache if it's empty. This can happen if the first call to map() throws.
+      use_jsonl_cache = True if first_line.strip() else False
+
+    column: Optional[Column] = None
+    cols = self._normalize_columns(
+      [unflatten_input_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
+    )
+    select_queries: list[str] = []
+    columns_to_merge: dict[str, dict[str, Column]] = {}
+    for column in cols:
+      path = column.path
+
+      select_sqls: list[str] = []
+      final_col_name = column.alias or _unique_alias(column)
+      if final_col_name not in columns_to_merge:
+        columns_to_merge[final_col_name] = {}
+
+      duckdb_paths = self._column_to_duckdb_paths(column, manifest.data_schema, combine_columns)
+      span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
+
+      for parquet_id, duckdb_path in duckdb_paths:
+        sql = _select_sql(
+          duckdb_path, flatten=False, unnest=False, empty=False, span_from=span_from
+        )
+        temp_column_name = (
+          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
+        )
+        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
+        columns_to_merge[final_col_name][temp_column_name] = column
+
+      if select_sqls:
+        select_queries.append(', '.join(select_sqls))
+
+    if combine_columns:
+      all_columns: dict[str, Column] = {}
+      for col_dict in columns_to_merge.values():
+        all_columns.update(col_dict)
+      columns_to_merge = {'*': all_columns}
+
+    # Create a view for the work of the shard before anti-joining.
+    con.execute(
       f"""
-      SELECT {ROWID}, {sql} as values FROM t
+      CREATE OR REPLACE VIEW t_shard as (
+        SELECT * FROM t
+        ORDER BY {ROWID}
+        LIMIT {shard_end_idx - shard_start_idx}
+        OFFSET {shard_start_idx}
+      );
     """
     )
 
-    while True:
-      df_chunk = result.fetch_df_chunk()
-      if df_chunk.empty:
-        break
-      row_ids = df_chunk[ROWID].tolist()
-      values = df_chunk['values'].tolist()
-      yield from zip(row_ids, values)
+    # Anti-join removes rows that are already in the cache.
+    anti_join = ''
+    if use_jsonl_cache:
+      anti_join = f"""
+        ANTI JOIN (
+          SELECT * FROM read_json_auto(
+            '{shard_cache_filepath}',
+            IGNORE_ERRORS=true,
+            format='newline_delimited')) as cache
+        ON t_shard.{ROWID} = cache.{ROWID}
+      """
+    select_sql = ', '.join(select_queries)
+    result = con.execute(
+      f"""
+      SELECT {ROWID}, {select_sql} FROM t_shard
+      {anti_join}
+    """
+    )
 
-  def _compute_signal_items(
-    self, signal: Signal, path: Path, data_schema: Schema
-  ) -> Iterable[Item]:
-    source_path = normalize_path(path)
+    def _rows() -> Iterable[Item]:
+      nonlocal result
 
-    source_values = self._select_iterable_values(source_path, data_schema)
+      while True:
+        df_chunk = result.fetch_df_chunk()
+        if df_chunk.empty:
+          break
+
+        for final_col_name, temp_columns in columns_to_merge.items():
+          for temp_col_name, column in temp_columns.items():
+            if combine_columns:
+              dest_path = _col_destination_path(column)
+              spec = _split_path_into_subpaths_of_lists(dest_path)
+              df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
+
+            # If the temp col name is the same as the final name, we can skip merging. This happens
+            # when we select a source leaf column.
+            if temp_col_name == final_col_name:
+              continue
+
+            if final_col_name not in df_chunk:
+              df_chunk[final_col_name] = df_chunk[temp_col_name]
+            else:
+              df_chunk[final_col_name] = merge_series(
+                df_chunk[final_col_name], df_chunk[temp_col_name]
+              )
+            del df_chunk[temp_col_name]
+
+        if combine_columns:
+          # Since we aliased every column to `*`, the object will have only '*' as the key. We need
+          # to elevate the all the columns under '*'.
+          df_chunk = pd.DataFrame.from_records(df_chunk['*'])
+
+        yield from df_chunk.to_dict('records')
 
     # Tee the results so we can zip the row ids with the outputs.
-    inputs_0, inputs_1 = itertools.tee(source_values, 2)
+    inputs_0, inputs_1 = itertools.tee(_rows(), 2)
 
     # Tee the values so we can use them for the deep flatten and the deep unflatten.
     input_values = (value for (_, value) in inputs_0)
     input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
-    if isinstance(signal, VectorSignal):
-      inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
-      embedding_signal = signal
-      vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
-      flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
-      signal_out = sparse_to_dense_compute(
-        iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
-      )
+    if unflatten_input_path:
+      assert unflatten_input_path is not None
+      source_path = unflatten_input_path
+
+      if isinstance(transform_fn, VectorSignal):
+        signal = transform_fn
+        inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
+        embedding_signal = signal
+        vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
+        flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
+        compute_out = sparse_to_dense_compute(
+          iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
+        )
+      elif isinstance(transform_fn, Signal):
+        signal = transform_fn
+        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        compute_out = sparse_to_dense_compute(
+          flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
+        )
+      else:
+        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        compute_out = sparse_to_dense_compute(
+          flat_input, lambda x: transform_fn(cast(Iterable[RichData], x))
+        )
+
+      spec = _split_path_into_subpaths_of_lists(output_path or ())
+      nested_out = deep_unflatten(compute_out, input_values_1)
+      output_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
+
+      # signal_col = Column(path=source_path, alias='value', signal_udf=signal)
+      # enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
+
     else:
-      flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-      signal_out = sparse_to_dense_compute(
-        flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
+      assert not isinstance(transform_fn, Signal)
+      output_items = transform_fn(inputs_0)
+      output_col = output_path[-1]
+      output_items = ({output_col: item} for item in output_items)
+
+    print('WRITING CACHE FILE TO:', shard_cache_filepath)
+    with open_file(shard_cache_filepath, 'a') as file:
+      for row, item in zip(inputs_1, output_items):
+        if item is None:
+          continue
+        rowid = row[ROWID]
+        json.dump({**item, ROWID: rowid}, file)
+        print('DUMPING', {**item, ROWID: rowid})
+        file.write('\n')
+
+  def _reshard_cache(
+    self,
+    output_path: PathTuple,
+    parquet_filename_prefix: Optional[str] = None,
+    shard_count: Optional[int] = None,
+    disable_write_parquet=False,
+  ) -> tuple[pa.RecordBatchReader, Schema, Optional[str]]:
+    shard_output_filepaths = [
+      _jsonl_cache_filepath(
+        key=output_path,
+        project_dir=self.project_dir,
+        shard_id=i if shard_count else None,
+        shard_count=shard_count,
       )
+      for i in range(shard_count or 1)
+    ]
 
-    nested_out = deep_unflatten(signal_out, input_values_1)
+    for shard in shard_output_filepaths:
+      with open_file(shard) as f:
+        print('shard', shard, 'has', f.readlines(), 'lines')
 
-    signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-    enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
-    spec = _split_path_into_subpaths_of_lists(enriched_path)
+    # Merge all the shard outputs.
+    jsonl_view_name = 'tmp_output'
+    tmp_con = duckdb.connect(database=':memory:')
+    tmp_con.execute(
+      f"""
+      CREATE VIEW {jsonl_view_name} as (
+        SELECT * FROM read_json_auto(
+          {shard_output_filepaths},
+          IGNORE_ERRORS=true,
+          FORMAT='newline_delimited'
+        )
+      );
+    """
+    )
 
-    enriched_signal_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
+    parquet_filepath: Optional[str] = None
+    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
+    if not disable_write_parquet:
+      # Create the source schema in prepare to share it between process and source_schema.
 
-    try:
-      for (rowid, _), item in zip(inputs_1, enriched_signal_items):
-        yield {**item, ROWID: rowid}
-    except Exception as e:
-      raise ValueError(
-        'The signal generated a different number of values than was input. '
-        'Please yield `None` in signals when there is no value.'
-      ) from e
+      # The final parquet file is not sharded.
+      parquet_filename = get_parquet_filename(
+        parquet_filename_prefix or output_path[-1], shard_index=0, num_shards=1
+      )
+      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
+      tmp_con.execute(f"COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);")
+
+      tmp_con.close()
+
+    output_schema = arrow_schema_to_schema(reader.schema)
+    del output_schema.fields[ROWID]
+    return reader, output_schema, parquet_filepath
 
   @override
   def compute_signal(
@@ -617,12 +805,20 @@ class DatasetDuckDB(Dataset):
       task_step_id = ('', 0)
 
     signal.setup()
-    output_items = self._compute_signal_items(signal, path, manifest.data_schema)
 
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
-    enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
+    output_path = _col_destination_path(signal_col, is_computed_signal=True)
 
-    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
+    self._compute_cached(
+      transform_fn=signal, output_path=output_path, unflatten_input_path=input_path, overwrite=False
+    )
+
+    reader, output_schema, parquet_filepath = self._reshard_cache(
+      output_path=output_path, parquet_filename_prefix='data'
+    )
+    assert parquet_filepath is not None
+    parquet_filename = os.path.basename(parquet_filepath)
+    output_dir = os.path.dirname(parquet_filepath)
 
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
     # If the signal manifest already exists, delete it as it will be rewritten after the new signal
@@ -636,13 +832,121 @@ class DatasetDuckDB(Dataset):
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     # Add progress.
+    # if task_step_id is not None:
+    #   output_items = progress(
+    #     output_items,
+    #     task_step_id=task_step_id,
+    #     estimated_len=manifest.num_items,
+    #     step_description=f'Computing signal {signal} over {input_path}',
+    #   )
+
+    # parquet_filename, _ = write_items_to_parquet(
+    #   items=output_items,
+    #   output_dir=output_dir,
+    #   schema=signal_schema,
+    #   filename_prefix='data',
+    #   shard_index=0,
+    #   num_shards=1,
+    # )
+
+    signal_manifest = SignalManifest(
+      files=[parquet_filename],
+      data_schema=signal_schema,
+      signal=signal,
+      enriched_path=input_path,
+      parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
+      py_version=metadata.version('lilac'),
+    )
+    with open_file(signal_manifest_filepath, 'w') as f:
+      f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
+
+    log(f'Wrote signal output to {output_dir}')
+
+  @override
+  def annotate(
+    self,
+    annotate_fn: Union[Signal, AnnotateFn],
+    path: Path,
+    output_column: Optional[str] = None,
+    overwrite: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> None:
+    if isinstance(annotate_fn, TextEmbeddingSignal):
+      return self.compute_embedding(annotate_fn.name, path, task_step_id)
+
+    if not output_column:
+      output_column = annotate_fn.__name__
+
+    input_path = normalize_path(path)
+
+    if isinstance(annotate_fn, Signal):
+      signal = annotate_fn
+      # Update the project config before computing the signal.
+      add_project_signal_config(
+        self.namespace,
+        self.dataset_name,
+        SignalConfig(path=input_path, signal=signal),
+        self.project_dir,
+      )
+      signal.setup()
+
+      signal_col = Column(path=input_path, alias='value', signal_udf=signal)
+      enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
+    else:
+      enriched_path = (*path, output_column)
+
+    manifest = self.manifest()
+    field = manifest.data_schema.get_field(input_path)
+    if field.dtype != DataType.STRING:
+      raise ValueError('Cannot compute signal over a non-string field.')
+
+    if task_step_id is None:
+      # Make a dummy task step so we report progress via tqdm.
+      task_step_id = ('', 0)
+
+    output_items = self._compute_annotate_items(
+      annotate_fn, path, manifest.data_schema, output_column=output_column
+    )
+
+    cache_output_filepath = _jsonl_cache_filepath(
+      key=enriched_path,
+      project_dir=self.project_dir,
+      is_temporary=output_column is not None,
+    )
+    # Overwrite the file if overwrite is True.
+    if overwrite:
+      open(cache_output_filepath, 'w').close()
+
+    with open_file(cache_output_filepath, 'a') as file:
+      for item in output_items:
+        json.dump(item, file)
+        file.write('\n')
+
+    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # outputs are run.
+    if os.path.exists(signal_manifest_filepath):
+      os.remove(signal_manifest_filepath)
+      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+      # existent file.
+      self.manifest()
+
+    # Add progress.
+    step_description = (
+      f'Annotating {annotate_fn.__name__} over {input_path}'
+      if not isinstance(annotate_fn, Signal)
+      else f'Computing signal {annotate_fn} over {input_path}'
+    )
     if task_step_id is not None:
       output_items = progress(
         output_items,
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
-        step_description=f'Computing signal {signal} over {input_path}',
+        step_description=step_description,
       )
+
+    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     parquet_filename, _ = write_items_to_parquet(
       items=output_items,
@@ -689,7 +993,7 @@ class DatasetDuckDB(Dataset):
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
     signal.setup()
-    output_items = self._compute_signal_items(signal, path, manifest.data_schema)
+    output_items = self._compute_annotate_items(signal, path, manifest.data_schema)
 
     signal_col = Column(path=source_path, alias='value', signal_udf=signal)
 
@@ -2060,7 +2364,6 @@ class DatasetDuckDB(Dataset):
     self,
     map_fn: MapFn,
     output_path: Optional[Path] = None,
-    input_paths: Optional[Sequence[Path]] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -2100,85 +2403,43 @@ class DatasetDuckDB(Dataset):
     else:
       output_column = map_fn.__name__
 
-    num_items = self.manifest().num_items + 1
+    key = (output_column,)
     num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
-    job_chunk_size = math.ceil(num_items / num_jobs)
-    # Get ranges for each worker.
-    job_ranges = []
-    for i in range(num_jobs):
-      start = i * job_chunk_size
-      end = min((i + 1) * job_chunk_size, num_items)
-      job_ranges.append((start, end))
-
-    # When the map is being written to a column, use the cache dir for restarts. Otherwise, create
-    # a temporary output file that will get cleaned up.
-    tmp_dir: Optional[tempfile.TemporaryDirectory] = None
-    if output_path:
-      cache_dir = get_lilac_cache_dir(self.project_dir)
-    else:
-      tmp_dir = tempfile.TemporaryDirectory()
-      cache_dir = tmp_dir.name
-
-    shard_cache_dir = os.path.join(cache_dir, self.namespace, self.dataset_name)
 
     task_ids = []
-    shard_output_filepaths = []
-    for i, job_range in enumerate(job_ranges):
-      shard_output_filepath = _map_cache_filepath(shard_cache_dir, job_range, output_path)
-      shard_prefix = f'[{i+1}/{num_jobs}]' if num_jobs != 1 else ''
-      output_col_suffix = f' to "{output_column}"' if output_path else ''
+    for i in range(num_jobs):
+      output_col_desc_suffix = f' to "{output_column}"' if output_path else ''
       task_id = get_task_manager().task_id(
-        name=f'[{self.namespace}/{self.dataset_name}]{shard_prefix} map '
-        f'"{map_fn.__name__}"{output_col_suffix}',
+        name=f'[{self.namespace}/{self.dataset_name}][{i} / {num_jobs}] map '
+        f'"{map_fn.__name__}"{output_col_desc_suffix}',
       )
-      start_idx, end_idx = job_range
       get_task_manager().execute(
         task_id,
         self._map_worker,
         map_fn,
-        MapFnJobRequest(job_id=i, start_idx=start_idx, end_idx=end_idx),
-        shard_output_filepath,
         output_column,
-        input_paths,
+        i,
+        num_jobs,
         overwrite,
         combine_columns,
         resolve_span,
         (task_id, 0),
       )
       task_ids.append(task_id)
-      shard_output_filepaths.append(shard_output_filepath)
 
     # Wait for the tasks to finish before reading the outputs.
     get_task_manager().wait(task_ids)
 
-    # Merge all the shard outputs.
-    jsonl_view_name = 'tmp_output'
-    tmp_con = duckdb.connect(database=':memory:')
-    tmp_con.execute(
-      f"""
-      CREATE VIEW {jsonl_view_name} as (
-        SELECT * FROM read_json_auto(
-          {shard_output_filepaths},
-          IGNORE_ERRORS=true,
-          FORMAT='newline_delimited'
-        )
-      );
-    """
+    reader, output_schema, parquet_filename = self._reshard_cache(
+      output_path=key, shard_count=num_jobs, disable_write_parquet=output_path is None
     )
-    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
     if output_path:
-      # Create the source schema in prepare to share it between process and source_schema.
-      output_schema = arrow_schema_to_schema(reader.schema)
+      assert parquet_filename is not None
+
+      print('GOT FINAL SCHEMA:', output_schema, output_column)
       output_schema.fields[output_column].map = MapInfo(
         fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
       )
-
-      parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
-      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
-      tmp_con.execute(f"COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);")
-
-      del output_schema.fields[ROWID]
-      tmp_con.close()
 
       # Write the map data to the root of the dataset.
       map_manifest_filepath = os.path.join(
@@ -2193,6 +2454,7 @@ class DatasetDuckDB(Dataset):
       with open_file(map_manifest_filepath, 'w') as f:
         f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
+      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
       log(f'Wrote map output to {parquet_filepath}')
 
     return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
@@ -2200,163 +2462,28 @@ class DatasetDuckDB(Dataset):
   def _map_worker(
     self,
     map_fn: MapFn,
-    job_request: MapFnJobRequest,
-    shard_output_filepath: str,
     output_column: str,
-    input_paths: Optional[Sequence[Path]] = None,
+    job_id: int,
+    job_count: int,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
-    manifest = self.manifest()
-    schema = manifest.data_schema
+    def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
+      for item in items:
+        yield map_fn(item, job_id=job_id)
 
-    assert shard_output_filepath is not None
-    os.makedirs(os.path.dirname(shard_output_filepath), exist_ok=True)
-    # Overwrite the file if overwrite is True.
-    if overwrite:
-      open(shard_output_filepath, 'w').close()
-
-    if task_step_id is None:
-      # Make a dummy task step so we report progress via tqdm.
-      task_step_id = ('', 0)
-
-    if not input_paths:
-      input_paths = [PATH_WILDCARD, ROWID]
-
-    cols = self._normalize_columns(input_paths, schema, combine_columns)
-
-    select_queries: list[str] = []
-
-    columns_to_merge: dict[str, dict[str, Column]] = {}
-    for column in cols:
-      path = column.path
-
-      select_sqls: list[str] = []
-      final_col_name = column.alias or _unique_alias(column)
-      if final_col_name not in columns_to_merge:
-        columns_to_merge[final_col_name] = {}
-
-      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns)
-      span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
-
-      for parquet_id, duckdb_path in duckdb_paths:
-        sql = _select_sql(
-          duckdb_path, flatten=False, unnest=False, empty=False, span_from=span_from
-        )
-        temp_column_name = (
-          final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
-        )
-        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
-        columns_to_merge[final_col_name][temp_column_name] = column
-
-      if select_sqls:
-        select_queries.append(', '.join(select_sqls))
-
-    if combine_columns:
-      all_columns: dict[str, Column] = {}
-      for col_dict in columns_to_merge.values():
-        all_columns.update(col_dict)
-      columns_to_merge = {'*': all_columns}
-
-    con = self.con.cursor()
-
-    use_jsonl_cache = False
-    if not overwrite and os.path.exists(shard_output_filepath):
-      with open_file(shard_output_filepath, 'r') as f:
-        # Read the first line of the file
-        first_line = f.readline()
-
-      # Don't use the cache if it's empty. This can happen if the first call to map() throws.
-      use_jsonl_cache = True if first_line.strip() else False
-
-    def _rows() -> Iterable[Item]:
-      nonlocal select_queries, con
-
-      # Create a view for the work of the shard before anti-joining.
-      select_queries_sql = ', '.join(select_queries)
-      con.execute(
-        f"""
-        CREATE OR REPLACE VIEW t_shard as (
-          SELECT * FROM t
-          ORDER BY {ROWID}
-          LIMIT {job_request.end_idx - job_request.start_idx}
-          OFFSET {job_request.start_idx}
-        );
-      """
-      )
-
-      # Anti-join removes rows that are already in the cache.
-      anti_join = ''
-      if use_jsonl_cache:
-        anti_join = f"""
-          ANTI JOIN (
-            SELECT * FROM read_json_auto(
-              '{shard_output_filepath}',
-              IGNORE_ERRORS=true,
-              format='newline_delimited')) as cache
-          ON t_shard.{ROWID} = cache.{ROWID}
-        """
-      result = con.execute(
-        f"""
-        SELECT {ROWID}, {select_queries_sql} FROM t_shard
-        {anti_join}
-      """
-      )
-
-      while True:
-        df_chunk = result.fetch_df_chunk()
-        if df_chunk.empty:
-          break
-
-        for final_col_name, temp_columns in columns_to_merge.items():
-          for temp_col_name, column in temp_columns.items():
-            if combine_columns:
-              dest_path = _col_destination_path(column)
-              spec = _split_path_into_subpaths_of_lists(dest_path)
-              df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
-
-            # If the temp col name is the same as the final name, we can skip merging. This happens
-            # when we select a source leaf column.
-            if temp_col_name == final_col_name:
-              continue
-
-            if final_col_name not in df_chunk:
-              df_chunk[final_col_name] = df_chunk[temp_col_name]
-            else:
-              df_chunk[final_col_name] = merge_series(
-                df_chunk[final_col_name], df_chunk[temp_col_name]
-              )
-            del df_chunk[temp_col_name]
-
-        if combine_columns:
-          # Since we aliased every column to `*`, the object will have only '*' as the key. We need
-          # to elevate the all the columns under '*'.
-          df_chunk = pd.DataFrame.from_records(df_chunk['*'])
-        yield from df_chunk.to_dict('records')
-
-    outputs = (
-      {ROWID: row[ROWID], output_column: map_fn(row, job_request.job_id)} for row in _rows()
+    self._compute_cached(
+      _map_iterable,
+      output_path=(output_column,),
+      overwrite=overwrite,
+      combine_columns=combine_columns,
+      resolve_span=resolve_span,
+      shard_id=job_id,
+      shard_count=job_count,
+      task_step_id=task_step_id,
     )
-
-    # Add progress.
-    if task_step_id is not None:
-      outputs = progress(
-        outputs,
-        task_step_id=task_step_id,
-        estimated_len=manifest.num_items,
-        step_description=f'Computing map over {input_paths}',
-      )
-
-    # Use a local disk filesystem.
-    fs = fsspec.filesystem('file')
-    write_mode = 'a'
-
-    with fs.open(shard_output_filepath, write_mode) as file:
-      for item in outputs:
-        json.dump(item, file)
-        file.write('\n')
 
   @override
   def to_json(
@@ -2541,21 +2668,47 @@ def _signal_dir(enriched_path: PathTuple) -> str:
   return os.path.join(*path_without_wildcards)
 
 
-def _map_cache_filepath(
-  cache_dir: Union[str, pathlib.Path],
-  worker_range: tuple[int, int],
-  output_path: Optional[Path] = None,
+def _jsonl_cache_filepath(
+  key: Union[list[str], PathTuple],
+  project_dir: Union[str, pathlib.Path],
+  is_temporary: bool = False,
+  shard_id: Optional[int] = None,
+  shard_count: Optional[int] = None,
 ) -> str:
   """Get the filepath for a map function's cache file."""
-  if output_path:
-    filename_prefix = '.'.join(normalize_path(output_path))
+  tmp_dir: Optional[tempfile.TemporaryDirectory] = None
+  if not is_temporary:
+    cache_dir = get_lilac_cache_dir(project_dir)
   else:
-    filename_prefix = 'map_tmp'
+    tmp_dir = tempfile.TemporaryDirectory()
+    cache_dir = tmp_dir.name
 
-  worker_range_suffix = f'.{worker_range[0]}-{worker_range[1]}'
+  filename_prefix = key[-1]
+
+  job_range_suffix = ''
+  if shard_id and shard_count:
+    job_range_suffix = f'.{shard_id:05d}-of-{shard_count:05d}'
+
+  # The key becomes the subdir.
+  print('key=', key)
+  key_subdir = key[0:-1] if len(key) > 1 else None
+  print('CACHE FILEPATH OUTPUT', key)
+  print('cache subdir:', key_subdir)
+  subdir = os.path.join(*key_subdir) if key_subdir else ''
+  print(
+    'subdir=',
+    cache_dir,
+    subdir,
+    ',',
+    f'{filename_prefix}{job_range_suffix}.jsonl',
+    '=',
+    filename_prefix,
+    type(filename_prefix),
+  )
   return os.path.join(
     cache_dir,
-    f'{filename_prefix}{worker_range_suffix}.jsonl',
+    subdir,
+    f'{filename_prefix}{job_range_suffix}.jsonl',
   )
 
 

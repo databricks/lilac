@@ -37,6 +37,7 @@ from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
   ROWID,
+  AnnotateFn,
   Bin,
   DataType,
   EmbeddingInputType,
@@ -426,6 +427,32 @@ class Dataset(abc.ABC):
     Args:
       signal: The signal to compute over the given columns.
       path: The leaf path to compute the signal on.
+      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
+        progress of the task.
+    """
+    pass
+
+  @abc.abstractmethod
+  def annotate(
+    self,
+    annotate_fn: Union[Signal, AnnotateFn],
+    path: Path,
+    output_column: Optional[str] = None,
+    overwrite: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
+  ) -> None:
+    """Compute annotations for a column.
+
+    The input to the annotate function will be an iterable of text, and should generate an iterable
+    of Items or None.
+
+    Args:
+      annotate_fn: The annotate_fn or signal to compute over the given columns.
+      path: The leaf path to compute the annotation on.
+      output_column: The name the output column to write this annotation to. This will get nested
+        underneath the given path.
+      overwrite: Set to true to overwrite any existing values. If false, will throw an error if the
+        column already exists.
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
     """

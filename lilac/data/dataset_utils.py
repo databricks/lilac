@@ -12,6 +12,7 @@ from typing import Callable, Generator, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
+from pydantic import BaseModel
 
 from ..batch_utils import deep_flatten
 from ..embeddings.vector_store import VectorDBIndex
@@ -241,6 +242,13 @@ def write_items_to_parquet(
   writer.close()
   f.close()
   return out_filename, num_items
+
+
+class WriteItemsResponse(BaseModel):
+  """The response from writing items to parquet."""
+
+  filename: str
+  num_items: int
 
 
 def _validate(item: Item, schema: pa.Schema) -> None:
