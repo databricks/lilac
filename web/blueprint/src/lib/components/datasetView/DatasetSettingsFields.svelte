@@ -274,15 +274,17 @@
           {/if}
         </div>
         <div class="h-12">
-          <ButtonDropdown
-            buttonOutline
-            disabled={mediaFieldOptionsItems.length === 0}
-            buttonIcon={Add}
-            items={mediaFieldOptionsItems}
-            buttonText="Add media field"
-            comboBoxPlaceholder="Add media field"
-            on:select={selectMediaField}
-          />
+          {#if mediaFieldOptionsItems}
+            <ButtonDropdown
+              buttonOutline
+              disabled={mediaFieldOptionsItems.length === 0}
+              buttonIcon={Add}
+              items={mediaFieldOptionsItems}
+              buttonText="Add media field"
+              comboBoxPlaceholder="Add media field"
+              on:select={selectMediaField}
+            />
+          {/if}
         </div>
       {:else}
         <SelectSkeleton />
