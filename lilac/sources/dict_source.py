@@ -8,13 +8,12 @@ import pyarrow as pa
 from typing_extensions import override
 
 from ..schema import Item, arrow_schema_to_schema
-from ..source import SourceSchema
-from .item_source import ItemSource
+from ..source import Source, SourceSchema
 
 _TMP_FILENAME = 'tmp.jsonl'
 
 
-class DictSource(ItemSource):
+class DictSource(Source):
   """Loads data from an iterable of dict objects."""
 
   name: ClassVar[str] = 'dict'
@@ -71,7 +70,8 @@ class DictSource(ItemSource):
     return self._source_schema
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
+    """Process the source request."""
     if not self._reader or not self._con:
       raise RuntimeError('JSON source is not initialized.')
 

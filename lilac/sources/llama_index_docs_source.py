@@ -7,12 +7,11 @@ if TYPE_CHECKING:
 from typing_extensions import override
 
 from ..schema import Item
-from ..source import SourceSchema
+from ..source import Source, SourceSchema
 from .dict_source import DictSource
-from .item_source import ItemSource
 
 
-class LlamaIndexDocsSource(ItemSource):
+class LlamaIndexDocsSource(Source):
   """LlamaIndex document source
 
   Loads documents from a LlamaIndex Document Iterable.
@@ -81,9 +80,9 @@ class LlamaIndexDocsSource(ItemSource):
     return self._dict_source.source_schema()
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
     """Ingest the documents."""
     if not self._dict_source:
-      raise ValueError('Please call setup() before calling `yield_items`.')
+      raise ValueError('Please call setup() before calling `process`.')
 
-    return self._dict_source.yield_items()
+    return self._dict_source.process()

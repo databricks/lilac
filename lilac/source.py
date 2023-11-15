@@ -1,6 +1,6 @@
 """Interface for implementing a source."""
 
-from typing import Any, Callable, ClassVar, Optional, Type, Union
+from typing import Any, Callable, ClassVar, Iterable, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -8,15 +8,16 @@ import pyarrow as pa
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, SerializeAsAny, field_validator, model_serializer
 
+
 from .schema import (
   Field,
   ImageInfo,
+  Item,
   Schema,
   arrow_dtype_to_dtype,
   arrow_schema_to_schema,
   field,
 )
-from .tasks import TaskStepId
 
 
 class SourceSchema(BaseModel):
@@ -90,22 +91,23 @@ class Source(BaseModel):
     """Tears down the source after processing."""
     pass
 
-  def process(self, output_dir: str, task_step_id: Optional[TaskStepId]) -> 'SourceManifest':
-    """Extract and load the source.
+  def process(self) -> Iterable[Item]:
+    """Process the source, yielding individual rows of the source data.
 
-    This method is expected to generate a parquet dataset on disk.
-    The returned SourceManifest should describe where to find this dataset, and its schema.
-    The output of this step should be a close-to-raw representation of the input data. Datatypes
-    and missing values should be mapped to their corresponding parquet primitives, but otherwise
-    data should be left as is.
+    This method exists to facilitate customized sources.
 
     Args:
-      output_dir: The directory to write the parquet files to.
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
+    """
+    raise NotImplementedError
 
-    Returns:
-      A SourceManifest that describes schema and parquet file locations.
+  def fast_process(self) -> 'SourceManifest':
+    """Process the source, bypassing python object creation.
+
+    This shortcut exists for sources where we can download the dataset and process it entirely
+    through DuckDB queries. This avoids the overhead of creating python objects, but loses the
+    flexibility of an item stream API.
     """
     raise NotImplementedError
 

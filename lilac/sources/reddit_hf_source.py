@@ -5,15 +5,14 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Item
-from ..source import SourceSchema
+from ..source import Source, SourceSchema
 from .huggingface_source import HuggingFaceSource
-from .item_source import ItemSource
 
 HF_REDDIT_DATASET_NAME = 'reddit'
 HF_SUBREDDIT_COL = 'subreddit'
 
 
-class RedditDataset(ItemSource):
+class RedditDataset(Source):
   """Reddit data loader, using Huggingface.
 
   Loads data from [huggingface.co/datasets/reddit](https://huggingface.co/datasets/reddit).
@@ -37,8 +36,8 @@ class RedditDataset(ItemSource):
     return self._hf_dataset.source_schema()
 
   @override
-  def yield_items(self) -> Iterable[Item]:
-    items = self._hf_dataset.yield_items()
+  def process(self) -> Iterable[Item]:
+    items = self._hf_dataset.process()
 
     if not self.subreddits:
       return items

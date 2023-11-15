@@ -7,13 +7,12 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import Item, arrow_schema_to_schema
-from ..source import SourceSchema
+from ..source import Source, SourceSchema
 from ..utils import download_http_files
 from .duckdb_utils import convert_path_to_duckdb, duckdb_setup
-from .item_source import ItemSource
 
 
-class JSONSource(ItemSource):
+class JSONSource(Source):
   """JSON data loader
 
   Supports both JSON and JSONL.
@@ -80,7 +79,7 @@ class JSONSource(ItemSource):
     return self._source_schema
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
     """Process the source."""
     if not self._reader or not self._con:
       raise RuntimeError('JSON source is not initialized.')

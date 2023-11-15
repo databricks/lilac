@@ -5,17 +5,10 @@ import pytest
 from typing_extensions import override
 
 from .schema import Item
-from .source import (
-  SourceSchema,
-  clear_source_registry,
-  get_source_cls,
-  register_source,
-  resolve_source,
-)
-from .sources.item_source import ItemSource
+from .source import Source, SourceSchema, clear_source_registry, get_source_cls, register_source, resolve_source
 
 
-class TestSource(ItemSource):
+class TestSource(Source):
   """A test source."""
 
   name: ClassVar[str] = 'test_source'
@@ -30,7 +23,7 @@ class TestSource(ItemSource):
     return cast(SourceSchema, None)
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
     yield None
 
 

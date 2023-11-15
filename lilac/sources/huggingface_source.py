@@ -18,9 +18,8 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..schema import DataType, Field, Item, arrow_dtype_to_dtype
-from ..source import SourceSchema
+from ..source import Source, SourceSchema
 from ..utils import log
-from .item_source import ItemSource
 
 HF_SPLIT_COLUMN = '__hfsplit__'
 
@@ -120,7 +119,7 @@ def hf_schema_to_schema(
   return SchemaInfo(fields=fields, class_labels=class_labels, num_items=num_items)
 
 
-class HuggingFaceSource(ItemSource):
+class HuggingFaceSource(Source):
   """HuggingFace data loader
 
   For a list of datasets see: [huggingface.co/datasets](https://huggingface.co/datasets).
@@ -180,7 +179,7 @@ class HuggingFaceSource(ItemSource):
     return SourceSchema(fields=self._schema_info.fields, num_items=self._schema_info.num_items)
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
     if not self._schema_info or not self._dataset_dict:
       raise ValueError('`setup()` must be called before `process`.')
 

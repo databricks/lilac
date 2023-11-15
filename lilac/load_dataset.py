@@ -9,15 +9,20 @@ poetry run python -m lilac.load_dataset \
 """
 import os
 import pathlib
-from typing import Optional, Union
+import uuid
+from typing import Iterable, Optional, Union
+
+import pandas as pd
 
 from .config import DatasetConfig
 from .data.dataset import Dataset, default_settings
+from .data.dataset_utils import write_items_to_parquet
 from .db_manager import get_dataset
 from .env import get_project_dir
 from .project import add_project_dataset_config, update_project_dataset_settings
-from .schema import MANIFEST_FILENAME
-from .tasks import TaskStepId
+from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
+from .source import Source, SourceManifest
+from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
@@ -57,7 +62,10 @@ def process_source(
   output_dir = get_dataset_output_dir(project_dir, config.namespace, config.name)
 
   config.source.setup()
-  manifest = config.source.process(output_dir, task_step_id=task_step_id)
+  try:
+    manifest: SourceManifest = config.source.fast_process()
+  except NotImplementedError:
+    manifest = slow_process(config.source, output_dir, task_step_id=task_step_id)
 
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.model_dump_json(indent=2, exclude_none=True))
@@ -70,3 +78,72 @@ def process_source(
   log(f'Dataset "{config.name}" written to {output_dir}')
 
   return output_dir
+
+
+def slow_process(
+  source: Source, output_dir: str, task_step_id: Optional[TaskStepId] = None
+) -> SourceManifest:
+  """Process the items of a source, writing to parquet.
+
+  Args:
+    source: The source to process.
+    output_dir: The directory to write the parquet files to.
+    task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
+      progress of the task.
+
+  Returns:
+    A SourceManifest that describes schema and parquet file locations.
+  """
+  source_schema = source.source_schema()
+  items = source.process()
+
+  # Add rowids and fix NaN in string columns.
+  items = normalize_items(items, source_schema.fields)
+
+  # Add progress.
+  items = progress(
+    items,
+    task_step_id=task_step_id,
+    estimated_len=source_schema.num_items,
+    step_description=f'Reading from source {source.name}...',
+  )
+
+  # Filter out the `None`s after progress.
+  items = (item for item in items if item is not None)
+
+  data_schema = Schema(fields=source_schema.fields.copy())
+  filepath = write_items_to_parquet(
+    items=items,
+    output_dir=output_dir,
+    schema=data_schema,
+    filename_prefix=PARQUET_FILENAME_PREFIX,
+    shard_index=0,
+    num_shards=1,
+  )
+
+  filenames = [os.path.basename(filepath)]
+  manifest = SourceManifest(files=filenames, data_schema=data_schema, images=None, source=source)
+  return manifest
+
+
+def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
+  """Sanitize items by removing NaNs and NaTs."""
+  replace_nan_fields = [
+    field_name for field_name, field in fields.items() if field.dtype and not is_float(field.dtype)
+  ]
+  for item in items:
+    if item is None:
+      yield item
+      continue
+
+    # Add rowid if it doesn't exist.
+    if ROWID not in item:
+      item[ROWID] = uuid.uuid4().hex
+
+    # Fix NaN values.
+    for field_name in replace_nan_fields:
+      item_value = item.get(field_name)
+      if item_value and not isinstance(item_value, Iterable) and pd.isna(item_value):
+        item[field_name] = None
+
+    yield item

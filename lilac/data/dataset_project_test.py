@@ -21,8 +21,8 @@ from ..load_dataset import create_dataset
 from ..project import create_project_and_set_env, read_project_config
 from ..schema import Field, Item, RichData, field, lilac_embedding
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
-from ..source import SourceSchema, clear_source_registry, register_source
-from ..sources.item_source import ItemSource
+from ..source import Source, SourceSchema
+from ..source import clear_source_registry, register_source
 
 SIMPLE_ITEMS: list[Item] = [
   {'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
@@ -39,7 +39,7 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
 
 
-class TestSource(ItemSource):
+class TestSource(Source):
   """A test source."""
 
   name: ClassVar[str] = 'test_source'
@@ -58,7 +58,7 @@ class TestSource(ItemSource):
     )
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
     """Yield all items."""
     yield from SIMPLE_ITEMS
 

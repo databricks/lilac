@@ -15,13 +15,12 @@ from .data.dataset_utils import get_parquet_filename
 from .load_dataset import process_source
 from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, Item, schema
-from .source import SourceManifest, SourceSchema, clear_source_registry, register_source
-from .sources.item_source import ItemSource
+from .source import Source, SourceManifest, SourceSchema, clear_source_registry, register_source
 from .test_utils import fake_uuid, read_items
 from .utils import DATASETS_DIR_NAME
 
 
-class TestSource(ItemSource):
+class TestSource(Source):
   """A test source."""
 
   name: ClassVar[str] = 'test_source'
@@ -36,7 +35,7 @@ class TestSource(ItemSource):
     return SourceSchema(fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2)
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
     return [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
 
 

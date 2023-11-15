@@ -6,8 +6,7 @@ from pydantic import Field, field_serializer
 from typing_extensions import override
 
 from ..schema import Item
-from ..source import SourceSchema
-from .item_source import ItemSource
+from ..source import Source, SourceSchema
 from .llama_index_docs_source import LlamaIndexDocsSource
 
 # We currently don't support images or videos, so we filter them out to reduce the load time.
@@ -29,7 +28,7 @@ IGNORE_MEDIA_EXTENSIONS = [
 ]
 
 
-class GithubSource(ItemSource):
+class GithubSource(Source):
   """GitHub source code loader
 
   Loads source code from GitHub repositories using the LlamaIndex GithubRepositoryReader.
@@ -105,6 +104,6 @@ class GithubSource(ItemSource):
     return self._llama_index_docs_source.source_schema()
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def process(self) -> Iterable[Item]:
     """Read from GitHub."""
-    return self._llama_index_docs_source.yield_items()
+    return self._llama_index_docs_source.process()
