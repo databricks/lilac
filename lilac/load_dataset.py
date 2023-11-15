@@ -95,11 +95,9 @@ def process_source(
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.model_dump_json(indent=2, exclude_none=True))
 
-  print('default settings', config.settings)
   if not config.settings:
     dataset = get_dataset(config.namespace, config.name, project_dir)
     settings = default_settings(dataset)
-    print('got defaults:', settings)
     update_project_dataset_settings(config.namespace, config.name, settings, project_dir)
 
   log(f'Dataset "{config.name}" written to {output_dir}')
