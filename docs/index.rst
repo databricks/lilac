@@ -48,6 +48,7 @@
 
    datasets/dataset_load.md
    datasets/dataset_explore.md
+   datasets/dataset_configure.md
    datasets/dataset_concepts.md
    datasets/dataset_signals.md
    datasets/dataset_labels.md
