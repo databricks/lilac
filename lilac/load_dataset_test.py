@@ -35,7 +35,7 @@ class TestSource(Source):
     return SourceSchema(fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2)
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     return [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
 
 

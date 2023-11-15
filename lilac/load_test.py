@@ -62,7 +62,7 @@ class TestSource(Source):
     )
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Yield all items."""
     yield from SIMPLE_ITEMS
 

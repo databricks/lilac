@@ -34,7 +34,7 @@ class PandasSource(Source):
     return self._source_schema
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     assert self._df is not None, 'df must be set.'
     cols = self._df.columns.tolist()

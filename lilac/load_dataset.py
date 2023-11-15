@@ -63,7 +63,7 @@ def process_source(
 
   config.source.setup()
   try:
-    manifest: SourceManifest = config.source.fast_process()
+    manifest = config.source.fast_process(output_dir, task_step_id=task_step_id)
   except NotImplementedError:
     manifest = slow_process(config.source, output_dir, task_step_id=task_step_id)
 
@@ -95,7 +95,7 @@ def slow_process(
     A SourceManifest that describes schema and parquet file locations.
   """
   source_schema = source.source_schema()
-  items = source.process()
+  items = source.yield_items()
 
   # Add rowids and fix NaN in string columns.
   items = normalize_items(items, source_schema.fields)
