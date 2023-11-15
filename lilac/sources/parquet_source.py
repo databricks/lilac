@@ -8,15 +8,16 @@ from pydantic import Field, ValidationInfo, field_validator
 from typing_extensions import override
 
 from ..schema import Item, Schema, arrow_schema_to_schema
-from ..source import Source, SourceSchema
+from ..source import SourceSchema
 from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
 from ..utils import download_http_files
+from .item_source import ItemSource
 
 # Number of rows to read per batch.
 ROWS_PER_BATCH_READ = 50_000
 
 
-class ParquetSource(Source):
+class ParquetSource(ItemSource):
   """Parquet data loader
 
   Parquet files can live locally as a filepath, or remotely on GCS, S3, or Hadoop.
@@ -127,7 +128,7 @@ class ParquetSource(Source):
     return self._source_schema
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     assert self._con, 'setup() must be called first.'
 

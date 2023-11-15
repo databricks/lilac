@@ -11,9 +11,10 @@ from pydantic import Field
 from typing_extensions import override
 
 from ..schema import Item, arrow_schema_to_schema
-from ..source import Source, SourceSchema
+from ..source import SourceSchema
 from ..utils import file_exists
 from .duckdb_utils import convert_path_to_duckdb, duckdb_setup
+from .item_source import ItemSource
 
 router = APIRouter()
 
@@ -32,7 +33,7 @@ def get_tables(db_file: str) -> list[str]:
   return res
 
 
-class SQLiteSource(Source):
+class SQLiteSource(ItemSource):
   """SQLite data loader."""
 
   name: ClassVar[str] = 'sqlite'
@@ -73,7 +74,7 @@ class SQLiteSource(Source):
     return self._source_schema
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     if not self._reader or not self._con:
       raise RuntimeError('SQLite source is not initialized.')

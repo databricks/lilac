@@ -19,7 +19,8 @@ from .load import load
 from .project import PROJECT_CONFIG_FILENAME, init
 from .schema import EMBEDDING_KEY, Field, Item, RichData, field, lilac_embedding, schema
 from .signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
-from .source import Source, SourceSchema, clear_source_registry, register_source
+from .source import SourceSchema, clear_source_registry, register_source
+from .sources.item_source import ItemSource
 from .tasks import TaskManager
 from .utils import to_yaml
 
@@ -43,7 +44,7 @@ def task_manager() -> TaskManager:
   return TaskManager(Client(processes=False))
 
 
-class TestSource(Source):
+class TestSource(ItemSource):
   """A test source."""
 
   name: ClassVar[str] = 'test_source'
@@ -62,7 +63,7 @@ class TestSource(Source):
     )
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Yield all items."""
     yield from SIMPLE_ITEMS
 

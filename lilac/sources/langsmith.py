@@ -7,8 +7,9 @@ from typing_extensions import override
 
 from ..env import env
 from ..schema import Item
-from ..source import Source, SourceSchema
+from ..source import SourceSchema
 from .dict_source import DictSource
+from .item_source import ItemSource
 
 router = APIRouter()
 
@@ -24,7 +25,7 @@ def get_langsmith_datasets() -> list[str]:
   return [d.name for d in client.list_datasets()]
 
 
-class LangSmithSource(Source):
+class LangSmithSource(ItemSource):
   """LangSmith data loader."""
 
   name: ClassVar[str] = 'langsmith'
@@ -66,7 +67,7 @@ class LangSmithSource(Source):
     return self._dict_source.source_schema()
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     assert self._dict_source is not None
-    return self._dict_source.process()
+    return self._dict_source.yield_items()

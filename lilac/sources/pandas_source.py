@@ -5,12 +5,13 @@ import pandas as pd
 from typing_extensions import override
 
 from ..schema import Item
-from ..source import Source, SourceSchema, schema_from_df
+from ..source import SourceSchema, schema_from_df
+from .item_source import ItemSource
 
 PANDAS_INDEX_COLUMN = '__pd_index__'
 
 
-class PandasSource(Source):
+class PandasSource(ItemSource):
   """Pandas source."""
 
   name: ClassVar[str] = 'pandas'
@@ -34,7 +35,7 @@ class PandasSource(Source):
     return self._source_schema
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     assert self._df is not None, 'df must be set.'
     cols = self._df.columns.tolist()

@@ -14,8 +14,9 @@ from typing_extensions import override
 
 from ..env import get_project_dir
 from ..schema import Item, field
-from ..source import Source, SourceSchema
+from ..source import SourceSchema
 from ..utils import log
+from .item_source import ItemSource
 
 if TYPE_CHECKING:
   from google.oauth2.credentials import Credentials
@@ -35,7 +36,7 @@ def _gmail_config_dir() -> str:
   return os.path.join(get_project_dir(), '.gmail')
 
 
-class GmailSource(Source):
+class GmailSource(ItemSource):
   """Connects to your Gmail and loads the text of your emails.
 
   **One time setup**
@@ -108,7 +109,7 @@ class GmailSource(Source):
     )
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     try:
       from email_reply_parser import EmailReplyParser
       from googleapiclient.discovery import build

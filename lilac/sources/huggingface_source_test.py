@@ -18,7 +18,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
 
   source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
-  items = source.process()
+  items = source.yield_items()
   source.setup()
 
   source_schema = source.source_schema()
@@ -26,7 +26,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
     fields=schema({HF_SPLIT_COLUMN: 'string', 'x': 'int64', 'y': 'string'}).fields, num_items=2
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   assert items == [
     {HF_SPLIT_COLUMN: 'default', 'x': 1, 'y': 'ten'},
@@ -58,7 +58,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
 
   source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
-  items = source.process()
+  items = source.yield_items()
   source.setup()
 
   source_schema = source.source_schema()
@@ -74,7 +74,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
     num_items=2,
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   assert items == [
     {
@@ -108,7 +108,7 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
 
   source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
-  items = source.process()
+  items = source.yield_items()
   source.setup()
 
   source_schema = source.source_schema()
@@ -119,7 +119,7 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
     num_items=2,
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   assert items == [
     {HF_SPLIT_COLUMN: 'default', 'scalar': 1, 'list': [{'x': 1, 'y': 'two'}]},

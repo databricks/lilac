@@ -21,7 +21,7 @@ def test_simple_dataframe() -> None:
     num_items=3,
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   assert items == [
     {PANDAS_INDEX_COLUMN: 0, 'name': 'a', 'age': 1},
@@ -45,7 +45,7 @@ def test_simple_dataframe_with_index() -> None:
     num_items=3,
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   # The PANDAS_INDEX_COLUMN aligns with the pandas index.
   assert items == [
