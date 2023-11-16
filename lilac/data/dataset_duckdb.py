@@ -832,7 +832,7 @@ class DatasetDuckDB(Dataset):
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
       rows_per_batch=10_000
     )
-    if not output_path is not None:
+    if output_path is not None:
       parquet_filepath = _get_parquet_filepath(
         dataset_path=self.dataset_path,
         output_path=output_path,
@@ -2352,6 +2352,7 @@ class DatasetDuckDB(Dataset):
     resolve_span: bool = False,
     num_jobs: int = 1,
   ) -> Iterable[Item]:
+    is_tmp_output = output_path is None
     if output_path:
       output_path = normalize_path(output_path)
       if len(output_path) > 1:
@@ -2418,7 +2419,8 @@ class DatasetDuckDB(Dataset):
       output_path=output_path,
       shard_count=num_jobs,
     )
-    if output_path:
+
+    if not is_tmp_output:
       assert parquet_filename is not None
 
       output_schema.fields[output_column].map = MapInfo(

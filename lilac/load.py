@@ -255,7 +255,7 @@ def _compute_signal(
   signal_config: SignalConfig,
   project_dir: Union[str, pathlib.Path],
   task_step_id: TaskStepId,
-  overwrite: Optional[bool] = False,
+  overwrite: bool = False,
 ) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 

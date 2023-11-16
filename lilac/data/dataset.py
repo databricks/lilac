@@ -426,7 +426,7 @@ class Dataset(abc.ABC):
     concept_name: str,
     embedding: str,
     path: Path,
-    overwrite: Optional[bool] = False,
+    overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute concept scores for a given field path."""
