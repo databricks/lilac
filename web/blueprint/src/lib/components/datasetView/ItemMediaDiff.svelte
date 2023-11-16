@@ -39,12 +39,9 @@
     datasetViewStore,
     $store => $store.compareColumns.find(col => col == colCompareState)?.swapDirection
   );
-  let isEditorInitialized = false;
-
-  swapCompareColumn.subscribe(() => (isEditorInitialized = false));
 
   function relayout() {
-    if (editor != null && isEditorInitialized) {
+    if (editor != null) {
       editor.layout();
     }
   }
@@ -95,13 +92,11 @@
     };
   });
   $: {
-    if (editor != null && leftValue != null && rightValue != null && !isEditorInitialized) {
+    if (editor != null && leftValue != null && rightValue != null) {
       editor.setModel({
         original: monaco.editor.createModel(leftValue, 'text/plain'),
         modified: monaco.editor.createModel(rightValue, 'text/plain')
       });
-
-      isEditorInitialized = true;
     }
   }
 
