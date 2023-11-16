@@ -197,6 +197,17 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
+def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
+  signal = TestInvalidSignal()
+
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
+
+  with pytest.raises(
+    ValueError, match='The signal generated a different number of values than was input.'
+  ):
+    dataset.compute_signal(signal, 'text')
+
+
 def test_sparse_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
 

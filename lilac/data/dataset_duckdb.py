@@ -750,10 +750,13 @@ class DatasetDuckDB(Dataset):
     output_items, jsonl_cache_items = itertools.tee(output_items, 2)
     # TODO(nsthorat): Support continuation of embeddings.
     if not isinstance(transform_fn, TextEmbeddingSignal):
-      with open_file(shard_cache_filepath, 'a') as file:
-        for item in output_items:
-          json.dump(item, file)
-          file.write('\n')
+      try:
+        with open_file(shard_cache_filepath, 'a') as file:
+          for item in output_items:
+            json.dump(item, file)
+            file.write('\n')
+      except RuntimeError as e:
+        raise ValueError('The signal generated a different number of values than was input.') from e
 
     return jsonl_cache_items
 
