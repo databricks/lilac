@@ -542,9 +542,7 @@ class DatasetDuckDB(Dataset):
     )
 
     output_path = (
-      output_path
-      if output_path is not None
-      else (transform_fn.name if isinstance(transform_fn, Signal) else transform_fn.__name__,)
+      output_path or (cast(str, getattr(transform_fn, 'name')),) or (transform_fn.__name__,)
     )
     shard_cache_filepath = _jsonl_cache_filepath(
       namespace=self.namespace,
@@ -830,7 +828,7 @@ class DatasetDuckDB(Dataset):
     self,
     signal: Signal,
     path: Path,
-    overwrite: Optional[bool] = False,
+    overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):

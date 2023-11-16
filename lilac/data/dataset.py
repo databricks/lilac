@@ -395,7 +395,7 @@ class Dataset(abc.ABC):
     self,
     signal: Signal,
     path: Path,
-    overwrite: Optional[bool] = False,
+    overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute a signal for a column.
