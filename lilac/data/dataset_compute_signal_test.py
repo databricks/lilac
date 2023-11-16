@@ -476,7 +476,6 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
   )
 
   result = dataset.select_rows(['text'], combine_columns=True)
-  print('result=', list(result))
   expected_result = [
     {
       'text': enriched_item(
