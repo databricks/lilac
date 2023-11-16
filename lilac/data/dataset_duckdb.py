@@ -872,6 +872,10 @@ class DatasetDuckDB(Dataset):
     input_path = normalize_path(path)
 
     manifest = self.manifest()
+
+    signal_col = Column(path=input_path, alias='value', signal_udf=signal)
+    output_path = _col_destination_path(signal_col, is_computed_signal=True)
+
     if not manifest.data_schema.has_field(input_path):
       raise ValueError(f'Cannot compute signal over non-existent path: {input_path}')
     if manifest.data_schema.get_field(input_path).dtype != DataType.STRING:
@@ -882,9 +886,6 @@ class DatasetDuckDB(Dataset):
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
-
-    signal_col = Column(path=input_path, alias='value', signal_udf=signal)
-    output_path = _col_destination_path(signal_col, is_computed_signal=True)
 
     # Update the project config before computing the signal.
     add_project_signal_config(
