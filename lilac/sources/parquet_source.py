@@ -1,15 +1,18 @@
 """Parquet source."""
+import os
 import random
-from typing import ClassVar, Iterable, Optional, cast
+from typing import ClassVar, Optional, cast
 
 import duckdb
 import pyarrow as pa
 from pydantic import Field, ValidationInfo, field_validator
 from typing_extensions import override
 
-from ..schema import Item, Schema, arrow_schema_to_schema
-from ..source import Source, SourceSchema
+from ..data import dataset_utils
+from ..schema import PARQUET_FILENAME_PREFIX, Schema, arrow_schema_to_schema
+from ..source import Source, SourceManifest, SourceSchema
 from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
+from ..tasks import TaskStepId
 from ..utils import download_http_files
 
 # Number of rows to read per batch.
@@ -83,26 +86,24 @@ class ParquetSource(Source):
       # Sub-sample shards so we don't open too many files.
       num_shards = min(self.pseudo_shuffle_num_shards, len(duckdb_files))
       duckdb_files = random.sample(duckdb_files, num_shards)
-      batch_size = max(1, min(self.sample_size // len(duckdb_files), ROWS_PER_BATCH_READ))
-      for duckdb_file in duckdb_files:
-        # Since we are not fetching the entire results immediately, we need a seperate cursor
-        # for each file to avoid each cursor overwriting the previous one.
-        con = self._con.cursor()
-        duckdb_setup(con)
-        res = con.execute(f"""SELECT * FROM read_parquet('{duckdb_file}')""")
-        self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
+      self._duckdb_files = duckdb_files
+      self._process_query = f"""
+          SELECT CAST(uuid() AS VARCHAR) as __rowid__,
+              * FROM read_parquet({duckdb_files}) LIMIT {self.sample_size}"""
     else:
       sample_suffix = ''
       if self.sample_size:
         sample_suffix = f'USING SAMPLE {self.sample_size}'
         if self.seed is not None:
           sample_suffix += f' (reservoir, {self.seed})'
-      res = self._con.execute(f"""SELECT * FROM read_parquet({duckdb_paths}) {sample_suffix}""")
-      batch_size = ROWS_PER_BATCH_READ
-      if self.sample_size:
-        batch_size = min(self.sample_size, ROWS_PER_BATCH_READ)
-      self._readers.append(res.fetch_record_batch(rows_per_batch=batch_size))
-    return arrow_schema_to_schema(self._readers[0].schema)
+      self._process_query = f"""
+          SELECT CAST(uuid() AS VARCHAR) as __rowid__,
+              * FROM read_parquet({duckdb_paths}) {sample_suffix}"""
+    return arrow_schema_to_schema(
+      self._con.execute(f"""SELECT * FROM read_parquet('{duckdb_paths[0]}')""")
+      .fetch_record_batch(1)
+      .schema
+    )
 
   @override
   def setup(self) -> None:
@@ -127,35 +128,17 @@ class ParquetSource(Source):
     return self._source_schema
 
   @override
-  def yield_items(self) -> Iterable[Item]:
-    """Process the source."""
+  def fast_process(
+    self, output_dir: str, task_step_id: Optional[TaskStepId] = None
+  ) -> SourceManifest:
+    del task_step_id
+
     assert self._con, 'setup() must be called first.'
 
-    items_yielded = 0
-    done = False
+    out_filename = dataset_utils.get_parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)
+    filepath = os.path.join(output_dir, out_filename)
+    os.makedirs(output_dir, exist_ok=True)
 
-    if self.seed is not None:
-      random.seed(self.seed)
-
-    while not done:
-      index = random.randint(0, len(self._readers) - 1)
-      reader = self._readers[index]
-      batch = None
-      try:
-        batch = reader.read_next_batch()
-      except StopIteration:
-        reader.close()
-        del self._readers[index]
-        if not self._readers:
-          done = True
-          break
-        continue
-      items = batch.to_pylist()
-      for item in items:
-        yield item
-        items_yielded += 1
-        if self.sample_size and items_yielded == self.sample_size:
-          done = True
-          break
-
-    self._con.close()
+    self._con.sql(self._process_query).write_parquet(filepath, compression='zstd')
+    schema = Schema(fields=self.source_schema().fields.copy())
+    return SourceManifest(files=[out_filename], data_schema=schema, source=self)
