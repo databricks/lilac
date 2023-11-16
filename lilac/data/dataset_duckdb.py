@@ -519,19 +519,17 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
-  def _compute_disk_cached(
+  def _select_iterable_values(
     self,
-    transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
-    output_path: Optional[PathTuple] = None,
     unnest_input_path: Optional[PathTuple] = None,
-    overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
+    shard_cache_filepath: Optional[str] = None,
+    overwrite: bool = False,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
-    task_step_id: Optional[TaskStepId] = None,
-    task_step_description: Optional[str] = None,
   ) -> Iterable[Item]:
+    """Returns an iterable of (rowid, item), discluding results in the cache filepath."""
     manifest = self.manifest()
 
     num_items = self.manifest().num_items
@@ -540,35 +538,6 @@ class DatasetDuckDB(Dataset):
     shard_end_idx = (
       min((shard_id + 1) * shard_size, num_items) if shard_id is not None else num_items
     )
-
-    output_path = (
-      output_path or (cast(str, getattr(transform_fn, 'name')),) or (transform_fn.__name__,)
-    )
-    shard_cache_filepath = _jsonl_cache_filepath(
-      namespace=self.namespace,
-      dataset_name=self.dataset_name,
-      key=output_path,
-      project_dir=self.project_dir,
-      is_temporary=output_path is None,
-      shard_id=shard_id,
-      shard_count=shard_count,
-    )
-    os.makedirs(os.path.dirname(shard_cache_filepath), exist_ok=True)
-    # Overwrite the file if overwrite is True.
-    if overwrite and os.path.exists(shard_cache_filepath):
-      delete_file(shard_cache_filepath)
-
-    # Fetch the data from DuckDB.
-    con = self.con.cursor()
-
-    use_jsonl_cache = False
-    if not overwrite and os.path.exists(shard_cache_filepath):
-      with open_file(shard_cache_filepath, 'r') as f:
-        # Read the first line of the file
-        first_line = f.readline()
-
-      # Don't use the cache if it's empty. This can happen if the first call to map() throws.
-      use_jsonl_cache = True if first_line.strip() else False
 
     column: Optional[Column] = None
     cols = self._normalize_columns(
@@ -611,6 +580,9 @@ class DatasetDuckDB(Dataset):
           all_columns.update(col_dict)
         columns_to_merge = {'*': all_columns}
 
+    # Fetch the data from DuckDB.
+    con = self.con.cursor()
+
     # Create a view for the work of the shard before anti-joining.
     con.execute(
       f"""
@@ -624,9 +596,16 @@ class DatasetDuckDB(Dataset):
     )
     select_sql = ', '.join(select_queries)
 
-    start_idx = 0
-    # Anti-join removes rows that are already in the cache.
+    # Anti-join removes input rows that are already in the cache so they do not get passed to the
+    # map function.
     anti_join = ''
+    use_jsonl_cache = False
+    if not overwrite and shard_cache_filepath and os.path.exists(shard_cache_filepath):
+      with open_file(shard_cache_filepath, 'r') as f:
+        # Read the first line of the file
+        first_line = f.readline()
+      use_jsonl_cache = True if first_line.strip() else False
+
     if use_jsonl_cache:
       con.execute(
         f"""
@@ -638,13 +617,9 @@ class DatasetDuckDB(Dataset):
         );
       """
       )
-      # Get the count for the progress bar.
-      if task_step_id is not None:
-        count_result = con.execute('SELECT COUNT(*) FROM t_cache').fetchone()
-        if count_result:
-          (start_idx,) = count_result
 
-      anti_join = f'ANTI JOIN t_cache ON t_shard.{ROWID} = t_cache.{ROWID}'
+      anti_join = f'ANTI JOIN t_cache USING({ROWID})'
+
     result = con.execute(
       f"""
       SELECT {ROWID}, {select_sql} FROM t_shard
@@ -652,54 +627,113 @@ class DatasetDuckDB(Dataset):
     """
     )
 
-    def _rows() -> Iterable[Item]:
-      nonlocal result
+    while True:
+      df_chunk = result.fetch_df_chunk()
+      if df_chunk.empty:
+        break
 
-      while True:
-        df_chunk = result.fetch_df_chunk()
-        if df_chunk.empty:
-          break
+      for final_col_name, temp_columns in columns_to_merge.items():
+        for temp_col_name, column in temp_columns.items():
+          if combine_columns:
+            dest_path = _col_destination_path(column)
+            spec = _split_path_into_subpaths_of_lists(dest_path)
+            df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
 
-        for final_col_name, temp_columns in columns_to_merge.items():
-          for temp_col_name, column in temp_columns.items():
-            if combine_columns:
-              dest_path = _col_destination_path(column)
-              spec = _split_path_into_subpaths_of_lists(dest_path)
-              df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
+          # If the temp col name is the same as the final name, we can skip merging. This happens
+          # when we select a source leaf column.
+          if temp_col_name == final_col_name:
+            continue
 
-            # If the temp col name is the same as the final name, we can skip merging. This happens
-            # when we select a source leaf column.
-            if temp_col_name == final_col_name:
-              continue
+          if final_col_name not in df_chunk:
+            df_chunk[final_col_name] = df_chunk[temp_col_name]
+          else:
+            df_chunk[final_col_name] = merge_series(
+              df_chunk[final_col_name], df_chunk[temp_col_name]
+            )
+          del df_chunk[temp_col_name]
 
-            if final_col_name not in df_chunk:
-              df_chunk[final_col_name] = df_chunk[temp_col_name]
-            else:
-              df_chunk[final_col_name] = merge_series(
-                df_chunk[final_col_name], df_chunk[temp_col_name]
-              )
-            del df_chunk[temp_col_name]
+      row_ids = df_chunk[ROWID].tolist()
+      if combine_columns:
+        # Since we aliased every column to `*`, the object will have only '*' as the key. We need
+        # to elevate the all the columns under '*'.
+        df_chunk = pd.DataFrame.from_records(df_chunk['*'])
 
-        row_ids = df_chunk[ROWID].tolist()
-        if combine_columns:
-          # Since we aliased every column to `*`, the object will have only '*' as the key. We need
-          # to elevate the all the columns under '*'.
-          df_chunk = pd.DataFrame.from_records(df_chunk['*'])
+      if unnest_input_path and unnest_column_alias:
+        values = df_chunk[unnest_column_alias].tolist()
+      else:
+        values = df_chunk.to_dict('records')
 
-        if unnest_input_path and unnest_column_alias:
-          values = df_chunk[unnest_column_alias].tolist()
-        else:
-          values = df_chunk.to_dict('records')
+      yield from zip(row_ids, values)
 
-        yield from zip(row_ids, values)
+  def _compute_disk_cached(
+    self,
+    transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
+    output_path: Optional[PathTuple] = None,
+    unnest_input_path: Optional[PathTuple] = None,
+    overwrite: bool = False,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+    shard_id: Optional[int] = None,
+    shard_count: Optional[int] = None,
+    task_step_id: Optional[TaskStepId] = None,
+    task_step_description: Optional[str] = None,
+  ) -> Iterable[Item]:
+    manifest = self.manifest()
+
+    output_path = (
+      output_path or (cast(str, getattr(transform_fn, 'name')),) or (transform_fn.__name__,)
+    )
+    shard_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=output_path,
+      project_dir=self.project_dir,
+      is_temporary=output_path is None,
+      shard_id=shard_id,
+      shard_count=shard_count,
+    )
+    os.makedirs(os.path.dirname(shard_cache_filepath), exist_ok=True)
+    # Overwrite the file if overwrite is True.
+    if overwrite and os.path.exists(shard_cache_filepath):
+      delete_file(shard_cache_filepath)
+
+    use_jsonl_cache = not overwrite and os.path.exists(shard_cache_filepath)
+
+    con = self.con.cursor()
+
+    # Compute the start index where the cache file left off.
+    start_idx = 0
+    if use_jsonl_cache:
+      count_result = con.execute(
+        f"""
+        SELECT COUNT(*) FROM read_json_auto(
+          '{shard_cache_filepath}',
+          IGNORE_ERRORS=true,
+          format='newline_delimited')
+        """
+      ).fetchone()
+      if count_result:
+        (start_idx,) = count_result
+
+    rows = self._select_iterable_values(
+      unnest_input_path=unnest_input_path,
+      combine_columns=combine_columns,
+      resolve_span=resolve_span,
+      shard_cache_filepath=shard_cache_filepath,
+      overwrite=overwrite,
+      shard_id=shard_id,
+      shard_count=shard_count,
+    )
 
     # Tee the results so we can zip the row ids with the outputs.
-    inputs_0, inputs_1 = itertools.tee(_rows(), 2)
+    inputs_0, inputs_1 = itertools.tee(rows, 2)
 
     # Tee the values so we can use them for the deep flatten and the deep unflatten.
     input_values = (value for (_, value) in inputs_0)
     input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
+    # Flatten the outputs back to the shape of the original data.
+    # The output values are flat from the signal. This
     if unnest_input_path:
       assert unnest_input_path is not None
       source_path = unnest_input_path
@@ -763,7 +797,6 @@ class DatasetDuckDB(Dataset):
     output_path: PathTuple,
     parquet_filename_prefix: Optional[str] = None,
     shard_count: Optional[int] = None,
-    disable_write_parquet: bool = False,
     overwrite: bool = False,
   ) -> tuple[pa.RecordBatchReader, Schema, Optional[str]]:
     shard_output_filepaths = [
@@ -799,7 +832,7 @@ class DatasetDuckDB(Dataset):
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
       rows_per_batch=10_000
     )
-    if not disable_write_parquet:
+    if not output_path is not None:
       parquet_filepath = _get_parquet_filepath(
         dataset_path=self.dataset_path,
         output_path=output_path,
@@ -812,7 +845,7 @@ class DatasetDuckDB(Dataset):
       os.makedirs(os.path.dirname(parquet_filepath), exist_ok=True)
 
       con.execute(
-        f"""COPY (SELECT * FROM "{jsonl_view_name}") TO '{parquet_filepath}' (FORMAT PARQUET);"""
+        f"""COPY (SELECT * FROM '{jsonl_view_name}') TO '{parquet_filepath}' (FORMAT PARQUET);"""
       )
 
       con.close()
@@ -992,7 +1025,7 @@ class DatasetDuckDB(Dataset):
     if not manifest.data_schema.has_field(signal_path):
       raise ValueError(f'Unknown signal path: {signal_path}')
 
-    source_path = signal_path[0:-1]  # Remove the inner most signal path.
+    source_path = signal_path[:-1]  # Remove the inner most signal path.
     field = manifest.data_schema.get_field(signal_path)
     signal = field.signal
     if signal is None:
@@ -2354,7 +2387,7 @@ class DatasetDuckDB(Dataset):
     else:
       output_column = map_fn.__name__
 
-    key = (output_column,)
+    output_path = (output_column,)
     num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
 
     task_ids = []
@@ -2382,7 +2415,8 @@ class DatasetDuckDB(Dataset):
     get_task_manager().wait(task_ids)
 
     reader, output_schema, parquet_filename = self._reshard_cache(
-      output_path=key, shard_count=num_jobs, disable_write_parquet=output_path is None
+      output_path=output_path,
+      shard_count=num_jobs,
     )
     if output_path:
       assert parquet_filename is not None
@@ -2632,7 +2666,7 @@ def _get_parquet_filepath(
   if parquet_filename_prefix:
     path_prefix = output_path
   else:
-    path_prefix = output_path[0:-1] if len(output_path) > 1 else None
+    path_prefix = output_path[:-1] if len(output_path) > 1 else None
 
   path_prefix = tuple([p for p in output_path if p != PATH_WILDCARD]) if path_prefix else None
 
@@ -2670,7 +2704,7 @@ def _jsonl_cache_filepath(
     job_range_suffix = f'.{shard_id:05d}-of-{shard_count:05d}'
 
   # The key becomes the subdir.
-  key_subdir = key[0:-1] if len(key) > 1 else None
+  key_subdir = key[:-1] if len(key) > 1 else None
   subdir = os.path.join(*key_subdir) if key_subdir else ''
   return os.path.join(
     cache_dir,
