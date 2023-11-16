@@ -914,13 +914,6 @@ class DatasetDuckDB(Dataset):
     output_dir = os.path.dirname(parquet_filepath)
 
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
-    # # If the signal manifest already exists, delete it as it will be rewritten after the new signal
-    # # outputs are run.
-    # if os.path.exists(signal_manifest_filepath) and overwrite:
-    #   delete_file(signal_manifest_filepath)
-    #   # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
-    #   # existent file.
-    #   self.manifest()
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
