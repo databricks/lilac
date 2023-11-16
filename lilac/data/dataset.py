@@ -431,7 +431,7 @@ class Dataset(abc.ABC):
   ) -> None:
     """Compute concept scores for a given field path."""
     signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
-    self.compute_signal(signal, path, task_step_id=task_step_id)
+    self.compute_signal(signal, path, overwrite=overwrite, task_step_id=task_step_id)
 
   @abc.abstractmethod
   def delete_signal(self, signal_path: Path) -> None:
@@ -590,7 +590,6 @@ class Dataset(abc.ABC):
     self,
     map_fn: MapFn,
     output_path: Optional[Path] = None,
-    input_paths: Optional[Sequence[Path]] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -603,7 +602,6 @@ class Dataset(abc.ABC):
         result. The result Item can be a primitive, like a string.
       output_path: The output path to write the resulting column to. If not defined, does not
         serialize the output to disk, and returns the result as an iterator.
-      input_paths: The input_paths to select. When not defined, selects all paths.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object

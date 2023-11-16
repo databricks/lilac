@@ -11,6 +11,7 @@ from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..schema import (
   EMBEDDING_KEY,
+  PATH_WILDCARD,
   Field,
   Item,
   RichData,
@@ -223,6 +224,73 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
         {'test_sparse_rich_signal': {'emails': ['test1@hello.com', 'test2@hello.com']}},
       )
     },
+  ]
+
+
+def test_signal_continuation(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'text': 'a'},
+      {'text': 'ab'},
+      {'text': 'abc'},
+    ]
+  )
+  orig_manifest = dataset.manifest()
+  orig_rows = list(dataset.select_rows(['*']))
+
+  first_run = True
+  processed_text: list[RichData] = []
+
+  class _TestSignal(TextSignal):
+    name: ClassVar[str] = 'test_signal'
+
+    @override
+    def fields(self) -> Field:
+      return field(dtype='int32')
+
+    @override
+    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+      for i, item in enumerate(data):
+        if first_run and item == 'ab':
+          raise ValueError('Throwing')
+        processed_text.append(item)
+        yield len(item)
+
+  test_signal = _TestSignal()
+  with pytest.raises(Exception):
+    dataset.compute_signal(test_signal, 'text')
+
+  assert processed_text == ['a']
+
+  # When the signal throws an error, nothing should change.
+  assert dataset.manifest() == orig_manifest
+  assert list(dataset.select_rows([PATH_WILDCARD])) == orig_rows
+
+  first_run = False
+  processed_text = []
+  dataset.compute_signal(test_signal, 'text')
+
+  assert processed_text == ['ab', 'abc']
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={'test_signal': field(dtype='int32', signal=test_signal.model_dump())},
+        ),
+      }
+    ),
+    num_items=3,
+    source=TestSource(),
+  )
+  rows = list(dataset.select_rows([PATH_WILDCARD], combine_columns=True))
+  assert rows == [
+    {'text': enriched_item('a', {'test_signal': 1})},
+    {'text': enriched_item('ab', {'test_signal': 2})},
+    {'text': enriched_item('abc', {'test_signal': 3})},
   ]
 
 

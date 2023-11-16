@@ -56,7 +56,6 @@ from ..schema import (
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
-  AnnotateFn,
   Bin,
   DataType,
   Field,
@@ -520,9 +519,9 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
-  def _compute_cached(
+  def _compute_disk_cached(
     self,
-    transform_fn: Union[Signal, AnnotateFn, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
+    transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
     output_path: Optional[PathTuple] = None,
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: Optional[bool] = False,
@@ -531,6 +530,7 @@ class DatasetDuckDB(Dataset):
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
     task_step_id: Optional[TaskStepId] = None,
+    task_step_description: Optional[str] = None,
   ) -> Iterable[Item]:
     manifest = self.manifest()
 
@@ -541,8 +541,14 @@ class DatasetDuckDB(Dataset):
       min((shard_id + 1) * shard_size, num_items) if shard_id is not None else num_items
     )
 
-    output_path = output_path if output_path is not None else (transform_fn.__name__,)
+    output_path = (
+      output_path
+      if output_path is not None
+      else (transform_fn.name if isinstance(transform_fn, Signal) else transform_fn.__name__,)
+    )
     shard_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
       key=output_path,
       project_dir=self.project_dir,
       is_temporary=output_path is None,
@@ -551,8 +557,8 @@ class DatasetDuckDB(Dataset):
     )
     os.makedirs(os.path.dirname(shard_cache_filepath), exist_ok=True)
     # Overwrite the file if overwrite is True.
-    if overwrite:
-      open(shard_cache_filepath, 'w').close()
+    if overwrite and os.path.exists(shard_cache_filepath):
+      delete_file(shard_cache_filepath)
 
     # Fetch the data from DuckDB.
     con = self.con.cursor()
@@ -618,19 +624,29 @@ class DatasetDuckDB(Dataset):
       );
     """
     )
+    select_sql = ', '.join(select_queries)
 
+    start_idx = 0
     # Anti-join removes rows that are already in the cache.
     anti_join = ''
     if use_jsonl_cache:
-      anti_join = f"""
-        ANTI JOIN (
+      con.execute(
+        f"""
+        CREATE OR REPLACE VIEW t_cache as (
           SELECT * FROM read_json_auto(
             '{shard_cache_filepath}',
             IGNORE_ERRORS=true,
-            format='newline_delimited')) as cache
-        ON t_shard.{ROWID} = cache.{ROWID}
+            format='newline_delimited')
+        );
       """
-    select_sql = ', '.join(select_queries)
+      )
+      # Get the count for the progress bar.
+      if task_step_id is not None:
+        count_result = con.execute('SELECT COUNT(*) FROM t_cache').fetchone()
+        if count_result:
+          (start_idx,) = count_result
+
+      anti_join = f'ANTI JOIN t_cache ON t_shard.{ROWID} = t_cache.{ROWID}'
     result = con.execute(
       f"""
       SELECT {ROWID}, {select_sql} FROM t_shard
@@ -691,9 +707,8 @@ class DatasetDuckDB(Dataset):
       source_path = unnest_input_path
 
       if isinstance(transform_fn, VectorSignal):
-        signal = transform_fn
+        embedding_signal = transform_fn
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
-        embedding_signal = signal
         vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
         flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
         compute_out = sparse_to_dense_compute(
@@ -706,19 +721,14 @@ class DatasetDuckDB(Dataset):
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
-        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-        compute_out = sparse_to_dense_compute(
-          flat_input, lambda x: transform_fn(cast(Iterable[RichData], x))
-        )
+        raise ValueError(f'Unknown type of transform_fn: {type(transform_fn)}')
 
       spec = _split_path_into_subpaths_of_lists(output_path or ())
 
       nested_out = deep_unflatten(compute_out, input_values_1)
       output_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
-
     else:
       assert not isinstance(transform_fn, Signal)
-      input_values_0 = list(input_values_0)
       output_items = transform_fn(input_values_0)
       output_col = output_path[-1]
       output_items = ({output_col: item} for item in output_items)
@@ -726,6 +736,16 @@ class DatasetDuckDB(Dataset):
     output_items = (
       {**item, ROWID: rowid} for (rowid, _), item in zip(inputs_1, output_items) if item
     )
+
+    # Add progress.
+    if task_step_id is not None:
+      output_items = progress(
+        output_items,
+        task_step_id=task_step_id,
+        initial_id=start_idx,
+        estimated_len=manifest.num_items,
+        step_description=task_step_description,
+      )
 
     output_items, jsonl_cache_items = itertools.tee(output_items, 2)
     # TODO(nsthorat): Support continuation of embeddings.
@@ -742,10 +762,13 @@ class DatasetDuckDB(Dataset):
     output_path: PathTuple,
     parquet_filename_prefix: Optional[str] = None,
     shard_count: Optional[int] = None,
-    disable_write_parquet=False,
+    disable_write_parquet: Optional[bool] = False,
+    overwrite: Optional[bool] = False,
   ) -> tuple[pa.RecordBatchReader, Schema, Optional[str]]:
     shard_output_filepaths = [
       _jsonl_cache_filepath(
+        namespace=self.namespace,
+        dataset_name=self.dataset_name,
         key=output_path,
         project_dir=self.project_dir,
         shard_id=i if shard_count is not None else None,
@@ -756,11 +779,12 @@ class DatasetDuckDB(Dataset):
 
     # Merge all the shard outputs.
     jsonl_view_name = 'tmp_output'
-    tmp_con = duckdb.connect(database=':memory:')
+    con = self.con.cursor()
+
     # TODO(nsthorat): Use read_json and the signal schema to speed this up and make it more precise.
-    tmp_con.execute(
+    con.execute(
       f"""
-      CREATE VIEW {jsonl_view_name} as (
+      CREATE OR REPLACE VIEW {jsonl_view_name} as (
         SELECT * FROM read_json_auto(
           {shard_output_filepaths},
           ignore_errors=true,
@@ -771,35 +795,26 @@ class DatasetDuckDB(Dataset):
     )
 
     parquet_filepath: Optional[str] = None
-    reader = tmp_con.execute('SELECT * from tmp_output').fetch_record_batch(rows_per_batch=10_000)
+    reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
+      rows_per_batch=10_000
+    )
     if not disable_write_parquet:
-      # Create the source schema in prepare to share it between process and source_schema.
-
-      # The final parquet file is not sharded.
-      parquet_filename = get_parquet_filename(
-        parquet_filename_prefix or output_path[-1], shard_index=0, num_shards=1
+      parquet_filepath = _get_parquet_filepath(
+        dataset_path=self.dataset_path,
+        output_path=output_path,
+        parquet_filename_prefix=parquet_filename_prefix,
       )
-      if parquet_filename_prefix:
-        path_prefix = output_path
-      else:
-        path_prefix = output_path[0:-1] if len(output_path) > 1 else None
-
-      path_prefix = (p for p in output_path if p != PATH_WILDCARD) if path_prefix else None
-
-      subdir = os.path.join(*path_prefix) if path_prefix else ''
-
-      parquet_rel_filepath = os.path.join(subdir, parquet_filename)
-      # Sanitize the filepath name by url-encoding it.
-      parquet_rel_filepath = os.path.join(
-        *[urllib.parse.quote(p, safe='') for p in parquet_rel_filepath.split(os.sep)]
-      )
-      parquet_filepath = os.path.join(self.dataset_path, parquet_rel_filepath)
+      if overwrite and os.path.exists(parquet_filepath):
+        # Delete the parquet file if it exists.
+        delete_file(parquet_filepath)
 
       os.makedirs(os.path.dirname(parquet_filepath), exist_ok=True)
 
-      tmp_con.execute(f"""COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);""")
+      con.execute(
+        f"""COPY (SELECT * FROM "{jsonl_view_name}") TO '{parquet_filepath}' (FORMAT PARQUET);"""
+      )
 
-      tmp_con.close()
+      con.close()
 
     output_schema = arrow_schema_to_schema(reader.schema)
     if ROWID in output_schema.fields:
@@ -831,8 +846,9 @@ class DatasetDuckDB(Dataset):
     )
 
     manifest = self.manifest()
-    field = manifest.data_schema.get_field(input_path)
-    if field.dtype != DataType.STRING:
+    if not manifest.data_schema.has_field(input_path):
+      raise ValueError(f'Cannot compute signal over non-existent path: {input_path}')
+    if manifest.data_schema.get_field(input_path).dtype != DataType.STRING:
       raise ValueError('Cannot compute signal over a non-string field.')
 
     if task_step_id is None:
@@ -847,13 +863,17 @@ class DatasetDuckDB(Dataset):
 
     signal.setup()
 
-    self._compute_cached(
-      transform_fn=signal, output_path=output_path, unnest_input_path=input_path, overwrite=True
+    self._compute_disk_cached(
+      transform_fn=signal,
+      output_path=output_path,
+      unnest_input_path=input_path,
+      overwrite=overwrite,
+      task_step_id=task_step_id,
+      task_step_description=f'Computing signal {signal} over {input_path}',
     )
 
     _, _, parquet_filepath = self._reshard_cache(
-      output_path=output_path,
-      parquet_filename_prefix='data',
+      output_path=output_path, parquet_filename_prefix='data', overwrite=overwrite
     )
     assert parquet_filepath is not None
     parquet_filename = os.path.basename(parquet_filepath)
@@ -869,15 +889,6 @@ class DatasetDuckDB(Dataset):
       self.manifest()
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
-
-    # Add progress.
-    # if task_step_id is not None:
-    #   output_items = progress(
-    #     output_items,
-    #     task_step_id=task_step_id,
-    #     estimated_len=manifest.num_items,
-    #     step_description=f'Computing signal {signal} over {input_path}',
-    #   )
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],
@@ -925,23 +936,19 @@ class DatasetDuckDB(Dataset):
 
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
 
-    output_items = self._compute_cached(
-      signal, output_path=output_path, unnest_input_path=input_path, overwrite=overwrite
+    output_items = self._compute_disk_cached(
+      signal,
+      output_path=output_path,
+      unnest_input_path=input_path,
+      overwrite=overwrite,
+      task_step_id=task_step_id,
+      task_step_description=f'Computing embedding {signal} over {input_path}',
     )
-    output_items = list(output_items)
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     row_ids = (item[ROWID] for item in output_items)
-
-    if task_step_id is not None:
-      output_items = progress(
-        output_items,
-        task_step_id=task_step_id,
-        estimated_len=manifest.num_items,
-        step_description=f'Computing embedding {signal} over {input_path}',
-      )
 
     write_embeddings_to_disk(
       vector_store=self.vector_store,
@@ -989,6 +996,16 @@ class DatasetDuckDB(Dataset):
     signal = field.signal
     if signal is None:
       raise ValueError(f'{signal_path} is not a signal.')
+
+    # Delete the cache files.
+    shard_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=signal_path,
+      project_dir=self.project_dir,
+    )
+    if os.path.exists(shard_cache_filepath):
+      os.remove(shard_cache_filepath)
 
     delete_project_signal_config(
       self.namespace,
@@ -2319,8 +2336,9 @@ class DatasetDuckDB(Dataset):
           if field.map is None:
             raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
           # Delete the parquet file and map manifest.
-          parquet_filename = get_parquet_filename(output_column, shard_index=0, num_shards=1)
-          parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
+          parquet_filepath = os.path.join(
+            self.dataset_path, get_parquet_filename(output_column, shard_index=0, num_shards=1)
+          )
           delete_file(parquet_filepath)
 
           map_manifest_filepath = os.path.join(
@@ -2405,7 +2423,7 @@ class DatasetDuckDB(Dataset):
       for item in items:
         yield map_fn(item, job_id=job_id)
 
-    self._compute_cached(
+    self._compute_disk_cached(
       _map_iterable,
       output_path=(output_column,),
       overwrite=overwrite,
@@ -2414,6 +2432,7 @@ class DatasetDuckDB(Dataset):
       shard_id=job_id,
       shard_count=job_count,
       task_step_id=task_step_id,
+      task_step_description=f'[{job_id} / {job_count}] map "{map_fn.__name__}"',
     )
 
   @override
@@ -2599,12 +2618,36 @@ def _signal_dir(enriched_path: PathTuple) -> str:
   return os.path.join(*path_without_wildcards)
 
 
-def _output_dir(output_path: PathTuple) -> str:
-  path_without_wildcards = (p for p in output_path if p != PATH_WILDCARD)
-  return os.path.join(*path_without_wildcards)
+def _get_parquet_filepath(
+  dataset_path: str,
+  output_path: PathTuple,
+  parquet_filename_prefix: Optional[str] = None,
+) -> str:
+  # The final parquet file is not sharded.
+  parquet_filename = get_parquet_filename(
+    parquet_filename_prefix or output_path[-1], shard_index=0, num_shards=1
+  )
+  path_prefix: Optional[PathTuple]
+  if parquet_filename_prefix:
+    path_prefix = output_path
+  else:
+    path_prefix = output_path[0:-1] if len(output_path) > 1 else None
+
+  path_prefix = tuple([p for p in output_path if p != PATH_WILDCARD]) if path_prefix else None
+
+  subdir = os.path.join(*path_prefix) if path_prefix else ''
+
+  parquet_rel_filepath = os.path.join(subdir, parquet_filename)
+  # Sanitize the filepath name by url-encoding it.
+  parquet_rel_filepath = os.path.join(
+    *[urllib.parse.quote(p, safe='') for p in parquet_rel_filepath.split(os.sep)]
+  )
+  return os.path.join(dataset_path, parquet_rel_filepath)
 
 
 def _jsonl_cache_filepath(
+  namespace: str,
+  dataset_name: str,
   key: Union[list[str], PathTuple],
   project_dir: Union[str, pathlib.Path],
   is_temporary: bool = False,
@@ -2614,7 +2657,7 @@ def _jsonl_cache_filepath(
   """Get the filepath for a map function's cache file."""
   tmp_dir: Optional[tempfile.TemporaryDirectory] = None
   if not is_temporary:
-    cache_dir = get_lilac_cache_dir(project_dir)
+    cache_dir = os.path.join(get_lilac_cache_dir(project_dir), namespace, dataset_name)
   else:
     tmp_dir = tempfile.TemporaryDirectory()
     cache_dir = tmp_dir.name

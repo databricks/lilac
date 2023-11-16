@@ -263,7 +263,9 @@ def _compute_signal(
     del os.environ['DEBUG']
 
   dataset = get_dataset(namespace, name, project_dir)
-  dataset.compute_signal(signal_config.signal, signal_config.path, task_step_id)
+  dataset.compute_signal(
+    signal=signal_config.signal, path=signal_config.path, overwrite=True, task_step_id=task_step_id
+  )
 
   # Free up RAM.
   remove_dataset_from_cache(namespace, name)
@@ -285,8 +287,12 @@ def _compute_embedding(
     del os.environ['DEBUG']
 
   dataset = get_dataset(namespace, name, project_dir)
-  dataset.compute_embedding(embedding_config.embedding, embedding_config.path, task_step_id)
-
+  dataset.compute_embedding(
+    embedding=embedding_config.embedding,
+    path=embedding_config.path,
+    overwrite=True,
+    task_step_id=task_step_id,
+  )
   remove_dataset_from_cache(namespace, name)
   del dataset
   gc.collect()

@@ -69,7 +69,7 @@ def test_map(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None
     return row['text'].upper()
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_path='text_upper', combine_columns=False, num_jobs=num_jobs)
+  dataset.map(_map_fn, output_path='text_upper', num_jobs=num_jobs)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -116,7 +116,7 @@ def test_map_signal(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) 
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_path='output_text', combine_columns=False, num_jobs=num_jobs)
+  dataset.map(_map_fn, output_path='output_text', num_jobs=num_jobs)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -175,7 +175,7 @@ def test_map_job_id(make_test_data: TestDataMaker, test_dask_logger: TestDaskLog
     test_dask_logger.log_event(job_id)
     return {}
 
-  dataset.map(_map_fn, output_path='map_id', combine_columns=False, num_jobs=3)
+  dataset.map(_map_fn, output_path='map_id', num_jobs=3)
 
   assert set(test_dask_logger.get_logs()) == set([0, 1, 2])
 
@@ -208,7 +208,7 @@ def test_map_continuation(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+    dataset.map(_map_fn_1, output_path='map_id', num_jobs=num_jobs)
 
   # The schema should not reflect the output of the map as it didn't finish.
   assert dataset.manifest() == DatasetManifest(
@@ -228,7 +228,7 @@ def test_map_continuation(
 
   test_dask_logger.clear_logs()
 
-  dataset.map(_map_fn_2, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+  dataset.map(_map_fn_2, output_path='map_id', num_jobs=num_jobs)
 
   # The row_id=1 should be called for the continuation.
   assert 1 in test_dask_logger.get_logs()
@@ -288,13 +288,11 @@ def test_map_continuation_overwrite(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+    dataset.map(_map_fn_1, output_path='map_id', num_jobs=num_jobs)
 
   test_dask_logger.clear_logs()
 
-  dataset.map(
-    _map_fn_2, output_path='map_id', combine_columns=False, overwrite=True, num_jobs=num_jobs
-  )
+  dataset.map(_map_fn_2, output_path='map_id', overwrite=True, num_jobs=num_jobs)
 
   # Map should be called for all ids.
   assert sorted(test_dask_logger.get_logs()) == [0, 1, 2]
@@ -326,7 +324,8 @@ def test_map_continuation_overwrite(
   ]
 
 
-def test_map_overwrite(make_test_data: TestDataMaker) -> None:
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+def test_map_overwrite(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}])
 
   prefix = '0'
@@ -336,7 +335,7 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
     return prefix + row['text']
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_path='map_text', combine_columns=False)
+  dataset.map(_map_fn, output_path='map_text', num_jobs=num_jobs)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [{'text': 'a', 'map_text': '0a'}, {'text': 'b', 'map_text': '0b'}]
@@ -346,7 +345,7 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
 
   prefix = '1'
   # Overwrite the output
-  dataset.map(_map_fn, output_path='map_text', combine_columns=False, overwrite=True)
+  dataset.map(_map_fn, output_path='map_text', overwrite=True)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,

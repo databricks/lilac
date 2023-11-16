@@ -114,7 +114,11 @@ def compute_signal(
     options = ComputeSignalOptions(**options_dict)
     dataset = get_dataset(namespace, dataset_name)
     dataset.compute_signal(
-      options.signal, options.leaf_path, overwrite=True, task_step_id=(task_id, 0)
+      options.signal,
+      options.leaf_path,
+      # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
+      overwrite=isinstance(options.signal, TextEmbeddingSignal),
+      task_step_id=(task_id, 0),
     )
 
   path_str = '.'.join(map(str, options.leaf_path))

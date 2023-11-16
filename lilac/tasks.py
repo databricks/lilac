@@ -330,13 +330,14 @@ def get_current_step_id(steps: list[TaskStepInfo]) -> int:
 def progress(
   it: Union[Iterator[TProgress], Iterable[TProgress]],
   task_step_id: Optional[TaskStepId],
-  estimated_len: Optional[int],
+  initial_id: Optional[int] = None,
+  estimated_len: Optional[int] = None,
   step_description: Optional[str] = None,
   emit_every_s: float = 1.0,
 ) -> Generator[TProgress, None, None]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id or task_step_id[0] == '':
-    yield from tqdm(it, desc=step_description, total=estimated_len)
+    yield from tqdm(it, initial=initial_id or 0, desc=step_description, total=estimated_len)
     return
 
   task_id, step_id = task_step_id
@@ -356,10 +357,10 @@ def progress(
   annotations = cast(dict, get_worker().state.tasks[task_id].annotations)
   task_info: TaskInfo = annotations['task_info']
 
-  it_idx = 0
+  it_idx = initial_id if initial_id else 0
   start_time = time.time()
   last_emit = time.time() - emit_every_s
-  with tqdm(it, desc=task_info.name, total=estimated_len) as tq:
+  with tqdm(it, initial=it_idx, desc=task_info.name, total=estimated_len) as tq:
     for t in tq:
       cur_time = time.time()
       if estimated_len and cur_time - last_emit > emit_every_s:

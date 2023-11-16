@@ -5,7 +5,7 @@ import io
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from typing import Any, Iterable, Literal, Optional, Protocol, Sequence, Union, cast
+from typing import Any, Literal, Optional, Protocol, Sequence, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -143,20 +143,6 @@ class MapFn(Protocol):
     Argumnets:
       row: An Item, a dictionary of an entire row.
       job_id: The job id.
-    """
-    ...
-
-
-class AnnotateFn(Protocol):
-  """Interface for an annotate function."""
-
-  __name__: str
-
-  def __call__(self, items: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    """Calls the map function, mapping an item to an item.
-
-    Argumnets:
-      items: An iterable of text.
     """
     ...
 
