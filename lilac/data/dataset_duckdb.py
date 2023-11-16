@@ -524,7 +524,7 @@ class DatasetDuckDB(Dataset):
     transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
     output_path: Optional[PathTuple] = None,
     unnest_input_path: Optional[PathTuple] = None,
-    overwrite: Optional[bool] = False,
+    overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     shard_id: Optional[int] = None,
@@ -763,8 +763,8 @@ class DatasetDuckDB(Dataset):
     output_path: PathTuple,
     parquet_filename_prefix: Optional[str] = None,
     shard_count: Optional[int] = None,
-    disable_write_parquet: Optional[bool] = False,
-    overwrite: Optional[bool] = False,
+    disable_write_parquet: bool = False,
+    overwrite: bool = False,
   ) -> tuple[pa.RecordBatchReader, Schema, Optional[str]]:
     shard_output_filepaths = [
       _jsonl_cache_filepath(
@@ -909,7 +909,7 @@ class DatasetDuckDB(Dataset):
     self,
     embedding: str,
     path: Path,
-    overwrite: Optional[bool] = False,
+    overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     input_path = normalize_path(path)
@@ -2783,7 +2783,7 @@ def _path_to_udf_duckdb_path(
   return None
 
 
-def _col_destination_path(column: Column, is_computed_signal: Optional[bool] = False) -> PathTuple:
+def _col_destination_path(column: Column, is_computed_signal: bool = False) -> PathTuple:
   """Get the destination path where the output of this selection column will be stored."""
   source_path = column.path
 

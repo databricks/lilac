@@ -413,7 +413,7 @@ class Dataset(abc.ABC):
     self,
     embedding: str,
     path: Path,
-    overwrite: Optional[bool] = False,
+    overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute an embedding for a given field path."""
