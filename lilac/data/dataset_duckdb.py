@@ -13,6 +13,7 @@ import shutil
 import sqlite3
 import tempfile
 import threading
+import urllib.parse
 from contextlib import closing
 from datetime import datetime
 from importlib import metadata
@@ -135,7 +136,6 @@ from .dataset_utils import (
   sparse_to_dense_compute,
   wrap_in_dicts,
   write_embeddings_to_disk,
-  write_items_to_parquet,
 )
 
 SIGNAL_MANIFEST_FILENAME = 'signal_manifest.json'
@@ -525,14 +525,14 @@ class DatasetDuckDB(Dataset):
     self,
     transform_fn: Union[Signal, AnnotateFn, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
     output_path: Optional[PathTuple] = None,
-    unflatten_input_path: Optional[PathTuple] = None,
+    unnest_input_path: Optional[PathTuple] = None,
     overwrite: Optional[bool] = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
     task_step_id: Optional[TaskStepId] = None,
-  ) -> None:
+  ) -> Iterable[Item]:
     manifest = self.manifest()
 
     num_items = self.manifest().num_items
@@ -569,10 +569,12 @@ class DatasetDuckDB(Dataset):
 
     column: Optional[Column] = None
     cols = self._normalize_columns(
-      [unflatten_input_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
+      [unnest_input_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
     )
     select_queries: list[str] = []
     columns_to_merge: dict[str, dict[str, Column]] = {}
+
+    unnest_column_alias: Optional[str] = None
     for column in cols:
       path = column.path
 
@@ -588,20 +590,23 @@ class DatasetDuckDB(Dataset):
         sql = _select_sql(
           duckdb_path, flatten=False, unnest=False, empty=False, span_from=span_from
         )
-        temp_column_name = (
+        column_alias = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
         )
-        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
-        columns_to_merge[final_col_name][temp_column_name] = column
+        if unnest_input_path:
+          unnest_column_alias = column_alias
+
+        select_sqls.append(f'{sql} AS {_escape_string_literal(column_alias)}')
+        columns_to_merge[final_col_name][column_alias] = column
 
       if select_sqls:
         select_queries.append(', '.join(select_sqls))
 
-    if combine_columns:
-      all_columns: dict[str, Column] = {}
-      for col_dict in columns_to_merge.values():
-        all_columns.update(col_dict)
-      columns_to_merge = {'*': all_columns}
+      if combine_columns:
+        all_columns: dict[str, Column] = {}
+        for col_dict in columns_to_merge.values():
+          all_columns.update(col_dict)
+        columns_to_merge = {'*': all_columns}
 
     # Create a view for the work of the shard before anti-joining.
     con.execute(
@@ -662,12 +667,18 @@ class DatasetDuckDB(Dataset):
               )
             del df_chunk[temp_col_name]
 
+        row_ids = df_chunk[ROWID].tolist()
         if combine_columns:
           # Since we aliased every column to `*`, the object will have only '*' as the key. We need
           # to elevate the all the columns under '*'.
           df_chunk = pd.DataFrame.from_records(df_chunk['*'])
 
-        yield from df_chunk.to_dict('records')
+        if unnest_input_path and unnest_column_alias:
+          values = df_chunk[unnest_column_alias].tolist()
+        else:
+          values = df_chunk.to_dict('records')
+
+        yield from zip(row_ids, values)
 
     # Tee the results so we can zip the row ids with the outputs.
     inputs_0, inputs_1 = itertools.tee(_rows(), 2)
@@ -676,9 +687,9 @@ class DatasetDuckDB(Dataset):
     input_values = (value for (_, value) in inputs_0)
     input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
-    if unflatten_input_path:
-      assert unflatten_input_path is not None
-      source_path = unflatten_input_path
+    if unnest_input_path:
+      assert unnest_input_path is not None
+      source_path = unnest_input_path
 
       if isinstance(transform_fn, VectorSignal):
         signal = transform_fn
@@ -692,8 +703,6 @@ class DatasetDuckDB(Dataset):
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-        flat_input = list(flat_input)
-        print('FLAT INPUT', flat_input)
         compute_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
@@ -704,27 +713,30 @@ class DatasetDuckDB(Dataset):
         )
 
       spec = _split_path_into_subpaths_of_lists(output_path or ())
+
       nested_out = deep_unflatten(compute_out, input_values_1)
       output_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
 
-      # signal_col = Column(path=source_path, alias='value', signal_udf=signal)
-      # enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
-
     else:
       assert not isinstance(transform_fn, Signal)
-      output_items = transform_fn(inputs_0)
+      input_values_0 = list(input_values_0)
+      output_items = transform_fn(input_values_0)
       output_col = output_path[-1]
       output_items = ({output_col: item} for item in output_items)
 
-    print('WRITING CACHE FILE TO:', shard_cache_filepath)
-    with open_file(shard_cache_filepath, 'a') as file:
-      for row, item in zip(inputs_1, output_items):
-        if item is None:
-          continue
-        rowid = row[ROWID]
-        json.dump({**item, ROWID: rowid}, file)
-        print('DUMPING', {**item, ROWID: rowid})
-        file.write('\n')
+    output_items = (
+      {**item, ROWID: rowid} for (rowid, _), item in zip(inputs_1, output_items) if item
+    )
+
+    output_items, jsonl_cache_items = itertools.tee(output_items, 2)
+    # TODO(nsthorat): Support continuation of embeddings.
+    if not isinstance(transform_fn, TextEmbeddingSignal):
+      with open_file(shard_cache_filepath, 'a') as file:
+        for item in output_items:
+          json.dump(item, file)
+          file.write('\n')
+
+    return jsonl_cache_items
 
   def _reshard_cache(
     self,
@@ -737,26 +749,23 @@ class DatasetDuckDB(Dataset):
       _jsonl_cache_filepath(
         key=output_path,
         project_dir=self.project_dir,
-        shard_id=i if shard_count else None,
+        shard_id=i if shard_count is not None else None,
         shard_count=shard_count,
       )
       for i in range(shard_count or 1)
     ]
 
-    for shard in shard_output_filepaths:
-      with open_file(shard) as f:
-        print('shard', shard, 'has', f.readlines(), 'lines')
-
     # Merge all the shard outputs.
     jsonl_view_name = 'tmp_output'
     tmp_con = duckdb.connect(database=':memory:')
+    # TODO(nsthorat): Use read_json and the signal schema to speed this up and make it more precise.
     tmp_con.execute(
       f"""
       CREATE VIEW {jsonl_view_name} as (
         SELECT * FROM read_json_auto(
           {shard_output_filepaths},
-          IGNORE_ERRORS=true,
-          FORMAT='newline_delimited'
+          ignore_errors=true,
+          format='newline_delimited'
         )
       );
     """
@@ -771,21 +780,46 @@ class DatasetDuckDB(Dataset):
       parquet_filename = get_parquet_filename(
         parquet_filename_prefix or output_path[-1], shard_index=0, num_shards=1
       )
-      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
-      tmp_con.execute(f"COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);")
+      if parquet_filename_prefix:
+        path_prefix = output_path
+      else:
+        path_prefix = output_path[0:-1] if len(output_path) > 1 else None
+
+      path_prefix = (p for p in output_path if p != PATH_WILDCARD) if path_prefix else None
+
+      subdir = os.path.join(*path_prefix) if path_prefix else ''
+
+      parquet_rel_filepath = os.path.join(subdir, parquet_filename)
+      # Sanitize the filepath name by url-encoding it.
+      parquet_rel_filepath = os.path.join(
+        *[urllib.parse.quote(p, safe='') for p in parquet_rel_filepath.split(os.sep)]
+      )
+      parquet_filepath = os.path.join(self.dataset_path, parquet_rel_filepath)
+
+      os.makedirs(os.path.dirname(parquet_filepath), exist_ok=True)
+
+      tmp_con.execute(f"""COPY {jsonl_view_name} TO '{parquet_filepath}' (FORMAT PARQUET);""")
 
       tmp_con.close()
 
     output_schema = arrow_schema_to_schema(reader.schema)
-    del output_schema.fields[ROWID]
+    if ROWID in output_schema.fields:
+      del output_schema.fields[ROWID]
+
     return reader, output_schema, parquet_filepath
 
   @override
   def compute_signal(
-    self, signal: Signal, path: Path, task_step_id: Optional[TaskStepId] = None
+    self,
+    signal: Signal,
+    path: Path,
+    overwrite: Optional[bool] = False,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
-      return self.compute_embedding(signal.name, path, task_step_id)
+      return self.compute_embedding(
+        signal.name, path, overwrite=overwrite, task_step_id=task_step_id
+      )
 
     input_path = normalize_path(path)
 
@@ -806,17 +840,21 @@ class DatasetDuckDB(Dataset):
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
 
-    signal.setup()
-
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
 
+    if manifest.data_schema.has_field(output_path) and not overwrite:
+      raise ValueError('Signal already exists. Use overwrite=True to overwrite.')
+
+    signal.setup()
+
     self._compute_cached(
-      transform_fn=signal, output_path=output_path, unflatten_input_path=input_path, overwrite=False
+      transform_fn=signal, output_path=output_path, unnest_input_path=input_path, overwrite=True
     )
 
-    reader, output_schema, parquet_filepath = self._reshard_cache(
-      output_path=output_path, parquet_filename_prefix='data'
+    _, _, parquet_filepath = self._reshard_cache(
+      output_path=output_path,
+      parquet_filename_prefix='data',
     )
     assert parquet_filepath is not None
     parquet_filename = os.path.basename(parquet_filepath)
@@ -842,123 +880,6 @@ class DatasetDuckDB(Dataset):
     #     step_description=f'Computing signal {signal} over {input_path}',
     #   )
 
-    # parquet_filename, _ = write_items_to_parquet(
-    #   items=output_items,
-    #   output_dir=output_dir,
-    #   schema=signal_schema,
-    #   filename_prefix='data',
-    #   shard_index=0,
-    #   num_shards=1,
-    # )
-
-    signal_manifest = SignalManifest(
-      files=[parquet_filename],
-      data_schema=signal_schema,
-      signal=signal,
-      enriched_path=input_path,
-      parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
-      py_version=metadata.version('lilac'),
-    )
-    with open_file(signal_manifest_filepath, 'w') as f:
-      f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
-
-    log(f'Wrote signal output to {output_dir}')
-
-  @override
-  def annotate(
-    self,
-    annotate_fn: Union[Signal, AnnotateFn],
-    path: Path,
-    output_column: Optional[str] = None,
-    overwrite: bool = False,
-    task_step_id: Optional[TaskStepId] = None,
-  ) -> None:
-    if isinstance(annotate_fn, TextEmbeddingSignal):
-      return self.compute_embedding(annotate_fn.name, path, task_step_id)
-
-    if not output_column:
-      output_column = annotate_fn.__name__
-
-    input_path = normalize_path(path)
-
-    if isinstance(annotate_fn, Signal):
-      signal = annotate_fn
-      # Update the project config before computing the signal.
-      add_project_signal_config(
-        self.namespace,
-        self.dataset_name,
-        SignalConfig(path=input_path, signal=signal),
-        self.project_dir,
-      )
-      signal.setup()
-
-      signal_col = Column(path=input_path, alias='value', signal_udf=signal)
-      enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
-    else:
-      enriched_path = (*path, output_column)
-
-    manifest = self.manifest()
-    field = manifest.data_schema.get_field(input_path)
-    if field.dtype != DataType.STRING:
-      raise ValueError('Cannot compute signal over a non-string field.')
-
-    if task_step_id is None:
-      # Make a dummy task step so we report progress via tqdm.
-      task_step_id = ('', 0)
-
-    output_items = self._compute_annotate_items(
-      annotate_fn, path, manifest.data_schema, output_column=output_column
-    )
-
-    cache_output_filepath = _jsonl_cache_filepath(
-      key=enriched_path,
-      project_dir=self.project_dir,
-      is_temporary=output_column is not None,
-    )
-    # Overwrite the file if overwrite is True.
-    if overwrite:
-      open(cache_output_filepath, 'w').close()
-
-    with open_file(cache_output_filepath, 'a') as file:
-      for item in output_items:
-        json.dump(item, file)
-        file.write('\n')
-
-    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
-    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
-    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
-    # outputs are run.
-    if os.path.exists(signal_manifest_filepath):
-      os.remove(signal_manifest_filepath)
-      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
-      # existent file.
-      self.manifest()
-
-    # Add progress.
-    step_description = (
-      f'Annotating {annotate_fn.__name__} over {input_path}'
-      if not isinstance(annotate_fn, Signal)
-      else f'Computing signal {annotate_fn} over {input_path}'
-    )
-    if task_step_id is not None:
-      output_items = progress(
-        output_items,
-        task_step_id=task_step_id,
-        estimated_len=manifest.num_items,
-        step_description=step_description,
-      )
-
-    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
-
-    parquet_filename, _ = write_items_to_parquet(
-      items=output_items,
-      output_dir=output_dir,
-      schema=signal_schema,
-      filename_prefix='data',
-      shard_index=0,
-      num_shards=1,
-    )
-
     signal_manifest = SignalManifest(
       files=[parquet_filename],
       data_schema=signal_schema,
@@ -974,17 +895,22 @@ class DatasetDuckDB(Dataset):
 
   @override
   def compute_embedding(
-    self, embedding: str, path: Path, task_step_id: Optional[TaskStepId] = None
+    self,
+    embedding: str,
+    path: Path,
+    overwrite: Optional[bool] = False,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> None:
-    source_path = normalize_path(path)
+    input_path = normalize_path(path)
     add_project_embedding_config(
       self.namespace,
       self.dataset_name,
-      EmbeddingConfig(path=source_path, embedding=embedding),
+      EmbeddingConfig(path=input_path, embedding=embedding),
       self.project_dir,
     )
+
     manifest = self.manifest()
-    field = manifest.data_schema.get_field(source_path)
+    field = manifest.data_schema.get_field(input_path)
     if field.dtype != DataType.STRING:
       raise ValueError('Cannot compute embedding over a non-string field.')
 
@@ -995,13 +921,18 @@ class DatasetDuckDB(Dataset):
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
     signal.setup()
-    output_items = self._compute_annotate_items(signal, path, manifest.data_schema)
 
-    signal_col = Column(path=source_path, alias='value', signal_udf=signal)
+    signal_col = Column(path=input_path, alias='value', signal_udf=signal)
 
-    enriched_path = _col_destination_path(signal_col, is_computed_signal=True)
-    output_dir = os.path.join(self.dataset_path, _signal_dir(enriched_path))
-    signal_schema = create_signal_schema(signal, source_path, manifest.data_schema)
+    output_path = _col_destination_path(signal_col, is_computed_signal=True)
+
+    output_items = self._compute_cached(
+      signal, output_path=output_path, unnest_input_path=input_path, overwrite=overwrite
+    )
+    output_items = list(output_items)
+
+    output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
+    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     row_ids = (item[ROWID] for item in output_items)
 
@@ -1010,7 +941,7 @@ class DatasetDuckDB(Dataset):
         output_items,
         task_step_id=task_step_id,
         estimated_len=manifest.num_items,
-        step_description=f'Computing embedding {signal} over {source_path}',
+        step_description=f'Computing embedding {signal} over {input_path}',
       )
 
     write_embeddings_to_disk(
@@ -1035,8 +966,8 @@ class DatasetDuckDB(Dataset):
       files=[],
       data_schema=signal_schema,
       signal=signal,
-      enriched_path=source_path,
-      parquet_id=make_signal_parquet_id(signal, source_path, is_computed_signal=True),
+      enriched_path=input_path,
+      parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
       vector_store=self.vector_store,
       py_version=metadata.version('lilac'),
     )
@@ -2438,7 +2369,6 @@ class DatasetDuckDB(Dataset):
     if output_path:
       assert parquet_filename is not None
 
-      print('GOT FINAL SCHEMA:', output_schema, output_column)
       output_schema.fields[output_column].map = MapInfo(
         fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
       )
@@ -2670,6 +2600,11 @@ def _signal_dir(enriched_path: PathTuple) -> str:
   return os.path.join(*path_without_wildcards)
 
 
+def _output_dir(output_path: PathTuple) -> str:
+  path_without_wildcards = (p for p in output_path if p != PATH_WILDCARD)
+  return os.path.join(*path_without_wildcards)
+
+
 def _jsonl_cache_filepath(
   key: Union[list[str], PathTuple],
   project_dir: Union[str, pathlib.Path],
@@ -2688,25 +2623,12 @@ def _jsonl_cache_filepath(
   filename_prefix = key[-1]
 
   job_range_suffix = ''
-  if shard_id and shard_count:
+  if shard_id is not None and shard_count:
     job_range_suffix = f'.{shard_id:05d}-of-{shard_count:05d}'
 
   # The key becomes the subdir.
-  print('key=', key)
   key_subdir = key[0:-1] if len(key) > 1 else None
-  print('CACHE FILEPATH OUTPUT', key)
-  print('cache subdir:', key_subdir)
   subdir = os.path.join(*key_subdir) if key_subdir else ''
-  print(
-    'subdir=',
-    cache_dir,
-    subdir,
-    ',',
-    f'{filename_prefix}{job_range_suffix}.jsonl',
-    '=',
-    filename_prefix,
-    type(filename_prefix),
-  )
   return os.path.join(
     cache_dir,
     subdir,

@@ -102,7 +102,7 @@ class TestEmbeddingSumSignal(VectorSignal):
     # The signal just sums the values of the embedding.
     all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
-      yield vector_spans[0]['vector'].sum()
+      yield float(vector_spans[0]['vector'].sum())
 
 
 @pytest.fixture(scope='module', autouse=True)

@@ -106,7 +106,7 @@ def test_config_compute_signal(make_test_data: TestDataMaker) -> None:
   )
 
   # Computing the same signal again should not change the config.
-  dataset.compute_signal(TestSignal(), 'text')
+  dataset.compute_signal(TestSignal(), 'text', overwrite=True)
 
   assert dataset.config() == DatasetConfig(
     namespace='test_namespace',

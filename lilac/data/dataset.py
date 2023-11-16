@@ -37,7 +37,6 @@ from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
   ROWID,
-  AnnotateFn,
   Bin,
   DataType,
   EmbeddingInputType,
@@ -420,50 +419,33 @@ class Dataset(abc.ABC):
 
   @abc.abstractmethod
   def compute_signal(
-    self, signal: Signal, path: Path, task_step_id: Optional[TaskStepId] = None
+    self,
+    signal: Signal,
+    path: Path,
+    overwrite: Optional[bool] = False,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute a signal for a column.
 
     Args:
       signal: The signal to compute over the given columns.
       path: The leaf path to compute the signal on.
-      task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
-        progress of the task.
-    """
-    pass
-
-  @abc.abstractmethod
-  def annotate(
-    self,
-    annotate_fn: Union[Signal, AnnotateFn],
-    path: Path,
-    output_column: Optional[str] = None,
-    overwrite: bool = False,
-    task_step_id: Optional[TaskStepId] = None,
-  ) -> None:
-    """Compute annotations for a column.
-
-    The input to the annotate function will be an iterable of text, and should generate an iterable
-    of Items or None.
-
-    Args:
-      annotate_fn: The annotate_fn or signal to compute over the given columns.
-      path: The leaf path to compute the annotation on.
-      output_column: The name the output column to write this annotation to. This will get nested
-        underneath the given path.
-      overwrite: Set to true to overwrite any existing values. If false, will throw an error if the
-        column already exists.
+      overwrite: Whether to overwrite an existing signal computed at this path.
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
     """
     pass
 
   def compute_embedding(
-    self, embedding: str, path: Path, task_step_id: Optional[TaskStepId] = None
+    self,
+    embedding: str,
+    path: Path,
+    overwrite: Optional[bool] = False,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute an embedding for a given field path."""
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
-    self.compute_signal(signal, path, task_step_id)
+    self.compute_signal(signal, path, overwrite, task_step_id)
 
   def compute_concept(
     self,
@@ -471,11 +453,12 @@ class Dataset(abc.ABC):
     concept_name: str,
     embedding: str,
     path: Path,
+    overwrite: Optional[bool] = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute concept scores for a given field path."""
     signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
-    self.compute_signal(signal, path, task_step_id)
+    self.compute_signal(signal, path, task_step_id=task_step_id)
 
   @abc.abstractmethod
   def delete_signal(self, signal_path: Path) -> None:

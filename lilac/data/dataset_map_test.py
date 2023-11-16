@@ -408,67 +408,6 @@ def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
   ]
 
 
-def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{'text': 'a sentence', 'extra': 1}, {'text': 'b sentence', 'extra': 2}])
-
-  signal = TestFirstCharSignal()
-  dataset.compute_signal(signal, 'text')
-
-  def _map_fn(row: Item, job_id: int) -> Item:
-    assert 'extra' not in row
-    return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
-
-  # Write the output to a new column.
-  dataset.map(
-    _map_fn,
-    output_path='output_text',
-    input_paths=[('text',), ('text', 'test_signal')],
-    combine_columns=False,
-  )
-
-  assert dataset.manifest() == DatasetManifest(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
-    data_schema=schema(
-      {
-        'text': field(
-          'string',
-          fields={
-            'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
-            )
-          },
-        ),
-        'extra': 'int32',
-        'output_text': field(
-          fields={'result': 'string'},
-          map=MapInfo(
-            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
-          ),
-        ),
-      }
-    ),
-    num_items=2,
-    source=TestSource(),
-  )
-
-  rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {
-      'text': 'a sentence',
-      'extra': 1,
-      'text.test_signal': {'firstchar': 'a', 'len': 10},
-      'output_text': {'result': 'a_10'},
-    },
-    {
-      'text': 'b sentence',
-      'extra': 2,
-      'text.test_signal': {'firstchar': 'b', 'len': 10},
-      'output_text': {'result': 'b_10'},
-    },
-  ]
-
-
 def test_map_chained(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 

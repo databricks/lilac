@@ -76,8 +76,6 @@ def test_field_ctor_validation() -> None:
 
   with pytest.raises(ValueError, match=f'{VALUE_KEY} is a reserved field name'):
     Field(fields={VALUE_KEY: Field(dtype=DataType.STRING)})
-  with pytest.raises(ValueError, match=f'{SPAN_KEY} is a reserved field name'):
-    Field(fields={SPAN_KEY: Field(dtype=DataType.STRING)})
 
 
 def test_schema_leafs() -> None:

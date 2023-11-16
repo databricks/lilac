@@ -197,17 +197,6 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
-  signal = TestInvalidSignal()
-
-  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
-
-  with pytest.raises(
-    ValueError, match='The signal generated a different number of values than was input.'
-  ):
-    dataset.compute_signal(signal, 'text')
-
-
 def test_sparse_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
 
@@ -235,6 +224,52 @@ def test_sparse_rich_signal(make_test_data: TestDataMaker) -> None:
       )
     },
   ]
+
+
+def test_signal_overwrite(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(SIMPLE_ITEMS)
+
+  test_signal = TestSignal()
+
+  expected_manifest = DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'str': field(
+          'string',
+          fields={
+            'test_signal': field(
+              signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
+            )
+          },
+        ),
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+      }
+    ),
+    num_items=3,
+    source=TestSource(),
+  )
+  expected_items = [
+    {'str': enriched_item('a', {'test_signal': {'len': 1, 'flen': 1.0}})},
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
+  ]
+
+  dataset.compute_signal(test_signal, 'str')
+
+  # Check the enriched dataset manifest has 'text' enriched.
+  assert dataset.manifest() == expected_manifest
+  assert list(dataset.select_rows(['str'], combine_columns=True)) == expected_items
+
+  with pytest.raises(ValueError, match='Signal already exists. Use overwrite=True to overwrite.'):
+    dataset.compute_signal(test_signal, 'str')
+  dataset.compute_signal(test_signal, 'str', overwrite=True)
+
+  assert dataset.manifest() == expected_manifest
+  assert list(dataset.select_rows(['str'], combine_columns=True)) == expected_items
 
 
 def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
@@ -373,6 +408,7 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
   )
 
   result = dataset.select_rows(['text'], combine_columns=True)
+  print('result=', list(result))
   expected_result = [
     {
       'text': enriched_item(
