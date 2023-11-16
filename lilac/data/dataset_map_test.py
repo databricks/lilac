@@ -65,7 +65,6 @@ def test_map(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   def _map_fn(row: Item, job_id: int) -> Item:
-    print('MAPPING OVER', row)
     return row['text'].upper()
 
   # Write the output to a new column.
@@ -112,7 +111,6 @@ def test_map_signal(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) 
   dataset.compute_signal(signal, 'text')
 
   def _map_fn(row: Item, job_id: int) -> Item:
-    print('MAPPING OVER', row)
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
   # Write the output to a new column.
