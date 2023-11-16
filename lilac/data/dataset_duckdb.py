@@ -917,7 +917,8 @@ class DatasetDuckDB(Dataset):
     # If the signal manifest already exists, delete it as it will be rewritten after the new signal
     # outputs are run.
     if os.path.exists(signal_manifest_filepath) and overwrite:
-      os.remove(signal_manifest_filepath)
+      delete_file(signal_manifest_filepath)
+      print('DELETING OLD MANIFEST', signal_manifest_filepath)
       # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
       # existent file.
       self.manifest()
@@ -933,6 +934,7 @@ class DatasetDuckDB(Dataset):
       py_version=metadata.version('lilac'),
     )
     with open_file(signal_manifest_filepath, 'w') as f:
+      print('WRITING NEW MANIFEST', signal_manifest_filepath)
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
 
     log(f'Wrote signal output to {output_dir}')
