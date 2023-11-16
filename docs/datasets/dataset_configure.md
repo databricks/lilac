@@ -24,7 +24,8 @@ item.
 ### View type
 
 Lilac can show the results in an infinite scroll or a paginated single item view. In the paginated
-view, the URL is updated with the item ID, so you can deeplink to individual data points.
+single item, you can deep-link to individual data points and use the arrow keys to navigate between
+items.
 
 <table>
   <tr>
