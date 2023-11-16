@@ -346,8 +346,8 @@ def test_signal_overwrite(make_test_data: TestDataMaker) -> None:
     dataset.compute_signal(test_signal, 'str')
   dataset.compute_signal(test_signal, 'str', overwrite=True)
 
-  # assert dataset.manifest() == expected_manifest
   assert list(dataset.select_rows(['str'], combine_columns=True)) == expected_items
+  assert dataset.manifest() == expected_manifest
 
 
 def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
