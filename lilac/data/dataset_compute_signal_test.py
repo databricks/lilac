@@ -344,6 +344,7 @@ def test_signal_overwrite(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match='Signal already exists. Use overwrite=True to overwrite.'):
     dataset.compute_signal(test_signal, 'str')
+  dataset.manifest()
   dataset.compute_signal(test_signal, 'str', overwrite=True)
 
   assert dataset.manifest() == expected_manifest
