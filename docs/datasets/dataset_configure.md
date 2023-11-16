@@ -1,11 +1,13 @@
 # Configure a dataset
 
+## From the UI
+
 Datasets can be configured during loading, or in the UI by clicking the "Dataset settings" button in
 the top right corner.
 
 <img width="300" src="../_static/dataset/dataset_settings_button.png"></img>
 
-## Media fields
+### Media fields
 
 You can elevate certain text fields to _media_ fields, which are rendered large in the dataset
 viewer. They are the fields on which you can compute signals, embeddings, search, and label. You can
@@ -19,7 +21,7 @@ item.
 
 <img src="../_static/dataset/dataset_media_vs_metadata.png"></img>
 
-## View type
+### View type
 
 Lilac can show the results in an infinite scroll or a paginated single item view. In the paginated
 view, the URL is updated with the item ID, so you can deeplink to individual data points.
@@ -35,7 +37,32 @@ view, the URL is updated with the item ID, so you can deeplink to individual dat
   </tr>
 </table>
 
-## Preferred embedding
+### Preferred embedding
 
 You can choose which embedding to use as the default for the dataset viewer. This embedding will be
 used to perform semantic and concept search.
+
+## From Python
+
+You can provide [`DatasetSettings`](#lilac.DatasetSettings) when you create a new dataset via
+[`DatasetConfig`](#lilac.DatasetConfig):
+
+```python
+import lilac as ll
+
+# 'text' is our media path
+settings = ll.DatasetSettings(ui=ll.DatasetUISettings(media_paths=[('text',)]))
+config = ll.DatasetConfig(
+  namespace='test_namespace',
+  name='test_dataset',
+  source=ll.JSONSource(),
+  settings=settings,
+)
+dataset = ll.create_dataset(config)
+```
+
+or update the settings of an existing dataset at any time:
+
+```python
+dataset.update_settings(settings)
+```
