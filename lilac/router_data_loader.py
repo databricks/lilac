@@ -18,7 +18,7 @@ from .config import DatasetConfig
 from .env import get_project_dir
 from .load_dataset import process_source
 from .router_utils import RouteErrorHandler
-from .sources.source_registry import get_source_cls, registered_sources
+from .source import get_source_cls, registered_sources
 from .tasks import TaskId, TaskType, get_task_manager
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.

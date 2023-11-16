@@ -83,6 +83,7 @@ from ..signals.concept_scorer import ConceptSignal
 from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
+from ..source import NoSource, SourceManifest
 from ..tasks import TaskStepId, get_is_dask_worker, get_task_manager, progress
 from ..utils import (
   DebugTimer,
@@ -111,7 +112,6 @@ from .dataset import (
   FilterLike,
   GroupsSortBy,
   MediaResult,
-  NoSource,
   Search,
   SearchResultInfo,
   SelectGroupsResult,
@@ -120,7 +120,6 @@ from .dataset import (
   SelectRowsSchemaUDF,
   SortOrder,
   SortResult,
-  SourceManifest,
   StatsResult,
   column_from_identifier,
   dataset_config_from_manifest,
@@ -644,7 +643,7 @@ class DatasetDuckDB(Dataset):
         step_description=f'Computing signal {signal} over {input_path}',
       )
 
-    parquet_filename, _ = write_items_to_parquet(
+    parquet_filename = write_items_to_parquet(
       items=output_items,
       output_dir=output_dir,
       schema=signal_schema,

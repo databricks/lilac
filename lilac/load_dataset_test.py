@@ -10,14 +10,12 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
-from .data.dataset import SourceManifest
 from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import get_parquet_filename
 from .load_dataset import process_source
 from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, Item, schema
-from .source import Source, SourceSchema
-from .sources.source_registry import clear_source_registry, register_source
+from .source import Source, SourceManifest, SourceSchema, clear_source_registry, register_source
 from .test_utils import fake_uuid, read_items
 from .utils import DATASETS_DIR_NAME
 
@@ -37,7 +35,7 @@ class TestSource(Source):
     return SourceSchema(fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2)
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     return [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
 
 
@@ -60,14 +58,13 @@ def test_data_loader(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   source = TestSource()
   setup_mock = mocker.spy(TestSource, 'setup')
 
-  output_dir, num_items = process_source(
+  output_dir = process_source(
     tmp_path, DatasetConfig(namespace='test_namespace', name='test_dataset', source=source)
   )
 
   assert setup_mock.call_count == 1
 
   assert output_dir == os.path.join(tmp_path, DATASETS_DIR_NAME, 'test_namespace', 'test_dataset')
-  assert num_items == 2
 
   source_manifest = read_source_manifest(output_dir)
 

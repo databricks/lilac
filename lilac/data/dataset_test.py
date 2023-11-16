@@ -9,7 +9,7 @@ from typing_extensions import override
 from ..config import DatasetConfig, EmbeddingConfig, SignalConfig
 from ..schema import EMBEDDING_KEY, ROWID, Field, Item, RichData, field, lilac_embedding, schema
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
-from ..sources.source_registry import clear_source_registry, register_source
+from ..source import clear_source_registry, register_source
 from .dataset import Column, DatasetManifest, dataset_config_from_manifest
 from .dataset_test_utils import (
   TEST_DATASET_NAME,

@@ -35,7 +35,7 @@ def test_csv(tmp_path: pathlib.Path) -> None:
     fields=schema({LINE_NUMBER_COLUMN: 'int64', 'x': 'int64', 'y': 'string'}).fields, num_items=3
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   assert items == [
     {LINE_NUMBER_COLUMN: 1, 'x': 1, 'y': 'ten'},

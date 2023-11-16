@@ -179,7 +179,7 @@ class HuggingFaceSource(Source):
     return SourceSchema(fields=self._schema_info.fields, num_items=self._schema_info.num_items)
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     if not self._schema_info or not self._dataset_dict:
       raise ValueError('`setup()` must be called before `process`.')
 

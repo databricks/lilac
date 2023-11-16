@@ -38,11 +38,8 @@ from .env import env, get_project_dir
 from .load import load
 from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
-from .sources.default_sources import register_default_sources
-from .sources.source_registry import registered_sources
+from .source import registered_sources
 from .tasks import TaskManager, get_task_manager
-
-register_default_sources()
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 

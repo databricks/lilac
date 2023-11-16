@@ -21,9 +21,9 @@ from ..schema import (
   Schema,
   infer_schema,
 )
-from ..source import Source
+from ..source import Source, SourceManifest
 from ..utils import get_dataset_output_dir, open_file
-from .dataset import Dataset, SourceManifest, default_settings
+from .dataset import Dataset, default_settings
 from .dataset_utils import write_items_to_parquet
 
 TEST_NAMESPACE = 'test_namespace'
@@ -77,7 +77,7 @@ def _write_items(
   for i, item in enumerate(items):
     item[ROWID] = str(i + 1)
 
-  simple_parquet_files, _ = write_items_to_parquet(
+  simple_parquet_files = write_items_to_parquet(
     items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1
   )
   manifest = SourceManifest(files=[simple_parquet_files], data_schema=schema, source=TestSource())

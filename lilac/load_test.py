@@ -19,8 +19,7 @@ from .load import load
 from .project import PROJECT_CONFIG_FILENAME, init
 from .schema import EMBEDDING_KEY, Field, Item, RichData, field, lilac_embedding, schema
 from .signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
-from .source import Source, SourceSchema
-from .sources.source_registry import clear_source_registry, register_source
+from .source import Source, SourceSchema, clear_source_registry, register_source
 from .tasks import TaskManager
 from .utils import to_yaml
 
@@ -63,7 +62,7 @@ class TestSource(Source):
     )
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Yield all items."""
     yield from SIMPLE_ITEMS
 

@@ -4,9 +4,15 @@ from typing import ClassVar, Iterable, cast
 import pytest
 from typing_extensions import override
 
-from ..schema import Item
-from ..source import Source, SourceSchema
-from .source_registry import clear_source_registry, get_source_cls, register_source, resolve_source
+from .schema import Item
+from .source import (
+  Source,
+  SourceSchema,
+  clear_source_registry,
+  get_source_cls,
+  register_source,
+  resolve_source,
+)
 
 
 class TestSource(Source):
@@ -24,7 +30,7 @@ class TestSource(Source):
     return cast(SourceSchema, None)
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     yield None
 
 

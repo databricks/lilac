@@ -127,7 +127,7 @@ class ParquetSource(Source):
     return self._source_schema
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     assert self._con, 'setup() must be called first.'
 

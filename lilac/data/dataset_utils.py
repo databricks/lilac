@@ -213,7 +213,7 @@ def write_items_to_parquet(
   filename_prefix: str,
   shard_index: int,
   num_shards: int,
-) -> tuple[str, int]:
+) -> str:
   """Write a set of items to a parquet file, in columnar format."""
   schema = schema.model_copy(deep=True)
   # Add a rowid column.
@@ -240,7 +240,7 @@ def write_items_to_parquet(
     num_items += 1
   writer.close()
   f.close()
-  return out_filename, num_items
+  return out_filename
 
 
 def _validate(item: Item, schema: pa.Schema) -> None:

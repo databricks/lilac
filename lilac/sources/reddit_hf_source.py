@@ -36,8 +36,8 @@ class RedditDataset(Source):
     return self._hf_dataset.source_schema()
 
   @override
-  def process(self) -> Iterable[Item]:
-    items = self._hf_dataset.process()
+  def yield_items(self) -> Iterable[Item]:
+    items = self._hf_dataset.yield_items()
 
     if not self.subreddits:
       return items

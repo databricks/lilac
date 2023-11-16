@@ -80,9 +80,9 @@ class LlamaIndexDocsSource(Source):
     return self._dict_source.source_schema()
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Ingest the documents."""
     if not self._dict_source:
       raise ValueError('Please call setup() before calling `process`.')
 
-    return self._dict_source.process()
+    return self._dict_source.yield_items()

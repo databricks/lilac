@@ -28,7 +28,7 @@ from ..signal import (
   clear_signal_registry,
   register_signal,
 )
-from ..sources.source_registry import clear_source_registry, register_source
+from ..source import clear_source_registry, register_source
 from .dataset import DatasetManifest
 from .dataset_test_utils import (
   TEST_DATASET_NAME,

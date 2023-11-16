@@ -108,7 +108,7 @@ class GmailSource(Source):
     )
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     try:
       from email_reply_parser import EmailReplyParser
       from googleapiclient.discovery import build

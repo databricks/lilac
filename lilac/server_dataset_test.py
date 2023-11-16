@@ -30,7 +30,7 @@ from .router_dataset import (
 from .schema import Field, Item, RichData, field, schema
 from .server import app
 from .signal import TextSignal, clear_signal_registry, register_signal
-from .sources.source_registry import clear_source_registry, register_source
+from .source import clear_source_registry, register_source
 
 client = TestClient(app)
 

@@ -23,7 +23,7 @@ def test_simple_llama_index_documents() -> None:
     num_items=3,
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   assert items == [
     {'doc_id': 'id_1', 'text': 'test', 'name': 'a', 'age': 1},
