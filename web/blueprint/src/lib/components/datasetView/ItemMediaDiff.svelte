@@ -35,10 +35,6 @@
   let editor: Monaco.editor.IStandaloneDiffEditor;
 
   export const showMetadataPanel = derived(datasetViewStore, $store => $store.showMetadataPanel);
-  export const swapCompareColumn = derived(
-    datasetViewStore,
-    $store => $store.compareColumns.find(col => col == colCompareState)?.swapDirection
-  );
 
   function relayout() {
     if (editor != null) {
