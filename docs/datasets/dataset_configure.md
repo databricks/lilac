@@ -12,7 +12,7 @@ the top right corner.
 You can elevate certain text fields to _media_ fields, which are rendered large in the dataset
 viewer. They are the fields on which you can compute signals, embeddings, search, and label. You can
 also mark each field as markdown to use the markdown renderer. When ingesting data, Lilac will
-automatically elevate the longest string field as the media field.
+automatically elevate the longest string field as a media field.
 
 <img width="500" src="../_static/dataset/dataset_media_fields.png"></img>
 
@@ -27,6 +27,8 @@ Lilac can show the results in an infinite scroll or a paginated single item view
 single item, you can deep-link to individual data points and use the arrow keys to navigate between
 items.
 
+<img width=200 src="../_static/dataset/dataset_view_type.png"></img>
+
 <table>
   <tr>
     <th>Single item</td>
@@ -40,8 +42,8 @@ items.
 
 ### Preferred embedding
 
-You can choose which embedding to use as the default for the dataset viewer. This embedding will be
-used to perform semantic and concept search.
+You can choose which embedding to use as the default for the current dataset across all users. This
+embedding will be used to perform semantic and concept search.
 
 ## From Python
 
@@ -52,7 +54,13 @@ You can provide [`DatasetSettings`](#lilac.DatasetSettings) when you create a ne
 import lilac as ll
 
 # 'text' is our media path
-settings = ll.DatasetSettings(ui=ll.DatasetUISettings(media_paths=[('text',)]))
+settings = ll.DatasetSettings(
+  ui=ll.DatasetUISettings(
+    media_paths=[('text',)]),
+    view_type='single-item'
+  ),
+  preferred_embedding='gte-small'
+)
 config = ll.DatasetConfig(
   namespace='test_namespace',
   name='test_dataset',
