@@ -871,19 +871,13 @@ class DatasetDuckDB(Dataset):
 
     input_path = normalize_path(path)
 
-    # Update the project config before computing the signal.
-    add_project_signal_config(
-      self.namespace,
-      self.dataset_name,
-      SignalConfig(path=input_path, signal=signal),
-      self.project_dir,
-    )
-
     manifest = self.manifest()
     if not manifest.data_schema.has_field(input_path):
       raise ValueError(f'Cannot compute signal over non-existent path: {input_path}')
     if manifest.data_schema.get_field(input_path).dtype != DataType.STRING:
       raise ValueError('Cannot compute signal over a non-string field.')
+    if manifest.data_schema.has_field(output_path) and not overwrite:
+      raise ValueError('Signal already exists. Use overwrite=True to overwrite.')
 
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
@@ -892,8 +886,13 @@ class DatasetDuckDB(Dataset):
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
 
-    if manifest.data_schema.has_field(output_path) and not overwrite:
-      raise ValueError('Signal already exists. Use overwrite=True to overwrite.')
+    # Update the project config before computing the signal.
+    add_project_signal_config(
+      self.namespace,
+      self.dataset_name,
+      SignalConfig(path=input_path, signal=signal),
+      self.project_dir,
+    )
 
     signal.setup()
 
@@ -914,13 +913,13 @@ class DatasetDuckDB(Dataset):
     output_dir = os.path.dirname(parquet_filepath)
 
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
-    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
-    # outputs are run.
-    if os.path.exists(signal_manifest_filepath) and overwrite:
-      delete_file(signal_manifest_filepath)
-      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
-      # existent file.
-      self.manifest()
+    # # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # # outputs are run.
+    # if os.path.exists(signal_manifest_filepath) and overwrite:
+    #   delete_file(signal_manifest_filepath)
+    #   # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+    #   # existent file.
+    #   self.manifest()
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
