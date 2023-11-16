@@ -2,7 +2,7 @@
   import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {displayPath} from '$lib/view_utils';
-  import type {KeywordSearch, Search, SearchType, SemanticSearch} from '$lilac';
+  import type {KeywordSearch, MetadataSearch, Search, SearchType, SemanticSearch} from '$lilac';
   import type {Tag} from 'carbon-components-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RemovableTag from '../common/RemovableTag.svelte';
@@ -26,10 +26,17 @@
     getSelectRowsSchemaOptions($datasetViewStore)
   );
 
-  $: pillText =
-    search.type === 'concept'
-      ? search.concept_name
-      : (search as KeywordSearch | SemanticSearch).query;
+  function getPillText(search: Search) {
+    if (search.type === 'concept') {
+      return search.concept_name;
+    } else if (search.type === 'keyword' || search.type === 'semantic') {
+      return (search as KeywordSearch | SemanticSearch).query;
+    } else if (search.type === 'metadata') {
+      return (search as MetadataSearch).value;
+    }
+  }
+
+  $: pillText = getPillText(search);
   $: tagType = search.type != null ? searchTypeToTagType[search.type] : 'outline';
 </script>
 

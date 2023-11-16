@@ -6,7 +6,7 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Callable, ClassVar, Iterable, Iterator, Literal, Optional, Sequence, Union
+from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
@@ -40,7 +40,6 @@ from ..schema import (
   Bin,
   DataType,
   EmbeddingInputType,
-  ImageInfo,
   Item,
   MapFn,
   Path,
@@ -55,8 +54,7 @@ from ..signal import (
   resolve_signal,
 )
 from ..signals.concept_scorer import ConceptSignal
-from ..source import Source
-from ..sources.source_registry import resolve_source
+from ..source import Source, resolve_source
 from ..tasks import TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -212,31 +210,6 @@ class Column(BaseModel):
 
 
 ColumnId = Union[Path, Column]
-
-
-class NoSource(Source):
-  """A dummy source that is used when no source is defined, for backwards compat."""
-
-  name: ClassVar[str] = 'no_source'
-
-
-class SourceManifest(BaseModel):
-  """The manifest that describes the dataset run, including schema and parquet files."""
-
-  # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
-  files: list[str]
-  # The data schema.
-  data_schema: Schema
-  source: SerializeAsAny[Source] = NoSource()
-
-  # Image information for the dataset.
-  images: Optional[list[ImageInfo]] = None
-
-  @field_validator('source', mode='before')
-  @classmethod
-  def parse_source(cls, source: dict) -> Source:
-    """Parse a source to its specific subclass instance."""
-    return resolve_source(source)
 
 
 class DatasetManifest(BaseModel):

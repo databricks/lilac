@@ -104,6 +104,6 @@ class GithubSource(Source):
     return self._llama_index_docs_source.source_schema()
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Read from GitHub."""
-    return self._llama_index_docs_source.process()
+    return self._llama_index_docs_source.yield_items()

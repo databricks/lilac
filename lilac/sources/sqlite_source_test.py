@@ -43,6 +43,6 @@ def test_sqlite(tmp_path: pathlib.Path) -> None:
     fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=3
   )
 
-  items = list(source.process())
+  items = list(source.yield_items())
 
   assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}, {'x': 3, 'y': 'thirty'}]

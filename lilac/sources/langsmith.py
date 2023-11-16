@@ -66,7 +66,7 @@ class LangSmithSource(Source):
     return self._dict_source.source_schema()
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     assert self._dict_source is not None
-    return self._dict_source.process()
+    return self._dict_source.yield_items()

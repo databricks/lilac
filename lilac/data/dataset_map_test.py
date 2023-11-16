@@ -10,7 +10,7 @@ from typing_extensions import override
 from .. import tasks
 from ..schema import PATH_WILDCARD, VALUE_KEY, Field, Item, MapInfo, RichData, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
-from ..sources.source_registry import clear_source_registry, register_source
+from ..source import clear_source_registry, register_source
 from ..test_utils import (
   TEST_TIME,
   allow_any_datetime,

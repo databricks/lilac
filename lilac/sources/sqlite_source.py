@@ -73,7 +73,7 @@ class SQLiteSource(Source):
     return self._source_schema
 
   @override
-  def process(self) -> Iterable[Item]:
+  def yield_items(self) -> Iterable[Item]:
     """Process the source."""
     if not self._reader or not self._con:
       raise RuntimeError('SQLite source is not initialized.')

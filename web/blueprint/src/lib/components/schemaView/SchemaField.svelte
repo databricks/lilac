@@ -14,9 +14,11 @@
     isSortableField,
     pathIsEqual,
     serializePath,
+    type BinaryFilter,
     type ConceptSignal,
     type LilacField,
     type LilacSchema,
+    type MetadataSearch,
     type TextEmbeddingSignal
   } from '$lilac';
   import {Tag} from 'carbon-components-svelte';
@@ -145,6 +147,14 @@
   $: tooltip = `${dtypeTooltip}${signalTooltip}`;
 
   $: isExpandable = isSortableField(field) && !isPreview;
+
+  function searchToBinaryFilter(search: MetadataSearch): BinaryFilter {
+    return {
+      path: search.path,
+      op: search.op,
+      value: search.value
+    } as BinaryFilter;
+  }
 </script>
 
 <div class="border-gray-300" class:border-b={isSourceField}>
@@ -221,7 +231,12 @@
       {/each}
     {/if}
     {#each searches as search}
-      <SearchPill {search} />
+      {#if search.type === 'metadata'}
+        {@const filter = searchToBinaryFilter(search)}
+        <FilterPill {schema} {filter} hidePath />
+      {:else}
+        <SearchPill {search} />
+      {/if}
     {/each}
     {#each embeddingFields as embeddingField}
       <EmbeddingBadge embedding={embeddingField.signal?.signal_name} />

@@ -28,7 +28,13 @@
   const embeddings = queryEmbeddings();
 
   $: settingsQuery = querySettings(namespace, datasetName);
-  $: settings = $settingsQuery.data;
+
+  $: {
+    if (settings == null && !$settingsQuery.isFetching) {
+      settings = $settingsQuery.data;
+    }
+  }
+
   $: viewType = settings?.ui?.view_type || 'scroll';
 
   const appSettings = getSettingsContext();
@@ -51,12 +57,15 @@
     id: LilacField;
     text: string;
   }
-  $: mediaFieldOptionsItems = (mediaFieldOptions || [])
-    .filter(f => !selectedMediaFields?.includes(f))
-    .map(f => {
-      const serializedPath = serializePath(f.path);
-      return {id: f, text: serializedPath};
-    });
+  $: mediaFieldOptionsItems =
+    mediaFieldOptions != null
+      ? mediaFieldOptions
+          .filter(f => !selectedMediaFields?.includes(f))
+          .map(f => {
+            const serializedPath = serializePath(f.path);
+            return {id: f, text: serializedPath};
+          })
+      : null;
   function selectMediaField(e: CustomEvent<MediaFieldComboBoxItem>) {
     const mediaField = e.detail.id;
     if (selectedMediaFields == null || selectedMediaFields.includes(mediaField)) return;
@@ -67,7 +76,7 @@
     selectedMediaFields = selectedMediaFields?.filter(f => f !== mediaField);
   }
   function moveMediaFieldUp(mediaField: LilacField) {
-    if (selectedMediaFields == null) return;
+    if (selectedMediaFields == null || settings?.ui == null) return;
     const index = selectedMediaFields.indexOf(mediaField);
     if (index <= 0) return;
     selectedMediaFields = [
@@ -78,7 +87,7 @@
     ];
   }
   function moveMediaFieldDown(mediaField: LilacField) {
-    if (selectedMediaFields == null) return;
+    if (selectedMediaFields == null || settings?.ui == null) return;
     const index = selectedMediaFields.indexOf(mediaField);
     if (index < 0 || index >= selectedMediaFields.length - 1) return;
     selectedMediaFields = [
@@ -115,8 +124,12 @@
     }
   }
   $: {
-    if (selectedMediaFields == null && mediaFieldOptions != null) {
-      const mediaPathsFromSettings = ($settingsQuery.data?.ui?.media_paths || []).map(p =>
+    if (
+      selectedMediaFields == null &&
+      mediaFieldOptions != null &&
+      $settingsQuery.data?.ui?.media_paths != null
+    ) {
+      const mediaPathsFromSettings = $settingsQuery.data.ui.media_paths.map(p =>
         Array.isArray(p) ? p : [p]
       );
       selectedMediaFields = mediaFieldOptions.filter(f =>
@@ -126,8 +139,12 @@
   }
 
   $: {
-    if (markdownMediaFields == null && mediaFieldOptions != null) {
-      const mardownPathsFromSettings = ($settingsQuery.data?.ui?.markdown_paths || []).map(p =>
+    if (
+      markdownMediaFields == null &&
+      mediaFieldOptions != null &&
+      $settingsQuery.data?.ui?.markdown_paths != null
+    ) {
+      const mardownPathsFromSettings = $settingsQuery.data.ui.markdown_paths.map(p =>
         Array.isArray(p) ? p : [p]
       );
       markdownMediaFields = mediaFieldOptions.filter(f =>
@@ -144,7 +161,7 @@
   }
 
   $: {
-    if (settings != null) {
+    if (settings != null && settings.preferred_embedding == null) {
       settings.preferred_embedding = preferredEmbedding;
     }
   }
@@ -257,15 +274,17 @@
           {/if}
         </div>
         <div class="h-12">
-          <ButtonDropdown
-            buttonOutline
-            disabled={selectedMediaFields.length === 0}
-            buttonIcon={Add}
-            items={mediaFieldOptionsItems}
-            buttonText="Add media field"
-            comboBoxPlaceholder="Add media field"
-            on:select={selectMediaField}
-          />
+          {#if mediaFieldOptionsItems}
+            <ButtonDropdown
+              buttonOutline
+              disabled={mediaFieldOptionsItems.length === 0}
+              buttonIcon={Add}
+              items={mediaFieldOptionsItems}
+              buttonText="Add media field"
+              comboBoxPlaceholder="Add media field"
+              on:select={selectMediaField}
+            />
+          {/if}
         </div>
       {:else}
         <SelectSkeleton />

@@ -30,11 +30,13 @@ except metadata.PackageNotFoundError:
 
 register_default_signals()
 register_default_vector_stores()
+register_default_sources()
 set_default_dataset_cls(DatasetDuckDB)
 
 # Avoids polluting the results of dir(__package__).
 del (
   metadata,
+  register_default_vector_stores,
   register_default_sources,
   register_default_signals,
   set_default_dataset_cls,

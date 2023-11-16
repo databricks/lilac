@@ -1,4 +1,5 @@
 """Registers all available default sources."""
+from ..source import register_source
 from .csv_source import CSVSource
 from .github_source import GithubSource
 from .gmail_source import GmailSource
@@ -8,7 +9,6 @@ from .langsmith import LangSmithSource
 from .llama_index_docs_source import LlamaIndexDocsSource
 from .pandas_source import PandasSource
 from .parquet_source import ParquetSource
-from .source_registry import register_source
 from .sqlite_source import SQLiteSource
 
 
