@@ -95,7 +95,7 @@ class ParquetSource(Source):
         f'(SELECT * FROM read_parquet("{path}") LIMIT {samples_per_shard})' for path in duckdb_files
       )
       self._process_query = f"""
-          SELECT CAST(uuid() AS VARCHAR) as __rowid__, *
+          SELECT replace(CAST(uuid() AS VARCHAR), '-', '') as __rowid__, *
           FROM ({shard_query}) LIMIT {self.sample_size}"""
     else:
       sample_suffix = ''
@@ -106,7 +106,7 @@ class ParquetSource(Source):
         else:
           sample_suffix = f'USING SAMPLE {percent_sample}% (system)'
       self._process_query = f"""
-          SELECT CAST(uuid() AS VARCHAR) as __rowid__,
+          SELECT replace(CAST(uuid() AS VARCHAR), '-', '') as __rowid__,
               * FROM read_parquet({duckdb_paths}) {sample_suffix}"""
 
   @override
