@@ -105,7 +105,6 @@ class ParquetSource(Source):
           sample_suffix = f'USING SAMPLE {percent_sample}% (system, {self.seed})'
         else:
           sample_suffix = f'USING SAMPLE {percent_sample}% (system)'
-      print(f'Using sample suffix: {sample_suffix}')
       self._process_query = f"""
           SELECT CAST(uuid() AS VARCHAR) as __rowid__,
               * FROM read_parquet({duckdb_paths}) {sample_suffix}"""
