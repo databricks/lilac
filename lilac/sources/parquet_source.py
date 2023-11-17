@@ -74,7 +74,7 @@ class ParquetSource(Source):
       raise ValueError('`pseudo_shuffle` requires `sample_size` to be set.')
     return pseudo_shuffle
 
-  def _setup_sampling(self, duckdb_paths: list[str]) -> None:
+  def _setup_sampling(self, duckdb_paths: list[str], total_rows: int) -> None:
     assert self._con, 'setup() must be called first.'
     if self.pseudo_shuffle:
       assert self.sample_size, 'pseudo_shuffle requires sample_size to be set.'
@@ -97,13 +97,15 @@ class ParquetSource(Source):
       self._process_query = f"""
           SELECT CAST(uuid() AS VARCHAR) as __rowid__, *
           FROM ({shard_query}) LIMIT {self.sample_size}"""
-      print(self._process_query)
     else:
       sample_suffix = ''
       if self.sample_size:
-        sample_suffix = f'USING SAMPLE {self.sample_size}'
+        percent_sample = self.sample_size / total_rows * 100
         if self.seed is not None:
-          sample_suffix += f' (reservoir, {self.seed})'
+          sample_suffix = f'USING SAMPLE {percent_sample}% (system, {self.seed})'
+        else:
+          sample_suffix = f'USING SAMPLE {percent_sample}% (system)'
+      print(f'Using sample suffix: {sample_suffix}')
       self._process_query = f"""
           SELECT CAST(uuid() AS VARCHAR) as __rowid__,
               * FROM read_parquet({duckdb_paths}) {sample_suffix}"""
@@ -117,17 +119,19 @@ class ParquetSource(Source):
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     duckdb_paths = [convert_path_to_duckdb(path) for path in filepaths]
     res = self._con.execute(f'SELECT COUNT(*) FROM read_parquet({duckdb_paths})').fetchone()
-    num_items = cast(tuple[int], res)[0]
+    total_rows = cast(tuple[int], res)[0]
     if self.sample_size:
-      self.sample_size = min(self.sample_size, num_items)
+      self.sample_size = min(self.sample_size, total_rows)
       num_items = self.sample_size
+    else:
+      num_items = total_rows
     schema = arrow_schema_to_schema(
       self._con.execute(f"""SELECT * FROM read_parquet('{duckdb_paths[0]}')""")
       .fetch_record_batch(1)
       .schema
     )
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
-    self._setup_sampling(duckdb_paths)
+    self._setup_sampling(duckdb_paths, total_rows)
 
   @override
   def source_schema(self) -> SourceSchema:
