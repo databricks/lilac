@@ -28,18 +28,6 @@ npm run format --workspace web/lib
 npm run format --workspace web/blueprint
 ```
 
-### Debug Lilac using pdb
-
-To attach PDB to the Lilac server:
-
-```sh
-./run_server_pdb.sh
-```
-
-This starts the Lilac webserver in a single-threaded mode, ready to accept requests and respond to
-PDB breakpoints. Pro-tip: Chrome's inspector can take logged network requests and Copy > Copy as
-CURL command, which can be used to replay an API call to the Lilac server.
-
 ### Testing
 
 Run all the checks before mailing:
@@ -218,3 +206,97 @@ You may need the following to install poetry:
 - [pyenv](https://github.com/pyenv/pyenv) (Python version management)
 - [Set your current python version](./.python-version)
 - [Python Poetry](https://pypi.org/project/poetry/)
+
+### Debugging and Optimization
+
+#### Debug Lilac using pdb
+
+To attach PDB to the Lilac server:
+
+```sh
+./run_server_pdb.sh
+```
+
+This starts the Lilac webserver in a single-threaded mode, ready to accept requests and respond to
+PDB breakpoints. To trigger your breakpoint, you can use the Lilac UI to trigger an HTTP request, or
+you can also use Chrome's inspector can take logged network requests and Copy > Copy as CURL
+command, to replay an HTTP request to the Lilac server.
+
+#### Profiling time with line_profiler
+
+`line_profiler` allows breaking down time spent by line. To use, decorate a target function with
+@profile and then run a python script with `poetry run kernprof -lv my_script.py`. (The @profile
+decorator is injected into the namespace by kernprof; no imports needed.) `line_profiler` excels at
+profiling numeric code, and for getting a high-level overview of where time gets spent.
+
+In this before/after comparison, the code has gotten 3x faster with the implementation of
+fast_process.
+
+```
+Total time: 2.82135 s
+File: /Users/brian/dev/lilac/lilac/load_dataset.py
+Function: process_source at line 56
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    56                                           @profile
+    57                                           def process_source(
+    58                                             project_dir: Union[str, pathlib.Path],
+    59                                             config: DatasetConfig,
+    60                                             task_step_id: Optional[TaskStepId] = None,
+    61                                           ) -> str:
+    62                                             """Process a source."""
+    63         1         12.0     12.0      0.0    output_dir = get_dataset_output_dir(project_dir, config.namespace, config.name)
+    64
+    65         1      91006.0  91006.0      3.2    config.source.setup()
+    66         1          0.0      0.0      0.0    try:
+    67         1          2.0      2.0      0.0      manifest = config.source.fast_process(output_dir, task_step_id=task_step_id)
+    68         1          1.0      1.0      0.0    except NotImplementedError:
+    69         1    2627713.0    3e+06     93.1      manifest = slow_process(config.source, output_dir, task_step_id=task_step_id)
+    70
+    71         2        747.0    373.5      0.0    with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
+    72         1         76.0     76.0      0.0      f.write(manifest.model_dump_json(indent=2, exclude_none=True))
+    73
+    74         1          1.0      1.0      0.0    if not config.settings:
+    75         1       5324.0   5324.0      0.2      dataset = get_dataset(config.namespace, config.name, project_dir)
+    76         1      92883.0  92883.0      3.3      settings = default_settings(dataset)
+    77         1       3489.0   3489.0      0.1      update_project_dataset_settings(config.namespace, config.name, settings, project_dir)
+    78
+    79         1         99.0     99.0      0.0    log(f'Dataset "{config.name}" written to {output_dir}')
+    80
+    81         1          0.0      0.0      0.0    return output_dir
+
+
+Total time: 1.00076 s
+File: /Users/brian/dev/lilac/lilac/load_dataset.py
+Function: process_source at line 56
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    56                                           @profile
+    57                                           def process_source(
+    58                                             project_dir: Union[str, pathlib.Path],
+    59                                             config: DatasetConfig,
+    60                                             task_step_id: Optional[TaskStepId] = None,
+    61                                           ) -> str:
+    62                                             """Process a source."""
+    63         1         13.0     13.0      0.0    output_dir = get_dataset_output_dir(project_dir, config.namespace, config.name)
+    64
+    65         1      78952.0  78952.0      7.9    config.source.setup()
+    66         1          0.0      0.0      0.0    try:
+    67         1     830583.0 830583.0     83.0      manifest = config.source.fast_process(output_dir, task_step_id=task_step_id)
+    68                                             except NotImplementedError:
+    69                                               manifest = slow_process(config.source, output_dir, task_step_id=task_step_id)
+    70
+    71         2        248.0    124.0      0.0    with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
+    72         1         90.0     90.0      0.0      f.write(manifest.model_dump_json(indent=2, exclude_none=True))
+    73
+    74         1          1.0      1.0      0.0    if not config.settings:
+    75         1       5490.0   5490.0      0.5      dataset = get_dataset(config.namespace, config.name, project_dir)
+    76         1      81904.0  81904.0      8.2      settings = default_settings(dataset)
+    77         1       3394.0   3394.0      0.3      update_project_dataset_settings(config.namespace, config.name, settings, project_dir)
+    78
+    79         1         85.0     85.0      0.0    log(f'Dataset "{config.name}" written to {output_dir}')
+    80
+    81         1          0.0      0.0      0.0    return output_dir
+```

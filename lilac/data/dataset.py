@@ -392,24 +392,33 @@ class Dataset(abc.ABC):
 
   @abc.abstractmethod
   def compute_signal(
-    self, signal: Signal, path: Path, task_step_id: Optional[TaskStepId] = None
+    self,
+    signal: Signal,
+    path: Path,
+    overwrite: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute a signal for a column.
 
     Args:
       signal: The signal to compute over the given columns.
       path: The leaf path to compute the signal on.
+      overwrite: Whether to overwrite an existing signal computed at this path.
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
     """
     pass
 
   def compute_embedding(
-    self, embedding: str, path: Path, task_step_id: Optional[TaskStepId] = None
+    self,
+    embedding: str,
+    path: Path,
+    overwrite: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute an embedding for a given field path."""
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
-    self.compute_signal(signal, path, task_step_id)
+    self.compute_signal(signal, path, overwrite, task_step_id)
 
   def compute_concept(
     self,
@@ -417,11 +426,12 @@ class Dataset(abc.ABC):
     concept_name: str,
     embedding: str,
     path: Path,
+    overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute concept scores for a given field path."""
     signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
-    self.compute_signal(signal, path, task_step_id)
+    self.compute_signal(signal, path, overwrite=overwrite, task_step_id=task_step_id)
 
   @abc.abstractmethod
   def delete_signal(self, signal_path: Path) -> None:
@@ -580,7 +590,6 @@ class Dataset(abc.ABC):
     self,
     map_fn: MapFn,
     output_path: Optional[Path] = None,
-    input_paths: Optional[Sequence[Path]] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -593,7 +602,6 @@ class Dataset(abc.ABC):
         result. The result Item can be a primitive, like a string.
       output_path: The output path to write the resulting column to. If not defined, does not
         serialize the output to disk, and returns the result as an iterator.
-      input_paths: The input_paths to select. When not defined, selects all paths.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object

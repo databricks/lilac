@@ -64,6 +64,49 @@ def setup_teardown() -> Iterable[None]:
 def test_map(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
+  def _map_fn(row: Item, job_id: int) -> Item:
+    return row['text'].upper()
+
+  # Write the output to a new column.
+  dataset.map(_map_fn, output_path='text_upper', num_jobs=num_jobs)
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': 'string',
+        'text_upper': field(
+          dtype='string',
+          map=MapInfo(
+            fn_name='_map_fn',
+            fn_source=inspect.getsource(_map_fn),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
+    num_items=2,
+    source=TestSource(),
+  )
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'text_upper': 'A SENTENCE',
+    },
+    {
+      'text': 'b sentence',
+      'text_upper': 'B SENTENCE',
+    },
+  ]
+
+
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+def test_map_signal(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
+
   signal = TestFirstCharSignal()
   dataset.compute_signal(signal, 'text')
 
@@ -71,7 +114,7 @@ def test_map(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None
     return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_path='output_text', combine_columns=False, num_jobs=num_jobs)
+  dataset.map(_map_fn, output_path='output_text', num_jobs=num_jobs)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -130,7 +173,7 @@ def test_map_job_id(make_test_data: TestDataMaker, test_dask_logger: TestDaskLog
     test_dask_logger.log_event(job_id)
     return {}
 
-  dataset.map(_map_fn, output_path='map_id', combine_columns=False, num_jobs=3)
+  dataset.map(_map_fn, output_path='map_id', num_jobs=3)
 
   assert set(test_dask_logger.get_logs()) == set([0, 1, 2])
 
@@ -163,7 +206,7 @@ def test_map_continuation(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+    dataset.map(_map_fn_1, output_path='map_id', num_jobs=num_jobs)
 
   # The schema should not reflect the output of the map as it didn't finish.
   assert dataset.manifest() == DatasetManifest(
@@ -183,7 +226,7 @@ def test_map_continuation(
 
   test_dask_logger.clear_logs()
 
-  dataset.map(_map_fn_2, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+  dataset.map(_map_fn_2, output_path='map_id', num_jobs=num_jobs)
 
   # The row_id=1 should be called for the continuation.
   assert 1 in test_dask_logger.get_logs()
@@ -243,13 +286,11 @@ def test_map_continuation_overwrite(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_path='map_id', combine_columns=False, num_jobs=num_jobs)
+    dataset.map(_map_fn_1, output_path='map_id', num_jobs=num_jobs)
 
   test_dask_logger.clear_logs()
 
-  dataset.map(
-    _map_fn_2, output_path='map_id', combine_columns=False, overwrite=True, num_jobs=num_jobs
-  )
+  dataset.map(_map_fn_2, output_path='map_id', overwrite=True, num_jobs=num_jobs)
 
   # Map should be called for all ids.
   assert sorted(test_dask_logger.get_logs()) == [0, 1, 2]
@@ -281,7 +322,8 @@ def test_map_continuation_overwrite(
   ]
 
 
-def test_map_overwrite(make_test_data: TestDataMaker) -> None:
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+def test_map_overwrite(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}])
 
   prefix = '0'
@@ -291,7 +333,7 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
     return prefix + row['text']
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_path='map_text', combine_columns=False)
+  dataset.map(_map_fn, output_path='map_text', num_jobs=num_jobs)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [{'text': 'a', 'map_text': '0a'}, {'text': 'b', 'map_text': '0b'}]
@@ -301,7 +343,7 @@ def test_map_overwrite(make_test_data: TestDataMaker) -> None:
 
   prefix = '1'
   # Overwrite the output
-  dataset.map(_map_fn, output_path='map_text', combine_columns=False, overwrite=True)
+  dataset.map(_map_fn, output_path='map_text', overwrite=True)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -360,67 +402,6 @@ def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {'text': 'a sentence', 'text.test_signal': {'firstchar': 'a', 'len': 10}},
     {'text': 'b sentence', 'text.test_signal': {'firstchar': 'b', 'len': 10}},
-  ]
-
-
-def test_map_explicit_columns(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{'text': 'a sentence', 'extra': 1}, {'text': 'b sentence', 'extra': 2}])
-
-  signal = TestFirstCharSignal()
-  dataset.compute_signal(signal, 'text')
-
-  def _map_fn(row: Item, job_id: int) -> Item:
-    assert 'extra' not in row
-    return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
-
-  # Write the output to a new column.
-  dataset.map(
-    _map_fn,
-    output_path='output_text',
-    input_paths=[('text',), ('text', 'test_signal')],
-    combine_columns=False,
-  )
-
-  assert dataset.manifest() == DatasetManifest(
-    namespace=TEST_NAMESPACE,
-    dataset_name=TEST_DATASET_NAME,
-    data_schema=schema(
-      {
-        'text': field(
-          'string',
-          fields={
-            'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
-            )
-          },
-        ),
-        'extra': 'int32',
-        'output_text': field(
-          fields={'result': 'string'},
-          map=MapInfo(
-            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
-          ),
-        ),
-      }
-    ),
-    num_items=2,
-    source=TestSource(),
-  )
-
-  rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {
-      'text': 'a sentence',
-      'extra': 1,
-      'text.test_signal': {'firstchar': 'a', 'len': 10},
-      'output_text': {'result': 'a_10'},
-    },
-    {
-      'text': 'b sentence',
-      'extra': 2,
-      'text.test_signal': {'firstchar': 'b', 'len': 10},
-      'output_text': {'result': 'b_10'},
-    },
   ]
 
 

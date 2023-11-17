@@ -32,20 +32,18 @@ def allow_any_datetime(cls: Type[BaseModel]) -> None:
   """Overrides the __eq__ method for a pydantic model to allow any datetimes to be equal."""
 
   # freeze_time and Dask don't play well together so we override equality here.
-  def _replace_datetimes(self: dict, other: dict) -> None:
+  def _replace_datetimes(self: dict) -> None:
     # Recursively replace datetimes in both self and other with TEST_TIME.
     for key in self:
       if isinstance(self[key], dict):
-        _replace_datetimes(self[key], other[key])
+        _replace_datetimes(self[key])
       elif isinstance(self[key], datetime):
         self[key] = TEST_TIME
-        other[key] = TEST_TIME
 
   def _new_eq(self: BaseModel, other: object) -> bool:
     self_dict = self.model_dump()
     other_dict = cast(BaseModel, other).model_dump()
-    _replace_datetimes(self_dict, other_dict)
-    _replace_datetimes(other_dict, self_dict)
+    _replace_datetimes(self_dict)
     return self_dict == other_dict
 
   cls.__eq__ = _new_eq  # type: ignore

@@ -216,7 +216,7 @@ def load(
           if signal_field is None or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(
-              task_id, _compute_signal, d.namespace, d.name, s, project_dir, (task_id, 0)
+              task_id, _compute_signal, d.namespace, d.name, s, project_dir, (task_id, 0), overwrite
             )
             # Wait for each signal to reduce memory pressure.
             task_manager.wait([task_id])
@@ -255,6 +255,7 @@ def _compute_signal(
   signal_config: SignalConfig,
   project_dir: Union[str, pathlib.Path],
   task_step_id: TaskStepId,
+  overwrite: bool = False,
 ) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
@@ -263,7 +264,12 @@ def _compute_signal(
     del os.environ['DEBUG']
 
   dataset = get_dataset(namespace, name, project_dir)
-  dataset.compute_signal(signal_config.signal, signal_config.path, task_step_id)
+  dataset.compute_signal(
+    signal=signal_config.signal,
+    path=signal_config.path,
+    overwrite=overwrite,
+    task_step_id=task_step_id,
+  )
 
   # Free up RAM.
   remove_dataset_from_cache(namespace, name)
@@ -285,8 +291,12 @@ def _compute_embedding(
     del os.environ['DEBUG']
 
   dataset = get_dataset(namespace, name, project_dir)
-  dataset.compute_embedding(embedding_config.embedding, embedding_config.path, task_step_id)
-
+  dataset.compute_embedding(
+    embedding=embedding_config.embedding,
+    path=embedding_config.path,
+    overwrite=True,
+    task_step_id=task_step_id,
+  )
   remove_dataset_from_cache(namespace, name)
   del dataset
   gc.collect()

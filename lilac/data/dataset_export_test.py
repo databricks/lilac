@@ -131,8 +131,8 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
   df = dataset.to_pandas([ROWID, 'text', 'text.test_signal.flen'])
   expected_df = pd.DataFrame(
     [
-      {ROWID: '1', 'text': 'hello', 'text.test_signal.flen': np.float32(5.0)},
-      {ROWID: '2', 'text': 'everybody', 'text.test_signal.flen': np.float32(9.0)},
+      {ROWID: '1', 'text': 'hello', 'text.test_signal.flen': np.float64(5.0)},
+      {ROWID: '2', 'text': 'everybody', 'text.test_signal.flen': np.float64(9.0)},
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)

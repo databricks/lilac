@@ -177,8 +177,6 @@ class Field(BaseModel):
     """Validate the fields."""
     if not fields:
       return fields
-    if SPAN_KEY in fields:
-      raise ValueError(f'{SPAN_KEY} is a reserved field name.')
     if VALUE_KEY in fields:
       raise ValueError(f'{VALUE_KEY} is a reserved field name.')
     return fields
