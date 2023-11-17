@@ -74,22 +74,30 @@ class ParquetSource(Source):
       raise ValueError('`pseudo_shuffle` requires `sample_size` to be set.')
     return pseudo_shuffle
 
-  def _setup_sampling(self, duckdb_paths: list[str]) -> Schema:
+  def _setup_sampling(self, duckdb_paths: list[str]) -> None:
     assert self._con, 'setup() must be called first.'
     if self.pseudo_shuffle:
       assert self.sample_size, 'pseudo_shuffle requires sample_size to be set.'
-      # Find each individual file.
+      # Resolve globs into individual files.
       glob_rows: list[tuple[str]] = self._con.execute(
         f'SELECT * FROM GLOB({duckdb_paths})'
       ).fetchall()
       duckdb_files: list[str] = list(set([row[0] for row in glob_rows]))
       # Sub-sample shards so we don't open too many files.
       num_shards = min(self.pseudo_shuffle_num_shards, len(duckdb_files))
+      # The 1.5 multiplier gives some wiggle room for heterogeneous shard sizes, in case one shard
+      # fails to yield as many samples as hoped.
+      samples_per_shard = int((self.sample_size * 1.5) // num_shards)
       duckdb_files = random.sample(duckdb_files, num_shards)
       self._duckdb_files = duckdb_files
+
+      shard_query = '\nUNION ALL\n'.join(
+        f'(SELECT * FROM read_parquet("{path}") LIMIT {samples_per_shard})' for path in duckdb_files
+      )
       self._process_query = f"""
-          SELECT CAST(uuid() AS VARCHAR) as __rowid__,
-              * FROM read_parquet({duckdb_files}) LIMIT {self.sample_size}"""
+          SELECT CAST(uuid() AS VARCHAR) as __rowid__, *
+          FROM ({shard_query}) LIMIT {self.sample_size}"""
+      print(self._process_query)
     else:
       sample_suffix = ''
       if self.sample_size:
@@ -99,11 +107,6 @@ class ParquetSource(Source):
       self._process_query = f"""
           SELECT CAST(uuid() AS VARCHAR) as __rowid__,
               * FROM read_parquet({duckdb_paths}) {sample_suffix}"""
-    return arrow_schema_to_schema(
-      self._con.execute(f"""SELECT * FROM read_parquet('{duckdb_paths[0]}')""")
-      .fetch_record_batch(1)
-      .schema
-    )
 
   @override
   def setup(self) -> None:
@@ -118,8 +121,13 @@ class ParquetSource(Source):
     if self.sample_size:
       self.sample_size = min(self.sample_size, num_items)
       num_items = self.sample_size
-    schema = self._setup_sampling(duckdb_paths)
+    schema = arrow_schema_to_schema(
+      self._con.execute(f"""SELECT * FROM read_parquet('{duckdb_paths[0]}')""")
+      .fetch_record_batch(1)
+      .schema
+    )
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
+    self._setup_sampling(duckdb_paths)
 
   @override
   def source_schema(self) -> SourceSchema:
