@@ -8,21 +8,11 @@ import pyarrow.parquet as pq
 import pytest
 from pydantic import ValidationError
 
-from ..schema import ROWID, Item, schema
-from ..source import SourceManifest, SourceSchema
+from ..schema import schema
+from ..source import SourceSchema
+from ..test_utils import retrieve_parquet_rows
 from ..utils import chunks
 from .parquet_source import ParquetSource
-
-
-def _retrieve_parquet_rows(tmp_path: pathlib.Path, manifest: SourceManifest) -> list[Item]:
-  """Retrieve the rows from a parquet source."""
-  items = []
-  for file in manifest.files:
-    items.extend(pq.read_table(tmp_path / file).to_pylist())
-  for item in items:
-    assert ROWID in item
-    del item[ROWID]
-  return items
 
 
 def test_simple_rows(tmp_path: pathlib.Path) -> None:
@@ -40,7 +30,7 @@ def test_simple_rows(tmp_path: pathlib.Path) -> None:
     fields=schema({'name': 'string', 'age': 'int64'}).fields, num_items=3
   )
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-  items = _retrieve_parquet_rows(tmp_path, manifest)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   assert items == [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
 
 
@@ -56,7 +46,7 @@ def test_single_shard_with_sampling(tmp_path: pathlib.Path) -> None:
     source = ParquetSource(filepaths=[out_file], sample_size=sample_size)
     source.setup()
     manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-    items = _retrieve_parquet_rows(tmp_path, manifest)
+    items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
 
@@ -72,7 +62,7 @@ def test_single_shard_pseudo_shuffle(tmp_path: pathlib.Path) -> None:
     source = ParquetSource(filepaths=[out_file], sample_size=sample_size, pseudo_shuffle=True)
     source.setup()
     manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-    items = _retrieve_parquet_rows(tmp_path, manifest)
+    items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
 
@@ -86,7 +76,7 @@ def test_multi_shard(tmp_path: pathlib.Path) -> None:
   source = ParquetSource(filepaths=[str(tmp_path / 'test-*.parquet')])
   source.setup()
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-  items = _retrieve_parquet_rows(tmp_path, manifest)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   items.sort(key=lambda x: x['name'])
   assert items == source_items
 
@@ -103,7 +93,7 @@ def test_multi_shard_sample(tmp_path: pathlib.Path) -> None:
     source = ParquetSource(filepaths=[str(tmp_path / 'test-*.parquet')], sample_size=sample_size)
     source.setup()
     manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-    items = _retrieve_parquet_rows(tmp_path, manifest)
+    items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
 
@@ -123,7 +113,7 @@ def test_multi_shard_approx_shuffle(tmp_path: pathlib.Path) -> None:
     )
     source.setup()
     manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-    items = _retrieve_parquet_rows(tmp_path, manifest)
+    items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
 
@@ -139,7 +129,7 @@ def test_uniform_shards_pseudo_shuffle(tmp_path: pathlib.Path) -> None:
   )
   source.setup()
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-  items = _retrieve_parquet_rows(tmp_path, manifest)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 
 
@@ -158,7 +148,7 @@ def test_nonuniform_shards_pseudo_shuffle(tmp_path: pathlib.Path) -> None:
   )
   source.setup()
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-  items = _retrieve_parquet_rows(tmp_path, manifest)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 
 
@@ -172,7 +162,7 @@ def test_sampling_with_seed(tmp_path: pathlib.Path) -> None:
   source = ParquetSource(filepaths=[str(tmp_path / 'test-*.parquet')], sample_size=20, seed=42)
   source.setup()
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-  items = _retrieve_parquet_rows(tmp_path, manifest)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 
 
@@ -188,7 +178,7 @@ def test_approx_shuffle_with_seed(tmp_path: pathlib.Path) -> None:
   )
   source.setup()
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
-  items = _retrieve_parquet_rows(tmp_path, manifest)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 
 
