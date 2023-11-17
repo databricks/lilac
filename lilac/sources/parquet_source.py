@@ -9,7 +9,7 @@ from pydantic import Field, ValidationInfo, field_validator
 from typing_extensions import override
 
 from ..data import dataset_utils
-from ..schema import PARQUET_FILENAME_PREFIX, Schema, arrow_schema_to_schema
+from ..schema import PARQUET_FILENAME_PREFIX, ROWID, Schema, arrow_schema_to_schema
 from ..source import Source, SourceManifest, SourceSchema
 from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
 from ..tasks import TaskStepId
@@ -95,7 +95,7 @@ class ParquetSource(Source):
         f'(SELECT * FROM read_parquet("{path}") LIMIT {samples_per_shard})' for path in duckdb_files
       )
       self._process_query = f"""
-          SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS __rowid__, *
+          SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS {ROWID}, *
           FROM ({shard_query}) LIMIT {self.sample_size}"""
       print(self._process_query)
     else:
@@ -105,7 +105,7 @@ class ParquetSource(Source):
         if self.seed is not None:
           sample_suffix += f' (reservoir, {self.seed})'
       self._process_query = f"""
-          SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS __rowid__,
+          SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS {ROWID},
               * FROM read_parquet({duckdb_paths}) {sample_suffix}"""
 
   @override
