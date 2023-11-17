@@ -87,7 +87,7 @@ class ParquetSource(Source):
       num_shards = min(self.pseudo_shuffle_num_shards, len(duckdb_files))
       # The 1.5 multiplier gives some wiggle room for heterogeneous shard sizes, in case one shard
       # fails to yield as many samples as hoped.
-      samples_per_shard = int((self.sample_size * 1.5) // num_shards)
+      samples_per_shard = max(1, int((self.sample_size * 1.5) // num_shards))
       duckdb_files = random.sample(duckdb_files, num_shards)
       self._duckdb_files = duckdb_files
 
