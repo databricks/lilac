@@ -136,7 +136,7 @@ class ParquetSource(Source):
     return self._source_schema
 
   @override
-  def fast_process(
+  def load_to_parquet(
     self, output_dir: str, task_step_id: Optional[TaskStepId] = None
   ) -> SourceManifest:
     del task_step_id

@@ -63,7 +63,7 @@ def process_source(
 
   config.source.setup()
   try:
-    manifest = config.source.fast_process(output_dir, task_step_id=task_step_id)
+    manifest = config.source.load_to_parquet(output_dir, task_step_id=task_step_id)
   except NotImplementedError:
     manifest = slow_process(config.source, output_dir, task_step_id=task_step_id)
 

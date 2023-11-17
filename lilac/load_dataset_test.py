@@ -57,7 +57,7 @@ class TestFastSource(Source):
     return SourceSchema(fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2)
 
   @override
-  def fast_process(
+  def load_to_parquet(
     self, output_dir: str, task_step_id: Optional[TaskStepId] = None
   ) -> SourceManifest:
     rows = [
