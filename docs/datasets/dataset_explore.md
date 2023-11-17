@@ -13,8 +13,21 @@ see [Load a dataset](./dataset_load.md).
 
 #### Items
 
-The right hand side contains an infinite scroll panel where we can see the examples with their
-metadata.
+The right hand side contains a panel where we can see the examples with their metadata. You can
+choose between an infinite scroll or a paginated single item view via the
+[view type](./dataset_configure.md#view-type) in the [dataset settings](./dataset_configure.md)
+menu.
+
+##### Compare mode
+
+When looking at a single item, you can compare any two fields by clicking on the compare icon:
+
+<img width=450 src="../_static/dataset/dataset_compare_button.png"></img>
+
+<img src="../_static/dataset/dataset_diff.png"></img>
+
+The compare mode is very useful for comparing two versions of the same field, before and after
+applying a dataset transformation.
 
 #### Schema
 

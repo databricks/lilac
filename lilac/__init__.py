@@ -1,7 +1,14 @@
 from importlib import metadata
 
 from .concepts import *  # noqa: F403
-from .config import Config, DatasetConfig, DatasetSettings, EmbeddingConfig, SignalConfig
+from .config import (
+  Config,
+  DatasetConfig,
+  DatasetSettings,
+  DatasetUISettings,
+  EmbeddingConfig,
+  SignalConfig,
+)
 from .data import *  # noqa: F403
 from .data.dataset_duckdb import DatasetDuckDB
 from .db_manager import get_dataset, set_default_dataset_cls
@@ -48,6 +55,7 @@ __all__ = [
   'EmbeddingConfig',
   'SignalConfig',
   'DatasetSettings',
+  'DatasetUISettings',
   'LilacEnvironment',
   'Source',
   'Field',
