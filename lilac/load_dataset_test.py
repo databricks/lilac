@@ -19,7 +19,7 @@ from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, DataType, Field, Item, Schema, schema
 from .source import Source, SourceManifest, SourceSchema, clear_source_registry, register_source
 from .tasks import TaskStepId
-from .test_utils import fake_uuid, read_items
+from .test_utils import fake_uuid, retrieve_parquet_rows
 from .utils import DATASETS_DIR_NAME
 
 
@@ -119,7 +119,7 @@ def test_data_loader(
     source=source,
   )
 
-  items = read_items(output_dir, source_manifest.files, source_manifest.data_schema)
+  items = retrieve_parquet_rows(pathlib.Path(output_dir), source_manifest, retain_rowid=True)
 
   assert items == [
     {ROWID: fake_uuid(b'1').hex, 'x': 1, 'y': 'ten'},
