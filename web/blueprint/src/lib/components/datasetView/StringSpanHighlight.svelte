@@ -34,6 +34,7 @@
     getRenderSpans,
     getSnippetSpans,
     type RenderSpan,
+    type SnippetSpan,
     type SpanValueInfo
   } from './spanHighlight';
 
@@ -52,9 +53,9 @@
 
   // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
-  export let alwaysExpand = false;
-
-  let isExpanded = alwaysExpand;
+  export let isExpanded = false;
+  // Passed back up to the parent.
+  export let textIsOverBudget = false;
 
   const urlHashContext = getUrlHashContext();
 
@@ -154,6 +155,7 @@
   };
 
   // Snippets.
+  let snippetSpans: SnippetSpan[];
   $: ({snippetSpans, textIsOverBudget} = getSnippetSpans(renderSpans, isExpanded));
 
   let itemScrollContainer = getContext<Writable<HTMLDivElement | null>>(
@@ -174,7 +176,7 @@
   const notificationStore = getNotificationsContext();
 </script>
 
-<div class="relative overflow-x-hidden text-ellipsis whitespace-break-spaces">
+<div class="overflow-x-hidden text-ellipsis whitespace-break-spaces">
   {#each snippetSpans as snippetSpan}
     {#if !snippetSpan.isEllipsis}
       {@const renderSpan = snippetSpan.renderSpan}
@@ -225,7 +227,7 @@
       </span>
     {/if}
   {/each}
-  {#if textIsOverBudget && !alwaysExpand}
+  {#if textIsOverBudget && !isExpanded}
     <div class="flex flex-row justify-center">
       <div class="w-30 mt-2 rounded border border-neutral-300 text-center">
         {#if !isExpanded}
