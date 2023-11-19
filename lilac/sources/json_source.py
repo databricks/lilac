@@ -67,7 +67,6 @@ class JSONSource(Source):
 
     if self.sample_size:
       self._process_sql = f'SELECT * FROM t USING SAMPLE {num_items}'
-      print(self._process_sql)
     else:
       self._process_sql = 'SELECT * FROM t'
     schema = arrow_schema_to_schema(
@@ -92,8 +91,10 @@ class JSONSource(Source):
     os.makedirs(output_dir, exist_ok=True)
 
     self._con.sql(
-      f"""SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID}, *
-      FROM ({self._process_sql})"""
+      f"""
+      SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID}, *
+      FROM ({self._process_sql})
+      """
     ).write_parquet(filepath, compression='zstd')
     schema = Schema(fields=self.source_schema().fields.copy())
     return SourceManifest(files=[out_filename], data_schema=schema, source=self)
