@@ -376,6 +376,23 @@ def test_map_overwrite(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMake
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [{'text': 'a', 'map_text': '1a'}, {'text': 'b', 'map_text': '1b'}]
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': 'string',
+        'map_text': field(
+          dtype='string',
+          map=MapInfo(
+            fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
+          ),
+        ),
+      }
+    ),
+    num_items=2,
+    source=TestSource(),
+  )
 
 
 def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
