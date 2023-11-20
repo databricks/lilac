@@ -19,7 +19,6 @@ def test_hf(tmp_path: pathlib.Path) -> None:
 
   source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
-  items = source.yield_items()
   source.setup()
 
   source_schema = source.source_schema()
@@ -60,7 +59,6 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
 
   source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
-  items = source.yield_items()
   source.setup()
 
   source_schema = source.source_schema()
@@ -111,7 +109,6 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
 
   source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
 
-  items = source.yield_items()
   source.setup()
 
   source_schema = source.source_schema()
