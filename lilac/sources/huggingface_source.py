@@ -225,8 +225,8 @@ class HuggingFaceSource(Source):
       star_clause = f'* EXCLUDE ({", ".join(self._schema_info.class_labels.keys())}),'
       # +1 because HF class labels start at 0 but DuckDB's array_extract is 1-indexed.
       rename_clause = ', '.join(
-        f'ARRAY_EXTRACT({value}, {key} + 1) AS {key}'
-        for key, value in self._schema_info.class_labels.items()
+        f'ARRAY_EXTRACT({class_names}, {key} + 1) AS {key}'
+        for key, class_names in self._schema_info.class_labels.items()
       )
       select_clause = star_clause + rename_clause
     else:
