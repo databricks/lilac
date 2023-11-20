@@ -3,10 +3,11 @@ import os
 import pathlib
 
 # mypy: disable-error-code="attr-defined"
-from datasets import Dataset, Features, Sequence, Value
+from datasets import ClassLabel, Dataset, Features, Sequence, Value
 
 from ..schema import schema
 from ..source import SourceSchema
+from ..test_utils import retrieve_parquet_rows
 from .huggingface_source import HF_SPLIT_COLUMN, HuggingFaceSource
 
 
@@ -26,7 +27,8 @@ def test_hf(tmp_path: pathlib.Path) -> None:
     fields=schema({HF_SPLIT_COLUMN: 'string', 'x': 'int64', 'y': 'string'}).fields, num_items=2
   )
 
-  items = list(source.yield_items())
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
     {HF_SPLIT_COLUMN: 'default', 'x': 1, 'y': 'ten'},
@@ -74,7 +76,8 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
     num_items=2,
   )
 
-  items = list(source.yield_items())
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
     {
@@ -119,9 +122,40 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
     num_items=2,
   )
 
-  items = list(source.yield_items())
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
     {HF_SPLIT_COLUMN: 'default', 'scalar': 1, 'list': [{'x': 1, 'y': 'two'}]},
     {HF_SPLIT_COLUMN: 'default', 'scalar': 2, 'list': [{'x': 3, 'y': 'four'}]},
+  ]
+
+
+def test_hf_class_labels(tmp_path: pathlib.Path) -> None:
+  dataset = Dataset.from_list(
+    [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}],
+    features=Features(
+      {
+        'x': ClassLabel(num_classes=3, names=['x0', 'x1', 'x2']),
+        'y': Value(dtype='string'),
+      }
+    ),
+  )
+  dataset_name = os.path.join(tmp_path, 'hf-test-dataset')
+  dataset.save_to_disk(dataset_name)
+
+  source = HuggingFaceSource(dataset_name=dataset_name, load_from_disk=True)
+  source.setup()
+
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({HF_SPLIT_COLUMN: 'string', 'x': 'string', 'y': 'string'}).fields, num_items=2
+  )
+
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
+
+  assert items == [
+    {HF_SPLIT_COLUMN: 'default', 'x': 'x1', 'y': 'ten'},
+    {HF_SPLIT_COLUMN: 'default', 'x': 'x2', 'y': 'twenty'},
   ]

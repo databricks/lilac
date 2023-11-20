@@ -1,7 +1,9 @@
 """Huggingface source."""
 import multiprocessing
+import os
 from typing import ClassVar, Iterable, Optional, Union
 
+import duckdb
 import numpy as np
 from datasets import (
   ClassLabel,
@@ -17,8 +19,18 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..schema import DataType, Field, Item, arrow_dtype_to_dtype
-from ..source import Source, SourceSchema
+from ..data import dataset_utils
+from ..schema import (
+  PARQUET_FILENAME_PREFIX,
+  ROWID,
+  DataType,
+  Field,
+  Item,
+  Schema,
+  arrow_dtype_to_dtype,
+)
+from ..source import Source, SourceManifest, SourceSchema
+from ..tasks import TaskStepId
 from ..utils import log
 
 HF_SPLIT_COLUMN = '__hfsplit__'
@@ -177,6 +189,59 @@ class HuggingFaceSource(Source):
     if not self._schema_info:
       raise ValueError('`setup()` must be called before `source_schema`.')
     return SourceSchema(fields=self._schema_info.fields, num_items=self._schema_info.num_items)
+
+  @override
+  def load_to_parquet(self, output_dir: str, task_step_id: Optional[TaskStepId]) -> SourceManifest:
+    del task_step_id
+    if not self._schema_info or not self._dataset_dict:
+      raise ValueError('`setup()` must be called before `process`.')
+
+    out_filename = dataset_utils.get_parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)
+    filepath = os.path.join(output_dir, out_filename)
+    os.makedirs(output_dir, exist_ok=True)
+
+    if self.split:
+      split_names = [self.split]
+    else:
+      split_names = list(self._dataset_dict.keys())
+
+    # DuckDB uses the locals() namespace to enable chaining SQL queries based on Python variables as
+    # table names. Since we have an unknown number of splits, we dynamically create names in
+    # locals() for DuckDB to refererence.
+    duckdb_splits_local_vars = {}
+    for split_name in split_names:
+      duckdb_handle = f'_duckdb_handle_{split_name}'
+      duckdb_splits_local_vars[split_name] = duckdb_handle
+      locals()[duckdb_handle] = self._dataset_dict[split_name].data.table
+    sql_query = '\nUNION ALL\n'.join(
+      f"""SELECT *, '{split_name}' AS {HF_SPLIT_COLUMN}
+        FROM {duckdb_handle}
+        {f'LIMIT {self.sample_size}' if self.sample_size else ''}"""
+      for split_name, duckdb_handle in duckdb_splits_local_vars.items()
+    )
+    all_splits = duckdb.sql(sql_query)
+
+    # Enum column rewrites. (Huggingface supports integer columns, with a schema mapping integers
+    # to strings. We rewrite the integer columns to strings.)
+    if self._schema_info.class_labels:
+      star_clause = f'* EXCLUDE ({", ".join(self._schema_info.class_labels.keys())}),'
+      # +1 because HF class labels start at 0 but DuckDB's array_extract is 1-indexed.
+      rename_clause = ', '.join(
+        f'ARRAY_EXTRACT({value}, {key} + 1) AS {key}'
+        for key, value in self._schema_info.class_labels.items()
+      )
+      select_clause = star_clause + rename_clause
+    else:
+      select_clause = '*'
+    duckdb.sql(
+      f"""
+      SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID},
+      {select_clause}
+      FROM all_splits
+      """
+    ).write_parquet(filepath, compression='zstd')
+    schema = Schema(fields=self.source_schema().fields.copy())
+    return SourceManifest(files=[out_filename], data_schema=schema, source=self)
 
   @override
   def yield_items(self) -> Iterable[Item]:
