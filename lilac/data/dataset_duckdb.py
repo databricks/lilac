@@ -2372,7 +2372,7 @@ class DatasetDuckDB(Dataset):
       if not manifest.data_schema.has_field(nest_under):
         raise ValueError(f'The `nest_under` column {nest_under} does not exist.')
 
-    # If the user didn't provide an output_colum, we make a temporary one so that we can store the
+    # If the user didn't provide an output_column, we make a temporary one so that we can store the
     # output JSON objects in the cache, represented in the right hierarchy.
     if output_column is None:
       output_column = cast(str, getattr(map_fn, 'name', None)) or map_fn.__name__
