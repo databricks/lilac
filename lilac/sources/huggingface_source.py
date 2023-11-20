@@ -1,10 +1,9 @@
 """Huggingface source."""
 import multiprocessing
 import os
-from typing import ClassVar, Iterable, Optional, Union
+from typing import ClassVar, Optional, Union
 
 import duckdb
-import numpy as np
 from datasets import (
   ClassLabel,
   DatasetDict,
@@ -25,7 +24,6 @@ from ..schema import (
   ROWID,
   DataType,
   Field,
-  Item,
   Schema,
   arrow_dtype_to_dtype,
 )
@@ -242,44 +240,3 @@ class HuggingFaceSource(Source):
     ).write_parquet(filepath, compression='zstd')
     schema = Schema(fields=self.source_schema().fields.copy())
     return SourceManifest(files=[out_filename], data_schema=schema, source=self)
-
-  @override
-  def yield_items(self) -> Iterable[Item]:
-    if not self._schema_info or not self._dataset_dict:
-      raise ValueError('`setup()` must be called before `process`.')
-
-    if self.split:
-      split_names = [self.split]
-    else:
-      split_names = list(self._dataset_dict.keys())
-
-    for split_name in split_names:
-      split_dataset = self._dataset_dict[split_name]
-      if self.sample_size:
-        split_dataset = split_dataset.select(range(self.sample_size))
-
-      for example in split_dataset:
-        # Replace the label maps with strings.
-        for feature_name in self._schema_info.class_labels.keys():
-          if feature_name in example:
-            example[feature_name] = self._schema_info.class_labels[feature_name][
-              example[feature_name]
-            ]
-
-        # Inject the split name.
-        example[HF_SPLIT_COLUMN] = split_name
-
-        # Huggingface Sequences are represented as np.arrays. Convert them to lists.
-        example = _np_array_to_list_deep(example)
-
-        yield example
-
-
-def _np_array_to_list_deep(item: Item) -> Item:
-  """Convert all numpy arrays to lists."""
-  for key, value in item.items():
-    if isinstance(value, np.ndarray):
-      item[key] = value.tolist()
-    elif isinstance(value, dict):
-      item[key] = _np_array_to_list_deep(value)
-  return item
