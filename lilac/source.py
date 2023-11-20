@@ -94,10 +94,11 @@ class Source(BaseModel):
   def yield_items(self) -> Iterable[Item]:
     """Process the source by yielding individual rows of the source data.
 
-    You should only override one of `yield_items` or `fast_process`.
+    You should only override one of `yield_items` or `load_to_parquet`.
 
     This method is easier to use, and simply requires you to return an iterator of Python dicts.
-    Lilac will take your iterable of items and handle writing it to parquet.
+    Lilac will take your iterable of items and handle writing it to parquet. You will still have to
+    override source_schema.
 
     Args:
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
@@ -105,15 +106,18 @@ class Source(BaseModel):
     """
     raise NotImplementedError
 
-  def fast_process(self, output_dir: str, task_step_id: Optional[TaskStepId]) -> 'SourceManifest':
+  def load_to_parquet(
+    self, output_dir: str, task_step_id: Optional[TaskStepId]
+  ) -> 'SourceManifest':
     """Process the source by directly writing a parquet file.
 
-    You should only override one of `yield_items` or `fast_process`.
+    You should only override one of `yield_items` or `load_to_parquet`.
 
     This fast path exists for sources where we are able to avoid the overhead of creating python
     dicts for every row by using non-Python parquet writers like DuckDB.
 
-    The output parquet files should have a __rowid__ column defined.
+    The output parquet files should have a {schema.ROWID} column defined. This ROWID should not be
+    part of source_schema, however.
 
     Args:
       output_dir: The directory to write the parquet files to.

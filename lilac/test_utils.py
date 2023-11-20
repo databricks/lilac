@@ -1,30 +1,29 @@
 """Utilities for unit tests."""
-import os
 import pathlib
 import uuid
 from datetime import datetime
-from typing import Type, Union, cast
+from typing import Type, cast
 
 import pyarrow.parquet as pq
 from pydantic import BaseModel
 
-from .schema import ROWID, DataType, Field, Item, Schema, schema_to_arrow_schema
+from .schema import ROWID, Item
+from .source import SourceManifest
 
 TEST_TIME = datetime(2023, 8, 15, 1, 23, 45)
 
 
-def read_items(
-  data_dir: Union[str, pathlib.Path], filepaths: list[str], schema: Schema
+def retrieve_parquet_rows(
+  tmp_path: pathlib.Path, manifest: SourceManifest, retain_rowid: bool = False
 ) -> list[Item]:
-  """Read the source items from a dataset output directory."""
-  items: list[Item] = []
-  schema.fields[ROWID] = Field(dtype=DataType.STRING)
-  for filepath in filepaths:
-    items.extend(
-      pq.read_table(
-        os.path.join(data_dir, filepath), schema=schema_to_arrow_schema(schema)
-      ).to_pylist()
-    )
+  """Retrieve the rows from a parquet source."""
+  items = []
+  for file in manifest.files:
+    items.extend(pq.read_table(tmp_path / file).to_pylist())
+  for item in items:
+    assert ROWID in item
+    if not retain_rowid:
+      del item[ROWID]
   return items
 
 

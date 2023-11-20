@@ -8,6 +8,7 @@ from pytest_mock import MockerFixture
 
 from ..schema import schema
 from ..source import SourceSchema
+from ..test_utils import retrieve_parquet_rows
 from .json_source import JSONSource
 
 
@@ -33,7 +34,8 @@ def test_simple_json(tmp_path: pathlib.Path) -> None:
     fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2
   )
 
-  items = list(source.yield_items())
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
 
@@ -56,7 +58,8 @@ def test_simple_jsonl(tmp_path: pathlib.Path) -> None:
     fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2
   )
 
-  items = list(source.yield_items())
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [{'x': 1, 'y': 'ten'}, {'x': 2, 'y': 'twenty'}]
 
@@ -78,7 +81,8 @@ def test_sampling_jsonl(tmp_path: pathlib.Path) -> None:
     fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2
   )
 
-  items = list(source.yield_items())
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 2
 
 
@@ -99,5 +103,6 @@ def test_sampling_greater_than_dataset(tmp_path: pathlib.Path) -> None:
     fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=3
   )
 
-  items = list(source.yield_items())
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 3

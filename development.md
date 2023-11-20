@@ -230,7 +230,7 @@ decorator is injected into the namespace by kernprof; no imports needed.) `line_
 profiling numeric code, and for getting a high-level overview of where time gets spent.
 
 In this before/after comparison, the code has gotten 3x faster with the implementation of
-fast_process.
+load_to_parquet.
 
 ```
 Total time: 2.82135 s
@@ -250,7 +250,7 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
     64
     65         1      91006.0  91006.0      3.2    config.source.setup()
     66         1          0.0      0.0      0.0    try:
-    67         1          2.0      2.0      0.0      manifest = config.source.fast_process(output_dir, task_step_id=task_step_id)
+    67         1          2.0      2.0      0.0      manifest = config.source.load_to_parquet(output_dir, task_step_id=task_step_id)
     68         1          1.0      1.0      0.0    except NotImplementedError:
     69         1    2627713.0    3e+06     93.1      manifest = slow_process(config.source, output_dir, task_step_id=task_step_id)
     70
@@ -284,7 +284,7 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
     64
     65         1      78952.0  78952.0      7.9    config.source.setup()
     66         1          0.0      0.0      0.0    try:
-    67         1     830583.0 830583.0     83.0      manifest = config.source.fast_process(output_dir, task_step_id=task_step_id)
+    67         1     830583.0 830583.0     83.0      manifest = config.source.load_to_parquet(output_dir, task_step_id=task_step_id)
     68                                             except NotImplementedError:
     69                                               manifest = slow_process(config.source, output_dir, task_step_id=task_step_id)
     70

@@ -1,13 +1,16 @@
 """JSON source."""
-from typing import ClassVar, Iterable, Optional, cast
+import os
+from typing import ClassVar, Optional, cast
 
 import duckdb
 import pyarrow as pa
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..schema import Item, arrow_schema_to_schema
-from ..source import Source, SourceSchema
+from ..data import dataset_utils
+from ..schema import PARQUET_FILENAME_PREFIX, ROWID, Schema, arrow_schema_to_schema
+from ..source import Source, SourceManifest, SourceSchema
+from ..tasks import TaskStepId
 from ..utils import download_http_files
 from .duckdb_utils import convert_path_to_duckdb, duckdb_setup
 
@@ -63,13 +66,12 @@ class JSONSource(Source):
       num_items = min(num_items, self.sample_size)
 
     if self.sample_size:
-      self._reader = self._con.execute(
-        f'SELECT * FROM t USING SAMPLE {num_items}'
-      ).fetch_record_batch(rows_per_batch=10_000)
+      self._process_sql = f'SELECT * FROM t USING SAMPLE {num_items}'
     else:
-      self._reader = self._con.execute('SELECT * FROM t').fetch_record_batch(rows_per_batch=10_000)
-    # Create the source schema in prepare to share it between process and source_schema.
-    schema = arrow_schema_to_schema(self._reader.schema)
+      self._process_sql = 'SELECT * FROM t'
+    schema = arrow_schema_to_schema(
+      self._con.execute('SELECT * FROM t').fetch_record_batch(1).schema
+    )
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
 
   @override
@@ -79,13 +81,20 @@ class JSONSource(Source):
     return self._source_schema
 
   @override
-  def yield_items(self) -> Iterable[Item]:
-    """Process the source."""
-    if not self._reader or not self._con:
-      raise RuntimeError('JSON source is not initialized.')
+  def load_to_parquet(self, output_dir: str, task_step_id: Optional[TaskStepId]) -> SourceManifest:
+    del task_step_id
 
-    for batch in self._reader:
-      yield from batch.to_pylist()
+    assert self._con, 'setup() must be called first.'
 
-    self._reader.close()
-    self._con.close()
+    out_filename = dataset_utils.get_parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)
+    filepath = os.path.join(output_dir, out_filename)
+    os.makedirs(output_dir, exist_ok=True)
+
+    self._con.sql(
+      f"""
+      SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID}, *
+      FROM ({self._process_sql})
+      """
+    ).write_parquet(filepath, compression='zstd')
+    schema = Schema(fields=self.source_schema().fields.copy())
+    return SourceManifest(files=[out_filename], data_schema=schema, source=self)
