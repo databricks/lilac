@@ -6,6 +6,7 @@ from typing import ClassVar, Optional, Union
 import duckdb
 from datasets import (
   ClassLabel,
+  Dataset,
   DatasetDict,
   Image,
   Sequence,
@@ -170,7 +171,9 @@ class HuggingFaceSource(Source):
   def setup(self) -> None:
     if self.load_from_disk:
       # Load from disk.
-      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
+      hf_dataset_dict = load_from_disk(self.dataset_name)
+      if isinstance(hf_dataset_dict, Dataset):
+        hf_dataset_dict = DatasetDict({DEFAULT_LOCAL_SPLIT_NAME: hf_dataset_dict})
     else:
       hf_dataset_dict = load_dataset(
         self.dataset_name,
@@ -212,9 +215,9 @@ class HuggingFaceSource(Source):
       duckdb_splits_local_vars[split_name] = duckdb_handle
       locals()[duckdb_handle] = self._dataset_dict[split_name].data.table
     sql_query = '\nUNION ALL\n'.join(
-      f"""SELECT *, '{split_name}' AS {HF_SPLIT_COLUMN}
+      f"""(SELECT *, '{split_name}' AS {HF_SPLIT_COLUMN}
         FROM {duckdb_handle}
-        {f'LIMIT {self.sample_size}' if self.sample_size else ''}"""
+        {f'LIMIT {self.sample_size}' if self.sample_size else ''})"""
       for split_name, duckdb_handle in duckdb_splits_local_vars.items()
     )
     all_splits = duckdb.sql(sql_query)
