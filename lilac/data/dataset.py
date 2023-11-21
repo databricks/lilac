@@ -589,7 +589,8 @@ class Dataset(abc.ABC):
   def map(
     self,
     map_fn: MapFn,
-    output_path: Optional[Path] = None,
+    output_column: Optional[str] = None,
+    nest_under: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -600,8 +601,11 @@ class Dataset(abc.ABC):
     Args:
       map_fn: A callable that takes a full row item dictionary, and returns an Item for the
         result. The result Item can be a primitive, like a string.
-      output_path: The output path to write the resulting column to. If not defined, does not
-        serialize the output to disk, and returns the result as an iterator.
+      output_column: The name of the output column to write to. When `nest_under` is False
+        (the default), this will be the name of the top-level column. When `nest_under` is True,
+        the output_column will be the name of the column under the path given by `nest_under`.
+      nest_under: The path to nest the output under. This is useful when emitting annotations, like
+        spans, so they will get hierarchically shown in the UI.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
@@ -757,3 +761,9 @@ def make_signal_parquet_id(
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]
   return '.'.join(path)
+
+
+def get_map_parquet_id(output_path: PathTuple) -> str:
+  """Return a unique identifier for this parquet table."""
+  # Remove the wildcards from the parquet id since they are implicit.
+  return 'map.' + '.'.join(output_path)

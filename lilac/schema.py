@@ -635,10 +635,29 @@ def arrow_schema_to_schema(schema: pa.Schema) -> Schema:
 def _arrow_schema_to_schema_impl(schema: Union[pa.Schema, pa.DataType]) -> Union[Schema, Field]:
   """Convert an apache arrow schema to our schema."""
   if isinstance(schema, (pa.Schema, pa.StructType)):
+    dtype: Optional[DataType] = None
+
+    # Check for the span key, and start and end keys.
+    if schema.get_field_index(SPAN_KEY) != -1 and not isinstance(schema, pa.Schema):
+      span_schema = schema[SPAN_KEY].type
+      if (
+        isinstance(span_schema, (pa.Schema, pa.StructType))
+        and span_schema.get_field_index(TEXT_SPAN_START_FEATURE) != -1
+        and span_schema.get_field_index(TEXT_SPAN_END_FEATURE) != -1
+        and pa.types.is_integer(span_schema[TEXT_SPAN_START_FEATURE].type)
+        and pa.types.is_integer(span_schema[TEXT_SPAN_END_FEATURE].type)
+      ):
+        dtype = DataType.STRING_SPAN
+
     fields: dict[str, Field] = {
-      field.name: cast(Field, _arrow_schema_to_schema_impl(field.type)) for field in schema
+      field.name: cast(Field, _arrow_schema_to_schema_impl(field.type))
+      for field in schema
+      if field.name != SPAN_KEY
     }
-    return Schema(fields=fields) if isinstance(schema, pa.Schema) else Field(fields=fields)
+
+    return (
+      Schema(fields=fields) if isinstance(schema, pa.Schema) else Field(dtype=dtype, fields=fields)
+    )
   elif isinstance(schema, pa.ListType):
     return Field(repeated_field=cast(Field, _arrow_schema_to_schema_impl(schema.value_field.type)))
   else:

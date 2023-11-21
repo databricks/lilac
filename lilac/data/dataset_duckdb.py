@@ -123,6 +123,7 @@ from .dataset import (
   StatsResult,
   column_from_identifier,
   dataset_config_from_manifest,
+  get_map_parquet_id,
   make_signal_parquet_id,
 )
 from .dataset_utils import (
@@ -528,7 +529,7 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
-  ) -> Iterable[Item]:
+  ) -> Iterable[tuple[str, Item]]:
     """Returns an iterable of (rowid, item), discluding results in the cache filepath."""
     manifest = self.manifest()
 
@@ -668,7 +669,8 @@ class DatasetDuckDB(Dataset):
   def _compute_disk_cached(
     self,
     transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
-    output_path: Optional[PathTuple] = None,
+    output_path: PathTuple,
+    jsonl_cache_filepath: str,
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
@@ -680,24 +682,12 @@ class DatasetDuckDB(Dataset):
   ) -> Iterable[Item]:
     manifest = self.manifest()
 
-    output_path = (
-      output_path or (cast(str, getattr(transform_fn, 'name')),) or (transform_fn.__name__,)
-    )
-    shard_cache_filepath = _jsonl_cache_filepath(
-      namespace=self.namespace,
-      dataset_name=self.dataset_name,
-      key=output_path,
-      project_dir=self.project_dir,
-      is_temporary=output_path is None,
-      shard_id=shard_id,
-      shard_count=shard_count,
-    )
-    os.makedirs(os.path.dirname(shard_cache_filepath), exist_ok=True)
+    os.makedirs(os.path.dirname(jsonl_cache_filepath), exist_ok=True)
     # Overwrite the file if overwrite is True.
-    if overwrite and os.path.exists(shard_cache_filepath):
-      delete_file(shard_cache_filepath)
+    if overwrite and os.path.exists(jsonl_cache_filepath):
+      delete_file(jsonl_cache_filepath)
 
-    use_jsonl_cache = not overwrite and os.path.exists(shard_cache_filepath)
+    use_jsonl_cache = not overwrite and os.path.exists(jsonl_cache_filepath)
 
     con = self.con.cursor()
 
@@ -707,7 +697,7 @@ class DatasetDuckDB(Dataset):
       count_result = con.execute(
         f"""
         SELECT COUNT(*) FROM read_json_auto(
-          '{shard_cache_filepath}',
+          '{jsonl_cache_filepath}',
           IGNORE_ERRORS=true,
           format='newline_delimited')
         """
@@ -719,7 +709,7 @@ class DatasetDuckDB(Dataset):
       unnest_input_path=unnest_input_path,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
-      shard_cache_filepath=shard_cache_filepath,
+      shard_cache_filepath=jsonl_cache_filepath,
       overwrite=overwrite,
       shard_id=shard_id,
       shard_count=shard_count,
@@ -730,11 +720,15 @@ class DatasetDuckDB(Dataset):
 
     # Tee the values so we can use them for the deep flatten and the deep unflatten.
     input_values = (value for (_, value) in inputs_0)
-    input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
+    nested_spec = _split_path_into_subpaths_of_lists(output_path or ())
+
+    output_items: Iterable[Optional[Item]]
     # Flatten the outputs back to the shape of the original data.
     # The output values are flat from the signal. This
     if unnest_input_path:
+      input_values_0, input_values_1 = itertools.tee(input_values, 2)
+
       assert unnest_input_path is not None
       source_path = unnest_input_path
 
@@ -743,27 +737,25 @@ class DatasetDuckDB(Dataset):
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
         vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
         flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
-        compute_out = sparse_to_dense_compute(
+        dense_out = sparse_to_dense_compute(
           iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
         )
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-        compute_out = sparse_to_dense_compute(
+        dense_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
         raise ValueError(f'Unknown type of transform_fn: {type(transform_fn)}')
 
-      spec = _split_path_into_subpaths_of_lists(output_path or ())
+      output_items = deep_unflatten(dense_out, input_values_1)
 
-      nested_out = deep_unflatten(compute_out, input_values_1)
-      output_items = cast(Iterable[Item], wrap_in_dicts(nested_out, spec))
     else:
       assert not isinstance(transform_fn, Signal)
-      output_items = transform_fn(input_values_0)
-      output_col = output_path[-1]
-      output_items = ({output_col: item} for item in output_items)
+      output_items = transform_fn(input_values)
+
+    output_items = cast(Iterable[Item], wrap_in_dicts(output_items, nested_spec))
 
     output_items = (
       {**item, ROWID: rowid} for (rowid, _), item in zip(inputs_1, output_items) if item
@@ -783,7 +775,7 @@ class DatasetDuckDB(Dataset):
     # TODO(nsthorat): Support continuation of embeddings.
     if not isinstance(transform_fn, TextEmbeddingSignal):
       try:
-        with open_file(shard_cache_filepath, 'a') as file:
+        with open_file(jsonl_cache_filepath, 'a') as file:
           for item in output_items:
             json.dump(item, file)
             file.write('\n')
@@ -795,22 +787,15 @@ class DatasetDuckDB(Dataset):
   def _reshard_cache(
     self,
     output_path: PathTuple,
+    jsonl_cache_filepaths: list[str],
+    is_tmp_output: bool = False,
     parquet_filename_prefix: Optional[str] = None,
-    shard_count: Optional[int] = None,
     overwrite: bool = False,
   ) -> tuple[pa.RecordBatchReader, Schema, Optional[str]]:
-    shard_output_filepaths = [
-      _jsonl_cache_filepath(
-        namespace=self.namespace,
-        dataset_name=self.dataset_name,
-        key=output_path,
-        project_dir=self.project_dir,
-        shard_id=i if shard_count is not None else None,
-        shard_count=shard_count,
-      )
-      for i in range(shard_count or 1)
-    ]
+    """Reshards the jsonl cache files into a single parquet file.
 
+    When is_tmp_output is true, the results are still merged to a single iterable PyArrow reader.
+    """
     # Merge all the shard outputs.
     jsonl_view_name = 'tmp_output'
     con = self.con.cursor()
@@ -820,7 +805,7 @@ class DatasetDuckDB(Dataset):
       f"""
       CREATE OR REPLACE VIEW {jsonl_view_name} as (
         SELECT * FROM read_json_auto(
-          {shard_output_filepaths},
+          {jsonl_cache_filepaths},
           ignore_errors=true,
           format='newline_delimited'
         )
@@ -832,7 +817,7 @@ class DatasetDuckDB(Dataset):
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
       rows_per_batch=10_000
     )
-    if output_path is not None:
+    if not is_tmp_output:
       parquet_filepath = _get_parquet_filepath(
         dataset_path=self.dataset_path,
         output_path=output_path,
@@ -897,9 +882,16 @@ class DatasetDuckDB(Dataset):
 
     signal.setup()
 
+    jsonl_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=output_path,
+      project_dir=self.project_dir,
+    )
     self._compute_disk_cached(
       transform_fn=signal,
       output_path=output_path,
+      jsonl_cache_filepath=jsonl_cache_filepath,
       unnest_input_path=input_path,
       overwrite=overwrite,
       task_step_id=task_step_id,
@@ -907,7 +899,10 @@ class DatasetDuckDB(Dataset):
     )
 
     _, _, parquet_filepath = self._reshard_cache(
-      output_path=output_path, parquet_filename_prefix='data', overwrite=overwrite
+      output_path=output_path,
+      jsonl_cache_filepaths=[jsonl_cache_filepath],
+      parquet_filename_prefix='data',
+      overwrite=overwrite,
     )
     assert parquet_filepath is not None
     parquet_filename = os.path.basename(parquet_filepath)
@@ -963,9 +958,16 @@ class DatasetDuckDB(Dataset):
 
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
 
+    jsonl_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=output_path,
+      project_dir=self.project_dir,
+    )
     output_items = self._compute_disk_cached(
       signal,
       output_path=output_path,
+      jsonl_cache_filepath=jsonl_cache_filepath,
       unnest_input_path=input_path,
       overwrite=overwrite,
       task_step_id=task_step_id,
@@ -1386,16 +1388,16 @@ class DatasetDuckDB(Dataset):
     star_in_cols = any(col.path == (PATH_WILDCARD,) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
-      cols.extend([Column((name,)) for name in schema.fields.keys() if name != ROWID])
-
       if not combine_columns:
-        # Select all the signal top-level fields.
-        for path, field in schema.all_fields:
-          if field.signal:
-            cols.append(Column(path))
+        # Select all leafs as top-level.
+        for path in schema.leafs.keys():
+          cols.append(Column(path))
+      else:
+        cols.extend([Column((name,)) for name in schema.fields.keys() if name != ROWID])
 
       if star_in_cols:
         cols = [col for col in cols if col.path != (PATH_WILDCARD,)]
+
     return cols
 
   def _merge_sorts(
@@ -1955,26 +1957,33 @@ class DatasetDuckDB(Dataset):
 
   def _resolve_span(
     self, span_path: PathTuple, manifest: DatasetManifest
-  ) -> Optional[tuple[SignalManifest, PathTuple]]:
+  ) -> Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]]:
     schema = manifest.data_schema
     leafs = schema.leafs
     is_span = span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN
     if not is_span:
       return None
 
-    # Find the signal manifest that contains the span path.
-    signal_manifest = next(
-      filter(lambda s: schema_contains_path(s.data_schema, span_path), self._signal_manifests)
+    # Find the manifest that contains the span path.
+    manifests: list[Union[SignalManifest, MapManifest]] = (
+      self._signal_manifests + self._map_manifests
+    )
+    span_manifest = next(
+      filter(
+        lambda s: schema_contains_path(s.data_schema, span_path),
+        manifests,
+      )
     )
 
     # Find the original text, which is the closest parent of `path` above the signal root.
     text_path: PathTuple
     for i in reversed(range(len(span_path))):
       sub_path = span_path[:i]
-      if schema.get_field(sub_path).signal is not None:
+      sub_field = schema.get_field(sub_path)
+      if sub_field.signal is not None or sub_field.map is not None:
         # Skip the signal name at the end to get the source path that was enriched.
         text_path = sub_path[:-1]
-        return (signal_manifest, text_path)
+        return (span_manifest, text_path)
 
     raise ValueError('Cannot find the source path for the enriched path: {path}')
 
@@ -1992,6 +2001,8 @@ class DatasetDuckDB(Dataset):
       # This is a label column if it exists in label schemas.
       return [(path[0], path)]
 
+    is_petal = schema.get_field(path).dtype is not None
+
     # NOTE: The order of this array matters as we check the source and map manifests for fields
     # before reading signal manifests, via source_or_map_has_path.
     parquet_manifests: list[Union[SourceManifest, SignalManifest, MapManifest]] = [
@@ -2000,7 +2011,6 @@ class DatasetDuckDB(Dataset):
       *self._signal_manifests,
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
-    source_or_map_has_path = False
 
     if path == (ROWID,):
       return [('source', path)]
@@ -2009,14 +2019,16 @@ class DatasetDuckDB(Dataset):
       if not m.files:
         continue
       # Skip this parquet file if it doesn't contain the path.
-      if not schema_contains_path(m.data_schema, path):
+      # if not schema_contains_path(m.data_schema, path):
+      #   continue
+      if not m.data_schema.has_field(path):
         continue
 
-      if isinstance(m, SourceManifest) or isinstance(m, MapManifest):
-        source_or_map_has_path = True
-
-      if isinstance(m, SignalManifest) and source_or_map_has_path and not combine_columns:
-        # Skip this signal if the source already has the path and we are not combining columns.
+      # If the path is a petal, and the manifest owns its petal value, then this is the relevant
+      # manifest.
+      field = m.data_schema.get_field(path)
+      manifest_has_petal_value = field.dtype is not None
+      if not manifest_has_petal_value and is_petal and not combine_columns:
         continue
 
       # Skip this parquet file if the path doesn't have a dtype.
@@ -2339,63 +2351,93 @@ class DatasetDuckDB(Dataset):
   def map(
     self,
     map_fn: MapFn,
-    output_path: Optional[Path] = None,
+    output_column: Optional[str] = None,
+    nest_under: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     num_jobs: int = 1,
   ) -> Iterable[Item]:
-    is_tmp_output = output_path is None
-    if output_path:
-      output_path = normalize_path(output_path)
-      if len(output_path) > 1:
-        raise ValueError(
-          'Mapping to a nested path is not yet supported. If you need this, please '
-          'file an issue and we will fix it. '
-          'For now, the output path needs to be a top-level column.'
-        )
+    is_tmp_output = output_column is None
 
-      output_column = output_path[0]
+    manifest = self.manifest()
 
-      manifest = self.manifest()
+    # Validate output_column and nest_under.
+    if nest_under is not None:
+      nest_under = normalize_path(nest_under)
+      if output_column is None:
+        raise ValueError('When using `nest_under`, you must specify an output column name.')
+
+      # Make sure nest_under does not contain any repeated values.
+      for path_part in nest_under:
+        if path_part == PATH_WILDCARD:
+          raise ValueError('Nesting map outputs under a repeated field is not yet supported.')
+
+      if not manifest.data_schema.has_field(nest_under):
+        raise ValueError(f'The `nest_under` column {nest_under} does not exist.')
+
+    # If the user didn't provide an output_column, we make a temporary one so that we can store the
+    # output JSON objects in the cache, represented in the right hierarchy.
+    if output_column is None:
+      output_column = cast(str, getattr(map_fn, 'name', None)) or map_fn.__name__
+
+    if nest_under is not None:
+      output_path = (*nest_under, output_column)
+    else:
+      output_path = (output_column,)
+
+    parquet_filepath: Optional[str] = None
+    if not is_tmp_output:
       if manifest.data_schema.has_field(output_path):
         if overwrite:
           field = manifest.data_schema.get_field(output_path)
           if field.map is None:
             raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
           # Delete the parquet file and map manifest.
+          assert output_column is not None
           parquet_filepath = os.path.join(
             self.dataset_path, get_parquet_filename(output_column, shard_index=0, num_shards=1)
           )
-          delete_file(parquet_filepath)
+          if os.path.exists(parquet_filepath):
+            delete_file(parquet_filepath)
 
           map_manifest_filepath = os.path.join(
             self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
           )
-          delete_file(map_manifest_filepath)
+          if os.path.exists(map_manifest_filepath):
+            delete_file(map_manifest_filepath)
 
         else:
           raise ValueError(
-            f'Cannot map to path "{output_path}" which already exists in the dataset.'
+            f'Cannot map to path "{output_column}" which already exists in the dataset. '
+            'Use overwrite=True to overwrite the column.'
           )
-    else:
-      output_column = map_fn.__name__
 
-    output_path = (output_column,)
     num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
 
     task_ids = []
+    jsonl_cache_filepaths: list[str] = []
     for i in range(num_jobs):
-      output_col_desc_suffix = f' to "{output_column}"' if output_path else ''
+      output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
       task_id = get_task_manager().task_id(
-        name=f'[{self.namespace}/{self.dataset_name}][{i} / {num_jobs}] map '
+        name=f'[{self.namespace}/{self.dataset_name}][shard {i}/{num_jobs}] map '
         f'"{map_fn.__name__}"{output_col_desc_suffix}',
+      )
+      jsonl_cache_filepath = _jsonl_cache_filepath(
+        namespace=self.namespace,
+        dataset_name=self.dataset_name,
+        key=output_path,
+        project_dir=self.project_dir,
+        is_temporary=is_tmp_output,
+        shard_id=i,
+        shard_count=num_jobs,
       )
       get_task_manager().execute(
         task_id,
         self._map_worker,
         map_fn,
-        output_column,
+        output_path,
+        jsonl_cache_filepath,
         i,
         num_jobs,
         overwrite,
@@ -2404,36 +2446,39 @@ class DatasetDuckDB(Dataset):
         (task_id, 0),
       )
       task_ids.append(task_id)
+      jsonl_cache_filepaths.append(jsonl_cache_filepath)
 
     # Wait for the tasks to finish before reading the outputs.
     get_task_manager().wait(task_ids)
 
-    reader, output_schema, parquet_filename = self._reshard_cache(
+    reader, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
-      shard_count=num_jobs,
+      jsonl_cache_filepaths=jsonl_cache_filepaths,
+      is_tmp_output=is_tmp_output,
     )
 
     if not is_tmp_output:
-      assert parquet_filename is not None
+      assert parquet_filepath is not None
 
-      output_schema.fields[output_column].map = MapInfo(
+      map_field_root = map_schema.get_field(output_path)
+
+      map_field_root.map = MapInfo(
         fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
       )
 
-      # Write the map data to the root of the dataset.
-      map_manifest_filepath = os.path.join(
-        self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
-      )
+      parquet_dir = os.path.dirname(parquet_filepath)
+      map_manifest_filepath = os.path.join(parquet_dir, f'{output_column}.{MAP_MANIFEST_SUFFIX}')
+      parquet_filename = os.path.basename(parquet_filepath)
       map_manifest = MapManifest(
         files=[parquet_filename],
-        data_schema=output_schema,
-        parquet_id=output_column,
+        data_schema=map_schema,
+        parquet_id=get_map_parquet_id(output_path),
         py_version=metadata.version('lilac'),
       )
       with open_file(map_manifest_filepath, 'w') as f:
         f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
-      parquet_filepath = os.path.join(self.dataset_path, parquet_filename)
+      parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
       log(f'Wrote map output to {parquet_filepath}')
 
     return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
@@ -2441,7 +2486,8 @@ class DatasetDuckDB(Dataset):
   def _map_worker(
     self,
     map_fn: MapFn,
-    output_column: str,
+    output_path: PathTuple,
+    jsonl_cache_filepath: str,
     job_id: int,
     job_count: int,
     overwrite: bool = False,
@@ -2455,14 +2501,15 @@ class DatasetDuckDB(Dataset):
 
     self._compute_disk_cached(
       _map_iterable,
-      output_path=(output_column,),
+      output_path=output_path,
+      jsonl_cache_filepath=jsonl_cache_filepath,
       overwrite=overwrite,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
       shard_id=job_id,
       shard_count=job_count,
       task_step_id=task_step_id,
-      task_step_description=f'[{job_id} / {job_count}] map "{map_fn.__name__}"',
+      task_step_description=f'[shard {job_id+1}/{job_count}] map "{map_fn.__name__}"',
     )
 
   @override
@@ -2541,7 +2588,7 @@ def _inner_select(
   sub_paths: list[PathTuple],
   inner_var: Optional[str] = None,
   empty: bool = False,
-  span_from: Optional[tuple[SignalManifest, PathTuple]] = None,
+  span_from: Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]] = None,
 ) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
@@ -2594,7 +2641,7 @@ def _select_sql(
   flatten: bool,
   unnest: bool,
   empty: bool = False,
-  span_from: Optional[tuple[SignalManifest, PathTuple]] = None,
+  span_from: Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]] = None,
 ) -> str:
   """Create a select column for a path.
 
