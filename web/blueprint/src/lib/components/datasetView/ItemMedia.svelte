@@ -39,7 +39,6 @@
   // The child component will communicate this back upwards to this component.
   let textIsOverBudget = false;
   let userExpanded = false;
-  let isExpanded = textIsOverBudget && userExpanded;
 
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
