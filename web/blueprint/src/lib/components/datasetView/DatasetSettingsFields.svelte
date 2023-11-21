@@ -134,12 +134,12 @@
       const mediaPathsFromSettings = $settingsQuery.data.ui.media_paths.map(p =>
         Array.isArray(p) ? p : [p]
       );
-      selectedMediaFields = mediaPathsFromSettings.map(path => {
+      selectedMediaFields = mediaPathsFromSettings.flatMap(path => {
         const field = mediaFieldOptions!.find(f => pathIsEqual(f.path, path));
         if (field == null) {
-          throw new Error(`Could not find field with path ${path}`);
+          return [];
         }
-        return field;
+        return [field];
       });
     }
   }
