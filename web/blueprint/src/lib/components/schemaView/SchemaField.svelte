@@ -94,7 +94,7 @@
 
   $: embeddingFields = isSourceField
     ? (childFields(field).filter(
-        f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
+        f => f.signal != null && childFields(f).some(f => f.dtype?.type === 'embedding')
       ) as LilacField<TextEmbeddingSignal>[])
     : [];
 
@@ -119,8 +119,8 @@
 
         // Filter out specific types of signals
         .filter(c => {
-          if (c.dtype === 'embedding') return false;
-          if (c.signal != null && childFields(c).some(f => f.dtype === 'embedding')) {
+          if (c.dtype?.type === 'embedding') return false;
+          if (c.signal != null && childFields(c).some(f => f.dtype?.type === 'embedding')) {
             return false;
           }
           if (c.signal?.signal_name === 'sentences') return false;
@@ -172,12 +172,12 @@
       use:hoverTooltip={{text: tooltip}}
     >
       {#if field.dtype}
-        <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
+        <svelte:component this={DTYPE_TO_ICON[field.dtype.type]} title={field.dtype.type} />
       {:else if field.repeated_field && field.repeated_field.dtype}
         <!-- TODO(smilkov): Handle nested arrays (repeated of repeated). -->
         <div class="flex">
           <svelte:component
-            this={DTYPE_TO_ICON[field.repeated_field.dtype]}
+            this={DTYPE_TO_ICON[field.repeated_field.dtype.type]}
             title={field.dtype || undefined}
           />[]
         </div>

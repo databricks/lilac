@@ -16,17 +16,17 @@ import {VALUE_KEY, type FieldValue} from './schema';
 const MANIFEST_SCHEMA_FIXTURE: Schema = {
   fields: {
     title: {
-      dtype: 'string'
+      dtype: {type: 'string'}
     },
     comment_text: {
-      dtype: 'string',
+      dtype: {type: 'string'},
       fields: {
         pii: {
           fields: {
             emails: {
               repeated_field: {
                 fields: {},
-                dtype: 'string_span'
+                dtype: {type: 'string_span'}
               }
             }
           },
@@ -37,12 +37,12 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
     complex_field: {
       fields: {
         propertyA: {
-          dtype: 'string',
+          dtype: {type: 'string'},
           fields: {
             text_statistics: {
               fields: {
                 num_characters: {
-                  dtype: 'int32'
+                  dtype: {type: 'int32'}
                 }
               },
               signal: {signal_name: 'text_statistics'}
@@ -50,23 +50,23 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
           }
         },
         propertyB: {
-          dtype: 'string'
+          dtype: {type: 'string'}
         }
       }
     },
     tags: {
       repeated_field: {
-        dtype: 'string'
+        dtype: {type: 'string'}
       }
     },
     complex_list_of_struct: {
       repeated_field: {
         fields: {
           propertyA: {
-            dtype: 'string'
+            dtype: {type: 'string'}
           },
           propertyB: {
-            dtype: 'string'
+            dtype: {type: 'string'}
           }
         }
       }
@@ -74,12 +74,12 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
     nested_list_of_list: {
       repeated_field: {
         repeated_field: {
-          dtype: 'string'
+          dtype: {type: 'string'}
         }
       }
     },
     __rowid__: {
-      dtype: 'string'
+      dtype: {type: 'string'}
     }
   }
 };
@@ -280,8 +280,8 @@ describe('lilac', () => {
 
     it('cam get typed values as strings', () => {
       const t = L.dtype(row.title);
-      if (t === 'string') {
-        const val = L.value(row.title, t);
+      if (t?.type === 'string') {
+        const val = L.value(row.title, t.type);
         assertType<string>(val!);
       } else {
         // Woops, this should never happen
@@ -291,8 +291,8 @@ describe('lilac', () => {
 
     it('cam get typed values as string_span', () => {
       const t = L.dtype(row.comment_text.pii.emails[0]);
-      if (t === 'string_span') {
-        const val = L.value(row.title, t);
+      if (t?.type === 'string_span') {
+        const val = L.value(row.title, t.type);
         assertType<{start: number; end: number}>(val!);
       } else {
         // Woops, this should never happen

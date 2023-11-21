@@ -67,12 +67,14 @@
 
   function getFields(schema: LilacSchema) {
     const allFields = childFields(schema);
-    const petalFields = petals(schema).filter(field => ['embedding'].indexOf(field.dtype!) === -1);
+    const petalFields = petals(schema).filter(
+      field => ['embedding'].indexOf(field.dtype?.type || '') === -1
+    );
     const sourceFields = petalFields.filter(f => !isSignalField(f) && !isLabelField(f));
     const labelFields = allFields.filter(f => f.label != null);
     const enrichedFields = allFields
       .filter(f => isSignalRootField(f))
-      .filter(f => !childFields(f).some(f => f.dtype === 'embedding'));
+      .filter(f => !childFields(f).some(f => f.dtype?.type === 'embedding'));
     return {sourceFields, enrichedFields, labelFields};
   }
 

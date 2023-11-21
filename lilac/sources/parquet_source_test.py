@@ -34,6 +34,32 @@ def test_simple_rows(tmp_path: pathlib.Path) -> None:
   assert items == [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
 
 
+def test_map_dtype(tmp_path: pathlib.Path) -> None:
+  # Create data for the table
+  data = {
+    'column_name': [
+      {'a': 1.0, 'b': 2.0},
+      {'b': 2.5},
+      {'a': 3.0, 'c': 3.7},
+    ]
+  }
+  # Create a table with a single column of type map<string, float>.
+  table = pa.table(data, schema=pa.schema([('column_name', pa.map_(pa.string(), pa.float32()))]))
+
+  out_file = os.path.join(tmp_path, 'test.parquet')
+  pq.write_table(table, out_file)
+
+  source = ParquetSource(filepaths=[out_file])
+  source.setup()
+  source_schema = source.source_schema()
+  assert source_schema == SourceSchema(
+    fields=schema({'name': 'string', 'age': 'int64'}).fields, num_items=3
+  )
+  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  items = retrieve_parquet_rows(tmp_path, manifest)
+  assert items == [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
+
+
 def test_single_shard_with_sampling(tmp_path: pathlib.Path) -> None:
   source_items = [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
   table = pa.Table.from_pylist(source_items)

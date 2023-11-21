@@ -4,7 +4,7 @@ from typing import cast
 
 from pytest import approx
 
-from ..schema import DataType, Field
+from ..schema import FLOAT32, INT32, Field
 from .text_statistics import (
   FRAC_NON_ASCII,
   NUM_CHARS,
@@ -19,11 +19,11 @@ def test_text_statistics_fields() -> None:
   signal.setup()
   assert signal.fields() == Field(
     fields={
-      NUM_CHARS: Field(dtype=DataType.INT32),
-      READABILITY: Field(dtype=DataType.FLOAT32),
-      TYPE_TOKEN_RATIO: Field(dtype=DataType.FLOAT32),
+      NUM_CHARS: Field(dtype=INT32),
+      READABILITY: Field(dtype=FLOAT32),
+      TYPE_TOKEN_RATIO: Field(dtype=FLOAT32),
       FRAC_NON_ASCII: Field(
-        dtype=DataType.FLOAT32,
+        dtype=FLOAT32,
         bins=[('Low', None, 0.15), ('Medium', 0.15, 0.3), ('High', 0.3, None)],
       ),
     }

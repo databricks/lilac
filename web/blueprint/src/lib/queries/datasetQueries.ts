@@ -8,7 +8,6 @@ import {
   deserializeSchema,
   getSchemaLabels,
   type AddLabelsOptions,
-  type DataType,
   type LilacSchema,
   type Path,
   type RemoveLabelsOptions,
@@ -33,22 +32,6 @@ import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
 import {createApiMutation, createApiQuery} from './queryUtils';
 import {TASKS_TAG} from './taskQueries';
-
-export const SELECT_GROUPS_SUPPORTED_DTYPES: DataType[] = [
-  'string',
-  'int8',
-  'int16',
-  'int32',
-  'int64',
-  'uint8',
-  'uint16',
-  'uint32',
-  'uint64',
-  'float16',
-  'float32',
-  'float64',
-  'boolean'
-];
 
 export const DATASETS_TAG = 'datasets';
 export const DATASETS_CONFIG_TAG = 'config';

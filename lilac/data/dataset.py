@@ -37,8 +37,8 @@ from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
   ROWID,
+  STRING,
   Bin,
-  DataType,
   EmbeddingInputType,
   Item,
   MapFn,
@@ -703,9 +703,7 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   """Gets the default settings for a dataset."""
   schema = dataset.manifest().data_schema
   leaf_paths = [
-    path
-    for path, field in schema.leafs.items()
-    if field.dtype == DataType.STRING and path != (ROWID,)
+    path for path, field in schema.leafs.items() if field.dtype == STRING and path != (ROWID,)
   ]
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))

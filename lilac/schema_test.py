@@ -4,12 +4,20 @@ import pyarrow as pa
 import pytest
 
 from .schema import (
+  BINARY,
+  BOOLEAN,
+  FLOAT16,
+  FLOAT32,
+  FLOAT64,
+  INT16,
+  INT32,
   PATH_WILDCARD,
   SPAN_KEY,
+  STRING,
+  STRING_SPAN,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
   VALUE_KEY,
-  DataType,
   Field,
   Item,
   arrow_schema_to_schema,
@@ -72,43 +80,37 @@ def test_field_ctor_validation() -> None:
     Field()
 
   with pytest.raises(ValueError, match='Both "fields" and "repeated_field" should not be defined'):
-    Field(fields={'name': Field(dtype=DataType.STRING)}, repeated_field=Field(dtype=DataType.INT32))
+    Field(fields={'name': Field(dtype=STRING)}, repeated_field=Field(dtype=INT32))
 
   with pytest.raises(ValueError, match=f'{VALUE_KEY} is a reserved field name'):
-    Field(fields={VALUE_KEY: Field(dtype=DataType.STRING)})
+    Field(fields={VALUE_KEY: Field(dtype=STRING)})
 
 
 def test_schema_leafs() -> None:
   expected = {
-    ('addresses', PATH_WILDCARD, 'city'): Field(dtype=DataType.STRING),
-    ('addresses', PATH_WILDCARD, 'current'): Field(dtype=DataType.BOOLEAN),
-    ('addresses', PATH_WILDCARD, 'locations', PATH_WILDCARD, 'latitude'): Field(
-      dtype=DataType.FLOAT16
-    ),
-    ('addresses', PATH_WILDCARD, 'locations', PATH_WILDCARD, 'longitude'): Field(
-      dtype=DataType.FLOAT64
-    ),
-    ('addresses', PATH_WILDCARD, 'zipcode'): Field(dtype=DataType.INT16),
-    ('blob',): Field(dtype=DataType.BINARY),
-    ('person', 'name'): Field(dtype=DataType.STRING),
-    ('person', 'last_name'): Field(dtype=DataType.STRING_SPAN),
-    ('person', 'data', PATH_WILDCARD, PATH_WILDCARD): Field(dtype=DataType.FLOAT32),
+    ('addresses', PATH_WILDCARD, 'city'): Field(dtype=STRING),
+    ('addresses', PATH_WILDCARD, 'current'): Field(dtype=BOOLEAN),
+    ('addresses', PATH_WILDCARD, 'locations', PATH_WILDCARD, 'latitude'): Field(dtype=FLOAT16),
+    ('addresses', PATH_WILDCARD, 'locations', PATH_WILDCARD, 'longitude'): Field(dtype=FLOAT64),
+    ('addresses', PATH_WILDCARD, 'zipcode'): Field(dtype=INT16),
+    ('blob',): Field(dtype=BINARY),
+    ('person', 'name'): Field(dtype=STRING),
+    ('person', 'last_name'): Field(dtype=STRING_SPAN),
+    ('person', 'data', PATH_WILDCARD, PATH_WILDCARD): Field(dtype=FLOAT32),
     ('person', 'description'): Field(
-      dtype=DataType.STRING,
+      dtype=STRING,
       fields={
-        'toxicity': Field(dtype=DataType.FLOAT32),
+        'toxicity': Field(dtype=FLOAT32),
         'sentences': Field(
-          repeated_field=Field(
-            dtype=DataType.STRING_SPAN, fields={'len': Field(dtype=DataType.INT32)}
-          )
+          repeated_field=Field(dtype=STRING_SPAN, fields={'len': Field(dtype=INT32)})
         ),
       },
     ),
-    ('person', 'description', 'toxicity'): Field(dtype=DataType.FLOAT32),
+    ('person', 'description', 'toxicity'): Field(dtype=FLOAT32),
     ('person', 'description', 'sentences', PATH_WILDCARD): Field(
-      fields={'len': Field(dtype=DataType.INT32)}, dtype=DataType.STRING_SPAN
+      fields={'len': Field(dtype=INT32)}, dtype=STRING_SPAN
     ),
-    ('person', 'description', 'sentences', PATH_WILDCARD, 'len'): Field(dtype=DataType.INT32),
+    ('person', 'description', 'sentences', PATH_WILDCARD, 'len'): Field(dtype=INT32),
   }
   assert NESTED_TEST_SCHEMA.leafs == expected
 

@@ -47,7 +47,7 @@
     $schema.data != null
       ? petals($schema.data).filter(
           f =>
-            f.dtype === 'string' &&
+            f.dtype?.type === 'string' &&
             !pathIsEqual(f.path, [ROWID]) &&
             !isSignalField(f) &&
             !isLabelField(f)
@@ -216,8 +216,8 @@
                   >
                     {#if mediaField.dtype}
                       <svelte:component
-                        this={DTYPE_TO_ICON[mediaField.dtype]}
-                        title={mediaField.dtype}
+                        this={DTYPE_TO_ICON[mediaField.dtype.type]}
+                        title={mediaField.dtype.type}
                       />
                     {:else}
                       <span class="font-mono">{'{}'}</span>

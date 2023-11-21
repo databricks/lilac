@@ -61,7 +61,7 @@ export type LilacValueNode = {
 /**
  * Internal type for a LilacValueNode casted with internal properties.
  */
-export type LilacValueNodeCasted<D extends DataType = DataType> = {
+export type LilacValueNodeCasted<D extends DataType['type'] = DataType['type']> = {
   /** Holds the actual value of the node */
   [VALUE_KEY]?: DataTypeCasted<D>;
   [SPAN_KEY]?: DataTypeCasted<'string_span'>;
@@ -87,7 +87,7 @@ export function valueAtPath(item: LilacValueNode, path: Path): LilacValueNode | 
 /**
  * Cast a value node to an internal value node
  */
-function castLilacValueNode<D extends DataType = DataType>(
+function castLilacValueNode<D extends DataType['type'] = DataType['type']>(
   node: LilacValueNode
 ): LilacValueNodeCasted<D> {
   return node as unknown as LilacValueNodeCasted;
@@ -275,7 +275,7 @@ export const L = {
     return path;
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  value: <D extends DataType>(item: LilacValueNode, dtype?: D): DataTypeCasted<D> => {
+  value: <D extends DataType['type']>(item: LilacValueNode, dtype?: D): DataTypeCasted<D> => {
     if (!item) return null;
     return castLilacValueNode(item)[VALUE_KEY] as DataTypeCasted<D>;
   },

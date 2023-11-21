@@ -66,7 +66,7 @@
 
   function makeItems(schema: LilacSchema, open: boolean): SortByItem[] {
     return petals(schema)
-      .filter(f => f.dtype != 'embedding' && f.dtype != 'string_span')
+      .filter(f => f.dtype?.type != 'embedding' && f.dtype?.type != 'string_span')
       .map(field => {
         return {
           id: serializePath(field.path),

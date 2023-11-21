@@ -42,7 +42,7 @@
         class:bg-teal-100={isLabel}
       >
         {#if field.dtype}
-          <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
+          <svelte:component this={DTYPE_TO_ICON[field.dtype.type]} title={field.dtype.type} />
         {:else}
           <span class="font-mono">{'{}'}</span>
         {/if}

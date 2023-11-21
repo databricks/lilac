@@ -16,7 +16,7 @@ from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import get_parquet_filename, schema_to_arrow_schema
 from .load_dataset import process_source
 from .project import read_project_config
-from .schema import PARQUET_FILENAME_PREFIX, ROWID, DataType, Field, Item, Schema, schema
+from .schema import PARQUET_FILENAME_PREFIX, ROWID, STRING, Field, Item, Schema, schema
 from .source import Source, SourceManifest, SourceSchema, clear_source_registry, register_source
 from .tasks import TaskStepId
 from .test_utils import fake_uuid, retrieve_parquet_rows
@@ -65,7 +65,7 @@ class TestFastSource(Source):
       {ROWID: fake_uuid(b'2').hex, 'x': 2, 'y': 'twenty'},
     ]
     schema = Schema(fields=self.source_schema().fields.copy())
-    schema.fields[ROWID] = Field(dtype=DataType.STRING)
+    schema.fields[ROWID] = Field(dtype=STRING)
 
     arrow_schema = schema_to_arrow_schema(schema)
     table = pa.Table.from_pylist(rows, schema=arrow_schema)

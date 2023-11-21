@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..schema import DataType, Field, Item, arrow_dtype_to_dtype
+from ..schema import INT32, STRING, Field, Item, arrow_dtype_to_dtype
 from ..source import Source, SourceSchema
 from ..utils import log
 
@@ -66,7 +66,7 @@ def _infer_field(feature_value: Union[Value, dict]) -> Optional[Field]:
   elif isinstance(feature_value, ClassLabel):
     # TODO(nsthorat): For nested class labels, return the path with the class label values to show
     # strings in the UI.
-    return Field(dtype=DataType.INT32)
+    return Field(dtype=INT32)
   elif isinstance(feature_value, Image):
     log(f'{feature_value} has type Image and is ignored.')
     return None
@@ -100,13 +100,13 @@ def hf_schema_to_schema(
 
       if isinstance(feature_value, ClassLabel):
         # Class labels act as strings and we map the integer to a string before writing.
-        fields[feature_name] = Field(dtype=DataType.STRING)
+        fields[feature_name] = Field(dtype=STRING)
         class_labels[feature_name] = feature_value.names
       elif isinstance(feature_value, Translation):
         # Translations act as categorical strings.
         language_fields: dict[str, Field] = {}
         for language in feature_value.languages:
-          language_fields[language] = Field(dtype=DataType.STRING)
+          language_fields[language] = Field(dtype=STRING)
         fields[feature_name] = Field(fields=language_fields)
       else:
         field = _infer_field(feature_value)
@@ -114,7 +114,7 @@ def hf_schema_to_schema(
           fields[feature_name] = field
 
   # Add the split column to the schema.
-  fields[HF_SPLIT_COLUMN] = Field(dtype=DataType.STRING)
+  fields[HF_SPLIT_COLUMN] = Field(dtype=STRING)
 
   return SchemaInfo(fields=fields, class_labels=class_labels, num_items=num_items)
 
