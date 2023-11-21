@@ -49,15 +49,19 @@ from ..project import (
   read_project_config,
 )
 from ..schema import (
+  BOOLEAN,
+  EMBEDDING,
   MANIFEST_FILENAME,
   PATH_WILDCARD,
   ROWID,
   SPAN_KEY,
+  STRING,
+  STRING_SPAN,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
+  TIMESTAMP,
   VALUE_KEY,
   Bin,
-  DataType,
   Field,
   Item,
   MapFn,
@@ -366,8 +370,8 @@ class DatasetDuckDB(Dataset):
             fields={
               label_name: Field(
                 fields={
-                  'label': Field(dtype=DataType.STRING),
-                  'created': Field(dtype=DataType.TIMESTAMP),
+                  'label': Field(dtype=STRING),
+                  'created': Field(dtype=TIMESTAMP),
                 },
                 label=label_name,
               )
@@ -863,7 +867,7 @@ class DatasetDuckDB(Dataset):
 
     if not manifest.data_schema.has_field(input_path):
       raise ValueError(f'Cannot compute signal over non-existent path: {input_path}')
-    if manifest.data_schema.get_field(input_path).dtype != DataType.STRING:
+    if manifest.data_schema.get_field(input_path).dtype != STRING:
       raise ValueError('Cannot compute signal over a non-string field.')
     if manifest.data_schema.has_field(output_path) and not overwrite:
       raise ValueError('Signal already exists. Use overwrite=True to overwrite.')
@@ -943,7 +947,7 @@ class DatasetDuckDB(Dataset):
 
     manifest = self.manifest()
     field = manifest.data_schema.get_field(input_path)
-    if field.dtype != DataType.STRING:
+    if field.dtype != STRING:
       raise ValueError('Cannot compute embedding over a non-string field.')
 
     if task_step_id is None:
@@ -1206,7 +1210,7 @@ class DatasetDuckDB(Dataset):
 
     # Compute the average length of text fields.
     avg_text_length: Optional[int] = None
-    if leaf.dtype in (DataType.STRING, DataType.STRING_SPAN):
+    if leaf.dtype in (STRING, STRING_SPAN):
       avg_length_query = f"""
         SELECT avg(length(val))
         FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
@@ -1222,7 +1226,7 @@ class DatasetDuckDB(Dataset):
     if avg_text_length and avg_text_length > MAX_TEXT_LEN_DISTINCT_COUNT:
       # Assume that every text field is unique.
       approx_count_distinct = manifest.num_items
-    elif leaf.dtype == DataType.BOOLEAN:
+    elif leaf.dtype == BOOLEAN:
       approx_count_distinct = 2
     else:
       sample_size = TOO_MANY_DISTINCT
@@ -1561,7 +1565,7 @@ class DatasetDuckDB(Dataset):
       path = column.path
       # If the signal is vector-based, we don't need to select the actual data, just the rowids
       # plus an arbitrarily nested array of `None`s`.
-      empty = bool(column.signal_udf and schema.get_field(path).dtype == DataType.EMBEDDING)
+      empty = bool(column.signal_udf and schema.get_field(path).dtype == EMBEDDING)
 
       select_sqls: list[str] = []
       final_col_name = column.alias or _unique_alias(column)
@@ -1960,7 +1964,7 @@ class DatasetDuckDB(Dataset):
   ) -> Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]]:
     schema = manifest.data_schema
     leafs = schema.leafs
-    is_span = span_path in leafs and leafs[span_path].dtype == DataType.STRING_SPAN
+    is_span = span_path in leafs and leafs[span_path].dtype == STRING_SPAN
     if not is_span:
       return None
 
@@ -2904,7 +2908,7 @@ def _replace_nan_with_none(df: pd.DataFrame) -> pd.DataFrame:
 
 def _offset_any_span(offset: int, item: Item, schema: Field) -> None:
   """Offsets any spans inplace by the given parent offset."""
-  if schema.dtype == DataType.STRING_SPAN:
+  if schema.dtype == STRING_SPAN:
     item = cast(dict, item)
     item[SPAN_KEY][TEXT_SPAN_START_FEATURE] += offset
     item[SPAN_KEY][TEXT_SPAN_END_FEATURE] += offset
@@ -2919,7 +2923,7 @@ def _offset_any_span(offset: int, item: Item, schema: Field) -> None:
 
 
 def _schema_has_spans(field: Field) -> bool:
-  if field.dtype and field.dtype == DataType.STRING_SPAN:
+  if field.dtype and field.dtype == STRING_SPAN:
     return True
   if field.fields:
     children_have_spans = any(_schema_has_spans(sub_field) for sub_field in field.fields.values())

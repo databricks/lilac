@@ -5,7 +5,7 @@ import io
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal, Optional, Protocol, Sequence, Union, cast
+from typing import Any, Callable, Literal, Optional, Protocol, Sequence, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -18,6 +18,7 @@ from pydantic import (
   field_validator,
   model_validator,
 )
+from pydantic.functional_validators import ModelWrapValidatorHandler
 from typing_extensions import TypedDict
 
 from .utils import is_primitive, log
@@ -58,47 +59,115 @@ VectorKey = tuple[Union[StrictStr, StrictInt], ...]
 PathKey = VectorKey
 
 
-class DataType(str, Enum):
-  """Enum holding the dtype for a field."""
+class DataType(BaseModel):
+  """The data type for a field."""
 
-  STRING = 'string'
-  # Contains {start, end} offset integers with a reference_column.
-  STRING_SPAN = 'string_span'
-  BOOLEAN = 'boolean'
+  type: Literal[
+    'string',
+    'string_span',
+    'boolean',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64',
+    'float16',
+    'float32',
+    'float64',
+    'time',
+    'date',
+    'timestamp',
+    'interval',
+    'binary',
+    'embedding',
+    'null',
+    'map',
+  ]
 
-  # Ints.
-  INT8 = 'int8'
-  INT16 = 'int16'
-  INT32 = 'int32'
-  INT64 = 'int64'
-  UINT8 = 'uint8'
-  UINT16 = 'uint16'
-  UINT32 = 'uint32'
-  UINT64 = 'uint64'
+  def __init__(self, type: str, **kwargs: Any) -> None:
+    super().__init__(type=type, **kwargs)
 
-  # Floats.
-  FLOAT16 = 'float16'
-  FLOAT32 = 'float32'
-  FLOAT64 = 'float64'
+  @model_validator(mode='wrap')  # type: ignore
+  def convert_str_to_dtype(v: Any, handler: ModelWrapValidatorHandler['DataType']) -> 'DataType':
+    """Convert a string to a DataType."""
+    if isinstance(v, str):
+      v = {'type': v}
+    return handler(v)
 
-  ### Time ###
-  # Time of day (no time zone).
-  TIME = 'time'
-  # Calendar date (year, month, day), no time zone.
-  DATE = 'date'
-  # An "Instant" stored as number of microseconds (µs) since 1970-01-01 00:00:00+00 (UTC time zone).
-  TIMESTAMP = 'timestamp'
-  # Time span, stored as microseconds.
-  INTERVAL = 'interval'
-
-  BINARY = 'binary'
-
-  EMBEDDING = 'embedding'
-
-  NULL = 'null'
+  def __str__(self) -> str:
+    return self.type
 
   def __repr__(self) -> str:
-    return self.value
+    return self.type
+
+
+def change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any]], None]:
+  """Replace the const value in the schema to an enum with 1 value so typescript codegen works."""
+
+  def _schema_extra(schema: dict[str, Any]) -> None:
+    schema['properties'][prop_name] = {'enum': [value]}
+    if 'required' not in schema:
+      schema['required'] = []
+    schema['required'].append(prop_name)
+
+  return _schema_extra
+
+
+class MapType(DataType):
+  """The map dtype parameterized by the key and value types."""
+
+  def __init__(self, **kwargs: Any) -> None:
+    kwargs.pop('type', None)
+    super().__init__(type='map', **kwargs)
+
+  type: Literal['map'] = 'map'
+  key_type: DataType
+  value_type: DataType
+
+  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'map'))
+
+  def __str__(self) -> str:
+    return f'map<{self.key_type}, {self.value_type}>'
+
+
+STRING = DataType('string')
+# Contains {start, end} offset integers with a reference_column.
+STRING_SPAN = DataType('string_span')
+BOOLEAN = DataType('boolean')
+
+# Ints.
+INT8 = DataType('int8')
+INT16 = DataType('int16')
+INT32 = DataType('int32')
+INT64 = DataType('int64')
+UINT8 = DataType('uint8')
+UINT16 = DataType('uint16')
+UINT32 = DataType('uint32')
+UINT64 = DataType('uint64')
+
+# Floats.
+FLOAT16 = DataType('float16')
+FLOAT32 = DataType('float32')
+FLOAT64 = DataType('float64')
+
+### Time ###
+# Time of day (no time zone).
+TIME = DataType('time')
+# Calendar date (year, month, day), no time zone.
+DATE = DataType('date')
+# An "Instant" stored as number of microseconds (µs) since 1970-01-01 00:00:00+00 (UTC time zone).
+TIMESTAMP = DataType('timestamp')
+# Time span, stored as microseconds.
+INTERVAL = DataType('interval')
+
+BINARY = DataType('binary')
+
+EMBEDDING = DataType('embedding')
+
+NULL = DataType('null')
 
 
 class SignalInputType(str, Enum):
@@ -117,8 +186,8 @@ EmbeddingInputType = Literal['question', 'document']
 
 
 SIGNAL_TYPE_TO_VALID_DTYPES: dict[SignalInputType, list[DataType]] = {
-  SignalInputType.TEXT: [DataType.STRING, DataType.STRING_SPAN],
-  SignalInputType.IMAGE: [DataType.BINARY],
+  SignalInputType.TEXT: [STRING, STRING_SPAN],
+  SignalInputType.IMAGE: [BINARY],
 }
 
 
@@ -160,7 +229,7 @@ class Field(BaseModel):
 
   repeated_field: Optional['Field'] = None
   fields: Optional[dict[str, 'Field']] = None
-  dtype: Optional[DataType] = None
+  dtype: Optional[Union[MapType, DataType]] = None
   # Defined as the serialized signal when this field is the root result of a signal.
   signal: Optional[dict[str, Any]] = None
   # Defined as the label name when the field is a label.
@@ -317,7 +386,7 @@ class Schema(BaseModel):
   def get_field(self, path: PathTuple) -> Field:
     """Returns the field at the given path."""
     if path == (ROWID,):
-      return Field(dtype=DataType.STRING)
+      return Field(dtype=STRING)
     field = cast(Field, self)
     for name in path:
       if field.fields:
@@ -328,6 +397,8 @@ class Schema(BaseModel):
         if name != PATH_WILDCARD:
           raise ValueError(f'Invalid path for a schema field: {path}')
         field = field.repeated_field
+      elif field.dtype and isinstance(field.dtype, MapType):
+        return Field(dtype=field.dtype.value_type)
       else:
         raise ValueError(f'Invalid path for a schema field: {path}')
     return field
@@ -475,53 +546,53 @@ def _str_field(field: Field, indent: int) -> str:
     return f'{prefix}{_str_fields(field.fields, indent)}'
   if field.repeated_field:
     return f' list({_str_field(field.repeated_field, indent)})'
-  return f' {cast(DataType, field.dtype).value}'
+  return f' {field.dtype}'
 
 
 def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.DataType]:
   """Convert the dtype to an arrow dtype."""
-  if dtype == DataType.STRING:
+  if dtype == STRING:
     return pa.string()
-  elif dtype == DataType.BOOLEAN:
+  elif dtype == BOOLEAN:
     return pa.bool_()
-  elif dtype == DataType.FLOAT16:
+  elif dtype == FLOAT16:
     return pa.float16()
-  elif dtype == DataType.FLOAT32:
+  elif dtype == FLOAT32:
     return pa.float32()
-  elif dtype == DataType.FLOAT64:
+  elif dtype == FLOAT64:
     return pa.float64()
-  elif dtype == DataType.INT8:
+  elif dtype == INT8:
     return pa.int8()
-  elif dtype == DataType.INT16:
+  elif dtype == INT16:
     return pa.int16()
-  elif dtype == DataType.INT32:
+  elif dtype == INT32:
     return pa.int32()
-  elif dtype == DataType.INT64:
+  elif dtype == INT64:
     return pa.int64()
-  elif dtype == DataType.UINT8:
+  elif dtype == UINT8:
     return pa.uint8()
-  elif dtype == DataType.UINT16:
+  elif dtype == UINT16:
     return pa.uint16()
-  elif dtype == DataType.UINT32:
+  elif dtype == UINT32:
     return pa.uint32()
-  elif dtype == DataType.UINT64:
+  elif dtype == UINT64:
     return pa.uint64()
-  elif dtype == DataType.BINARY:
+  elif dtype == BINARY:
     return pa.binary()
-  elif dtype == DataType.TIME:
+  elif dtype == TIME:
     return pa.time64()
-  elif dtype == DataType.DATE:
+  elif dtype == DATE:
     return pa.date64()
-  elif dtype == DataType.TIMESTAMP:
+  elif dtype == TIMESTAMP:
     return pa.timestamp('us')
-  elif dtype == DataType.INTERVAL:
+  elif dtype == INTERVAL:
     return pa.duration('us')
-  elif dtype == DataType.EMBEDDING:
+  elif dtype == EMBEDDING:
     # We reserve an empty column for embeddings in parquet files so they can be queried.
     # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
     # can set this dtype to the relevant pyarrow type.
     return pa.null()
-  elif dtype == DataType.STRING_SPAN:
+  elif dtype == STRING_SPAN:
     return pa.struct(
       {
         SPAN_KEY: pa.struct(
@@ -529,7 +600,7 @@ def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.Data
         )
       }
     )
-  elif dtype == DataType.NULL:
+  elif dtype == NULL:
     return pa.null()
   elif dtype is None:
     return pa.null()
@@ -561,7 +632,7 @@ def _schema_to_arrow_schema_impl(schema: Union[Schema, Field]) -> Union[pa.Schem
       # When nodes have both dtype and children, we add __value__ alongside the fields.
       if schema.dtype:
         value_schema = dtype_to_arrow_schema(schema.dtype)
-        if schema.dtype == DataType.STRING_SPAN:
+        if schema.dtype == STRING_SPAN:
           arrow_fields[SPAN_KEY] = value_schema[SPAN_KEY].type
         else:
           arrow_fields[VALUE_KEY] = value_schema
@@ -579,46 +650,52 @@ def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
   """Convert arrow dtype to our dtype."""
   # Ints.
   if arrow_dtype == pa.int8():
-    return DataType.INT8
+    return INT8
   elif arrow_dtype == pa.int16():
-    return DataType.INT16
+    return INT16
   elif arrow_dtype == pa.int32():
-    return DataType.INT32
+    return INT32
   elif arrow_dtype == pa.int64():
-    return DataType.INT64
+    return INT64
   elif arrow_dtype == pa.uint8():
-    return DataType.UINT8
+    return UINT8
   elif arrow_dtype == pa.uint16():
-    return DataType.UINT16
+    return UINT16
   elif arrow_dtype == pa.uint32():
-    return DataType.UINT32
+    return UINT32
   elif arrow_dtype == pa.uint64():
-    return DataType.UINT64
+    return UINT64
   # Floats.
   elif arrow_dtype == pa.float16():
-    return DataType.FLOAT16
+    return FLOAT16
   elif arrow_dtype == pa.float32():
-    return DataType.FLOAT32
+    return FLOAT32
   elif arrow_dtype == pa.float64():
-    return DataType.FLOAT64
+    return FLOAT64
   # Time.
   elif pa.types.is_time(arrow_dtype):
-    return DataType.TIME
+    return TIME
   elif pa.types.is_date(arrow_dtype):
-    return DataType.DATE
+    return DATE
   elif pa.types.is_timestamp(arrow_dtype):
-    return DataType.TIMESTAMP
+    return TIMESTAMP
   elif pa.types.is_duration(arrow_dtype):
-    return DataType.INTERVAL
+    return INTERVAL
   # Others.
   elif arrow_dtype == pa.string():
-    return DataType.STRING
+    return STRING
   elif pa.types.is_binary(arrow_dtype) or pa.types.is_fixed_size_binary(arrow_dtype):
-    return DataType.BINARY
+    return BINARY
   elif pa.types.is_boolean(arrow_dtype):
-    return DataType.BOOLEAN
+    return BOOLEAN
   elif arrow_dtype == pa.null():
-    return DataType.NULL
+    return NULL
+  elif pa.types.is_map(arrow_dtype):
+    return MapType(
+      type='map',
+      key_type=arrow_dtype_to_dtype(arrow_dtype.key_type),
+      value_type=arrow_dtype_to_dtype(arrow_dtype.item_type),
+    )
   else:
     raise ValueError(f'Can not convert arrow dtype "{arrow_dtype}" to our dtype')
 
@@ -647,7 +724,7 @@ def _arrow_schema_to_schema_impl(schema: Union[pa.Schema, pa.DataType]) -> Union
         and pa.types.is_integer(span_schema[TEXT_SPAN_START_FEATURE].type)
         and pa.types.is_integer(span_schema[TEXT_SPAN_END_FEATURE].type)
       ):
-        dtype = DataType.STRING_SPAN
+        dtype = STRING_SPAN
 
     fields: dict[str, Field] = {
       field.name: cast(Field, _arrow_schema_to_schema_impl(field.type))
@@ -666,26 +743,26 @@ def _arrow_schema_to_schema_impl(schema: Union[pa.Schema, pa.DataType]) -> Union
 
 def is_float(dtype: DataType) -> bool:
   """Check if a dtype is a float dtype."""
-  return dtype in [DataType.FLOAT16, DataType.FLOAT32, DataType.FLOAT64]
+  return dtype in [FLOAT16, FLOAT32, FLOAT64]
 
 
 def is_integer(dtype: DataType) -> bool:
   """Check if a dtype is an integer dtype."""
   return dtype in [
-    DataType.INT8,
-    DataType.INT16,
-    DataType.INT32,
-    DataType.INT64,
-    DataType.UINT8,
-    DataType.UINT16,
-    DataType.UINT32,
-    DataType.UINT64,
+    INT8,
+    INT16,
+    INT32,
+    INT64,
+    UINT8,
+    UINT16,
+    UINT32,
+    UINT64,
   ]
 
 
 def is_temporal(dtype: DataType) -> bool:
   """Check if a dtype is a temporal dtype."""
-  return dtype in [DataType.TIME, DataType.DATE, DataType.TIMESTAMP, DataType.INTERVAL]
+  return dtype in [TIME, DATE, TIMESTAMP, INTERVAL]
 
 
 def is_ordinal(dtype: DataType) -> bool:
@@ -695,17 +772,17 @@ def is_ordinal(dtype: DataType) -> bool:
 
 def _infer_dtype(value: Item) -> DataType:
   if isinstance(value, str):
-    return DataType.STRING
+    return STRING
   elif isinstance(value, bool):
-    return DataType.BOOLEAN
+    return BOOLEAN
   elif isinstance(value, bytes):
-    return DataType.BINARY
+    return BINARY
   elif isinstance(value, float):
-    return DataType.FLOAT32
+    return FLOAT32
   elif isinstance(value, int):
-    return DataType.INT32
+    return INT32
   elif isinstance(value, datetime):
-    return DataType.TIMESTAMP
+    return TIMESTAMP
   else:
     raise ValueError(f'Cannot infer dtype of primitive value: {value}')
 
@@ -721,11 +798,11 @@ def _infer_field(item: Item, diallow_pedals: bool = False) -> Field:
       dtype = fields[VALUE_KEY].dtype
       del fields[VALUE_KEY]
     elif SPAN_KEY in fields:
-      dtype = DataType.STRING_SPAN
+      dtype = STRING_SPAN
       del fields[SPAN_KEY]
     if not fields:
       # The object is an empty dict. We need a dummy child to represent this with parquet.
-      return Field(fields={'__empty__': Field(dtype=DataType.NULL)})
+      return Field(fields={'__empty__': Field(dtype=NULL)})
     return Field(fields=fields, dtype=dtype)
   elif is_primitive(item):
     return Field(dtype=_infer_dtype(item))
@@ -767,7 +844,7 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
       _print_fields(field, destination)
       raise ValueError('Failed to merge fields. New field has fields, but destination has dtype')
     destination.fields = destination.fields or {}
-    if destination.dtype == DataType.NULL:
+    if destination.dtype == NULL:
       destination.dtype = None
     for field_name, subfield in field.fields.items():
       if field_name not in destination.fields:
@@ -781,7 +858,7 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
         'Failed to merge fields. New field is repeated, but destination has ' 'fields'
       )
     if destination.dtype:
-      if destination.dtype != DataType.NULL:
+      if destination.dtype != NULL:
         _print_fields(field, destination)
         raise ValueError(
           'Failed to merge fields. New field is repeated, but destination has ' 'dtype'
@@ -796,7 +873,7 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
     _merge_field_into(field.repeated_field, destination.repeated_field, disallow_pedals)
 
   if field.dtype:
-    if field.dtype == DataType.NULL:
+    if field.dtype == NULL:
       return
     if destination.repeated_field:
       _print_fields(field, destination)
@@ -808,7 +885,7 @@ def _merge_field_into(field: Field, destination: Field, disallow_pedals: bool = 
       raise ValueError('Failed to merge fields. New field has dtype, but destination has fields')
 
     if (
-      destination.dtype != DataType.NULL
+      destination.dtype != NULL
       and destination.dtype is not None
       and destination.dtype != field.dtype
     ):
@@ -828,7 +905,7 @@ def merge_fields(fields: Sequence[Field], disallow_pedals: bool = False) -> Fiel
                      error.
   """
   if not fields:
-    return Field(dtype=DataType.NULL)
+    return Field(dtype=NULL)
   merged_field = fields[0].model_copy(deep=True)
   for field in fields[1:]:
     _merge_field_into(field, merged_field, disallow_pedals)

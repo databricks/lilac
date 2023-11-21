@@ -60,9 +60,9 @@ class ParquetSource(Source):
 
   @field_validator('sample_size')
   @classmethod
-  def validate_sample_size(cls, sample_size: int) -> int:
+  def validate_sample_size(cls, sample_size: Optional[int]) -> Optional[int]:
     """Validate sample size."""
-    if sample_size < 1:
+    if sample_size is not None and sample_size < 1:
       raise ValueError('sample_size must be greater than 0.')
     return sample_size
 

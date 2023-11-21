@@ -11,6 +11,6 @@ export type ConceptSearch = {
     concept_namespace: string;
     concept_name: string;
     embedding: string;
-    type?: 'concept';
+    type: 'concept';
 };
 

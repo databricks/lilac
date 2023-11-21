@@ -120,7 +120,7 @@
         // Ignore non-petals, except for concepts which are rendered from the root.
         continue;
       }
-      if (field.dtype === 'embedding' || field.dtype === 'binary') {
+      if (field.dtype?.type === 'embedding' || field.dtype?.type === 'binary') {
         // Ignore special dtypes.
         continue;
       }
@@ -166,7 +166,7 @@
       }
 
       // Suggest "exists" for signal string fields such as PII.
-      if (field.dtype === 'string' || field.dtype === 'string_span') {
+      if (field.dtype?.type === 'string' || field.dtype?.type === 'string_span') {
         if (signal == null) {
           // Skip filtering source fields by EXISTS.
           continue;

@@ -32,7 +32,7 @@
     const path = L.path(node)!;
     let value = L.value(node);
     let span = L.span(node);
-    if (field?.dtype === 'string_span') {
+    if (field?.dtype?.type === 'string_span') {
       // We default to __value__ for back compat.
       span = span || (value as {start: number; end: number});
       if (span != null) {
@@ -42,7 +42,7 @@
           const parentPath = path.slice(0, i);
           const parent = getField(selectRowsSchema!.schema, parentPath)!;
 
-          if (parent.dtype === 'string') {
+          if (parent.dtype?.type === 'string') {
             const text = L.value<'string'>(valueAtPath(row, parentPath)!)!;
             stringValues.push(text.slice(span.start, span.end));
             break;
@@ -60,7 +60,7 @@
     if (
       isEmbeddingSignal ||
       (isSignal && field?.dtype == null) ||
-      field?.dtype === 'embedding' ||
+      field?.dtype?.type === 'embedding' ||
       field?.repeated_field != null
     ) {
       formattedValue = '';

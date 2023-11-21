@@ -22,9 +22,9 @@ from ..schema import (
   PATH_WILDCARD,
   ROWID,
   SPAN_KEY,
+  STRING,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
-  DataType,
   Field,
   Item,
   PathKey,
@@ -217,7 +217,7 @@ def write_items_to_parquet(
   """Write a set of items to a parquet file, in columnar format."""
   schema = schema.model_copy(deep=True)
   # Add a rowid column.
-  schema.fields[ROWID] = Field(dtype=DataType.STRING)
+  schema.fields[ROWID] = Field(dtype=STRING)
 
   arrow_schema = schema_to_arrow_schema(schema)
   out_filename = get_parquet_filename(filename_prefix, shard_index, num_shards)

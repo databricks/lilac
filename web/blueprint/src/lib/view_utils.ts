@@ -45,7 +45,7 @@ import type {SettingsState} from './stores/settingsStore';
 import {conceptLink, datasetLink} from './utils';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
-export const DTYPE_TO_ICON: Record<DataType, typeof CarbonIcon> = {
+export const DTYPE_TO_ICON: Record<Exclude<DataType['type'], 'map'>, typeof CarbonIcon> = {
   string: StringText,
   string_span: StringText,
   uint8: CharacterWholeNumber,
@@ -153,7 +153,7 @@ export function getComputedEmbeddings(
 
   const existingEmbeddings: Set<string> = new Set();
   const embeddingSignalRoots = childFields(getField(schema, path)).filter(
-    f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
+    f => f.signal != null && childFields(f).some(f => f.dtype?.type === 'embedding')
   );
   for (const field of embeddingSignalRoots) {
     if (field.signal != null) {
@@ -349,9 +349,9 @@ export function getSpanValuePaths(
   const keywordSignals = children.filter(f => f.signal?.signal_name === 'substring_search');
   // Find the non-keyword span fields under this field.
   let spanFields = children
-    .filter(f => f.dtype === 'string_span')
+    .filter(f => f.dtype?.type === 'string_span')
     // Ignore embedding spans.
-    .filter(f => !childFields(f).some(c => c.dtype === 'embedding'));
+    .filter(f => !childFields(f).some(c => c.dtype?.type === 'embedding'));
   if (highlightedFields != null) {
     // Keep only spans that have visible children.
     spanFields = spanFields.filter(f =>
@@ -364,11 +364,13 @@ export function getSpanValuePaths(
   const valuePaths: SpanValueInfo[] = [];
   for (const spanField of spanFields) {
     const spanChildren = childFields(spanField)
-      .filter(f => f.dtype != 'string_span')
+      .filter(f => f.dtype?.type != 'string_span')
       .filter(
         f => highlightedFields == null || highlightedFields.some(v => pathIsEqual(v.path, f.path))
       );
-    const spanPetalChildren = spanChildren.filter(f => f.dtype != null && f.dtype != 'embedding');
+    const spanPetalChildren = spanChildren.filter(
+      f => f.dtype != null && f.dtype.type != 'embedding'
+    );
     const spanPath = spanField.path;
 
     const keywordSearch = keywordSignals.find(f => pathIncludes(spanField.path, f.path));

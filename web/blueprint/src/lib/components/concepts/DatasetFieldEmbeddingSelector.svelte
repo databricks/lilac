@@ -48,7 +48,7 @@
     sourceFields != null
       ? (sourceFields.filter(f =>
           childFields(f).some(
-            f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
+            f => f.signal != null && childFields(f).some(f => f.dtype?.type === 'embedding')
           )
         ) as LilacField[])
       : null;
@@ -56,7 +56,7 @@
   $: embeddings =
     path && schema
       ? childFields(getField(schema, path)).filter(
-          f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
+          f => f.signal != null && childFields(f).some(f => f.dtype?.type === 'embedding')
         )
       : [];
 
