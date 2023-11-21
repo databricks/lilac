@@ -20,10 +20,10 @@
   $: categoricalFields = $schema.data
     ? childFields($schema.data).filter(
         f =>
-          (f.categorical || !isNumeric(f.dtype!)) &&
           f.dtype != null &&
-          f.dtype !== 'string_span' &&
-          f.dtype !== 'embedding'
+          (f.categorical || !isNumeric(f.dtype)) &&
+          f.dtype.type !== 'string_span' &&
+          f.dtype.type !== 'embedding'
       )
     : null;
 

@@ -142,24 +142,24 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
 
   # Select *.
   result = dataset.select_rows(['*'])
-  assert list(result) == items
+  assert list(result) == [{'name': 'A', 'info.age': 40}, {'name': 'B', 'info.age': 42}]
 
   # Select (*,).
   result = dataset.select_rows([('*',)])
-  assert list(result) == items
+  assert list(result) == [{'name': 'A', 'info.age': 40}, {'name': 'B', 'info.age': 42}]
 
   # Select *, plus a redundant `info` column.
   result = dataset.select_rows(['*', 'info'])
   assert list(result) == [
-    {'name': 'A', 'info': {'age': 40}, 'info_2': {'age': 40}},
-    {'name': 'B', 'info': {'age': 42}, 'info_2': {'age': 42}},
+    {'name': 'A', 'info.age': 40, 'info': {'age': 40}},
+    {'name': 'B', 'info.age': 42, 'info': {'age': 42}},
   ]
 
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')])
   assert list(result) == [
-    {'name': 'A', 'info': {'age': 40}, 'info.age': 40},
-    {'name': 'B', 'info': {'age': 42}, 'info.age': 42},
+    {'info.age': 40, 'info.age_2': 40, 'name': 'A'},
+    {'info.age': 42, 'info.age_2': 42, 'name': 'B'},
   ]
 
 
@@ -329,8 +329,18 @@ def test_enriched_select_all(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows()
   assert list(result) == [
-    {'text': 'hello', 'text.length_signal': 5, 'text.test_signal': {'len': 5, 'flen': 5.0}},
-    {'text': 'everybody', 'text.length_signal': 9, 'text.test_signal': {'len': 9, 'flen': 9.0}},
+    {
+      'text': 'hello',
+      'text.length_signal': 5,
+      'text.test_signal.len': 5,
+      'text.test_signal.flen': 5.0,
+    },
+    {
+      'text': 'everybody',
+      'text.length_signal': 9,
+      'text.test_signal.len': 9,
+      'text.test_signal.flen': 9.0,
+    },
   ]
 
 

@@ -139,6 +139,8 @@ class NoSource(Source):
 class SourceManifest(BaseModel):
   """The raw dataset contents, converted to Parquet, prior to any Lilac-specific annotations."""
 
+  model_config = ConfigDict(strict=False)
+
   # List of a parquet filepaths storing the data. The paths can be relative to `manifest.json`.
   files: list[str]
   # The data schema.

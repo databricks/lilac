@@ -62,14 +62,14 @@
   $: schema = schemaQuery && $schemaQuery?.data;
 
   $: stringFields = schema
-    ? childFields(schema).filter(f => f.dtype === 'string' && !isSignalField(f))
+    ? childFields(schema).filter(f => f.dtype?.type === 'string' && !isSignalField(f))
     : [];
   $: fields = stringFields.sort((a, b) => {
     const aIsIndexed = childFields(a).some(
-      f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
+      f => f.signal != null && childFields(f).some(f => f.dtype?.type === 'embedding')
     );
     const bIsIndexed = childFields(b).some(
-      f => f.signal != null && childFields(f).some(f => f.dtype === 'embedding')
+      f => f.signal != null && childFields(f).some(f => f.dtype?.type === 'embedding')
     );
     if (aIsIndexed && !bIsIndexed) return -1;
     if (!aIsIndexed && bIsIndexed) return 1;

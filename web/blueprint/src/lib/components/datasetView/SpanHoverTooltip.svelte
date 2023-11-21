@@ -26,7 +26,7 @@
     if (typeof namedValue.value === 'number') {
       return namedValue.value.toFixed(3);
     }
-    if (namedValue.info.dtype === 'string_span') {
+    if (namedValue.info.dtype.type === 'string_span') {
       return 'true';
     }
     return namedValue.value;

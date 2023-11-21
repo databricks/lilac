@@ -22,9 +22,9 @@ export const SIGNAL_INPUT_TYPE_TO_VALID_DTYPES: Record<
   Exclude<SignalInputType, 'any'>,
   DataType[]
 > = {
-  text: ['string', 'string_span'],
-  text_embedding: ['embedding'],
-  image: ['binary']
+  text: [{type: 'string'}, {type: 'string_span'}],
+  text_embedding: [{type: 'embedding'}],
+  image: [{type: 'binary'}]
 };
 
 export type DataTypeNumber =
@@ -40,7 +40,7 @@ export type DataTypeNumber =
   | 'float32'
   | 'float64';
 
-export type DataTypeCasted<D extends DataType = DataType> =
+export type DataTypeCasted<D extends DataType['type'] = DataType['type']> =
   | (D extends 'string'
       ? string
       : D extends 'boolean'
@@ -61,24 +61,36 @@ export type DataTypeCasted<D extends DataType = DataType> =
 export function isNumeric(dtype: DataType) {
   return isFloat(dtype) || isInteger(dtype);
 }
-export function isFloat(dtype: DataType | undefined): dtype is 'float16' | 'float32' | 'float64' {
-  return ['float16', 'float32', 'float64'].indexOf(dtype ?? '') >= 0;
+export function isFloat(
+  dtype: DataType | undefined
+): dtype is {type: 'float16'} | {type: 'float32'} | {type: 'float64'} {
+  return ['float16', 'float32', 'float64'].indexOf(dtype?.type ?? '') >= 0;
 }
 
 export function isInteger(
   dtype: DataType
-): dtype is 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' {
+): dtype is
+  | {type: 'int8'}
+  | {type: 'int16'}
+  | {type: 'int32'}
+  | {type: 'int64'}
+  | {type: 'uint8'}
+  | {type: 'uint16'}
+  | {type: 'uint32'}
+  | {type: 'uint64'} {
   return (
-    ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'].indexOf(dtype) >= 0
+    ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'].indexOf(
+      dtype.type
+    ) >= 0
   );
 }
 
 export function isTemporal(dtype: DataType) {
-  return ['time', 'date', 'timestamp', 'interval'].indexOf(dtype) >= 0;
+  return ['time', 'date', 'timestamp', 'interval'].indexOf(dtype.type) >= 0;
 }
 
 export function isOrdinal(dtype: DataType) {
-  return isFloat(dtype) || isInteger(dtype) || isTemporal(dtype) || dtype === 'boolean';
+  return isFloat(dtype) || isInteger(dtype) || isTemporal(dtype) || dtype.type === 'boolean';
 }
 
 export function serializePath(path: Path | string): string {
@@ -91,11 +103,11 @@ export function isSortableField(field: LilacField) {
   if (field.repeated_field) {
     return isSortableField(field.repeated_field);
   }
-  return field.dtype && !(['embedding', 'binary'] as DataType[]).includes(field.dtype);
+  return field.dtype && !(['embedding', 'binary', 'map'] as string[]).includes(field.dtype.type);
 }
 
 export function isFilterableField(field: LilacField) {
-  return field.dtype && !(['embedding', 'binary'] as DataType[]).includes(field.dtype);
+  return field.dtype && !(['embedding', 'binary'] as string[]).includes(field.dtype.type);
 }
 
 export function deserializePath(path: string | Path): Path {

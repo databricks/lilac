@@ -41,10 +41,10 @@
         class:bg-blue-200={isSignal}
         class:bg-teal-100={isLabel}
       >
-        {#if field.dtype}
-          <svelte:component this={DTYPE_TO_ICON[field.dtype]} title={field.dtype} />
+        {#if field.dtype && field.dtype.type !== 'map'}
+          <svelte:component this={DTYPE_TO_ICON[field.dtype.type]} title={field.dtype.type} />
         {:else}
-          <span class="font-mono">{'{}'}</span>
+          <span title={field.dtype?.type} class="font-mono">{'{}'}</span>
         {/if}
         {#if field.path.indexOf(PATH_WILDCARD) >= 0}[]{/if}
       </div>

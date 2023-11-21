@@ -91,7 +91,7 @@ export function getRenderSpans(
           const span = L.span(valueNode);
           if (value == null && span == null) continue;
 
-          if (valueInfo.dtype === 'float32') {
+          if (valueInfo.dtype.type === 'float32') {
             const floatValue = L.value<'float32'>(valueNode);
             if (floatValue != null) {
               maxScore = Math.max(maxScore, floatValue);

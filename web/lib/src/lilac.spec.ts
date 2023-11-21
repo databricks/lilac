@@ -16,17 +16,17 @@ import {VALUE_KEY, type FieldValue} from './schema';
 const MANIFEST_SCHEMA_FIXTURE: Schema = {
   fields: {
     title: {
-      dtype: 'string'
+      dtype: {type: 'string'}
     },
     comment_text: {
-      dtype: 'string',
+      dtype: {type: 'string'},
       fields: {
         pii: {
           fields: {
             emails: {
               repeated_field: {
                 fields: {},
-                dtype: 'string_span'
+                dtype: {type: 'string_span'}
               }
             }
           },
@@ -37,12 +37,12 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
     complex_field: {
       fields: {
         propertyA: {
-          dtype: 'string',
+          dtype: {type: 'string'},
           fields: {
             text_statistics: {
               fields: {
                 num_characters: {
-                  dtype: 'int32'
+                  dtype: {type: 'int32'}
                 }
               },
               signal: {signal_name: 'text_statistics'}
@@ -50,23 +50,23 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
           }
         },
         propertyB: {
-          dtype: 'string'
+          dtype: {type: 'string'}
         }
       }
     },
     tags: {
       repeated_field: {
-        dtype: 'string'
+        dtype: {type: 'string'}
       }
     },
     complex_list_of_struct: {
       repeated_field: {
         fields: {
           propertyA: {
-            dtype: 'string'
+            dtype: {type: 'string'}
           },
           propertyB: {
-            dtype: 'string'
+            dtype: {type: 'string'}
           }
         }
       }
@@ -74,12 +74,12 @@ const MANIFEST_SCHEMA_FIXTURE: Schema = {
     nested_list_of_list: {
       repeated_field: {
         repeated_field: {
-          dtype: 'string'
+          dtype: {type: 'string'}
         }
       }
     },
     __rowid__: {
-      dtype: 'string'
+      dtype: {type: 'string'}
     }
   }
 };
@@ -194,7 +194,7 @@ describe('lilac', () => {
     it('should return a list of fields', () => {
       const fields = childFields(schema);
       expect(fields).toBeDefined();
-      expect(fields[1].dtype).toEqual('string');
+      expect(fields[1].dtype?.type).toEqual('string');
       const paths = fields.map(f => f.path);
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
@@ -275,13 +275,13 @@ describe('lilac', () => {
       expect(L.field(row.title)?.path).toEqual(['title']);
     });
     it('can get dtype', () => {
-      expect(L.dtype(row.title)).toEqual('string');
+      expect(L.dtype(row.title)?.type).toEqual('string');
     });
 
     it('cam get typed values as strings', () => {
       const t = L.dtype(row.title);
-      if (t === 'string') {
-        const val = L.value(row.title, t);
+      if (t?.type === 'string') {
+        const val = L.value(row.title, t.type);
         assertType<string>(val!);
       } else {
         // Woops, this should never happen
@@ -291,8 +291,8 @@ describe('lilac', () => {
 
     it('cam get typed values as string_span', () => {
       const t = L.dtype(row.comment_text.pii.emails[0]);
-      if (t === 'string_span') {
-        const val = L.value(row.title, t);
+      if (t?.type === 'string_span') {
+        const val = L.value(row.title, t.type);
         assertType<{start: number; end: number}>(val!);
       } else {
         // Woops, this should never happen
@@ -311,7 +311,7 @@ describe('lilac', () => {
   describe('nested lists', () => {
     it('can get values', () => {
       expect(L.path(row.nested_list_of_list[0][0])).toEqual(['nested_list_of_list', '0', '0']);
-      expect(L.dtype(row.nested_list_of_list[0][0])).toEqual('string');
+      expect(L.dtype(row.nested_list_of_list[0][0])?.type).toEqual('string');
     });
   });
 });

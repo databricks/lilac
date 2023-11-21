@@ -6,7 +6,7 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union
+from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
@@ -37,14 +37,15 @@ from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
   PATH_WILDCARD,
   ROWID,
+  STRING,
   Bin,
-  DataType,
   EmbeddingInputType,
   Item,
   MapFn,
   Path,
   PathTuple,
   Schema,
+  change_const_to_enum,
   normalize_path,
 )
 from ..signal import (
@@ -266,15 +267,6 @@ FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListF
 SearchValue = StrictStr
 
 
-def _change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any]], None]:
-  """Replace the const value in the schema to an enum with 1 value so typescript codegen works."""
-
-  def _schema_extra(schema: dict[str, Any]) -> None:
-    schema['properties'][prop_name] = {'enum': [value]}
-
-  return _schema_extra
-
-
 class KeywordSearch(BaseModel):
   """A keyword search query on a column."""
 
@@ -282,7 +274,7 @@ class KeywordSearch(BaseModel):
   query: SearchValue
   type: Literal['keyword'] = 'keyword'
 
-  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'keyword'))
+  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'keyword'))
 
 
 class SemanticSearch(BaseModel):
@@ -298,7 +290,7 @@ class SemanticSearch(BaseModel):
     description='The input type of the query, used for the query embedding.',
   )
 
-  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'semantic'))
+  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'semantic'))
 
 
 class ConceptSearch(BaseModel):
@@ -310,7 +302,7 @@ class ConceptSearch(BaseModel):
   embedding: str
   type: Literal['concept'] = 'concept'
 
-  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'concept'))
+  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'concept'))
 
 
 class MetadataSearch(BaseModel):
@@ -321,7 +313,7 @@ class MetadataSearch(BaseModel):
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
   type: Literal['metadata'] = 'metadata'
 
-  model_config = ConfigDict(json_schema_extra=_change_const_to_enum('type', 'metadata'))
+  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'metadata'))
 
 
 Search = Union[ConceptSearch, SemanticSearch, KeywordSearch, MetadataSearch]
@@ -589,7 +581,8 @@ class Dataset(abc.ABC):
   def map(
     self,
     map_fn: MapFn,
-    output_path: Optional[Path] = None,
+    output_column: Optional[str] = None,
+    nest_under: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -600,8 +593,11 @@ class Dataset(abc.ABC):
     Args:
       map_fn: A callable that takes a full row item dictionary, and returns an Item for the
         result. The result Item can be a primitive, like a string.
-      output_path: The output path to write the resulting column to. If not defined, does not
-        serialize the output to disk, and returns the result as an iterator.
+      output_column: The name of the output column to write to. When `nest_under` is False
+        (the default), this will be the name of the top-level column. When `nest_under` is True,
+        the output_column will be the name of the column under the path given by `nest_under`.
+      nest_under: The path to nest the output under. This is useful when emitting annotations, like
+        spans, so they will get hierarchically shown in the UI.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
@@ -703,9 +699,7 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   """Gets the default settings for a dataset."""
   schema = dataset.manifest().data_schema
   leaf_paths = [
-    path
-    for path, field in schema.leafs.items()
-    if field.dtype == DataType.STRING and path != (ROWID,)
+    path for path, field in schema.leafs.items() if field.dtype == STRING and path != (ROWID,)
   ]
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
@@ -757,3 +751,9 @@ def make_signal_parquet_id(
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]
   return '.'.join(path)
+
+
+def get_map_parquet_id(output_path: PathTuple) -> str:
+  """Return a unique identifier for this parquet table."""
+  # Remove the wildcards from the parquet id since they are implicit.
+  return 'map.' + '.'.join(output_path)
