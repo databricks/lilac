@@ -194,7 +194,7 @@ describe('lilac', () => {
     it('should return a list of fields', () => {
       const fields = childFields(schema);
       expect(fields).toBeDefined();
-      expect(fields[1].dtype).toEqual('string');
+      expect(fields[1].dtype?.type).toEqual('string');
       const paths = fields.map(f => f.path);
       expect(paths).toContainEqual(['title']);
       expect(paths).toContainEqual(['complex_list_of_struct', '*']);
@@ -311,7 +311,7 @@ describe('lilac', () => {
   describe('nested lists', () => {
     it('can get values', () => {
       expect(L.path(row.nested_list_of_list[0][0])).toEqual(['nested_list_of_list', '0', '0']);
-      expect(L.dtype(row.nested_list_of_list[0][0])).toEqual('string');
+      expect(L.dtype(row.nested_list_of_list[0][0].type)).toEqual('string');
     });
   });
 });
