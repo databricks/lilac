@@ -3,14 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { DataType } from './DataType';
+import type {DataType} from './DataType';
 
 /**
- * The data type for a field.
+ * The map dtype parameterized by the key and value types.
  */
 export type MapType = {
-    type: 'map';
-    key_type: DataType;
-    value_type: DataType;
+  type: 'map';
+  key_type: DataType;
+  value_type: DataType;
 };
-
