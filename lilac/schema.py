@@ -117,7 +117,7 @@ def change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any]
 
 
 class MapType(DataType):
-  """The data type for a field."""
+  """The map dtype parameterized by the key and value types."""
 
   def __init__(self, **kwargs: Any) -> None:
     kwargs.pop('type', None)

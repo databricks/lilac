@@ -275,7 +275,7 @@ describe('lilac', () => {
       expect(L.field(row.title)?.path).toEqual(['title']);
     });
     it('can get dtype', () => {
-      expect(L.dtype(row.title)).toEqual('string');
+      expect(L.dtype(row.title)?.type).toEqual('string');
     });
 
     it('cam get typed values as strings', () => {
@@ -311,7 +311,7 @@ describe('lilac', () => {
   describe('nested lists', () => {
     it('can get values', () => {
       expect(L.path(row.nested_list_of_list[0][0])).toEqual(['nested_list_of_list', '0', '0']);
-      expect(L.dtype(row.nested_list_of_list[0][0].type)).toEqual('string');
+      expect(L.dtype(row.nested_list_of_list[0][0])?.type).toEqual('string');
     });
   });
 });
