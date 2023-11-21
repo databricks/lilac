@@ -20,8 +20,6 @@
     type LilacValueNodeCasted,
     type Path
   } from '$lilac';
-  import {Button} from 'carbon-components-svelte';
-  import {ArrowDown, ArrowUp} from 'carbon-icons-svelte';
   import {getContext} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
   import type {Writable} from 'svelte/store';
@@ -176,7 +174,10 @@
   const notificationStore = getNotificationsContext();
 </script>
 
-<div class="overflow-x-hidden text-ellipsis whitespace-break-spaces">
+<div
+  class="overflow-x-hidden text-ellipsis whitespace-break-spaces"
+  class:text-preview-overlay={textIsOverBudget && !isExpanded}
+>
   {#each snippetSpans as snippetSpan}
     {#if !snippetSpan.isEllipsis}
       {@const renderSpan = snippetSpan.renderSpan}
@@ -227,36 +228,12 @@
       </span>
     {/if}
   {/each}
-  {#if textIsOverBudget && !isExpanded}
-    <div class="flex flex-row justify-center">
-      <div class="w-30 mt-2 rounded border border-neutral-300 text-center">
-        {#if !isExpanded}
-          <Button
-            size="small"
-            class="w-full"
-            kind="ghost"
-            icon={ArrowDown}
-            on:click={() => (isExpanded = true)}
-          >
-            Show all
-          </Button>
-        {:else}
-          <Button
-            size="small"
-            class="w-full"
-            kind="ghost"
-            icon={ArrowUp}
-            on:click={() => (isExpanded = false)}
-          >
-            Hide excess
-          </Button>
-        {/if}
-      </div>
-    </div>
-  {/if}
 </div>
 
 <style lang="postcss">
+  .text-preview-overlay {
+    mask-image: linear-gradient(to top, transparent, white 75px);
+  }
   .highlight-span {
     /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
     padding-top: 1.5px;

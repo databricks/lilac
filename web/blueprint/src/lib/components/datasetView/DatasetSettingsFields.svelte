@@ -31,7 +31,9 @@
 
   $: {
     if (settings == null && !$settingsQuery.isFetching) {
-      settings = $settingsQuery.data;
+      settings = JSON.parse(JSON.stringify($settingsQuery.data));
+      selectedMediaFields = null;
+      markdownMediaFields = null;
     }
   }
 
@@ -42,7 +44,6 @@
   let selectedMediaFields: LilacField[] | null = null;
   let markdownMediaFields: LilacField[] | null = null;
   let preferredEmbedding: string | undefined = $appSettings.embedding;
-
   $: mediaFieldOptions =
     $schema.data != null
       ? petals($schema.data).filter(
@@ -127,14 +128,19 @@
     if (
       selectedMediaFields == null &&
       mediaFieldOptions != null &&
-      $settingsQuery.data?.ui?.media_paths != null
+      $settingsQuery.data?.ui?.media_paths != null &&
+      !$settingsQuery.isFetching
     ) {
       const mediaPathsFromSettings = $settingsQuery.data.ui.media_paths.map(p =>
         Array.isArray(p) ? p : [p]
       );
-      selectedMediaFields = mediaFieldOptions.filter(f =>
-        mediaPathsFromSettings.some(path => pathIsEqual(f.path, path))
-      );
+      selectedMediaFields = mediaPathsFromSettings.map(path => {
+        const field = mediaFieldOptions!.find(f => pathIsEqual(f.path, path));
+        if (field == null) {
+          throw new Error(`Could not find field with path ${path}`);
+        }
+        return field;
+      });
     }
   }
 

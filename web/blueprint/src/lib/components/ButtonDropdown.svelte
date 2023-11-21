@@ -3,6 +3,7 @@
   import type {ComboBoxItem} from 'carbon-components-svelte/types/ComboBox/ComboBox.svelte';
   import type {CarbonIcon} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
+  import {hoist} from './common/Hoist';
   import {hoverTooltip} from './common/HoverTooltip';
   import {clickOutside} from './common/clickOutside';
 
@@ -69,28 +70,31 @@
       {buttonText}
     </button>
   </div>
-  <div
-    class="relative z-50 w-60"
-    class:hidden={!dropdownOpen}
-    use:clickOutside={() => (dropdownOpen = false)}
-  >
-    <ComboBox
-      size="sm"
-      open={dropdownOpen}
-      bind:this={comboBox}
-      {items}
-      bind:value={comboBoxText}
-      on:select={selectItem}
-      shouldFilterItem={shouldFilterItem ? shouldFilterItem : undefined}
-      placeholder={comboBoxPlaceholder}
-      let:item={it}
+  {#if dropdownOpen}
+    <div
+      class="absolute z-50 w-60"
+      class:hidden={!dropdownOpen}
+      use:clickOutside={() => (dropdownOpen = false)}
+      use:hoist
     >
-      {@const item = items.find(p => p.id === it.id)}
-      {#if $$slots.item}
-        <slot name="item" {item} inputText={comboBoxText} />
-      {:else if item}
-        <div class="flex justify-between gap-x-8">{item.text}</div>
-      {/if}
-    </ComboBox>
-  </div>
+      <ComboBox
+        size="sm"
+        open={dropdownOpen}
+        bind:this={comboBox}
+        {items}
+        bind:value={comboBoxText}
+        on:select={selectItem}
+        shouldFilterItem={shouldFilterItem ? shouldFilterItem : undefined}
+        placeholder={comboBoxPlaceholder}
+        let:item={it}
+      >
+        {@const item = items.find(p => p.id === it.id)}
+        {#if $$slots.item}
+          <slot name="item" {item} inputText={comboBoxText} />
+        {:else if item}
+          <div class="flex justify-between gap-x-8">{item.text}</div>
+        {/if}
+      </ComboBox>
+    </div>
+  {/if}
 </div>

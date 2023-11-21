@@ -18,7 +18,14 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {DirectionFork, PropertyRelationship, RowExpand, Search, Undo} from 'carbon-icons-svelte';
+  import {
+    ChevronDown,
+    ChevronUp,
+    DirectionFork,
+    PropertyRelationship,
+    Search,
+    Undo
+  } from 'carbon-icons-svelte';
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ItemMediaDiff from './ItemMediaDiff.svelte';
@@ -156,21 +163,13 @@
                 ><Undo size={16} />
               </button>
             {/if}
-            <div
-              use:hoverTooltip={{
-                text: !textIsOverBudget ? 'The text is not snippeted.' : undefined
-              }}
+            <button
+              disabled={!textIsOverBudget}
               class:opacity-50={!textIsOverBudget}
-            >
-              <button
-                disabled={!textIsOverBudget}
-                on:click={() => (userExpanded = !userExpanded)}
-                use:hoverTooltip={{text: 'Expand text'}}
-                ><RowExpand size={16} />
-              </button>
-            </div>
-            {userExpanded}
-            {textIsOverBudget}
+              on:click={() => (userExpanded = !userExpanded)}
+              use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
+              >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
+            </button>
           </div>
         </div>
       </div>
@@ -191,7 +190,7 @@
             bind:textIsOverBudget
           />
         {:else}
-          <ItemMediaDiff {row} {colCompareState} />
+          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
         {/if}
       </div>
     </div>
