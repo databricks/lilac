@@ -214,13 +214,13 @@
                     class:bg-blue-200={isSignal}
                     class:bg-teal-100={isLabel}
                   >
-                    {#if mediaField.dtype}
+                    {#if mediaField.dtype && mediaField.dtype.type !== 'map'}
                       <svelte:component
                         this={DTYPE_TO_ICON[mediaField.dtype.type]}
                         title={mediaField.dtype.type}
                       />
                     {:else}
-                      <span class="font-mono">{'{}'}</span>
+                      <span class="font-mono" title={mediaField.dtype?.type}>{'{}'}</span>
                     {/if}
                     {#if mediaField.path.indexOf(PATH_WILDCARD) >= 0}[]{/if}
                   </div>

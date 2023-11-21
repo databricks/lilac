@@ -13,7 +13,7 @@ import type { MapType } from './MapType';
 export type Field = {
     repeated_field?: (Field | null);
     fields?: (Record<string, Field> | null);
-    dtype?: (DataType | MapType | null);
+    dtype?: (MapType | DataType | null);
     signal?: (Record<string, any> | null);
     label?: (string | null);
     map?: (MapInfo | null);

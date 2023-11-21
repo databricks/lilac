@@ -45,7 +45,7 @@ import type {SettingsState} from './stores/settingsStore';
 import {conceptLink, datasetLink} from './utils';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
-export const DTYPE_TO_ICON: Record<DataType['type'], typeof CarbonIcon> = {
+export const DTYPE_TO_ICON: Record<Exclude<DataType['type'], 'map'>, typeof CarbonIcon> = {
   string: StringText,
   string_span: StringText,
   uint8: CharacterWholeNumber,

@@ -84,6 +84,7 @@ class DataType(BaseModel):
     'binary',
     'embedding',
     'null',
+    'map',
   ]
 
   def __init__(self, type: str, **kwargs: Any) -> None:
@@ -118,11 +119,18 @@ def change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any]
 class MapType(DataType):
   """The data type for a field."""
 
+  def __init__(self, **kwargs: Any) -> None:
+    kwargs.pop('type', None)
+    super().__init__(type='map', **kwargs)
+
   type: Literal['map'] = 'map'
   key_type: DataType
   value_type: DataType
 
   model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'map'))
+
+  def __str__(self) -> str:
+    return f'map<{self.key_type}, {self.value_type}>'
 
 
 STRING = DataType('string')
@@ -221,7 +229,7 @@ class Field(BaseModel):
 
   repeated_field: Optional['Field'] = None
   fields: Optional[dict[str, 'Field']] = None
-  dtype: Optional[Union[DataType, MapType]] = None
+  dtype: Optional[Union[MapType, DataType]] = None
   # Defined as the serialized signal when this field is the root result of a signal.
   signal: Optional[dict[str, Any]] = None
   # Defined as the label name when the field is a label.
@@ -389,6 +397,8 @@ class Schema(BaseModel):
         if name != PATH_WILDCARD:
           raise ValueError(f'Invalid path for a schema field: {path}')
         field = field.repeated_field
+      elif field.dtype and isinstance(field.dtype, MapType):
+        return Field(dtype=field.dtype.value_type)
       else:
         raise ValueError(f'Invalid path for a schema field: {path}')
     return field
@@ -714,7 +724,7 @@ def _arrow_schema_to_schema_impl(schema: Union[pa.Schema, pa.DataType]) -> Union
         and pa.types.is_integer(span_schema[TEXT_SPAN_START_FEATURE].type)
         and pa.types.is_integer(span_schema[TEXT_SPAN_END_FEATURE].type)
       ):
-        dtype = DataType.STRING_SPAN
+        dtype = STRING_SPAN
 
     fields: dict[str, Field] = {
       field.name: cast(Field, _arrow_schema_to_schema_impl(field.type))

@@ -8,7 +8,7 @@ import pyarrow.parquet as pq
 import pytest
 from pydantic import ValidationError
 
-from ..schema import schema
+from ..schema import FLOAT32, STRING, MapType, field, schema
 from ..source import SourceSchema
 from ..test_utils import retrieve_parquet_rows
 from ..utils import chunks
@@ -37,14 +37,14 @@ def test_simple_rows(tmp_path: pathlib.Path) -> None:
 def test_map_dtype(tmp_path: pathlib.Path) -> None:
   # Create data for the table
   data = {
-    'column_name': [
+    'column': [
       {'a': 1.0, 'b': 2.0},
       {'b': 2.5},
-      {'a': 3.0, 'c': 3.7},
+      {'a': 3.0, 'c': 3.5},
     ]
   }
   # Create a table with a single column of type map<string, float>.
-  table = pa.table(data, schema=pa.schema([('column_name', pa.map_(pa.string(), pa.float32()))]))
+  table = pa.table(data, schema=pa.schema([('column', pa.map_(pa.string(), pa.float32()))]))
 
   out_file = os.path.join(tmp_path, 'test.parquet')
   pq.write_table(table, out_file)
@@ -53,11 +53,16 @@ def test_map_dtype(tmp_path: pathlib.Path) -> None:
   source.setup()
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({'name': 'string', 'age': 'int64'}).fields, num_items=3
+    fields=schema({'column': field(MapType(key_type=STRING, value_type=FLOAT32))}).fields,
+    num_items=3,
   )
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
-  assert items == [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
+  assert items == [
+    {'column': [('a', 1.0), ('b', 2.0)]},
+    {'column': [('b', 2.5)]},
+    {'column': [('a', 3.0), ('c', 3.5)]},
+  ]
 
 
 def test_single_shard_with_sampling(tmp_path: pathlib.Path) -> None:
