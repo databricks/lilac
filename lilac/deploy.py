@@ -244,7 +244,9 @@ def deploy_project_operations(
     operations.append(
       CommitOperationAdd(
         path_in_repo=project_config_filename,
-        path_or_fileobj=to_yaml(project_config.model_dump()).encode(),
+        path_or_fileobj=to_yaml(
+          project_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
+        ).encode(),
       )
     )
 
