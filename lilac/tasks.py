@@ -194,7 +194,6 @@ class TaskManager:
         asyncio.get_event_loop().run_until_complete(wait_result)
 
     for task_id in task_ids or []:
-      task = self._tasks[task_id]
       future = self._futures[task_id]
 
       if future.status == 'error':

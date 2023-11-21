@@ -118,7 +118,26 @@ def test_select_rows_no_options() -> None:
   options = SelectRowsOptions()
   response = client.post(url, json=options.model_dump())
   assert response.status_code == 200
-  assert response.json() == {'rows': TEST_DATA, 'total_num_rows': 3}
+  assert response.json() == {
+    'rows': [
+      {
+        'erased': False,
+        'people.*.name': ['A'],
+        'people.*.zipcode': [0],
+        'people.*.locations.*.city': [['city1', 'city2']],
+        'people.*.locations.*.state': [['state1', 'state2']],
+      },
+      {
+        'erased': True,
+        'people.*.name': ['B', 'C'],
+        'people.*.zipcode': [1, 2],
+        'people.*.locations.*.city': [['city3', 'city4', 'city5'], ['city1']],
+        'people.*.locations.*.state': [['state3', None, None], ['state1']],
+      },
+      {'erased': True},
+    ],
+    'total_num_rows': 3,
+  }
 
 
 def test_select_rows_with_cols_and_limit() -> None:

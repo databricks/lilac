@@ -180,6 +180,9 @@ def test_arrow_schema_to_schema() -> None:
         )
       ),
       'blob': pa.binary(),
+      'spans': pa.struct(
+        {SPAN_KEY: pa.struct({'start': pa.int32(), 'end': pa.int32()}), 'metadata': pa.string()}
+      ),
     }
   )
   expected_schema = schema(
@@ -194,6 +197,7 @@ def test_arrow_schema_to_schema() -> None:
         }
       ],
       'blob': 'binary',
+      'spans': field('string_span', fields={'metadata': 'string'}),
     }
   )
   assert arrow_schema_to_schema(arrow_schema) == expected_schema

@@ -5,6 +5,7 @@ from typing import Iterable
 
 import pytest
 from freezegun import freeze_time
+from pandas import Timestamp
 from pytest_mock import MockerFixture
 
 from ..schema import PATH_WILDCARD, ROWID, Item, field, schema
@@ -50,15 +51,37 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
   )
 
   assert list(dataset.select_rows([PATH_WILDCARD])) == [
-    {'str': 'a', 'int': 1, 'test_label': {'label': 'true', 'created': TEST_TIME}},
-    {'str': 'b', 'int': 2, 'test_label': None},
-    {'str': 'c', 'int': 3, 'test_label': None},
+    {
+      'str': 'a',
+      'int': 1,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
   ]
 
   # Make sure we can filter by the label.
   assert list(
     dataset.select_rows([PATH_WILDCARD], filters=[('test_label.label', 'equals', 'true')])
-  ) == [{'str': 'a', 'int': 1, 'test_label': {'label': 'true', 'created': TEST_TIME}}]
+  ) == [
+    {
+      'str': 'a',
+      'int': 1,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+  ]
 
   assert dataset.get_label_names() == ['test_label']
 
@@ -70,9 +93,24 @@ def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   num_labels = dataset.add_labels('test_label', row_ids=['1', '2'])
   assert num_labels == 2
   assert list(dataset.select_rows([PATH_WILDCARD])) == [
-    {'str': 'a', 'int': 1, 'test_label': {'label': 'true', 'created': TEST_TIME}},
-    {'str': 'b', 'int': 2, 'test_label': {'label': 'true', 'created': TEST_TIME}},
-    {'str': 'c', 'int': 3, 'test_label': None},
+    {
+      'str': 'a',
+      'int': 1,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
   ]
   assert dataset.get_label_names() == ['test_label']
 
@@ -84,9 +122,24 @@ def test_add_row_labels_no_filters(make_test_data: TestDataMaker, mocker: Mocker
   num_labels = dataset.add_labels('test_label')
   assert num_labels == 3
   assert list(dataset.select_rows([PATH_WILDCARD])) == [
-    {'str': 'a', 'int': 1, 'test_label': {'label': 'true', 'created': TEST_TIME}},
-    {'str': 'b', 'int': 2, 'test_label': {'label': 'true', 'created': TEST_TIME}},
-    {'str': 'c', 'int': 3, 'test_label': {'label': 'true', 'created': TEST_TIME}},
+    {
+      'str': 'a',
+      'int': 1,
+      'test_label.label': 'true',
+      'test_label.created': TEST_TIME,
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      'test_label.label': 'true',
+      'test_label.created': TEST_TIME,
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      'test_label.label': 'true',
+      'test_label.created': TEST_TIME,
+    },
   ]
 
   assert dataset.get_label_names() == ['test_label']
@@ -104,9 +157,24 @@ def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> 
   assert num_labels == 1
 
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [
-    {'str': 'a', 'int': 1, 'test_label': None},
-    {'str': 'b', 'int': 2, 'test_label': {'label': 'true', 'created': TEST_TIME}},
-    {'str': 'c', 'int': 3, 'test_label': {'label': 'true', 'created': TEST_TIME}},
+    {
+      'str': 'a',
+      'int': 1,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
   ]
 
   # Remove by a filter.
@@ -152,9 +220,9 @@ def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) 
   assert num_labels == 1
 
   assert list(dataset.select_rows([PATH_WILDCARD])) == [
-    {'str': 'a', 'int': 1, 'test_label': {'label': 'no', 'created': TEST_TIME}},
-    {'str': 'b', 'int': 2, 'test_label': None},
-    {'str': 'c', 'int': 3, 'test_label': None},
+    {'str': 'a', 'int': 1, 'test_label.label': 'no', 'test_label.created': Timestamp(TEST_TIME)},
+    {'str': 'b', 'int': 2, 'test_label.label': None, 'test_label.created': None},
+    {'str': 'c', 'int': 3, 'test_label.label': None, 'test_label.created': None},
   ]
 
   assert dataset.get_label_names() == ['test_label']
@@ -186,9 +254,9 @@ def test_add_multiple_labels(make_test_data: TestDataMaker, mocker: MockerFixtur
   )
 
   assert list(dataset.select_rows([PATH_WILDCARD])) == [
-    {'str': 'a', 'int': 1, 'test_label': {'label': 'no', 'created': TEST_TIME}},
-    {'str': 'b', 'int': 2, 'test_label': {'label': 'yes', 'created': TEST_TIME}},
-    {'str': 'c', 'int': 3, 'test_label': {'label': 'yes', 'created': TEST_TIME}},
+    {'str': 'a', 'int': 1, 'test_label.label': 'no', 'test_label.created': TEST_TIME},
+    {'str': 'b', 'int': 2, 'test_label.label': 'yes', 'test_label.created': TEST_TIME},
+    {'str': 'c', 'int': 3, 'test_label.label': 'yes', 'test_label.created': TEST_TIME},
   ]
 
   assert dataset.get_label_names() == ['test_label']
