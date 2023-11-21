@@ -51,8 +51,8 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
-    {'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}},
-    {'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}},
+    {'text': 'hello', 'text.test_signal.len': 5, 'text.test_signal.flen': 5.0},
+    {'text': 'everybody', 'text.test_signal.len': 9, 'text.test_signal.flen': 9.0},
   ]
 
   # Download a subset of columns with filter.
@@ -74,7 +74,9 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
-  assert parsed_items == [{'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}}]
+  assert parsed_items == [
+    {'text': 'hello', 'text.test_signal.len': 5, 'text.test_signal.flen': 5.0}
+  ]
 
 
 def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
@@ -89,9 +91,9 @@ def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) ->
     rows = list(csv.reader(f))
 
   assert rows == [
-    ['text', 'text.test_signal'],
-    ['hello', "{'len': 5, 'flen': 5.0}"],
-    ['everybody', "{'len': 9, 'flen': 9.0}"],
+    ['text', 'text.test_signal.len', 'text.test_signal.flen'],
+    ['hello', '5', '5.0'],
+    ['everybody', '9', '9.0'],
   ]
 
 
@@ -106,8 +108,16 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
   df = pd.read_parquet(filepath)
   expected_df = pd.DataFrame(
     [
-      {'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}},
-      {'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}},
+      {
+        'text': 'hello',
+        'text.test_signal.len': 5,
+        'text.test_signal.flen': 5.0,
+      },
+      {
+        'text': 'everybody',
+        'text.test_signal.len': 9,
+        'text.test_signal.flen': 9.0,
+      },
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)
@@ -121,8 +131,16 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
   df = dataset.to_pandas()
   expected_df = pd.DataFrame(
     [
-      {'text': 'hello', 'text.test_signal': {'len': 5, 'flen': 5.0}},
-      {'text': 'everybody', 'text.test_signal': {'len': 9, 'flen': 9.0}},
+      {
+        'text': 'hello',
+        'text.test_signal.len': 5,
+        'text.test_signal.flen': 5.0,
+      },
+      {
+        'text': 'everybody',
+        'text.test_signal.len': 9,
+        'text.test_signal.flen': 9.0,
+      },
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)
@@ -159,7 +177,7 @@ def test_label_and_export_by_excluding(
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
-  assert parsed_items == [{'delete': None, 'text': 'a'}]
+  assert parsed_items == [{'delete.created': None, 'delete.label': None, 'text': 'a'}]
 
   # Download only the 'deleted' label.
   filepath = tmp_path / 'dataset.json'
@@ -169,8 +187,8 @@ def test_label_and_export_by_excluding(
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
-    {'delete': {'created': str(TEST_TIME), 'label': 'true'}, 'text': 'b'},
-    {'delete': {'created': str(TEST_TIME), 'label': 'true'}, 'text': 'c'},
+    {'delete.created': str(TEST_TIME), 'delete.label': 'true', 'text': 'b'},
+    {'delete.created': str(TEST_TIME), 'delete.label': 'true', 'text': 'c'},
   ]
 
 

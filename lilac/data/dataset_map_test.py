@@ -122,7 +122,7 @@ def test_map_signal(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) 
   dataset.compute_signal(signal, 'text')
 
   def _map_fn(row: Item, job_id: int) -> Item:
-    return {'result': f'{row["text.test_signal"]["firstchar"]}_{len(row["text"])}'}
+    return {'result': f'{row["text.test_signal.firstchar"]}_{len(row["text"])}'}
 
   # Write the output to a new column.
   dataset.map(_map_fn, output_column='output_text', num_jobs=num_jobs)
@@ -158,13 +158,15 @@ def test_map_signal(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) 
   assert rows == [
     {
       'text': 'a sentence',
-      'text.test_signal': {'firstchar': 'a', 'len': 10},
-      'output_text': {'result': 'a_10'},
+      'text.test_signal.firstchar': 'a',
+      'text.test_signal.len': 10,
+      'output_text.result': 'a_10',
     },
     {
       'text': 'b sentence',
-      'text.test_signal': {'firstchar': 'b', 'len': 10},
-      'output_text': {'result': 'b_10'},
+      'text.test_signal.firstchar': 'b',
+      'text.test_signal.len': 10,
+      'output_text.result': 'b_10',
     },
   ]
 
@@ -431,14 +433,14 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
   dataset.map(_split_fn, output_column='splits', combine_columns=False)
 
   def _rearrange_fn(row: Item, job_id: int) -> Item:
-    return row['splits'][1] + ' ' + row['splits'][0]
+    return row['splits.*'][1] + ' ' + row['splits.*'][0]
 
   dataset.map(_rearrange_fn, output_column='rearrange', combine_columns=False)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {'text': 'a sentence', 'splits': ['a', 'sentence'], 'rearrange': 'sentence a'},
-    {'text': 'b sentence', 'splits': ['b', 'sentence'], 'rearrange': 'sentence b'},
+    {'text': 'a sentence', 'splits.*': ['a', 'sentence'], 'rearrange': 'sentence a'},
+    {'text': 'b sentence', 'splits.*': ['b', 'sentence'], 'rearrange': 'sentence b'},
   ]
 
   assert dataset.manifest() == DatasetManifest(
@@ -510,13 +512,15 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {
       'text': 'a sentence',
-      'text.test_signal': {'firstchar': 'a', 'len': 10},
-      'output_text': {'result': 'a_10'},
+      'text.test_signal.firstchar': 'a',
+      'text.test_signal.len': 10,
+      'output_text.result': 'a_10',
     },
     {
       'text': 'b sentence',
-      'text.test_signal': {'firstchar': 'b', 'len': 10},
-      'output_text': {'result': 'b_10'},
+      'text.test_signal.firstchar': 'b',
+      'text.test_signal.len': 10,
+      'output_text.result': 'b_10',
     },
   ]
 
@@ -556,10 +560,29 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
     source=TestSource(),
   )
 
-  rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'abcd', 'double': 'abcd abcd', 'double.test_signal': {'firstchar': 'a', 'len': 9}},
-    {'text': 'efghi', 'double': 'efghi efghi', 'double.test_signal': {'firstchar': 'e', 'len': 11}},
+  assert list(dataset.select_rows([PATH_WILDCARD])) == [
+    {
+      'text': 'abcd',
+      'double': 'abcd abcd',
+      'double.test_signal.firstchar': 'a',
+      'double.test_signal.len': 9,
+    },
+    {
+      'text': 'efghi',
+      'double': 'efghi efghi',
+      'double.test_signal.firstchar': 'e',
+      'double.test_signal.len': 11,
+    },
+  ]
+
+  # Select a struct root.
+  assert list(dataset.select_rows([('double', 'test_signal')])) == [
+    {
+      'double.test_signal': {'firstchar': 'a', 'len': 9},
+    },
+    {
+      'double.test_signal': {'firstchar': 'e', 'len': 11},
+    },
   ]
 
   # combine_columns=True.
@@ -580,7 +603,7 @@ def test_map_nest_under(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'parent': {'text': 'a'}}, {'parent': {'text': 'abc'}}])
 
   def _map_fn(row: Item, job_id: int) -> Item:
-    return {'value': len(row['parent']['text'])}
+    return {'value': len(row['parent.text'])}
 
   dataset.map(_map_fn, output_column='len', nest_under=('parent', 'text'))
 

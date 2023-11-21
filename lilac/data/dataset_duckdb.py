@@ -123,6 +123,7 @@ from .dataset import (
   StatsResult,
   column_from_identifier,
   dataset_config_from_manifest,
+  get_map_parquet_id,
   make_signal_parquet_id,
 )
 from .dataset_utils import (
@@ -1387,16 +1388,16 @@ class DatasetDuckDB(Dataset):
     star_in_cols = any(col.path == (PATH_WILDCARD,) for col in cols)
     if not cols or star_in_cols:
       # Select all columns.
-      cols.extend([Column((name,)) for name in schema.fields.keys() if name != ROWID])
-
       if not combine_columns:
-        # Select all the signal top-level fields.
-        for path, field in schema.all_fields:
-          if field.signal:
-            cols.append(Column(path))
+        # Select all leafs as top-level.
+        for path in schema.leafs.keys():
+          cols.append(Column(path))
+      else:
+        cols.extend([Column((name,)) for name in schema.fields.keys() if name != ROWID])
 
       if star_in_cols:
         cols = [col for col in cols if col.path != (PATH_WILDCARD,)]
+
     return cols
 
   def _merge_sorts(
@@ -2000,6 +2001,8 @@ class DatasetDuckDB(Dataset):
       # This is a label column if it exists in label schemas.
       return [(path[0], path)]
 
+    is_petal = schema.get_field(path).dtype is not None
+
     # NOTE: The order of this array matters as we check the source and map manifests for fields
     # before reading signal manifests, via source_or_map_has_path.
     parquet_manifests: list[Union[SourceManifest, SignalManifest, MapManifest]] = [
@@ -2008,7 +2011,6 @@ class DatasetDuckDB(Dataset):
       *self._signal_manifests,
     ]
     duckdb_paths: list[tuple[str, PathTuple]] = []
-    source_or_map_has_path = False
 
     if path == (ROWID,):
       return [('source', path)]
@@ -2017,14 +2019,16 @@ class DatasetDuckDB(Dataset):
       if not m.files:
         continue
       # Skip this parquet file if it doesn't contain the path.
-      if not schema_contains_path(m.data_schema, path):
+      # if not schema_contains_path(m.data_schema, path):
+      #   continue
+      if not m.data_schema.has_field(path):
         continue
 
-      if isinstance(m, SourceManifest) or isinstance(m, MapManifest):
-        source_or_map_has_path = True
-
-      if isinstance(m, SignalManifest) and source_or_map_has_path and not combine_columns:
-        # Skip this signal if the source already has the path and we are not combining columns.
+      # If the path is a petal, and the manifest owns its petal value, then this is the relevant
+      # manifest.
+      field = m.data_schema.get_field(path)
+      manifest_has_petal_value = field.dtype is not None
+      if not manifest_has_petal_value and is_petal and not combine_columns:
         continue
 
       # Skip this parquet file if the path doesn't have a dtype.
@@ -2468,7 +2472,7 @@ class DatasetDuckDB(Dataset):
       map_manifest = MapManifest(
         files=[parquet_filename],
         data_schema=map_schema,
-        parquet_id=output_column,
+        parquet_id=get_map_parquet_id(output_path),
         py_version=metadata.version('lilac'),
       )
       with open_file(map_manifest_filepath, 'w') as f:

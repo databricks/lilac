@@ -761,3 +761,9 @@ def make_signal_parquet_id(
   # Remove the wildcards from the parquet id since they are implicit.
   path = [*[p for p in source_path if p != PATH_WILDCARD], signal.key(is_computed_signal)]
   return '.'.join(path)
+
+
+def get_map_parquet_id(output_path: PathTuple) -> str:
+  """Return a unique identifier for this parquet table."""
+  # Remove the wildcards from the parquet id since they are implicit.
+  return 'map.' + '.'.join(output_path)
