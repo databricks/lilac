@@ -5,7 +5,7 @@ import io
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal, Optional, Protocol, Sequence, Union, cast
+from typing import Any, Callable, Literal, Optional, Protocol, Sequence, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -103,11 +103,26 @@ class DataType(BaseModel):
     return self.type
 
 
+def change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any]], None]:
+  """Replace the const value in the schema to an enum with 1 value so typescript codegen works."""
+
+  def _schema_extra(schema: dict[str, Any]) -> None:
+    schema['properties'][prop_name] = {'enum': [value]}
+    if 'required' not in schema:
+      schema['required'] = []
+    schema['required'].append(prop_name)
+
+  return _schema_extra
+
+
 class MapType(DataType):
   """The data type for a field."""
 
+  type: Literal['map'] = 'map'
   key_type: DataType
   value_type: DataType
+
+  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'map'))
 
 
 STRING = DataType('string')
@@ -206,7 +221,7 @@ class Field(BaseModel):
 
   repeated_field: Optional['Field'] = None
   fields: Optional[dict[str, 'Field']] = None
-  dtype: Optional[DataType] = None
+  dtype: Optional[Union[DataType, MapType]] = None
   # Defined as the serialized signal when this field is the root result of a signal.
   signal: Optional[dict[str, Any]] = None
   # Defined as the label name when the field is a label.
