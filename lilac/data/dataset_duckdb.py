@@ -66,6 +66,7 @@ from ..schema import (
   Item,
   MapFn,
   MapInfo,
+  MapType,
   Path,
   PathKey,
   PathTuple,
@@ -464,8 +465,10 @@ class DatasetDuckDB(Dataset):
 
     for path, field in merged_schema.leafs.items():
       if field.dtype and field.dtype.type == 'map':
-        # Find all the keys for this map and add them to the schema.
-        self._add_map_keys_to_schema(path, field)
+        map_dtype = cast(MapType, field.dtype)
+        if map_dtype.key_type == STRING:
+          # Find all the keys for this map and add them to the schema.
+          self._add_map_keys_to_schema(path, field, merged_schema)
 
     return DatasetManifest(
       namespace=self.namespace,
@@ -475,9 +478,21 @@ class DatasetDuckDB(Dataset):
       source=self._source_manifest.source,
     )
 
-  def _add_map_keys_to_schema(self, path: PathTuple, field: Field) -> None:
+  def _add_map_keys_to_schema(self, path: PathTuple, field: Field, merged_schema: Schema) -> None:
     """Adds the keys of a map to the schema."""
-    return
+    value_column = 'key'
+    duckdb_path = self._leaf_path_to_duckdb_path(path, merged_schema)
+    inner_select = _select_sql(duckdb_path, flatten=False, unnest=True)
+    query = f"""
+      SELECT DISTINCT unnest(map_keys({inner_select})) AS {value_column} FROM t
+    """
+    df = self._query_df(query)
+    keys: list[str] = sorted(df[value_column])
+
+    map_dtype = cast(MapType, field.dtype)
+    field.fields = field.fields or {}
+    for key in keys:
+      field.fields[key] = Field(dtype=map_dtype.value_type)
 
   @override
   def manifest(self) -> DatasetManifest:
