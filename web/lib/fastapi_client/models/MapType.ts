@@ -6,7 +6,7 @@
 import type { DataType } from './DataType';
 
 /**
- * The data type for a field.
+ * The map dtype parameterized by the key and value types.
  */
 export type MapType = {
     type: 'map';

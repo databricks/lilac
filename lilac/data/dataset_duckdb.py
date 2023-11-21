@@ -462,6 +462,11 @@ class DatasetDuckDB(Dataset):
     size_query_result = cast(Any, self._query(size_query)[0])
     num_items = cast(int, size_query_result[0])
 
+    for path, field in merged_schema.leafs.items():
+      if field.dtype and field.dtype.type == 'map':
+        # Find all the keys for this map and add them to the schema.
+        self._add_map_keys_to_schema(path, field)
+
     return DatasetManifest(
       namespace=self.namespace,
       dataset_name=self.dataset_name,
@@ -469,6 +474,10 @@ class DatasetDuckDB(Dataset):
       num_items=num_items,
       source=self._source_manifest.source,
     )
+
+  def _add_map_keys_to_schema(self, path: PathTuple, field: Field) -> None:
+    """Adds the keys of a map to the schema."""
+    return
 
   @override
   def manifest(self) -> DatasetManifest:
