@@ -47,12 +47,14 @@
   };
 
   $: filterField = (field: LilacField) => {
-    if (!field.dtype) return false;
+    if (!field.dtype?.type) return false;
     if (!signalInfo?.input_type || signalInfo.input_type === 'any') {
       return true;
     }
-    const validDtypes = SIGNAL_INPUT_TYPE_TO_VALID_DTYPES[signalInfo.input_type];
-    return validDtypes.includes(field.dtype);
+    const validDtypes = SIGNAL_INPUT_TYPE_TO_VALID_DTYPES[signalInfo.input_type].map(
+      dtype => dtype.type
+    );
+    return validDtypes.includes(field.dtype.type);
   };
 
   function submit() {

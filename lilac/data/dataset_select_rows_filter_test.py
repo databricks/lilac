@@ -2,7 +2,7 @@
 
 from typing import ClassVar, Iterable, Optional
 
-from ..schema import ROWID, Field, Item, RichData, field
+from ..schema import ROWID, Field, Item, MapType, RichData, field, schema
 from ..signal import TextSignal
 from .dataset import BinaryFilterTuple, ListFilterTuple, UnaryFilterTuple
 from .dataset_test_utils import TestDataMaker
@@ -170,3 +170,28 @@ def test_filter_by_not_exists(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(['name'], filters=[('info', 'not_exists')])
   assert list(result) == [{'name': 'C'}]
+
+
+def test_map_dtype(make_test_data: TestDataMaker) -> None:
+  items = [
+    {'column': {'a': 1.0, 'b': 2.0}},
+    {'column': {'b': 2.5}},
+    {'column': {'a': 3.0, 'c': 3.5}},
+  ]
+  map_dtype = MapType(key_type='string', value_type='float32')
+  data_schema = schema({'column': Field(dtype=map_dtype)})
+  dataset = make_test_data(items, schema=data_schema)
+
+  result = dataset.select_rows(['column'], filters=[('column.a', 'greater', 2.0)])
+  assert list(result) == [
+    {'column': {'key': ['a', 'c'], 'value': [3.0, 3.5]}},
+  ]
+
+  result = dataset.select_rows(['column'], filters=[('column.b', 'less_equal', 2.0)])
+  assert list(result) == [{'column': {'key': ['a', 'b'], 'value': [1.0, 2.0]}}]
+
+  result = dataset.select_rows(['column'], filters=[('column.a', 'exists')])
+  assert list(result) == [
+    {'column': {'key': ['a', 'b'], 'value': [1.0, 2.0]}},
+    {'column': {'key': ['a', 'c'], 'value': [3.0, 3.5]}},
+  ]

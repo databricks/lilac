@@ -369,16 +369,18 @@ class Schema(BaseModel):
     """Returns if the field is found at the given path."""
     if path == (ROWID,):
       return True
-    field = cast(Field, self)
+    f = cast(Field, self)
     for path_part in path:
-      if field.fields:
-        field = cast(Field, field.fields.get(path_part))
-        if not field:
+      if f.fields:
+        f = cast(Field, f.fields.get(path_part))
+        if not f:
           return False
-      elif field.repeated_field:
+      elif f.repeated_field:
         if path_part != PATH_WILDCARD:
           return False
-        field = field.repeated_field
+        f = f.repeated_field
+      elif f.dtype and isinstance(f.dtype, MapType) and f.dtype.key_type == STRING:
+        f = Field(dtype=f.dtype.value_type)
       else:
         return False
     return True
@@ -387,21 +389,21 @@ class Schema(BaseModel):
     """Returns the field at the given path."""
     if path == (ROWID,):
       return Field(dtype=STRING)
-    field = cast(Field, self)
+    f = cast(Field, self)
     for name in path:
-      if field.fields:
-        if name not in field.fields:
+      if f.fields:
+        if name not in f.fields:
           raise ValueError(f'Path {path} not found in schema')
-        field = field.fields[name]
-      elif field.repeated_field:
+        f = f.fields[name]
+      elif f.repeated_field:
         if name != PATH_WILDCARD:
           raise ValueError(f'Invalid path for a schema field: {path}')
-        field = field.repeated_field
-      elif field.dtype and isinstance(field.dtype, MapType):
-        return Field(dtype=field.dtype.value_type)
+        f = f.repeated_field
+      elif f.dtype and isinstance(f.dtype, MapType) and f.dtype.key_type == STRING:
+        f = Field(dtype=f.dtype.value_type)
       else:
         raise ValueError(f'Invalid path for a schema field: {path}')
-    return field
+    return f
 
   def __str__(self) -> str:
     return _str_fields(self.fields, indent=0)
@@ -604,6 +606,11 @@ def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.Data
     return pa.null()
   elif dtype is None:
     return pa.null()
+  elif dtype.type == 'map':
+    map_dtype = cast(MapType, dtype)
+    return pa.map_(
+      dtype_to_arrow_schema(map_dtype.key_type), dtype_to_arrow_schema(map_dtype.value_type)
+    )
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 

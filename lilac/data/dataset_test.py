@@ -7,7 +7,17 @@ import pytest
 from typing_extensions import override
 
 from ..config import DatasetConfig, EmbeddingConfig, SignalConfig
-from ..schema import EMBEDDING_KEY, ROWID, Field, Item, RichData, field, lilac_embedding, schema
+from ..schema import (
+  EMBEDDING_KEY,
+  ROWID,
+  Field,
+  Item,
+  MapType,
+  RichData,
+  field,
+  lilac_embedding,
+  schema,
+)
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
 from .dataset import Column, DatasetManifest, dataset_config_from_manifest
@@ -608,3 +618,35 @@ def test_dataset_config_from_manifest(make_test_data: TestDataMaker) -> None:
     embeddings=[EmbeddingConfig(path=('text',), embedding='test_embedding')],
     signals=[SignalConfig(path=('text',), signal=TestSignal())],
   )
+
+
+def test_map_dtype(make_test_data: TestDataMaker) -> None:
+  items = [
+    {'column': {'a': 1.0, 'b': 2.0}},
+    {'column': {'b': 2.5}},
+    {'column': {'a': 3.0, 'c': 3.5}},
+  ]
+  map_dtype = MapType(key_type='string', value_type='float32')
+  data_schema = schema({'column': Field(dtype=map_dtype)})
+  dataset = make_test_data(items, schema=data_schema)
+  assert dataset.manifest() == DatasetManifest(
+    namespace='test_namespace',
+    dataset_name='test_dataset',
+    data_schema=schema(
+      {
+        'column': Field(
+          dtype=map_dtype,
+          fields={'a': field('float32'), 'b': field('float32'), 'c': field('float32')},
+        )
+      }
+    ),
+    source=TestSource(),
+    num_items=3,
+  )
+
+  result = dataset.select_rows(['column'])
+  assert list(result) == [
+    {'column': {'key': ['a', 'b'], 'value': [1.0, 2.0]}},
+    {'column': {'key': ['b'], 'value': [2.5]}},
+    {'column': {'key': ['a', 'c'], 'value': [3.0, 3.5]}},
+  ]
