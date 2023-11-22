@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 from importlib import metadata
 from typing import Annotated, Any, AsyncGenerator, Optional
 
-import cloudpickle
 import uvicorn
 from distributed import get_client
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, Request, Response
@@ -39,7 +38,6 @@ from .env import env, get_project_dir
 from .load import load
 from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
-from .signal import SIGNAL_REGISTRY
 from .source import registered_sources
 from .tasks import TaskManager, get_task_manager
 
@@ -234,13 +232,6 @@ def start_server(
       with the fields that are computed and compute them when the server boots up.
   """
   create_project_and_set_env(project_dir)
-
-  print('Registered signals:')
-  print(list(SIGNAL_REGISTRY.keys()))
-  if 'test_signal' in SIGNAL_REGISTRY:
-    print('PICKLING USER SIGNAL')
-    # SIGNAL_REGISTRY['test_signal'].__module__ = '__main__'
-    print(cloudpickle.dumps(SIGNAL_REGISTRY['test_signal']))
 
   global SERVER
   if SERVER:

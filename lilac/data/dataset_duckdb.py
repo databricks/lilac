@@ -809,14 +809,20 @@ class DatasetDuckDB(Dataset):
 
     output_items, jsonl_cache_items = itertools.tee(output_items, 2)
     # TODO(nsthorat): Support continuation of embeddings.
-    if not isinstance(transform_fn, TextEmbeddingSignal):
-      try:
+    try:
+      if not isinstance(transform_fn, TextEmbeddingSignal):
         with open_file(jsonl_cache_filepath, 'a') as file:
           for item in output_items:
             json.dump(item, file)
             file.write('\n')
-      except RuntimeError as e:
-        raise ValueError('The signal generated a different number of values than was input.') from e
+    except RuntimeError as e:
+      raise ValueError(
+        'The signal generated a different number of outputs than was given as input. '
+        'Please yield `None` for sparse signals. For signals that output multiple values, '
+        'please yield an array for each input.'
+      )
+    except Exception as e:
+      raise e
 
     return jsonl_cache_items
 

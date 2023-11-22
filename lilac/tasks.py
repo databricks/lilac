@@ -304,7 +304,13 @@ def get_task_manager() -> TaskManager:
 def _execute_task(task: TaskFn, task_info: TaskInfo, task_id: str, *args: Any) -> None:
   annotations = cast(dict, get_worker().state.tasks[task_id].annotations)
   annotations['task_info'] = task_info
-  task(*args)
+  try:
+    task(*args)
+  except Exception as e:
+    # Get traceback and print it.
+    tb = traceback.format_exc()
+    log(f'Task {task_id} with {task_info} failed: {e}\n{tb}')
+    raise e
 
 
 def _progress_event_topic(task_id: TaskId) -> str:
