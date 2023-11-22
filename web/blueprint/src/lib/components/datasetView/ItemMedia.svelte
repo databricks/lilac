@@ -56,7 +56,7 @@
         .map(v => L.path(v))
         .filter(p => !pathIsEqual(p, path));
       return paths;
-    });
+    }) as Path[];
 
   $: compareItems = compareMediaPaths.map(p => ({
     id: p,
