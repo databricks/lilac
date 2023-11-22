@@ -95,6 +95,16 @@ class ComputeSignalResponse(BaseModel):
   task_id: TaskId
 
 
+import cloudpickle
+
+
+class TestSignal(BaseModel):
+  pass
+
+
+print('CP', cloudpickle.dumps(TestSignal))
+
+
 @router.post('/{namespace}/{dataset_name}/compute_signal')
 def compute_signal(
   namespace: str,
