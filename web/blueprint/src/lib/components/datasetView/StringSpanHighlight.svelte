@@ -20,7 +20,7 @@
     type LilacValueNodeCasted,
     type Path
   } from '$lilac';
-  import {getContext} from 'svelte';
+  import {createEventDispatcher, getContext} from 'svelte';
   import SvelteMarkdown from 'svelte-markdown';
   import type {Writable} from 'svelte/store';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -54,6 +54,8 @@
   export let isExpanded = false;
   // Passed back up to the parent.
   export let textIsOverBudget = false;
+
+  const dispatch = createEventDispatcher();
 
   const urlHashContext = getUrlHashContext();
 
