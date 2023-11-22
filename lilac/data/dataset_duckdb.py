@@ -1236,7 +1236,10 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     if leaf.dtype.type == 'map':
-      raise ValueError(f'Cannot compute stats on a map field "{path}"')
+      raise ValueError(
+        f'Cannot compute stats on a map field "{path}". '
+        'Provide a path to a key in that map instead.'
+      )
 
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
     inner_select = _select_sql(
@@ -1326,7 +1329,10 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
     if leaf.dtype.type == 'map':
-      raise ValueError(f'Cannot compute groups on a map field "{path}"')
+      raise ValueError(
+        f'Cannot compute groups on a map field "{path}". '
+        'Provide a path to a key in that map instead.'
+      )
 
     inner_val = 'inner_val'
     outer_select = inner_val
@@ -1676,12 +1682,12 @@ class DatasetDuckDB(Dataset):
         if first_subpath in col_aliases:
           path = (*col_aliases[first_subpath], *rest_of_path)
         self._validate_sort_path(path, schema)
-        view_path = self._leaf_path_to_duckdb_path(path, schema)
+        sql_path = self._leaf_path_to_duckdb_path(path, schema)
       else:
-        view_path = udf_path
+        sql_path = udf_path
 
-      sort_sql = _select_sql(view_path, flatten=True, unnest=False, path=path, schema=schema)
-      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in view_path)
+      sort_sql = _select_sql(sql_path, flatten=True, unnest=False, path=path, schema=schema)
+      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in sql_path)
       if has_repeated_field:
         sort_sql = (
           f'list_min({sort_sql})' if sort_order == SortOrder.ASC else f'list_max({sort_sql})'
@@ -2717,7 +2723,7 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
 
 
 def _select_sql(
-  view_path: PathTuple,
+  sql_path: tuple[str, ...],
   flatten: bool,
   unnest: bool,
   path: PathTuple,
@@ -2728,7 +2734,7 @@ def _select_sql(
   """Create a select column for a path.
 
   Args:
-    view_path: A path to a feature. E.g. ['a', 'b', 'c'].
+    sql_path: An internal sql path to the joined wide duckdb table. E.g. ['a', 'b', 'c'].
     flatten: Whether to flatten the result.
     unnest: Whether to unnest the result.
     path: The original path.
@@ -2737,7 +2743,7 @@ def _select_sql(
     span_from: The path this span is derived from. If specified, the span will be resolved
       to a substring of the original string.
   """
-  sub_paths = _split_path_into_subpaths_of_lists(view_path)
+  sub_paths = _split_path_into_subpaths_of_lists(sql_path)
   selection = _inner_select(sub_paths, path, schema, None, empty, span_from)
   # We only flatten when the result is a deeply nested list to avoid segfault.
   # The nesting list level is a func of subpaths, e.g. subPaths = [[a, b, c], *, *] is 2 levels.
