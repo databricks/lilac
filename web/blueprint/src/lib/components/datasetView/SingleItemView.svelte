@@ -87,7 +87,6 @@
 
   <div class="flex-col items-center justify-items-center">
     <div class="min-w-0 max-w-lg truncate text-center text-lg">
-      Item
       <span class="inline-flex">
         {#if index != null && index >= 0}
           {index + 1}
@@ -124,7 +123,7 @@
 
 {#if rowId != null}
   <div class="flex h-full w-full flex-col overflow-y-scroll px-5 pb-32">
-    <RowItem alwaysExpand={true} {rowId} {mediaFields} {highlightedFields} />
+    <RowItem {rowId} {mediaFields} {highlightedFields} />
   </div>
 {/if}
 

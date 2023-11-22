@@ -18,7 +18,14 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {DirectionFork, PropertyRelationship, Search, Undo} from 'carbon-icons-svelte';
+  import {
+    ChevronDown,
+    ChevronUp,
+    DirectionFork,
+    PropertyRelationship,
+    Search,
+    Undo
+  } from 'carbon-icons-svelte';
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ItemMediaDiff from './ItemMediaDiff.svelte';
@@ -28,7 +35,10 @@
   export let row: LilacValueNode;
   export let field: LilacField;
   export let highlightedFields: LilacField[];
-  export let alwaysExpand = false;
+
+  // The child component will communicate this back upwards to this component.
+  let textIsOverBudget = false;
+  let userExpanded = false;
 
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
@@ -110,23 +120,21 @@
     {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
     <div class="flex w-full gap-x-4">
       <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
-        <div class="relative top-0 flex w-full items-center self-start">
+        <div class="sticky top-0 mt-2 flex w-full flex-col gap-y-2 self-start">
           <div title={displayPath(path)} class="w-full flex-initial truncate">
             {#if colCompareState == null}
               {displayPath(path)}
             {:else if leftComparePath != null && rightComparePath != null}
               <div class="mt-1 flex flex-col gap-y-2">
-                <div>
+                <div class="flex flex-row">
                   {displayPath(leftComparePath)}
-                </div>
-                <div>
-                  <PropertyRelationship />
+                  <div class="ml-4"><PropertyRelationship /></div>
                 </div>
                 <div>{displayPath(rightComparePath)}</div>
               </div>
             {/if}
           </div>
-          <div class="w-12">
+          <div class="flex flex-row">
             <div
               use:hoverTooltip={{
                 text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
@@ -140,8 +148,6 @@
                 ><Search size={16} />
               </button>
             </div>
-          </div>
-          <div class="z-50 w-8">
             {#if !colCompareState}
               <ButtonDropdown
                 helperText={'Compare to'}
@@ -156,11 +162,18 @@
                 ><Undo size={16} />
               </button>
             {/if}
+            <button
+              disabled={!textIsOverBudget}
+              class:opacity-50={!textIsOverBudget}
+              on:click={() => (userExpanded = !userExpanded)}
+              use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
+              >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
+            </button>
           </div>
         </div>
       </div>
 
-      <div class="relative z-10 w-full grow-0 overflow-x-auto pt-1 font-normal">
+      <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
         {#if colCompareState == null}
           <StringSpanHighlight
             text={formatValue(value)}
@@ -168,14 +181,15 @@
             {path}
             {field}
             {markdown}
-            {alwaysExpand}
+            isExpanded={userExpanded}
             spanPaths={spanValuePaths.spanPaths}
             valuePaths={spanValuePaths.valuePaths}
             {datasetViewStore}
             embeddings={computedEmbeddings}
+            bind:textIsOverBudget
           />
         {:else}
-          <ItemMediaDiff {row} {colCompareState} />
+          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
         {/if}
       </div>
     </div>

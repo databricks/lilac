@@ -1,10 +1,12 @@
 """Huggingface source."""
 import multiprocessing
-from typing import ClassVar, Iterable, Optional, Union
+import os
+from typing import ClassVar, Optional, Union
 
-import numpy as np
+import duckdb
 from datasets import (
   ClassLabel,
+  Dataset,
   DatasetDict,
   Image,
   Sequence,
@@ -17,8 +19,18 @@ from pydantic import BaseModel
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..schema import INT32, STRING, Field, Item, arrow_dtype_to_dtype
-from ..source import Source, SourceSchema
+from ..data import dataset_utils
+from ..schema import (
+  INT32,
+  PARQUET_FILENAME_PREFIX,
+  ROWID,
+  STRING,
+  Field,
+  Schema,
+  arrow_dtype_to_dtype,
+)
+from ..source import Source, SourceManifest, SourceSchema
+from ..tasks import TaskStepId
 from ..utils import log
 
 HF_SPLIT_COLUMN = '__hfsplit__'
@@ -160,7 +172,9 @@ class HuggingFaceSource(Source):
   def setup(self) -> None:
     if self.load_from_disk:
       # Load from disk.
-      hf_dataset_dict = {DEFAULT_LOCAL_SPLIT_NAME: load_from_disk(self.dataset_name)}
+      hf_dataset_dict = load_from_disk(self.dataset_name)
+      if isinstance(hf_dataset_dict, Dataset):
+        hf_dataset_dict = DatasetDict({DEFAULT_LOCAL_SPLIT_NAME: hf_dataset_dict})
     else:
       hf_dataset_dict = load_dataset(
         self.dataset_name,
@@ -179,42 +193,54 @@ class HuggingFaceSource(Source):
     return SourceSchema(fields=self._schema_info.fields, num_items=self._schema_info.num_items)
 
   @override
-  def yield_items(self) -> Iterable[Item]:
+  def load_to_parquet(self, output_dir: str, task_step_id: Optional[TaskStepId]) -> SourceManifest:
+    del task_step_id
     if not self._schema_info or not self._dataset_dict:
       raise ValueError('`setup()` must be called before `process`.')
+
+    out_filename = dataset_utils.get_parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)
+    filepath = os.path.join(output_dir, out_filename)
+    os.makedirs(output_dir, exist_ok=True)
 
     if self.split:
       split_names = [self.split]
     else:
       split_names = list(self._dataset_dict.keys())
 
+    # DuckDB uses the locals() namespace to enable chaining SQL queries based on Python variables as
+    # table names. Since we have an unknown number of splits, we dynamically create names in
+    # locals() for DuckDB to refererence.
+    duckdb_splits_local_vars = {}
     for split_name in split_names:
-      split_dataset = self._dataset_dict[split_name]
-      if self.sample_size:
-        split_dataset = split_dataset.select(range(self.sample_size))
+      duckdb_handle = f'_duckdb_handle_{split_name}'
+      duckdb_splits_local_vars[split_name] = duckdb_handle
+      locals()[duckdb_handle] = self._dataset_dict[split_name].data.table
+    sql_query = '\nUNION ALL\n'.join(
+      f"""(SELECT *, '{split_name}' AS {HF_SPLIT_COLUMN}
+        FROM {duckdb_handle}
+        {f'LIMIT {self.sample_size}' if self.sample_size else ''})"""
+      for split_name, duckdb_handle in duckdb_splits_local_vars.items()
+    )
+    all_splits = duckdb.sql(sql_query)
 
-      for example in split_dataset:
-        # Replace the label maps with strings.
-        for feature_name in self._schema_info.class_labels.keys():
-          if feature_name in example:
-            example[feature_name] = self._schema_info.class_labels[feature_name][
-              example[feature_name]
-            ]
-
-        # Inject the split name.
-        example[HF_SPLIT_COLUMN] = split_name
-
-        # Huggingface Sequences are represented as np.arrays. Convert them to lists.
-        example = _np_array_to_list_deep(example)
-
-        yield example
-
-
-def _np_array_to_list_deep(item: Item) -> Item:
-  """Convert all numpy arrays to lists."""
-  for key, value in item.items():
-    if isinstance(value, np.ndarray):
-      item[key] = value.tolist()
-    elif isinstance(value, dict):
-      item[key] = _np_array_to_list_deep(value)
-  return item
+    # Enum column rewrites. (Huggingface supports integer columns, with a schema mapping integers
+    # to strings. We rewrite the integer columns to strings.)
+    if self._schema_info.class_labels:
+      star_clause = f'* EXCLUDE ({", ".join(self._schema_info.class_labels.keys())}),'
+      # +1 because HF class labels start at 0 but DuckDB's array_extract is 1-indexed.
+      rename_clause = ', '.join(
+        f'ARRAY_EXTRACT({class_names}, {key} + 1) AS {key}'
+        for key, class_names in self._schema_info.class_labels.items()
+      )
+      select_clause = star_clause + rename_clause
+    else:
+      select_clause = '*'
+    duckdb.sql(
+      f"""
+      SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID},
+      {select_clause}
+      FROM all_splits
+      """
+    ).write_parquet(filepath, compression='zstd')
+    schema = Schema(fields=self.source_schema().fields.copy())
+    return SourceManifest(files=[out_filename], data_schema=schema, source=self)

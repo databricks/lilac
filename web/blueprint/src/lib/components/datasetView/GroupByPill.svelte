@@ -1,9 +1,8 @@
 <script lang="ts">
-  import {queryBatchStats, queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {displayPath, shortPath} from '$lib/view_utils';
-  import {childFields, isNumeric, serializePath, type StatsResult} from '$lilac';
-  import type {QueryObserverResult} from '@tanstack/svelte-query';
+  import {childFields, isNumeric, serializePath, type LilacField} from '$lilac';
   import type {
     DropdownItem,
     DropdownItemId
@@ -27,31 +26,21 @@
       )
     : null;
 
-  $: manyStats = queryBatchStats(
-    $datasetViewStore.namespace,
-    $datasetViewStore.datasetName,
-    categoricalFields?.map(f => f.path),
-    categoricalFields != null /* enabled */
-  );
-
   interface GroupByItem extends DropdownItem {
-    stats: StatsResult;
+    field: LilacField;
   }
 
-  function makeItems(
-    stats: QueryObserverResult<StatsResult, unknown>[],
-    open: boolean
-  ): GroupByItem[] {
-    return stats
-      .filter(s => s.data != null && s.data.total_count > 0)
-      .map(s => s.data!)
-      .map(s => ({
-        id: serializePath(s.path),
-        text: open ? displayPath(s.path) : shortPath(s.path),
-        stats: s
-      }));
+  function makeItems(categoricalFields: LilacField[] | null, open: boolean): GroupByItem[] {
+    if (categoricalFields == null) {
+      return [];
+    }
+    return categoricalFields.map(f => ({
+      id: serializePath(f.path),
+      text: open ? displayPath(f.path) : shortPath(f.path),
+      field: f
+    }));
   }
-  $: items = makeItems($manyStats, open);
+  $: items = makeItems(categoricalFields, open);
 
   function selectItem(
     e: CustomEvent<{
@@ -64,7 +53,7 @@
       return;
     }
     const groupByItem = e.detail.selectedItem as GroupByItem;
-    datasetViewStore.setGroupBy(groupByItem.stats.path, null);
+    datasetViewStore.setGroupBy(groupByItem.field.path, null);
     selectedId = e.detail.selectedId;
   }
 </script>
@@ -83,12 +72,6 @@
   {#if groupByItem}
     <div class="flex items-center justify-between gap-x-1">
       <span title={groupByItem.text} class="truncate text-sm">{groupByItem.text}</span>
-      {#if groupByItem.stats}
-        {@const count = groupByItem.stats.approx_count_distinct}
-        <span class="text-xs text-gray-800">
-          ~{count.toLocaleString()} group{count === 1 ? '' : 's'}
-        </span>
-      {/if}
     </div>
   {/if}
 </DropdownPill>
