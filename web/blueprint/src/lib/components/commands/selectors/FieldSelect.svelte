@@ -31,7 +31,7 @@
   $: sourceFields = fields?.filter(f => $schema.data && !isSignalField(f));
 
   function formatField(field: LilacField): string {
-    return `${field.path.join('.')} (${field.dtype})`;
+    return `${field.path.join('.')} (${field.dtype?.type})`;
   }
 
   let selectedPath: string | undefined;
