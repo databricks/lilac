@@ -6,7 +6,7 @@ from typing import Any, cast
 import pytest
 from pytest_mock import MockerFixture
 
-from ..schema import Item, schema
+from ..schema import Field, Item, MapType, schema
 from . import dataset as dataset_module
 from .dataset import StatsResult
 from .dataset_test_utils import TestDataMaker
@@ -88,6 +88,17 @@ def test_error_handling(make_test_data: TestDataMaker) -> None:
 
   with pytest.raises(ValueError, match="Path \\('unknown',\\) not found in schema"):
     dataset.stats(leaf_path='unknown')
+
+
+def test_map_dtype(make_test_data: TestDataMaker) -> None:
+  items = [
+    {'column': {'a': 1.0, 'b': 2.0}},
+    {'column': {'b': 2.5}},
+    {'column': {'a': 3.0, 'c': 3.5}},
+  ]
+  data_schema = schema({'column': Field(dtype=MapType(key_type='string', value_type='float32'))})
+  dataset = make_test_data(items, schema=data_schema)
+  print(dataset)
 
 
 def test_datetime(make_test_data: TestDataMaker) -> None:
