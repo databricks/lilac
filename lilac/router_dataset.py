@@ -108,6 +108,8 @@ def compute_signal(
 
   # Resolve the signal outside the task so we don't look up the signal in the registry. This gets
   # implicitly pickled by the dask serializer when _task_compute_signal is pickled.
+  # NOTE: This unfortunately does not work in Jyupter because a module is not picklable. In this
+  # case, we recommend defining and registering the signal outside a Jyupter notebook.
   signal = options.signal
 
   def _task_compute_signal(namespace: str, dataset_name: str, task_id: TaskId) -> None:
