@@ -606,6 +606,11 @@ def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.Data
     return pa.null()
   elif dtype is None:
     return pa.null()
+  elif dtype.type == 'map':
+    map_dtype = cast(MapType, dtype)
+    return pa.map_(
+      dtype_to_arrow_schema(map_dtype.key_type), dtype_to_arrow_schema(map_dtype.value_type)
+    )
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
 

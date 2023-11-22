@@ -97,7 +97,6 @@ class ParquetSource(Source):
       self._process_query = f"""
           SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS {ROWID}, *
           FROM ({shard_query}) LIMIT {self.sample_size}"""
-      print(self._process_query)
     else:
       sample_suffix = ''
       if self.sample_size:

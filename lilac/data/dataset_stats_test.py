@@ -98,7 +98,17 @@ def test_map_dtype(make_test_data: TestDataMaker) -> None:
   ]
   data_schema = schema({'column': Field(dtype=MapType(key_type='string', value_type='float32'))})
   dataset = make_test_data(items, schema=data_schema)
-  print(dataset)
+  assert dataset.stats('column.a') == StatsResult(
+    path=('column', 'a'), total_count=2, approx_count_distinct=2, min_val=1.0, max_val=3.0
+  )
+  assert dataset.stats('column.b') == StatsResult(
+    path=('column', 'b'), total_count=2, approx_count_distinct=2, min_val=2.0, max_val=2.5
+  )
+  assert dataset.stats('column.c') == StatsResult(
+    path=('column', 'c'), total_count=1, approx_count_distinct=1, min_val=3.5, max_val=3.5
+  )
+  with pytest.raises(ValueError, match='Cannot compute stats on a map field'):
+    dataset.stats('column')
 
 
 def test_datetime(make_test_data: TestDataMaker) -> None:

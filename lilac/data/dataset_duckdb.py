@@ -1235,6 +1235,9 @@ class DatasetDuckDB(Dataset):
     if not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
 
+    if leaf.dtype.type == 'map':
+      raise ValueError(f'Cannot compute stats on a map field "{path}"')
+
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
     inner_select = _select_sql(
       duckdb_path,
@@ -1321,6 +1324,9 @@ class DatasetDuckDB(Dataset):
 
     if not leaf.dtype:
       raise ValueError(f'Leaf "{path}" not found in dataset')
+
+    if leaf.dtype.type == 'map':
+      raise ValueError(f'Cannot compute groups on a map field "{path}"')
 
     inner_val = 'inner_val'
     outer_select = inner_val

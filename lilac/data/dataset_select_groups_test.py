@@ -6,9 +6,9 @@ from datetime import datetime
 import pytest
 from pytest_mock import MockerFixture
 
-from ..schema import Item, field, schema
+from ..schema import Field, Item, MapType, field, schema
 from . import dataset as dataset_module
-from .dataset import GroupsSortBy, SortOrder
+from .dataset import GroupsSortBy, SelectGroupsResult, SortOrder
 from .dataset_test_utils import TestDataMaker
 
 
@@ -244,3 +244,30 @@ def test_auto_bins_for_float(make_test_data: TestDataMaker) -> None:
   assert res.counts == [('0', 1), ('11', 1), ('14', 1), ('3', 1), ('7', 1), (None, 1)]
   assert res.too_many_distinct is False
   assert res.bins
+
+
+def test_map_dtype(make_test_data: TestDataMaker) -> None:
+  items = [
+    {'column': {'a': 1.0, 'b': 2.0}},
+    {'column': {'b': 2.5}},
+    {'column': {'a': 3.0, 'c': 3.5}},
+  ]
+  data_schema = schema({'column': Field(dtype=MapType(key_type='string', value_type='float32'))})
+  dataset = make_test_data(items, schema=data_schema)
+  assert dataset.select_groups('column.a', bins=[0, 2]) == SelectGroupsResult(
+    too_many_distinct=False,
+    counts=[('1', 1), ('2', 1)],
+    bins=[('0', None, 0), ('1', 0, 2), ('2', 2, None)],
+  )
+  assert dataset.select_groups('column.b', bins=[0, 1.5]) == SelectGroupsResult(
+    too_many_distinct=False,
+    counts=[('2', 2)],
+    bins=[('0', None, 0), ('1', 0, 1.5), ('2', 1.5, None)],
+  )
+  assert dataset.select_groups('column.c', bins=[0, 2]) == SelectGroupsResult(
+    too_many_distinct=False,
+    counts=[('2', 1)],
+    bins=[('0', None, 0), ('1', 0, 2), ('2', 2, None)],
+  )
+  with pytest.raises(ValueError, match='Cannot compute groups on a map field'):
+    dataset.select_groups('column')
