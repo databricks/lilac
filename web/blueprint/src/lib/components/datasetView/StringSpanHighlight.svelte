@@ -172,6 +172,8 @@
   };
 
   const notificationStore = getNotificationsContext();
+
+  $: console.log(snippetSpans);
 </script>
 
 <div
