@@ -93,19 +93,11 @@
   }
   // Returns the second path of a diff, if a given path is being diffed.
   let colCompareState: ColumnComparisonState | null = null;
-  let leftComparePath: Path | null = null;
-  let rightComparePath: Path | null = null;
   $: {
     colCompareState = null;
     for (const compareCols of $datasetViewStore.compareColumns) {
       if (pathIsEqual(compareCols.column, path)) {
         colCompareState = compareCols;
-        leftComparePath = colCompareState.swapDirection
-          ? colCompareState.compareToColumn
-          : colCompareState.column;
-        rightComparePath = colCompareState.swapDirection
-          ? colCompareState.column
-          : colCompareState.compareToColumn;
         break;
       }
     }
