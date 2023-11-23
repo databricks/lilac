@@ -38,7 +38,7 @@ from .env import env
 from .utils import log, pretty_timedelta
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
-# run from a Jyupter notebook.
+# run from a Jupyter notebook.
 # https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
 if hasattr(builtins, '__IPYTHON__'):
   # Check if in an iPython environment, then apply nest_asyncio.

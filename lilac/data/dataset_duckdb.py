@@ -816,6 +816,8 @@ class DatasetDuckDB(Dataset):
             json.dump(item, file)
             file.write('\n')
     except RuntimeError as e:
+      # NOTE: A RuntimeError exception is thrown when the output_items iterator, which is a zip of
+      # input and output items, yields a StopIterator exception.
       raise ValueError(
         'The signal generated a different number of outputs than was given as input. '
         'Please yield `None` for sparse signals. For signals that output multiple values, '
