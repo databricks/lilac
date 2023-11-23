@@ -3,7 +3,7 @@
   import type {ComboBoxItem} from 'carbon-components-svelte/types/ComboBox/ComboBox.svelte';
   import type {CarbonIcon} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
-  import {hoist} from './common/Hoist';
+  import {hoistElement} from './common/Hoist';
   import {hoverTooltip} from './common/HoverTooltip';
   import {clickOutside} from './common/clickOutside';
 
@@ -20,6 +20,7 @@
   export let disabled = false;
   export let disabledMessage = '';
   export let redText = false;
+  export let hoist = false;
 
   const dispatch = createEventDispatcher();
 
@@ -75,7 +76,7 @@
       class="absolute z-50 w-60"
       class:hidden={!dropdownOpen}
       use:clickOutside={() => (dropdownOpen = false)}
-      use:hoist
+      use:hoistElement={{disable: !hoist}}
     >
       <ComboBox
         size="sm"

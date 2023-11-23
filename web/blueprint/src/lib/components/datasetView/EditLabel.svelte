@@ -123,6 +123,7 @@
     : disabled
     ? disabledMessage
     : ''}
+  hoist={false}
   buttonOutline
   buttonIcon={icon}
   bind:comboBoxText

@@ -18,14 +18,7 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {
-    ChevronDown,
-    ChevronUp,
-    DirectionFork,
-    PropertyRelationship,
-    Search,
-    Undo
-  } from 'carbon-icons-svelte';
+  import {ChevronDown, ChevronUp, DirectionFork, Search, Undo} from 'carbon-icons-svelte';
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ItemMediaDiff from './ItemMediaDiff.svelte';
@@ -128,17 +121,7 @@
     <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
       <div class="sticky top-0 mt-2 flex w-full flex-col gap-y-2 self-start">
         <div title={displayPath(path)} class="w-full flex-initial truncate">
-          {#if colCompareState == null}
-            {displayPath(path)}
-          {:else if leftComparePath != null && rightComparePath != null}
-            <div class="mt-1 flex flex-col gap-y-2">
-              <div class="flex flex-row">
-                {displayPath(leftComparePath)}
-                <div class="ml-4"><PropertyRelationship /></div>
-              </div>
-              <div>{displayPath(rightComparePath)}</div>
-            </div>
-          {/if}
+          {displayPath(path)}
         </div>
         <div class="flex flex-row">
           <div
@@ -160,6 +143,7 @@
               items={compareItems}
               buttonIcon={DirectionFork}
               on:select={selectCompareColumn}
+              hoist={true}
             />
           {:else}
             <button
