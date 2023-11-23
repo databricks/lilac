@@ -18,14 +18,7 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {
-    ChevronDown,
-    ChevronUp,
-    DirectionFork,
-    PropertyRelationship,
-    Search,
-    Undo
-  } from 'carbon-icons-svelte';
+  import {ChevronDown, ChevronUp, DirectionFork, Search, Undo} from 'carbon-icons-svelte';
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ItemMediaDiff from './ItemMediaDiff.svelte';
@@ -43,11 +36,22 @@
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
 
+  $: valueNode = getValueNodes(row, path)[0];
+  $: value = L.value(valueNode);
+
   $: datasetSettings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
-  $: mediaPaths = ($datasetSettings.data?.ui?.media_paths || [])
+  // Compare media paths should contain media paths with resolved path wildcards as sometimes the
+  // user wants to compare items in an array.
+  $: compareMediaPaths = ($datasetSettings.data?.ui?.media_paths || [])
     .map(p => (Array.isArray(p) ? p : [p]))
-    .filter(p => !pathIsEqual(p, path));
-  $: compareItems = mediaPaths.map(p => ({
+    .flatMap(p => {
+      const paths = getValueNodes(row, p)
+        .map(v => L.path(v))
+        .filter(p => !pathIsEqual(p, path));
+      return paths;
+    }) as Path[];
+
+  $: compareItems = compareMediaPaths.map(p => ({
     id: p,
     text: displayPath(p)
   }));
@@ -58,12 +62,11 @@
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: computedEmbeddings = getComputedEmbeddings($schema.data, path);
+  $: noEmbeddings = computedEmbeddings.length === 0;
 
   $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
-
-  $: valueNodes = getValueNodes(row, path);
 
   function findSimilar(searchText: DataTypeCasted) {
     let embedding = computedEmbeddings[0];
@@ -90,19 +93,11 @@
   }
   // Returns the second path of a diff, if a given path is being diffed.
   let colCompareState: ColumnComparisonState | null = null;
-  let leftComparePath: Path | null = null;
-  let rightComparePath: Path | null = null;
   $: {
     colCompareState = null;
     for (const compareCols of $datasetViewStore.compareColumns) {
       if (pathIsEqual(compareCols.column, path)) {
         colCompareState = compareCols;
-        leftComparePath = colCompareState.swapDirection
-          ? colCompareState.compareToColumn
-          : colCompareState.column;
-        rightComparePath = colCompareState.swapDirection
-          ? colCompareState.column
-          : colCompareState.compareToColumn;
         break;
       }
     }
@@ -112,86 +107,72 @@
   }
 </script>
 
-{#each valueNodes as valueNode}
-  {@const value = L.value(valueNode)}
-  {@const noEmbeddings = computedEmbeddings.length === 0}
-  {#if notEmpty(value)}
-    {@const path = L.path(valueNode) || []}
-    {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
-    <div class="flex w-full gap-x-4">
-      <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
-        <div class="sticky top-0 mt-2 flex w-full flex-col gap-y-2 self-start">
-          <div title={displayPath(path)} class="w-full flex-initial truncate">
-            {#if colCompareState == null}
-              {displayPath(path)}
-            {:else if leftComparePath != null && rightComparePath != null}
-              <div class="mt-1 flex flex-col gap-y-2">
-                <div class="flex flex-row">
-                  {displayPath(leftComparePath)}
-                  <div class="ml-4"><PropertyRelationship /></div>
-                </div>
-                <div>{displayPath(rightComparePath)}</div>
-              </div>
-            {/if}
-          </div>
-          <div class="flex flex-row">
-            <div
-              use:hoverTooltip={{
-                text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
-              }}
-              class:opacity-50={noEmbeddings}
-            >
-              <button
-                disabled={noEmbeddings}
-                on:click={() => findSimilar(value)}
-                use:hoverTooltip={{text: 'More like this'}}
-                ><Search size={16} />
-              </button>
-            </div>
-            {#if !colCompareState}
-              <ButtonDropdown
-                helperText={'Compare to'}
-                items={compareItems}
-                buttonIcon={DirectionFork}
-                on:select={selectCompareColumn}
-              />
-            {:else}
-              <button
-                on:click={() => removeComparison()}
-                use:hoverTooltip={{text: 'Remove comparison'}}
-                ><Undo size={16} />
-              </button>
-            {/if}
+{#if notEmpty(valueNode)}
+  {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
+  <div class="flex w-full gap-x-4">
+    <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
+      <div class="sticky top-0 mt-2 flex w-full flex-col gap-y-2 self-start">
+        <div title={displayPath(path)} class="w-full flex-initial truncate">
+          {displayPath(path)}
+        </div>
+        <div class="flex flex-row">
+          <div
+            use:hoverTooltip={{
+              text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
+            }}
+            class:opacity-50={noEmbeddings}
+          >
             <button
-              disabled={!textIsOverBudget}
-              class:opacity-50={!textIsOverBudget}
-              on:click={() => (userExpanded = !userExpanded)}
-              use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
-              >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
+              disabled={noEmbeddings}
+              on:click={() => findSimilar(value)}
+              use:hoverTooltip={{text: 'More like this'}}
+              ><Search size={16} />
             </button>
           </div>
+          {#if !colCompareState}
+            <ButtonDropdown
+              helperText={'Compare to'}
+              items={compareItems}
+              buttonIcon={DirectionFork}
+              on:select={selectCompareColumn}
+              hoist={true}
+            />
+          {:else}
+            <button
+              on:click={() => removeComparison()}
+              use:hoverTooltip={{text: 'Remove comparison'}}
+              ><Undo size={16} />
+            </button>
+          {/if}
+          <button
+            disabled={!textIsOverBudget}
+            class:opacity-50={!textIsOverBudget}
+            on:click={() => (userExpanded = !userExpanded)}
+            use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
+            >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
+          </button>
         </div>
       </div>
-
-      <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
-        {#if colCompareState == null}
-          <StringSpanHighlight
-            text={formatValue(value)}
-            {row}
-            {path}
-            {field}
-            {markdown}
-            isExpanded={userExpanded}
-            spanPaths={spanValuePaths.spanPaths}
-            valuePaths={spanValuePaths.valuePaths}
-            {datasetViewStore}
-            embeddings={computedEmbeddings}
-            bind:textIsOverBudget
-          />
-        {:else}
-          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
-        {/if}
-      </div>
     </div>
-  {/if}
-{/each}
+
+    <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
+      {#if colCompareState == null}
+        <StringSpanHighlight
+          text={formatValue(value)}
+          {row}
+          {path}
+          {field}
+          {markdown}
+          isExpanded={userExpanded}
+          spanPaths={spanValuePaths.spanPaths}
+          valuePaths={spanValuePaths.valuePaths}
+          {datasetViewStore}
+          embeddings={computedEmbeddings}
+          bind:textIsOverBudget
+        />
+      {:else}
+        <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
+      {/if}
+    </div>
+  </div>
+{/if}
