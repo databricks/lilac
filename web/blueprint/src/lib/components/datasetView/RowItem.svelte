@@ -59,7 +59,6 @@
   $: removeLabels = $schema.data != null ? removeLabelsMutation($schema.data) : null;
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
-  $: console.log('options', selectOptions);
   $: rowQuery =
     $selectRowsSchema.data != null && !$selectRowsSchema.isFetching
       ? queryRowMetadata(
@@ -71,13 +70,6 @@
         )
       : null;
   $: row = $rowQuery != null && !$rowQuery.isFetching ? $rowQuery?.data : null;
-  $: console.log('row query data:', $rowQuery?.data);
-  $: console.log(
-    '~~~~~~~!ROWS',
-    row != null
-      ? getValueNodes(row, ['conversations', '*', 'value', 'substring_search(query=mapping)', '*'])
-      : 'nullrow'
-  );
   $: rowLabels = row != null ? getRowLabels(row) : [];
   $: disableLabels = !canEditLabels;
 

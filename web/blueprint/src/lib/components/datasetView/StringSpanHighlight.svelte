@@ -29,6 +29,7 @@
   import type {SpanDetails} from './StringSpanDetails.svelte';
   import {LABELED_TEXT_COLOR, colorFromOpacity} from './colors';
   import {
+    SNIPPET_LEN_BUDGET,
     getRenderSpans,
     getSnippetSpans,
     type RenderSpan,
@@ -43,8 +44,6 @@
   // Path of the spans for this item to render.
   export let spanPaths: Path[];
   export let path: Path | undefined = undefined;
-
-  $: console.log('span paths:', spanPaths);
 
   // Information about each value under span paths to render.
   export let valuePaths: SpanValueInfo[];
@@ -66,16 +65,13 @@
   };
   $: {
     pathToSpans = {};
-    console.log('making span paths....');
     spanPaths.forEach(sp => {
       const valueNodes = getValueNodes(row, sp);
-      console.log('value nodes:', valueNodes);
       pathToSpans[serializePath(sp)] = valueNodes.filter(
         v => pathIncludes(L.path(v), path) || path == null
       ) as LilacValueNodeCasted<'string_span'>[];
     });
   }
-  $: console.log('pathToSpans', pathToSpans);
 
   let spanPathToValueInfos: Record<string, SpanValueInfo[]> = {};
   $: {
@@ -178,12 +174,22 @@
 
   const notificationStore = getNotificationsContext();
 
-  $: console.log(snippetSpans);
+  let totalSnippetLength = 0;
+  $: {
+    totalSnippetLength = 0;
+    for (const snippetSpan of snippetSpans) {
+      if (!snippetSpan.isEllipsis) {
+        totalSnippetLength += snippetSpan.snippetText.length;
+      }
+    }
+  }
 </script>
 
 <div
   class="overflow-x-hidden text-ellipsis whitespace-break-spaces"
-  class:text-preview-overlay={textIsOverBudget && !isExpanded}
+  class:text-preview-overlay={textIsOverBudget &&
+    totalSnippetLength > SNIPPET_LEN_BUDGET &&
+    !isExpanded}
 >
   {#each snippetSpans as snippetSpan}
     {#if !snippetSpan.isEllipsis}
@@ -221,18 +227,15 @@
       >
         {#if markdown}
           <SvelteMarkdown source={snippetSpan.snippetText} />
-        {:else}
-          {snippetSpan.snippetText}
-        {/if}
-      </span>
+        {:else}{snippetSpan.snippetText}{/if}</span
+      >
     {:else}
       <span
         use:hoverTooltip={{
           text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
         }}
-        class="highlight-span text-sm leading-5"
-        >...
-      </span>
+        class="highlight-span text-sm leading-5">...</span
+      >
     {/if}
   {/each}
 </div>

@@ -19,7 +19,10 @@
     getSelectRowsSchemaOptions($datasetViewStore)
   );
   $: rowQuery =
-    $selectRowsSchema.data != null && rowId != null
+    !$selectRowsSchema.isFetching &&
+    $selectRowsSchema?.data?.schema != null &&
+    selectOptions != null &&
+    rowId != null
       ? queryRowMetadata(
           namespace,
           datasetName,

@@ -21,12 +21,7 @@ import {
   type CreateInfiniteQueryResult,
   type CreateQueryResult
 } from '@tanstack/svelte-query';
-import {
-  create as createBatcher,
-  keyResolver,
-  windowScheduler,
-  type Batcher
-} from '@yornaath/batshit';
+import {create as createBatcher, windowScheduler, type Batcher} from '@yornaath/batshit';
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
@@ -131,18 +126,26 @@ export const querySelectRows = (
     })
   })(namespace, datasetName, options);
 
+interface BatchMetadataRequest {
+  rowId: string;
+  selectRowsOptions: SelectRowsOptions;
+}
 // Create a cache of the batcher so we reuse the same batcher for the same dataset and options.
 const ROW_METADATA_BATCH_WINDOW_MS = 10;
-const batchedRowMetadataCache: Record<string, Batcher<SelectRowsResponse['rows'], string>> = {};
+const batchedRowMetadataCache: Record<
+  string,
+  Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0]>
+> = {};
 function getRowMetadataBatcher(
   namespace: string,
   datasetName: string,
   selectRowsOptions: SelectRowsOptions
-): Batcher<SelectRowsResponse['rows'], string> {
+): Batcher<SelectRowsResponse['rows'], BatchMetadataRequest> {
   const key = `${namespace}/${datasetName}/${JSON.stringify(selectRowsOptions)}`;
   if (batchedRowMetadataCache[key] == null) {
     batchedRowMetadataCache[key] = createBatcher({
-      fetcher: async (rowIds: string[]) => {
+      fetcher: async (request: BatchMetadataRequest[]) => {
+        const rowIds = request.map(r => r.rowId);
         const selectRowsResponse = await DatasetsService.selectRows(namespace, datasetName, {
           filters: [{path: [ROWID], op: 'in', value: rowIds}],
           searches: selectRowsOptions.searches,
@@ -152,7 +155,8 @@ function getRowMetadataBatcher(
         });
         return selectRowsResponse.rows;
       },
-      resolver: keyResolver(ROWID),
+      resolver: (items: SelectRowsResponse['rows'], query: BatchMetadataRequest) =>
+        items.find(item => item[ROWID] == query.rowId)!,
       scheduler: windowScheduler(ROW_METADATA_BATCH_WINDOW_MS)
     });
   }
@@ -176,6 +180,7 @@ export const queryRowMetadata = (
       datasetName,
       DATASET_ITEM_METADATA_TAG,
       rowId,
+      // Add the select rows options to the cache key.
       JSON.stringify(selectRowsOptions)
     ],
     {
@@ -183,7 +188,7 @@ export const queryRowMetadata = (
         return schema == null ? res : deserializeRow(res, schema);
       }
     }
-  )(rowId);
+  )({rowId, selectRowsOptions});
 
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,
