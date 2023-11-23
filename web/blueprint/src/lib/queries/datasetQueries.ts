@@ -173,15 +173,7 @@ export const queryRowMetadata = (
   schema?: LilacSchema | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): CreateQueryResult<Awaited<Record<string, any>>, ApiError> => {
-  const tags = [
-    DATASETS_TAG,
-    namespace,
-    datasetName,
-    DATASET_ITEM_METADATA_TAG,
-    rowId,
-    // Add the select rows options to the cache key.
-    JSON.stringify(selectRowsOptions)
-  ];
+  const tags = [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId];
   const endpoint = getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch;
   type TQueryFnData = Awaited<ReturnType<typeof endpoint>>;
 
