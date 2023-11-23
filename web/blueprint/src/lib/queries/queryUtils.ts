@@ -10,7 +10,7 @@ import {
   type CreateQueryOptions
 } from '@tanstack/svelte-query';
 
-const apiQueryKey = (tags: string[], endpoint: string, ...args: unknown[]) => [
+export const apiQueryKey = (tags: string[], endpoint: string, ...args: unknown[]) => [
   ...tags,
   endpoint,
   ...args

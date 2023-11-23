@@ -18,6 +18,7 @@ import {
   QueryClient,
   createInfiniteQuery,
   createQueries,
+  createQuery,
   type CreateInfiniteQueryResult,
   type CreateQueryResult
 } from '@tanstack/svelte-query';
@@ -25,7 +26,7 @@ import {create as createBatcher, windowScheduler, type Batcher} from '@yornaath/
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
-import {createApiMutation, createApiQuery} from './queryUtils';
+import {apiQueryKey, createApiMutation, createApiQuery} from './queryUtils';
 import {TASKS_TAG} from './taskQueries';
 
 export const DATASETS_TAG = 'datasets';
@@ -171,24 +172,33 @@ export const queryRowMetadata = (
   selectRowsOptions: SelectRowsOptions,
   schema?: LilacSchema | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): CreateQueryResult<Awaited<Record<string, any>>, ApiError> =>
-  createApiQuery(
-    getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch,
-    [
-      DATASETS_TAG,
-      namespace,
-      datasetName,
-      DATASET_ITEM_METADATA_TAG,
-      rowId,
-      // Add the select rows options to the cache key.
-      JSON.stringify(selectRowsOptions)
-    ],
-    {
+): CreateQueryResult<Awaited<Record<string, any>>, ApiError> => {
+  const tags = [
+    DATASETS_TAG,
+    namespace,
+    datasetName,
+    DATASET_ITEM_METADATA_TAG,
+    rowId,
+    // Add the select rows options to the cache key.
+    JSON.stringify(selectRowsOptions)
+  ];
+  const endpoint = getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch;
+  type TQueryFnData = Awaited<ReturnType<typeof endpoint>>;
+
+  const apiQuery = (...args: Parameters<typeof endpoint>) =>
+    createQuery<TQueryFnData, ApiError, TQueryFnData>({
+      queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
+      queryFn: () =>
+        getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch(...args),
+      // Allow the result of the query to contain non-serializable data, such as `LilacField` which
+      // has pointers to parents: https://tanstack.com/query/v4/docs/react/reference/useQuery
+      structuralSharing: false,
       select: res => {
         return schema == null ? res : deserializeRow(res, schema);
       }
-    }
-  )({rowId, selectRowsOptions});
+    });
+  return apiQuery({rowId, selectRowsOptions});
+};
 
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,
