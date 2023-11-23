@@ -106,15 +106,18 @@ def compute_signal(
   if not get_user_access(user).dataset.compute_signals:
     raise HTTPException(401, 'User does not have access to compute signals over this dataset.')
 
-  def _task_compute_signal(
-    namespace: str, dataset_name: str, options_dict: dict, task_id: TaskId
-  ) -> None:
+  # Resolve the signal outside the task so we don't look up the signal in the registry. This gets
+  # implicitly pickled by the dask serializer when _task_compute_signal is pickled.
+  # NOTE: This unfortunately does not work in Jupyter because a module is not picklable. In this
+  # case, we recommend defining and registering the signal outside a Jupyter notebook.
+  signal = options.signal
+
+  def _task_compute_signal(namespace: str, dataset_name: str, task_id: TaskId) -> None:
     # NOTE: We manually call .model_dump() to avoid the dask serializer, which doesn't call the
     # underlying pydantic serializer.
-    options = ComputeSignalOptions(**options_dict)
     dataset = get_dataset(namespace, dataset_name)
     dataset.compute_signal(
-      options.signal,
+      signal,
       options.leaf_path,
       # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
       overwrite=isinstance(options.signal, TextEmbeddingSignal),
@@ -126,9 +129,7 @@ def compute_signal(
     name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}',
   )
-  get_task_manager().execute(
-    task_id, _task_compute_signal, namespace, dataset_name, options.model_dump(), task_id
-  )
+  get_task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, task_id)
 
   return ComputeSignalResponse(task_id=task_id)
 
