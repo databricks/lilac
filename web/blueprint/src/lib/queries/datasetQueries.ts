@@ -140,7 +140,7 @@ function getRowMetadataBatcher(
   namespace: string,
   datasetName: string,
   selectRowsOptions: SelectRowsOptions
-): Batcher<SelectRowsResponse['rows'], BatchMetadataRequest> {
+): Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0]> {
   const key = `${namespace}/${datasetName}/${JSON.stringify(selectRowsOptions)}`;
   if (batchedRowMetadataCache[key] == null) {
     batchedRowMetadataCache[key] = createBatcher({
