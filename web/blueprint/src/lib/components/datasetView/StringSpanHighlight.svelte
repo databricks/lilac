@@ -44,6 +44,8 @@
   export let spanPaths: Path[];
   export let path: Path | undefined = undefined;
 
+  $: console.log('span paths:', spanPaths);
+
   // Information about each value under span paths to render.
   export let valuePaths: SpanValueInfo[];
   export let markdown = false;
@@ -64,13 +66,16 @@
   };
   $: {
     pathToSpans = {};
+    console.log('making span paths....');
     spanPaths.forEach(sp => {
       const valueNodes = getValueNodes(row, sp);
+      console.log('value nodes:', valueNodes);
       pathToSpans[serializePath(sp)] = valueNodes.filter(
         v => pathIncludes(L.path(v), path) || path == null
       ) as LilacValueNodeCasted<'string_span'>[];
     });
   }
+  $: console.log('pathToSpans', pathToSpans);
 
   let spanPathToValueInfos: Record<string, SpanValueInfo[]> = {};
   $: {

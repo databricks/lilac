@@ -170,7 +170,14 @@ export const queryRowMetadata = (
 ): CreateQueryResult<Awaited<Record<string, any>>, ApiError> =>
   createApiQuery(
     getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch,
-    [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId],
+    [
+      DATASETS_TAG,
+      namespace,
+      datasetName,
+      DATASET_ITEM_METADATA_TAG,
+      rowId,
+      JSON.stringify(selectRowsOptions)
+    ],
     {
       select: res => {
         return schema == null ? res : deserializeRow(res, schema);

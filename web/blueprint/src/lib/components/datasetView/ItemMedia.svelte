@@ -105,6 +105,15 @@
   function removeComparison() {
     datasetViewStore.removeCompareColumn(path);
   }
+
+  $: console.log('span paths:', spanValuePaths.spanPaths);
+  $: {
+    spanValuePaths.spanPaths.forEach(sp => {
+      const valueNodes = getValueNodes(row, sp);
+      console.log('getting value nodes for ', row, sp);
+      console.log('vn:......', valueNodes);
+    });
+  }
 </script>
 
 {#if notEmpty(valueNode)}
