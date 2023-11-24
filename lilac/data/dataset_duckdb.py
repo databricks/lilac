@@ -2618,8 +2618,8 @@ class DatasetDuckDB(Dataset):
     has_job_id_arg = len(map_sig.parameters) == 2
 
     def _get_args_kwargs(item: RichData) -> tuple[list[Any], dict[str, Any]]:
-      kwargs = {}
-      args = []
+      kwargs: dict[str, Any] = {}
+      args: list[Any] = []
       if has_item_kwarg:
         kwargs['item'] = item
       else:

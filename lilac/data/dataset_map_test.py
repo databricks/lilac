@@ -896,10 +896,10 @@ def test_map_ergonomics_invalid_args(
 ) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
-  def _map_noargs():
+  def _map_noargs() -> None:
     pass
 
-  def _map_toomany_args(row: Item, job_id: int, extra_arg: int) -> Item:
+  def _map_toomany_args(row: Item, job_id: int, extra_arg: int) -> None:
     pass
 
   with pytest.raises(ValueError, match=re.escape('Invalid map function')):
