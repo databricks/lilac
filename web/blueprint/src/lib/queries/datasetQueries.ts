@@ -18,19 +18,15 @@ import {
   QueryClient,
   createInfiniteQuery,
   createQueries,
+  createQuery,
   type CreateInfiniteQueryResult,
   type CreateQueryResult
 } from '@tanstack/svelte-query';
-import {
-  create as createBatcher,
-  keyResolver,
-  windowScheduler,
-  type Batcher
-} from '@yornaath/batshit';
+import {create as createBatcher, windowScheduler, type Batcher} from '@yornaath/batshit';
 import type {JSONSchema7} from 'json-schema';
 import {watchTask} from '../stores/taskMonitoringStore';
 import {queryClient} from './queryClient';
-import {createApiMutation, createApiQuery} from './queryUtils';
+import {apiQueryKey, createApiMutation, createApiQuery} from './queryUtils';
 import {TASKS_TAG} from './taskQueries';
 
 export const DATASETS_TAG = 'datasets';
@@ -131,18 +127,26 @@ export const querySelectRows = (
     })
   })(namespace, datasetName, options);
 
+interface BatchMetadataRequest {
+  rowId: string;
+  selectRowsOptions: SelectRowsOptions;
+}
 // Create a cache of the batcher so we reuse the same batcher for the same dataset and options.
 const ROW_METADATA_BATCH_WINDOW_MS = 10;
-const batchedRowMetadataCache: Record<string, Batcher<SelectRowsResponse['rows'], string>> = {};
+const batchedRowMetadataCache: Record<
+  string,
+  Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0]>
+> = {};
 function getRowMetadataBatcher(
   namespace: string,
   datasetName: string,
   selectRowsOptions: SelectRowsOptions
-): Batcher<SelectRowsResponse['rows'], string> {
+): Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0]> {
   const key = `${namespace}/${datasetName}/${JSON.stringify(selectRowsOptions)}`;
   if (batchedRowMetadataCache[key] == null) {
     batchedRowMetadataCache[key] = createBatcher({
-      fetcher: async (rowIds: string[]) => {
+      fetcher: async (request: BatchMetadataRequest[]) => {
+        const rowIds = request.map(r => r.rowId);
         const selectRowsResponse = await DatasetsService.selectRows(namespace, datasetName, {
           filters: [{path: [ROWID], op: 'in', value: rowIds}],
           searches: selectRowsOptions.searches,
@@ -152,7 +156,8 @@ function getRowMetadataBatcher(
         });
         return selectRowsResponse.rows;
       },
-      resolver: keyResolver(ROWID),
+      resolver: (items: SelectRowsResponse['rows'], query: BatchMetadataRequest) =>
+        items.find(item => item[ROWID] == query.rowId)!,
       scheduler: windowScheduler(ROW_METADATA_BATCH_WINDOW_MS)
     });
   }
@@ -167,16 +172,24 @@ export const queryRowMetadata = (
   selectRowsOptions: SelectRowsOptions,
   schema?: LilacSchema | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): CreateQueryResult<Awaited<Record<string, any>>, ApiError> =>
-  createApiQuery(
-    getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch,
-    [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId],
-    {
+): CreateQueryResult<Awaited<Record<string, any>>, ApiError> => {
+  const tags = [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId];
+  const endpoint = getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch;
+  type TQueryFnData = Awaited<ReturnType<typeof endpoint>>;
+
+  const apiQuery = (...args: Parameters<typeof endpoint>) =>
+    createQuery<TQueryFnData, ApiError, TQueryFnData>({
+      queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
+      queryFn: () => endpoint(...args),
+      // Allow the result of the query to contain non-serializable data, such as `LilacField` which
+      // has pointers to parents: https://tanstack.com/query/v4/docs/react/reference/useQuery
+      structuralSharing: false,
       select: res => {
         return schema == null ? res : deserializeRow(res, schema);
       }
-    }
-  )(rowId);
+    });
+  return apiQuery({rowId, selectRowsOptions});
+};
 
 export const querySelectRowsSchema = createApiQuery(
   DatasetsService.selectRowsSchema,

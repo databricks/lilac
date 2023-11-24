@@ -15,7 +15,7 @@ import type {SpanHoverNamedValue} from './SpanHoverTooltip.svelte';
 import {colorFromScore} from './colors';
 
 // When the text length exceeds this number we start to snippet.
-const SNIPPET_LEN_BUDGET = 600;
+export const SNIPPET_LEN_BUDGET = 600;
 const SURROUNDING_SNIPPET_LEN = 50;
 
 export interface SpanValueInfo {

@@ -60,7 +60,7 @@
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: rowQuery =
-    $selectRowsSchema.data != null
+    $selectRowsSchema.data != null && !$selectRowsSchema.isFetching
       ? queryRowMetadata(
           namespace,
           datasetName,
@@ -69,7 +69,7 @@
           $selectRowsSchema.data.schema
         )
       : null;
-  $: row = $rowQuery?.data;
+  $: row = $rowQuery != null && !$rowQuery.isFetching ? $rowQuery?.data : null;
   $: rowLabels = row != null ? getRowLabels(row) : [];
   $: disableLabels = !canEditLabels;
 

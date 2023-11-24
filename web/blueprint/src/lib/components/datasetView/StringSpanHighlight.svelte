@@ -29,6 +29,7 @@
   import type {SpanDetails} from './StringSpanDetails.svelte';
   import {LABELED_TEXT_COLOR, colorFromOpacity} from './colors';
   import {
+    SNIPPET_LEN_BUDGET,
     getRenderSpans,
     getSnippetSpans,
     type RenderSpan,
@@ -172,11 +173,23 @@
   };
 
   const notificationStore = getNotificationsContext();
+
+  let totalSnippetLength = 0;
+  $: {
+    totalSnippetLength = 0;
+    for (const snippetSpan of snippetSpans) {
+      if (!snippetSpan.isEllipsis) {
+        totalSnippetLength += snippetSpan.snippetText.length;
+      }
+    }
+  }
 </script>
 
 <div
   class="overflow-x-hidden text-ellipsis whitespace-break-spaces"
-  class:text-preview-overlay={textIsOverBudget && !isExpanded}
+  class:text-preview-overlay={textIsOverBudget &&
+    totalSnippetLength > SNIPPET_LEN_BUDGET &&
+    !isExpanded}
 >
   {#each snippetSpans as snippetSpan}
     {#if !snippetSpan.isEllipsis}
@@ -214,18 +227,15 @@
       >
         {#if markdown}
           <SvelteMarkdown source={snippetSpan.snippetText} />
-        {:else}
-          {snippetSpan.snippetText}
-        {/if}
-      </span>
+        {:else}{snippetSpan.snippetText}{/if}</span
+      >
     {:else}
       <span
         use:hoverTooltip={{
           text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
         }}
-        class="highlight-span text-sm leading-5"
-        >...
-      </span>
+        class="highlight-span text-sm leading-5">...</span
+      >
     {/if}
   {/each}
 </div>

@@ -220,6 +220,7 @@ class MapInfo(BaseModel):
   """Holds information about a map that was run on a dataset."""
 
   fn_name: str
+  input_path: Optional[PathTuple] = None
   fn_source: str
   date_created: datetime
 
