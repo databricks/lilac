@@ -783,8 +783,10 @@ class DatasetDuckDB(Dataset):
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
-        raise ValueError(f'Unknown type of transform_fn: {type(transform_fn)}')
-
+        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        dense_out = sparse_to_dense_compute(
+          flat_input, lambda x: transform_fn(cast(Iterable[RichData], x))
+        )
       output_items = deep_unflatten(dense_out, input_values_1)
 
     else:
@@ -2443,6 +2445,7 @@ class DatasetDuckDB(Dataset):
   def map(
     self,
     map_fn: MapFn,
+    input_path: Optional[Path] = None,
     output_column: Optional[str] = None,
     nest_under: Optional[Path] = None,
     overwrite: bool = False,
@@ -2532,6 +2535,7 @@ class DatasetDuckDB(Dataset):
         jsonl_cache_filepath,
         i,
         num_jobs,
+        normalize_path(input_path) if input_path else None,
         overwrite,
         combine_columns,
         resolve_span,
@@ -2582,6 +2586,7 @@ class DatasetDuckDB(Dataset):
     jsonl_cache_filepath: str,
     job_id: int,
     job_count: int,
+    unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -2595,6 +2600,7 @@ class DatasetDuckDB(Dataset):
       _map_iterable,
       output_path=output_path,
       jsonl_cache_filepath=jsonl_cache_filepath,
+      unnest_input_path=unnest_input_path,
       overwrite=overwrite,
       combine_columns=combine_columns,
       resolve_span=resolve_span,

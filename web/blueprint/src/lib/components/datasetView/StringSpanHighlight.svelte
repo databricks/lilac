@@ -29,7 +29,6 @@
   import type {SpanDetails} from './StringSpanDetails.svelte';
   import {LABELED_TEXT_COLOR, colorFromOpacity} from './colors';
   import {
-    SNIPPET_LEN_BUDGET,
     getRenderSpans,
     getSnippetSpans,
     type RenderSpan,
@@ -173,23 +172,11 @@
   };
 
   const notificationStore = getNotificationsContext();
-
-  let totalSnippetLength = 0;
-  $: {
-    totalSnippetLength = 0;
-    for (const snippetSpan of snippetSpans) {
-      if (!snippetSpan.isEllipsis) {
-        totalSnippetLength += snippetSpan.snippetText.length;
-      }
-    }
-  }
 </script>
 
 <div
   class="overflow-x-hidden text-ellipsis whitespace-break-spaces"
-  class:text-preview-overlay={textIsOverBudget &&
-    totalSnippetLength > SNIPPET_LEN_BUDGET &&
-    !isExpanded}
+  class:text-preview-overlay={textIsOverBudget && !isExpanded}
 >
   {#each snippetSpans as snippetSpan}
     {#if !snippetSpan.isEllipsis}
