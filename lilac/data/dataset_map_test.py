@@ -890,6 +890,24 @@ def test_map_ergonomics(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMak
   ]
 
 
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+def test_map_ergonomics_invalid_args(
+  num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker
+) -> None:
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
+
+  def _map_noargs():
+    pass
+
+  def _map_toomany_args(row: Item, job_id: int, extra_arg: int) -> Item:
+    pass
+
+  with pytest.raises(ValueError, match=re.escape('Invalid map function')):
+    dataset.map(_map_noargs, output_column='_map_noargs', num_jobs=num_jobs)
+  with pytest.raises(ValueError, match=re.escape('Invalid map function')):
+    dataset.map(_map_toomany_args, output_column='_map_toomany_args', num_jobs=num_jobs)
+
+
 def test_map_nest_under_validation(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [{'text': 'abcd', 'parent': ['a', 'b']}, {'text': 'efghi', 'parent': ['c', 'd']}]
