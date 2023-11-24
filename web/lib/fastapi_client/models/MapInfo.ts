@@ -8,6 +8,7 @@
  */
 export type MapInfo = {
     fn_name: string;
+    input_path?: (Array<string> | null);
     fn_source: string;
     date_created: string;
 };

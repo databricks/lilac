@@ -218,7 +218,10 @@ def test_map_input_path(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMak
         'text_upper': field(
           dtype='string',
           map=MapInfo(
-            fn_name='_upper', fn_source=inspect.getsource(_upper), date_created=TEST_TIME
+            fn_name='_upper',
+            input_path=('text',),
+            fn_source=inspect.getsource(_upper),
+            date_created=TEST_TIME,
           ),
         ),
       }
@@ -268,7 +271,10 @@ def test_map_input_path_nested(
         'texts_upper': field(
           fields=['string'],
           map=MapInfo(
-            fn_name='_upper', fn_source=inspect.getsource(_upper), date_created=TEST_TIME
+            fn_name='_upper',
+            input_path=('texts', PATH_WILDCARD, 'value'),
+            fn_source=inspect.getsource(_upper),
+            date_created=TEST_TIME,
           ),
         ),
       }

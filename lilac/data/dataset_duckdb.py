@@ -2457,6 +2457,8 @@ class DatasetDuckDB(Dataset):
 
     manifest = self.manifest()
 
+    input_path = normalize_path(input_path) if input_path else None
+
     # Validate output_column and nest_under.
     if nest_under is not None:
       nest_under = normalize_path(nest_under)
@@ -2535,7 +2537,7 @@ class DatasetDuckDB(Dataset):
         jsonl_cache_filepath,
         i,
         num_jobs,
-        normalize_path(input_path) if input_path else None,
+        input_path,
         overwrite,
         combine_columns,
         resolve_span,
@@ -2559,7 +2561,10 @@ class DatasetDuckDB(Dataset):
       map_field_root = map_schema.get_field(output_path)
 
       map_field_root.map = MapInfo(
-        fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
+        fn_name=map_fn.__name__,
+        input_path=input_path,
+        fn_source=inspect.getsource(map_fn),
+        date_created=datetime.now(),
       )
 
       parquet_dir = os.path.dirname(parquet_filepath)
