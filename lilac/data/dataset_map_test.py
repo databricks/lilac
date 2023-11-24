@@ -291,6 +291,22 @@ def test_map_input_path_nested(
   ]
 
 
+def test_map_input_path_nonleaf_throws(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'id': 0, 'text': ['a']},
+      {'id': 1, 'text': ['b']},
+      {'id': 2, 'text': ['c']},
+    ]
+  )
+
+  def _upper(row: Item, job_id: int) -> Item:
+    return str(row).upper()
+
+  with pytest.raises(Exception):
+    dataset.map(_upper, input_path='text', output_column='text_upper')
+
+
 @pytest.mark.parametrize('num_jobs', [1, 2])
 def test_map_continuation(
   num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger

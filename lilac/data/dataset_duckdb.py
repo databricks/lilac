@@ -2458,6 +2458,13 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
 
     input_path = normalize_path(input_path) if input_path else None
+    if input_path:
+      input_field = manifest.data_schema.get_field(input_path)
+      if not input_field.dtype:
+        raise ValueError(
+          f'Input path {input_path} is not a leaf path. This is currently unsupported. If you '
+          'require this, please file an issue and we will prioritize.'
+        )
 
     # Validate output_column and nest_under.
     if nest_under is not None:
