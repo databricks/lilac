@@ -192,6 +192,122 @@ def test_map_job_id(make_test_data: TestDataMaker, test_dask_logger: TestDaskLog
 
 
 @pytest.mark.parametrize('num_jobs', [1, 2])
+def test_map_input_path(num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'id': 0, 'text': 'a'},
+      {'id': 1, 'text': 'b'},
+      {'id': 2, 'text': 'c'},
+    ]
+  )
+
+  def _upper(row: Item, job_id: int) -> Item:
+    return str(row).upper()
+
+  # Write the output to a new column.
+  dataset.map(_upper, input_path='text', output_column='text_upper', num_jobs=num_jobs)
+
+  # The schema should not reflect the output of the map as it didn't finish.
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': 'string',
+        'id': 'int32',
+        'text_upper': field(
+          dtype='string',
+          map=MapInfo(
+            fn_name='_upper',
+            input_path=('text',),
+            fn_source=inspect.getsource(_upper),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
+    num_items=3,
+    source=TestSource(),
+  )
+  # The rows should not reflect the output of the unfinished map.
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {'text': 'a', 'id': 0, 'text_upper': 'A'},
+    {'text': 'b', 'id': 1, 'text_upper': 'B'},
+    {'text': 'c', 'id': 2, 'text_upper': 'C'},
+  ]
+
+
+@pytest.mark.parametrize('num_jobs', [1, 2])
+def test_map_input_path_nested(
+  num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
+) -> None:
+  dataset = make_test_data(
+    [
+      {'id': 0, 'texts': [{'value': 'a'}]},
+      {'id': 1, 'texts': [{'value': 'b'}, {'value': 'c'}]},
+      {'id': 2, 'texts': [{'value': 'd'}, {'value': 'e'}, {'value': 'f'}]},
+    ]
+  )
+
+  def _upper(row: Item, job_id: int) -> Item:
+    return str(row).upper()
+
+  dataset.map(
+    _upper,
+    input_path=('texts', PATH_WILDCARD, 'value'),
+    output_column='texts_upper',
+    num_jobs=num_jobs,
+  )
+
+  # The schema should not reflect the output of the map as it didn't finish.
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'texts': [{'value': 'string'}],
+        'id': 'int32',
+        'texts_upper': field(
+          fields=['string'],
+          map=MapInfo(
+            fn_name='_upper',
+            input_path=('texts', PATH_WILDCARD, 'value'),
+            fn_source=inspect.getsource(_upper),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
+    num_items=3,
+    source=TestSource(),
+  )
+  # The rows should not reflect the output of the unfinished map.
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {'id': 0, 'texts.*.value': ['a'], 'texts_upper.*': ['A']},
+    {'id': 1, 'texts.*.value': ['b', 'c'], 'texts_upper.*': ['B', 'C']},
+    {'id': 2, 'texts.*.value': ['d', 'e', 'f'], 'texts_upper.*': ['D', 'E', 'F']},
+  ]
+
+
+def test_map_input_path_nonleaf_throws(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'id': 0, 'text': ['a']},
+      {'id': 1, 'text': ['b']},
+      {'id': 2, 'text': ['c']},
+    ]
+  )
+
+  def _upper(row: Item, job_id: int) -> Item:
+    return str(row).upper()
+
+  with pytest.raises(Exception):
+    dataset.map(_upper, input_path='text', output_column='text_upper')
+
+
+@pytest.mark.parametrize('num_jobs', [1, 2])
 def test_map_continuation(
   num_jobs: Literal[-1, 1, 2], make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger
 ) -> None:

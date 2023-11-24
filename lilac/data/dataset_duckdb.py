@@ -783,8 +783,12 @@ class DatasetDuckDB(Dataset):
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
-        raise ValueError(f'Unknown type of transform_fn: {type(transform_fn)}')
-
+        map_fn = transform_fn
+        assert not isinstance(map_fn, Signal)
+        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        dense_out = sparse_to_dense_compute(
+          flat_input, lambda x: map_fn(cast(Iterable[RichData], x))
+        )
       output_items = deep_unflatten(dense_out, input_values_1)
 
     else:
@@ -2443,6 +2447,7 @@ class DatasetDuckDB(Dataset):
   def map(
     self,
     map_fn: MapFn,
+    input_path: Optional[Path] = None,
     output_column: Optional[str] = None,
     nest_under: Optional[Path] = None,
     overwrite: bool = False,
@@ -2453,6 +2458,15 @@ class DatasetDuckDB(Dataset):
     is_tmp_output = output_column is None
 
     manifest = self.manifest()
+
+    input_path = normalize_path(input_path) if input_path else None
+    if input_path:
+      input_field = manifest.data_schema.get_field(input_path)
+      if not input_field.dtype:
+        raise ValueError(
+          f'Input path {input_path} is not a leaf path. This is currently unsupported. If you '
+          'require this, please file an issue and we will prioritize.'
+        )
 
     # Validate output_column and nest_under.
     if nest_under is not None:
@@ -2532,6 +2546,7 @@ class DatasetDuckDB(Dataset):
         jsonl_cache_filepath,
         i,
         num_jobs,
+        input_path,
         overwrite,
         combine_columns,
         resolve_span,
@@ -2555,7 +2570,10 @@ class DatasetDuckDB(Dataset):
       map_field_root = map_schema.get_field(output_path)
 
       map_field_root.map = MapInfo(
-        fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
+        fn_name=map_fn.__name__,
+        input_path=input_path,
+        fn_source=inspect.getsource(map_fn),
+        date_created=datetime.now(),
       )
 
       parquet_dir = os.path.dirname(parquet_filepath)
@@ -2582,6 +2600,7 @@ class DatasetDuckDB(Dataset):
     jsonl_cache_filepath: str,
     job_id: int,
     job_count: int,
+    unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -2620,6 +2639,7 @@ class DatasetDuckDB(Dataset):
       _map_iterable,
       output_path=output_path,
       jsonl_cache_filepath=jsonl_cache_filepath,
+      unnest_input_path=unnest_input_path,
       overwrite=overwrite,
       combine_columns=combine_columns,
       resolve_span=resolve_span,

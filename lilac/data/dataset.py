@@ -581,6 +581,7 @@ class Dataset(abc.ABC):
   def map(
     self,
     map_fn: MapFn,
+    input_path: Optional[Path] = None,
     output_column: Optional[str] = None,
     nest_under: Optional[Path] = None,
     overwrite: bool = False,
@@ -593,6 +594,10 @@ class Dataset(abc.ABC):
     Args:
       map_fn: A callable that takes a full row item dictionary, and returns an Item for the
         result. The result Item can be a primitive, like a string.
+      input_path: The path to the input column to map over. If not specified, the map function will
+        be called with the full row item dictionary. If specified, the map function will be called
+        with the value at the given path, flattened. The output column will be written in the same
+        shape as the input column, paralleling its nestedness.
       output_column: The name of the output column to write to. When `nest_under` is False
         (the default), this will be the name of the top-level column. When `nest_under` is True,
         the output_column will be the name of the column under the path given by `nest_under`.
