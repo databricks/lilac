@@ -783,9 +783,11 @@ class DatasetDuckDB(Dataset):
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
+        map_fn = transform_fn
+        assert not isinstance(map_fn, Signal)
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
         dense_out = sparse_to_dense_compute(
-          flat_input, lambda x: transform_fn(cast(Iterable[RichData], x))
+          flat_input, lambda x: map_fn(cast(Iterable[RichData], x))
         )
       output_items = deep_unflatten(dense_out, input_values_1)
 
