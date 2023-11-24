@@ -924,3 +924,95 @@ def merge_schemas(schemas: Sequence[Union[Schema, Field]]) -> Schema:
   merged_field = merge_fields([Field(fields=s.fields) for s in schemas])
   assert merged_field.fields, 'Merged field should have fields'
   return Schema(fields=merged_field.fields)
+
+
+def _duckdb_type(dtype: Optional[DataType]) -> str:
+  """Convert the dtype to an arrow dtype."""
+  if dtype == STRING:
+    return 'VARCHAR'
+  elif dtype == BOOLEAN:
+    return 'BOOLEAN'
+  elif dtype == FLOAT16:
+    return 'FLOAT'
+  elif dtype == FLOAT32:
+    return 'FLOAT'
+  elif dtype == FLOAT64:
+    return 'DOUBLE'
+  elif dtype == INT8:
+    return 'TINYINT'
+  elif dtype == INT16:
+    return 'SMALLINT'
+  elif dtype == INT32:
+    return 'INTEGER'
+  elif dtype == INT64:
+    return 'BIGINT'
+  elif dtype == UINT8:
+    return 'UTINYINT'
+  elif dtype == UINT16:
+    return 'USMALLINT'
+  elif dtype == UINT32:
+    return 'UINTEGER'
+  elif dtype == UINT64:
+    return 'UBIGINT'
+  elif dtype == BINARY:
+    return 'BLOB'
+  elif dtype == TIME:
+    return 'TIME'
+  elif dtype == DATE:
+    return 'DATE'
+  elif dtype == TIMESTAMP:
+    return 'TIMESTAMP'
+  elif dtype == INTERVAL:
+    return 'INTERVAL'
+  elif dtype == EMBEDDING:
+    # We reserve an empty column for embeddings in parquet files so they can be queried.
+    # The values are *not* filled out. If parquet and duckdb support embeddings in the future, we
+    # can set this dtype to the relevant pyarrow type.
+    return 'NULL'
+  elif dtype == STRING_SPAN:
+    return (
+      f'STRUCT({SPAN_KEY} '
+      f'STRUCT({TEXT_SPAN_START_FEATURE} INTEGER, {TEXT_SPAN_END_FEATURE} INTEGER))'
+    )
+  elif dtype == NULL:
+    return 'NULL'
+  elif dtype is None:
+    return 'NULL'
+  elif dtype.type == 'map':
+    map_dtype = cast(MapType, dtype)
+    return f'MAP({_duckdb_type(map_dtype.key_type)}, {_duckdb_type(map_dtype.value_type)})'
+  else:
+    raise ValueError(f'Can not convert dtype "{dtype}" to duckdb type')
+
+
+def _duckdb_field(field: Field) -> str:
+  """Convert a field to a duckdb field."""
+  if field.fields:
+    arrow_fields: dict[str, Union[pa.Schema, pa.DataType]] = {}
+    for name, field in field.fields.items():
+      if name == ROWID:
+        arrow_schema = dtype_to_arrow_schema(field.dtype)
+      else:
+        arrow_schema = _schema_to_arrow_schema_impl(field)
+      arrow_fields[name] = arrow_schema
+
+    # When nodes have both dtype and children, we add __value__ alongside the fields.
+    if field.dtype:
+      value_schema = dtype_to_arrow_schema(field.dtype)
+      if field.dtype == STRING_SPAN:
+        arrow_fields[SPAN_KEY] = value_schema[SPAN_KEY].type
+      else:
+        arrow_fields[VALUE_KEY] = value_schema
+
+    return pa.struct(arrow_fields)
+
+  field = cast(Field, schema)
+  if field.repeated_field:
+    return pa.list_(_schema_to_arrow_schema_impl(field.repeated_field))
+
+  return dtype_to_arrow_schema(field.dtype)
+
+
+def duckdb_schema(schema: Schema) -> dict[str, str]:
+  """Convert our schema to duckdb schema."""
+  return {name: _duckdb_field(field) for name, field in schema.fields.items()}
