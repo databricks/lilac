@@ -1818,7 +1818,9 @@ class DatasetDuckDB(Dataset):
         udf_filter_queries = self._create_where(manifest, udf_filters)
         if udf_filter_queries:
           rel = rel.filter(' AND '.join(udf_filter_queries))
-          total_num_rows = cast(tuple, rel.count('*').fetchone())[0]  # type: ignore
+          count = rel.count('*').fetchone()
+          assert count is not None
+          (total_num_rows,) = count
 
       if sort_sql_after_udf:
         if not sort_order:
