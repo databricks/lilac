@@ -2613,27 +2613,14 @@ class DatasetDuckDB(Dataset):
         f'(item: Item, job_id: int).'
       )
 
-    has_item_kwarg = 'item' in map_sig.parameters
-    has_job_id_kwarg = 'job_id' in map_sig.parameters
     has_job_id_arg = len(map_sig.parameters) == 2
-
-    def _get_args_kwargs(item: RichData) -> tuple[list[Any], dict[str, Any]]:
-      kwargs: dict[str, Any] = {}
-      args: list[Any] = []
-      if has_item_kwarg:
-        kwargs['item'] = item
-      else:
-        args.append(item)
-      if has_job_id_kwarg:
-        kwargs['job_id'] = job_id
-      elif has_job_id_arg:
-        args.append(job_id)
-      return args, kwargs
 
     def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
       for item in items:
-        args, kwargs = _get_args_kwargs(item)
-        yield map_fn(*args, **kwargs)
+        args: list[Any] = [item]
+        if has_job_id_arg:
+          args.append(job_id)
+        yield map_fn(*args)
 
     self._compute_disk_cached(
       _map_iterable,
