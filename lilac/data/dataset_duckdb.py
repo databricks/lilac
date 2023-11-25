@@ -2083,7 +2083,7 @@ class DatasetDuckDB(Dataset):
       if sub_field.map:
         if sub_field.map.input_path:
           return (span_manifest.py_version, sub_field.map.input_path)
-        else:
+        elif len(sub_path) > 1:
           # Since input_path is lacking, we assume the map was nested under the relevant input.
           return (span_manifest.py_version, sub_path[:-1])
 
