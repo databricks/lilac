@@ -74,7 +74,6 @@ from ..schema import (
   Schema,
   arrow_schema_to_schema,
   column_paths_match,
-  duckdb_schema,
   is_float,
   is_integer,
   is_ordinal,
@@ -83,6 +82,7 @@ from ..schema import (
   normalize_path,
   signal_type_supports_dtype,
 )
+from ..schema_duckdb import duckdb_schema, escape_col_name, escape_string_literal
 from ..signal import Signal, TextEmbeddingSignal, VectorSignal, get_signal_by_type, resolve_signal
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
@@ -334,7 +334,7 @@ class DatasetDuckDB(Dataset):
 
     self.con.execute(
       f"""
-      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS ({inner_select});
+      CREATE OR REPLACE VIEW {escape_col_name(view_name)} AS ({inner_select});
     """
     )
 
@@ -404,23 +404,23 @@ class DatasetDuckDB(Dataset):
     # NOTE: "root_column" for each signal is defined as the top-level column.
     signal_column_selects = [
       (
-        f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-        f'AS {_escape_col_name(manifest.parquet_id)}'
+        f'{escape_col_name(manifest.parquet_id)}.{escape_col_name(_root_column(manifest))} '
+        f'AS {escape_col_name(manifest.parquet_id)}'
       )
       for manifest in self._signal_manifests
       if manifest.files
     ]
     map_column_selects = [
       (
-        f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-        f'AS {_escape_col_name(manifest.parquet_id)}'
+        f'{escape_col_name(manifest.parquet_id)}.{escape_col_name(_root_column(manifest))} '
+        f'AS {escape_col_name(manifest.parquet_id)}'
       )
       for manifest in self._map_manifests
       if manifest.files
     ]
     label_column_selects = []
     for label_name in self._label_schemas.keys():
-      col_name = _escape_col_name(label_name)
+      col_name = escape_col_name(label_name)
       # We use a case here because labels are sparse and we don't want to return an object at all
       # when there is no label.
       label_column_selects.append(
@@ -444,7 +444,7 @@ class DatasetDuckDB(Dataset):
     ] + list(self._label_schemas.keys())
     join_sql = ' '.join(
       [SOURCE_VIEW_NAME]
-      + [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
+      + [f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
     )
     view_or_table = 'TABLE'
     # When in a dask worker, always use views to reduce memory overhead.
@@ -606,7 +606,7 @@ class DatasetDuckDB(Dataset):
         if unnest_input_path:
           unnest_column_alias = column_alias
 
-        select_sqls.append(f'{sql} AS {_escape_string_literal(column_alias)}')
+        select_sqls.append(f'{sql} AS {escape_string_literal(column_alias)}')
         columns_to_merge[final_col_name][column_alias] = column
 
       if select_sqls:
@@ -1662,7 +1662,7 @@ class DatasetDuckDB(Dataset):
         temp_column_name = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
         )
-        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
+        select_sqls.append(f'{sql} AS {escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
         if column.signal_udf and span_from and _schema_has_spans(column.signal_udf.fields()):
@@ -1677,7 +1677,7 @@ class DatasetDuckDB(Dataset):
           )
           temp_offset_column_name = f'{temp_column_name}/offset'
           temp_offset_column_name = temp_offset_column_name.replace("'", "\\'")
-          select_sqls.append(f'{sql} AS {_escape_string_literal(temp_offset_column_name)}')
+          select_sqls.append(f'{sql} AS {escape_string_literal(temp_offset_column_name)}')
           temp_column_to_offset_column[temp_column_name] = (
             temp_offset_column_name,
             column.signal_udf.fields(),
@@ -2327,7 +2327,7 @@ class DatasetDuckDB(Dataset):
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, f.op)]
         filter_val = cast(FeatureValue, f.value)
         if isinstance(filter_val, str):
-          filter_val = _escape_string_literal(filter_val)
+          filter_val = escape_string_literal(filter_val)
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:
@@ -2398,10 +2398,7 @@ class DatasetDuckDB(Dataset):
     if isinstance(path, str):
       path = (path,)
     return '.'.join(
-      [
-        f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp)
-        for path_comp in path
-      ]
+      [f'{escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path]
     )
 
   def _get_selection(
@@ -2449,7 +2446,7 @@ class DatasetDuckDB(Dataset):
         )
       _, duckdb_path = duckdb_paths[0]
       sql = _select_sql(duckdb_path, flatten=False, unnest=False, path=column.path, schema=schema)
-      select_queries.append(f'{sql} AS {_escape_string_literal(col_name)}')
+      select_queries.append(f'{sql} AS {escape_string_literal(col_name)}')
     selection = ', '.join(select_queries)
     return f'SELECT {selection} FROM t {where_query}'
 
@@ -2703,16 +2700,6 @@ class DatasetDuckDB(Dataset):
     log(f'Dataset exported to {filepath}')
 
 
-def _escape_string_literal(string: str) -> str:
-  string = string.replace("'", "''")
-  return f"'{string}'"
-
-
-def _escape_col_name(col_name: str) -> str:
-  col_name = col_name.replace('"', '""')
-  return f'"{col_name}"'
-
-
 def _escape_like_value(value: str) -> str:
   value = value.replace('%', '\\%').replace('_', '\\_')
   return f"'%{value}%' ESCAPE '\\'"
@@ -2731,10 +2718,10 @@ def _inner_select(
   lambda_var = inner_var + 'x' if inner_var else 'x'
   if not inner_var:
     lambda_var = 'x'
-    inner_var = _escape_col_name(current_sub_path[0])
+    inner_var = escape_col_name(current_sub_path[0])
     current_sub_path = current_sub_path[1:]
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
-  path_key = inner_var + ''.join([f'[{_escape_string_literal(p)}]' for p in current_sub_path])
+  path_key = inner_var + ''.join([f'[{escape_string_literal(p)}]' for p in current_sub_path])
   if len(sub_paths) == 1:
     if span_from:
       manifest, span_path = span_from
