@@ -74,6 +74,7 @@ from ..schema import (
   Schema,
   arrow_schema_to_schema,
   column_paths_match,
+  duckdb_schema,
   is_float,
   is_integer,
   is_ordinal,
@@ -647,7 +648,7 @@ class DatasetDuckDB(Dataset):
       con.execute(
         f"""
         CREATE OR REPLACE VIEW t_cache as (
-          SELECT * FROM read_json_auto(
+          SELECT {ROWID} FROM read_json_auto(
             '{shard_cache_filepath}',
             IGNORE_ERRORS=true,
             format='newline_delimited')
@@ -836,6 +837,7 @@ class DatasetDuckDB(Dataset):
     self,
     output_path: PathTuple,
     jsonl_cache_filepaths: list[str],
+    schema: Optional[Schema] = None,
     is_tmp_output: bool = False,
     parquet_filename_prefix: Optional[str] = None,
     overwrite: bool = False,
@@ -848,12 +850,17 @@ class DatasetDuckDB(Dataset):
     jsonl_view_name = 'tmp_output'
     con = self.con.cursor()
 
-    # TODO(nsthorat): Use read_json and the signal schema to speed this up and make it more precise.
+    if schema and ROWID not in schema.fields:
+      schema = schema.model_copy(deep=True)
+      schema.fields[ROWID] = Field(dtype=STRING)
+
     con.execute(
       f"""
       CREATE OR REPLACE VIEW {jsonl_view_name} as (
-        SELECT * FROM read_json_auto(
+        SELECT * FROM read_json(
           {jsonl_cache_filepaths},
+          {f'columns={duckdb_schema(schema)},' if schema else ''}
+          auto_detect={'false' if schema else 'true'},
           ignore_errors=true,
           format='newline_delimited'
         )
@@ -946,8 +953,11 @@ class DatasetDuckDB(Dataset):
       task_step_description=f'Computing signal {signal} over {input_path}',
     )
 
+    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
+
     _, _, parquet_filepath = self._reshard_cache(
       output_path=output_path,
+      schema=signal_schema,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
       parquet_filename_prefix='data',
       overwrite=overwrite,
@@ -957,8 +967,6 @@ class DatasetDuckDB(Dataset):
     output_dir = os.path.dirname(parquet_filepath)
 
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
-
-    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],

@@ -110,13 +110,13 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
     [
       {
         'text': 'hello',
-        'text.test_signal.len': 5,
-        'text.test_signal.flen': 5.0,
+        'text.test_signal.len': np.int32(5),
+        'text.test_signal.flen': np.float32(5.0),
       },
       {
         'text': 'everybody',
-        'text.test_signal.len': 9,
-        'text.test_signal.flen': 9.0,
+        'text.test_signal.len': np.int32(9),
+        'text.test_signal.flen': np.float32(9.0),
       },
     ]
   )
@@ -133,13 +133,13 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
     [
       {
         'text': 'hello',
-        'text.test_signal.len': 5,
-        'text.test_signal.flen': 5.0,
+        'text.test_signal.len': np.int32(5),
+        'text.test_signal.flen': np.float32(5.0),
       },
       {
         'text': 'everybody',
-        'text.test_signal.len': 9,
-        'text.test_signal.flen': 9.0,
+        'text.test_signal.len': np.int32(9),
+        'text.test_signal.flen': np.float32(9.0),
       },
     ]
   )
@@ -149,8 +149,8 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
   df = dataset.to_pandas([ROWID, 'text', 'text.test_signal.flen'])
   expected_df = pd.DataFrame(
     [
-      {ROWID: '1', 'text': 'hello', 'text.test_signal.flen': np.float64(5.0)},
-      {ROWID: '2', 'text': 'everybody', 'text.test_signal.flen': np.float64(9.0)},
+      {ROWID: '1', 'text': 'hello', 'text.test_signal.flen': np.float32(5.0)},
+      {ROWID: '2', 'text': 'everybody', 'text.test_signal.flen': np.float32(9.0)},
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)
