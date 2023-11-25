@@ -2617,7 +2617,9 @@ class DatasetDuckDB(Dataset):
 
     def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
       for item in items:
-        args = [item] if not has_job_id_arg else [item, job_id]
+        args: Union[tuple[Item], tuple[Item, int]] = (
+          (item,) if not has_job_id_arg else (item, job_id)
+        )
         yield map_fn(*args)
 
     self._compute_disk_cached(
