@@ -20,7 +20,7 @@
   $: value = groupBy.value;
 
   $: field = getField(schema, groupBy.path)!;
-  $: sortBy = isNumeric(field.dtype!) && !field.categorical ? 'value' : 'count';
+  $: sortBy = isNumeric(field.dtype) && !field.categorical ? 'value' : 'count';
   $: sortOrder = sortBy === 'value' ? 'ASC' : 'DESC';
 
   $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {

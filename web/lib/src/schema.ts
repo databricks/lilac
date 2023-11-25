@@ -58,7 +58,8 @@ export type DataTypeCasted<D extends DataType['type'] = DataType['type']> =
       : never)
   | null;
 
-export function isNumeric(dtype: DataType) {
+export function isNumeric(dtype: DataType | undefined | null) {
+  if (dtype == null) return false;
   return isFloat(dtype) || isInteger(dtype);
 }
 export function isFloat(

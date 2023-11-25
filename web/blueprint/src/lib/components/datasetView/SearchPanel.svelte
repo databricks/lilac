@@ -156,7 +156,7 @@
 
       const shortName = shortFieldName(field.path);
       // Suggest sorting for numeric fields.
-      if (isNumeric(field.dtype!)) {
+      if (isNumeric(field.dtype)) {
         items.push({
           id: {type: 'field', path: field.path, sort: 'DESC', isSignal: signal != null} as FieldId,
           text,
