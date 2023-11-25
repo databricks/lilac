@@ -2614,9 +2614,21 @@ class DatasetDuckDB(Dataset):
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
+    map_sig = inspect.signature(map_fn)
+    if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
+      raise ValueError(
+        f'Invalid map function {map_fn.__name__}. Must have 1 or 2 arguments: '
+        f'(item: Item, job_id: int).'
+      )
+
+    has_job_id_arg = len(map_sig.parameters) == 2
+
     def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
       for item in items:
-        yield map_fn(item, job_id=job_id)
+        args: Union[tuple[Item], tuple[Item, int]] = (
+          (item,) if not has_job_id_arg else (item, job_id)
+        )
+        yield map_fn(*args)
 
     self._compute_disk_cached(
       _map_iterable,

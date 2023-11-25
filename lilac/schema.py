@@ -202,18 +202,16 @@ Bin = tuple[str, Optional[Union[float, int]], Optional[Union[float, int]]]
 
 
 class MapFn(Protocol):
-  """Interface for a map function."""
+  """A map function.
+
+  The map function will get called with the following arguments:
+    - item: The item to be processed.
+    - job_id: The job id.
+  """
 
   __name__: str
 
-  def __call__(self, row: Item, job_id: int) -> Item:
-    """Calls the map function, mapping an item to an item.
-
-    Argumnets:
-      row: An Item, a dictionary of an entire row.
-      job_id: The job id.
-    """
-    ...
+  __call__: Callable[..., Item]
 
 
 class MapInfo(BaseModel):
