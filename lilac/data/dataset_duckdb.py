@@ -2077,15 +2077,10 @@ class DatasetDuckDB(Dataset):
     for i in reversed(range(len(span_path))):
       sub_path = span_path[:i]
       sub_field = schema.get_field(sub_path)
-      if sub_field.signal:
-        # Skip the signal name at the end to get the source path that was enriched.
-        return (span_manifest.py_version, sub_path[:-1])
-      if sub_field.map:
-        if sub_field.map.input_path:
-          return (span_manifest.py_version, sub_field.map.input_path)
-        elif len(sub_path) > 1:
-          # Since input_path is lacking, we assume the map was nested under the relevant input.
-          return (span_manifest.py_version, sub_path[:-1])
+      if sub_field.map and sub_field.map.input_path:
+        return (span_manifest.py_version, sub_field.map.input_path)
+      if sub_field.dtype == STRING:
+        return (span_manifest.py_version, sub_path)
 
     raise ValueError('Cannot find the source path for the enriched path: {path}')
 
