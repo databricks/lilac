@@ -1804,8 +1804,8 @@ class DatasetDuckDB(Dataset):
             offset_column_name, field = temp_column_to_offset_column[signal_column]
             nested_spans: Iterable[Item] = df[offset_column_name]
             flat_spans = deep_flatten(nested_spans)
-            for span, item in zip(flat_spans, signal_out_list):
-              _offset_any_span(cast(int, span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
+            for text_span, item in zip(flat_spans, signal_out_list):
+              _offset_any_span(cast(int, text_span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
           if len(signal_out_list) != num_rich_data:
             raise ValueError(
