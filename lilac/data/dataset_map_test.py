@@ -932,7 +932,7 @@ def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
   def skip_first_and_last_letter(item: str) -> Item:
-    return lilac_span(1, len(item) - 1)
+    return span(1, len(item) - 1)
 
   dataset.map(skip_first_and_last_letter, input_path='text', output_column='skip')
 
@@ -946,6 +946,6 @@ def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
 
   rows = dataset.select_rows()
   assert list(rows) == [
-    {'text': 'abcd', 'skip': lilac_span(1, 3)},
-    {'text': 'efghi', 'skip': lilac_span(1, 4)},
+    {'text': 'abcd', 'skip': span(1, 3)},
+    {'text': 'efghi', 'skip': span(1, 4)},
   ]
