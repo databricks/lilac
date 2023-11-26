@@ -8,7 +8,7 @@ from typing_extensions import override
 
 from ..embeddings.embedding import get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field
 from ..signal import VectorSignal
 from ..utils import DebugTimer
 
@@ -79,7 +79,7 @@ class ClusterDBSCAN(VectorSignal):
         start, end = span
         if cluster_id == -1:
           cluster_id = None
-        span_clusters.append(lilac_span(start, end, {CLUSTER_ID: cluster_id}))
+        span_clusters.append(span(start, end, {CLUSTER_ID: cluster_id}))
         span_index += 1
 
       yield span_clusters

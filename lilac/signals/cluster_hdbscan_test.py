@@ -10,7 +10,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from ..data.dataset_test_utils import TestDataMaker, enriched_item
-from ..schema import Item, RichData, lilac_embedding, lilac_span
+from ..schema import Item, RichData, lilac_embedding, span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .cluster_hdbscan import ClusterHDBScan
 
@@ -64,9 +64,9 @@ def test_simple_data(make_test_data: TestDataMaker, mocker: MockerFixture) -> No
   signal_key = signal.key(is_computed_signal=True)
   result = dataset.select_rows(combine_columns=True)
   expected_result = [
-    {'text': enriched_item('a', {signal_key: [lilac_span(0, 1, {'cluster_id': 0})]})},
-    {'text': enriched_item('b', {signal_key: [lilac_span(0, 1, {'cluster_id': 1})]})},
-    {'text': enriched_item('c', {signal_key: [lilac_span(0, 1, {'cluster_id': 0})]})},
-    {'text': enriched_item('d', {signal_key: [lilac_span(0, 1, {'cluster_id': 1})]})},
+    {'text': enriched_item('a', {signal_key: [span(0, 1, {'cluster_id': 0})]})},
+    {'text': enriched_item('b', {signal_key: [span(0, 1, {'cluster_id': 1})]})},
+    {'text': enriched_item('c', {signal_key: [span(0, 1, {'cluster_id': 0})]})},
+    {'text': enriched_item('d', {signal_key: [span(0, 1, {'cluster_id': 1})]})},
   ]
   assert list(result) == expected_result

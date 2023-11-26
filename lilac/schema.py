@@ -454,7 +454,7 @@ class SpanVector(TypedDict):
   vector: np.ndarray
 
 
-def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
+def span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
   """Creates a lilac span item, representing a pointer to a slice of text."""
   return {SPAN_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
 
@@ -462,7 +462,7 @@ def lilac_span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
 def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
   """Creates a lilac embedding item, representing a vector with a pointer to a slice of text."""
   # Cast to int; we've had issues where start/end were np.int64, which caused downstream sadness.
-  return lilac_span(int(start), int(end), {EMBEDDING_KEY: embedding})
+  return span(int(start), int(end), {EMBEDDING_KEY: embedding})
 
 
 def _parse_field_like(field_like: object, dtype: Optional[Union[DataType, str]] = None) -> Field:

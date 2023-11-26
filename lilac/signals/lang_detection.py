@@ -5,7 +5,7 @@ from typing import Any, ClassVar, Iterable, Optional, cast
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
+from ..schema import Field, Item, RichData, SignalInputType, field, span
 from ..signal import TextSignal
 
 LANG_CODE = 'lang_code'
@@ -78,7 +78,7 @@ class LangDetectionSignal(TextSignal):
         if text_span:
           lang_code = self._detect(text_span, langdetect)
           if lang_code:
-            result.append(lilac_span(prev_end, start, {LANG_CODE: lang_code}))
+            result.append(span(prev_end, start, {LANG_CODE: lang_code}))
         prev_end = end
 
       # Process the last chunk.
@@ -86,6 +86,6 @@ class LangDetectionSignal(TextSignal):
       if text_span.strip():
         lang_code = self._detect(text_span, langdetect)
         if lang_code:
-          result.append(lilac_span(prev_end, len(text), {LANG_CODE: lang_code}))
+          result.append(span(prev_end, len(text), {LANG_CODE: lang_code}))
 
       yield result

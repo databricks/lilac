@@ -176,11 +176,11 @@ def write_embeddings_to_disk(
         spans: list[tuple[int, int]] = []
 
         for e in embedding_items:
-          span = e[SPAN_KEY]
+          text_span = e[SPAN_KEY]
           vector = e[EMBEDDING_KEY]
           # We squeeze here because embedding functions can return outer dimensions of 1.
           embedding_vectors.append(vector.reshape(-1))
-          spans.append((span[TEXT_SPAN_START_FEATURE], span[TEXT_SPAN_END_FEATURE]))
+          spans.append((text_span[TEXT_SPAN_START_FEATURE], text_span[TEXT_SPAN_END_FEATURE]))
 
         yield (path_key, spans, embedding_vectors)
 

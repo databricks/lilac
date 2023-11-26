@@ -19,8 +19,8 @@ from ..schema import (
   SignalInputType,
   field,
   lilac_embedding,
-  lilac_span,
   schema,
+  span,
 )
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
@@ -118,8 +118,7 @@ class TestSplitSignal(TextSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        lilac_span(text.index(sentence), text.index(sentence) + len(sentence))
-        for sentence in sentences
+        span(text.index(sentence), text.index(sentence) + len(sentence)) for sentence in sentences
       ]
 
 
@@ -517,13 +516,13 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         '[1, 1] first sentence. [1, 1] second sentence.',
-        {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]},
+        {'test_split': [span(0, 22), span(23, 46)]},
       )
     },
     {
       'text': enriched_item(
         'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        {'test_split': [lilac_span(0, 25), lilac_span(26, 49)]},
+        {'test_split': [span(0, 25), span(26, 49)]},
       )
     },
   ]
@@ -593,13 +592,13 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         '[1, 1] first sentence. [1, 1] second sentence.',
-        {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]},
+        {'test_split': [span(0, 22), span(23, 46)]},
       )
     },
     {
       'text': enriched_item(
         'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        {'test_split': [lilac_span(0, 25), lilac_span(26, 49)]},
+        {'test_split': [span(0, 25), span(26, 49)]},
       )
     },
   ]

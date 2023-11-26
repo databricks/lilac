@@ -20,7 +20,7 @@ from ..schema import (
   VectorKey,
   field,
   lilac_embedding,
-  lilac_span,
+  span,
 )
 from ..signal import (
   TextEmbeddingSignal,
@@ -289,7 +289,7 @@ class TestSplitter(TextSignal):
       for sentence in text.split('.'):
         start = text.index(sentence)
         end = start + len(sentence)
-        result.append(lilac_span(start, end))
+        result.append(span(start, end))
       yield result
 
 
@@ -304,13 +304,13 @@ def test_udf_after_precomputed_split(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         'sentence 1. sentence 2 is longer',
-        {'length_signal': 32, 'test_splitter': [lilac_span(0, 10), lilac_span(11, 32)]},
+        {'length_signal': 32, 'test_splitter': [span(0, 10), span(11, 32)]},
       )
     },
     {
       'text': enriched_item(
         'sentence 1 is longer. sent2 is short',
-        {'length_signal': 36, 'test_splitter': [lilac_span(0, 20), lilac_span(21, 36)]},
+        {'length_signal': 36, 'test_splitter': [span(0, 20), span(21, 36)]},
       )
     },
   ]

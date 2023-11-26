@@ -29,7 +29,7 @@ from .router_concept import (
   ScoreBody,
   ScoreExample,
 )
-from .schema import Item, RichData, lilac_embedding, lilac_span
+from .schema import Item, RichData, lilac_embedding, span
 from .server import app
 from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .test_utils import fake_uuid
@@ -532,8 +532,8 @@ def test_concept_model_sync(mocker: MockerFixture) -> None:
   response = client.post(url, json=score_body.model_dump())
   assert response.status_code == 200
   assert response.json() == [
-    [lilac_span(0, 11, {'score': 0.9})],
-    [lilac_span(0, 5, {'score': 1.0})],
+    [span(0, 11, {'score': 0.9})],
+    [span(0, 5, {'score': 1.0})],
   ]
 
 

@@ -2,7 +2,7 @@
 
 from typing import Optional, Union
 
-from ..schema import SPAN_KEY, TEXT_SPAN_END_FEATURE, TEXT_SPAN_START_FEATURE, Item, lilac_span
+from ..schema import SPAN_KEY, TEXT_SPAN_END_FEATURE, TEXT_SPAN_START_FEATURE, Item, span
 from .chunk_splitter import TextChunk
 
 
@@ -32,7 +32,7 @@ def text_to_expected_spans(
       raise ValueError('Split should be a string or a tuple of (string, item dict).')
     start = text.find(split, start_offset)
     end = start + len(split)
-    expected_spans.append(lilac_span(start=start, end=end, metadata=item))
+    expected_spans.append(span(start=start, end=end, metadata=item))
     start_offset = end - allowable_overlap
 
   return expected_spans

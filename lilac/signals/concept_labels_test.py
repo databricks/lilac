@@ -11,7 +11,7 @@ from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptDB, ConceptUpdate, DiskConceptDB, DiskConceptModelDB
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..db_manager import set_default_dataset_cls
-from ..schema import SignalInputType, lilac_span
+from ..schema import SignalInputType, span
 from ..signal import clear_signal_registry
 from .concept_labels import ConceptLabelsSignal
 
@@ -70,11 +70,11 @@ def test_concept_labels(concept_db_cls: Type[ConceptDB]) -> None:
   )
 
   assert results == [
-    [lilac_span(8, 8 + len('no in concept'), {'label': False})],
-    [lilac_span(8, 8 + len('yes in concept'), {'label': True})],
+    [span(8, 8 + len('no in concept'), {'label': False})],
+    [span(8, 8 + len('yes in concept'), {'label': True})],
     [
-      lilac_span(8, 8 + len('no in concept'), {'label': False}),
-      lilac_span(39, 39 + len('yes in concept'), {'label': True}),
+      span(8, 8 + len('no in concept'), {'label': False}),
+      span(39, 39 + len('yes in concept'), {'label': True}),
     ],
     # This example is in the draft, which was not requested.
     None,
@@ -103,9 +103,9 @@ def test_concept_labels_draft(concept_db_cls: Type[ConceptDB]) -> None:
   results = list(signal.compute(['this is in concept', 'this is in draft', 'this is out draft']))
 
   assert results == [
-    [lilac_span(8, 8 + len('in concept'), {'label': True})],
-    [lilac_span(8, 8 + len('in draft'), {'label': True, 'draft': 'test_draft'})],
-    [lilac_span(8, 8 + len('out draft'), {'label': False, 'draft': 'test_draft'})],
+    [span(8, 8 + len('in concept'), {'label': True})],
+    [span(8, 8 + len('in draft'), {'label': True, 'draft': 'test_draft'})],
+    [span(8, 8 + len('out draft'), {'label': False, 'draft': 'test_draft'})],
   ]
 
 

@@ -17,8 +17,8 @@ from ..schema import (
   MapInfo,
   RichData,
   field,
-  lilac_span,
   schema,
+  span,
 )
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
@@ -768,8 +768,7 @@ def test_map_span(make_test_data: TestDataMaker) -> None:
   # Return coordinates of 'b'.
   def _map_fn(item: Item) -> Item:
     return [
-      lilac_span(m.start(), m.end(), {'len': m.end() - m.start()})
-      for m in re.finditer('b', item['text'])
+      span(m.start(), m.end(), {'len': m.end() - m.start()}) for m in re.finditer('b', item['text'])
     ]
 
   dataset.map(_map_fn, output_column='b_span', nest_under='text')
@@ -801,10 +800,10 @@ def test_map_span(make_test_data: TestDataMaker) -> None:
   rows = list(dataset.select_rows([PATH_WILDCARD], combine_columns=True))
   assert rows == [
     {
-      'text': enriched_item('ab', {'b_span': [lilac_span(1, 2, {'len': 1})]}),
+      'text': enriched_item('ab', {'b_span': [span(1, 2, {'len': 1})]}),
     },
     {
-      'text': enriched_item('bc', {'b_span': [lilac_span(0, 1, {'len': 1})]}),
+      'text': enriched_item('bc', {'b_span': [span(0, 1, {'len': 1})]}),
     },
   ]
 

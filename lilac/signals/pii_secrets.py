@@ -11,7 +11,7 @@ from typing import Iterator
 from detect_secrets import SecretsCollection
 from detect_secrets.settings import transient_settings
 
-from ..schema import Item, lilac_span
+from ..schema import Item, span
 
 # Secrets detection with detect-secrets tool
 
@@ -115,4 +115,4 @@ def find_secrets(content: str, suffix: str = '.txt') -> Iterator[Item]:
       continue
     indexes = _get_indexes(content, secret.secret_value)
     for start, end in indexes:
-      yield lilac_span(start, end)
+      yield span(start, end)

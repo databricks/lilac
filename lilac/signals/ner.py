@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterable, Optional
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
+from ..schema import Field, Item, RichData, SignalInputType, field, span
 from ..signal import TextSignal
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ class SpacyNER(TextSignal):
     text_data = (row if isinstance(row, str) else '' for row in data)
 
     for doc in self._nlp.pipe(text_data):
-      result = [lilac_span(ent.start_char, ent.end_char, {'label': ent.label_}) for ent in doc.ents]
+      result = [span(ent.start_char, ent.end_char, {'label': ent.label_}) for ent in doc.ents]
 
       if result:
         yield result
