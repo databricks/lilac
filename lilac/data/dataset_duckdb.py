@@ -2051,12 +2051,16 @@ class DatasetDuckDB(Dataset):
 
   def _resolve_span(
     self, span_path: PathTuple, manifest: DatasetManifest
-  ) -> Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]]:
+  ) -> Optional[tuple[Optional[str], PathTuple]]:
     schema = manifest.data_schema
-    leafs = schema.leafs
-    is_span = span_path in leafs and leafs[span_path].dtype == STRING_SPAN
-    if not is_span:
+    if not schema.has_field(span_path):
       return None
+    span_field = schema.get_field(span_path)
+    if not span_field.dtype == STRING_SPAN:
+      return None
+
+    if span_field.map and span_field.map.input_path:
+      return (metadata.version('lilac'), span_field.map.input_path)
 
     # Find the manifest that contains the span path.
     manifests: list[Union[SignalManifest, MapManifest]] = (
@@ -2070,14 +2074,13 @@ class DatasetDuckDB(Dataset):
     )
 
     # Find the original text, which is the closest parent of `path` above the signal root.
-    text_path: PathTuple
     for i in reversed(range(len(span_path))):
       sub_path = span_path[:i]
       sub_field = schema.get_field(sub_path)
-      if sub_field.signal is not None or sub_field.map is not None:
-        # Skip the signal name at the end to get the source path that was enriched.
-        text_path = sub_path[:-1]
-        return (span_manifest, text_path)
+      if sub_field.map and sub_field.map.input_path:
+        return (span_manifest.py_version, sub_field.map.input_path)
+      if sub_field.dtype == STRING:
+        return (span_manifest.py_version, sub_path)
 
     raise ValueError('Cannot find the source path for the enriched path: {path}')
 
@@ -2711,7 +2714,7 @@ def _inner_select(
   schema: Schema,
   inner_var: Optional[str] = None,
   empty: bool = False,
-  span_from: Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]] = None,
+  span_from: Optional[tuple[Optional[str], PathTuple]] = None,
 ) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
@@ -2724,10 +2727,10 @@ def _inner_select(
   path_key = inner_var + ''.join([f'[{escape_string_literal(p)}]' for p in current_sub_path])
   if len(sub_paths) == 1:
     if span_from:
-      manifest, span_path = span_from
+      py_version, span_path = span_from
       # Older signal manifests (w/o py_version) store spans under `VALUE_KEY` instead of `SPAN_KEY`.
       # TODO(smilkov): Remove this once we bump the semver to breaking.
-      span_key = SPAN_KEY if manifest.py_version else VALUE_KEY
+      span_key = SPAN_KEY if py_version else VALUE_KEY
       derived_col = _select_sql(span_path, flatten=False, unnest=False, path=path, schema=schema)
       path_key = (
         f'{derived_col}[{path_key}.{span_key}.{TEXT_SPAN_START_FEATURE}+1:'
@@ -2766,7 +2769,7 @@ def _select_sql(
   path: PathTuple,
   schema: Schema,
   empty: bool = False,
-  span_from: Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]] = None,
+  span_from: Optional[tuple[Optional[str], PathTuple]] = None,
 ) -> str:
   """Create a select column for a path.
 

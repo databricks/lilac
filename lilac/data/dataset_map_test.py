@@ -26,7 +26,7 @@ from ..test_utils import (
   TEST_TIME,
   allow_any_datetime,
 )
-from .dataset import DatasetManifest
+from .dataset import DatasetManifest, SelectGroupsResult, StatsResult
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -926,3 +926,26 @@ def test_map_nest_under_validation(make_test_data: TestDataMaker) -> None:
     ValueError, match=re.escape("The `nest_under` column ('fake',) does not exist.")
   ):
     dataset.map(_map_fn, output_column='output', nest_under=('fake',), combine_columns=False)
+
+
+def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
+
+  def skip_first_and_last_letter(item: str) -> Item:
+    return lilac_span(1, len(item) - 1)
+
+  dataset.map(skip_first_and_last_letter, input_path='text', output_column='skip')
+
+  result = dataset.select_groups('skip')
+  assert result == SelectGroupsResult(too_many_distinct=False, counts=[('bc', 1), ('fgh', 1)])
+
+  stats = dataset.stats('skip')
+  assert stats == StatsResult(
+    path=('skip',), total_count=2, approx_count_distinct=2, avg_text_length=2.0
+  )
+
+  rows = dataset.select_rows()
+  assert list(rows) == [
+    {'text': 'abcd', 'skip': lilac_span(1, 3)},
+    {'text': 'efghi', 'skip': lilac_span(1, 4)},
+  ]
