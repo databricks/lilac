@@ -335,6 +335,17 @@ export function conceptDisplayName(
   return `${conceptNamespace}/${conceptName}`;
 }
 
+/** Returns the input path used to compute this field, if it was computed via map, otherwise returns undefined. */
+function getMapInputPath(field: LilacField): Path | undefined {
+  let currentField: LilacField | undefined = field;
+  while (currentField != null) {
+    if (currentField.map?.input_path) {
+      return currentField.map.input_path;
+    }
+    currentField = field.parent != currentField ? field.parent : undefined;
+  }
+}
+
 export function getSpanValuePaths(
   field: LilacField,
   highlightedFields?: LilacField[]
@@ -358,6 +369,19 @@ export function getSpanValuePaths(
     spanFields = spanFields.filter(f =>
       childFields(f).some(c => highlightedFields.some(v => pathIncludes(c.path, v.path)))
     );
+  }
+
+  // Find if any of the highlighted fields were derived from the current field and include any
+  // spans from those fields as well.
+  for (const highlightedField of highlightedFields || []) {
+    const inputPath = getMapInputPath(highlightedField);
+    const derivedFromCurrentField = inputPath && pathIsEqual(inputPath, field.path);
+    if (derivedFromCurrentField) {
+      const highlightedSpans = childFields(highlightedField).filter(
+        f => f.dtype?.type === 'string_span'
+      );
+      spanFields = [...spanFields, ...highlightedSpans];
+    }
   }
 
   const spanPaths = spanFields.map(f => f.path);
