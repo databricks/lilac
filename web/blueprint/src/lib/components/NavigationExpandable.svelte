@@ -18,8 +18,6 @@
   // tags, to avoid branching logic upstream.
   export let renderBelowOnly = false;
 
-  const SLOTS = $$props.$$slots;
-
   // Padding multiplier for indent level, in rem.
   const INDENT_LEVEL_PADDING_REM = 0.4;
   // Adds a little extra padding to the left.
@@ -50,29 +48,29 @@
       </div>
     </button>
     {#if expanded}
-      {#if SLOTS.below}
-        <div class={`mt-1`}><slot name="below" /></div>
-      {/if}
-      {#if linkItems.length > 0}
-        {#each linkItems as linkItem}
-          <div
-            class={`flex w-full rounded ${!linkItem.isSelected ? 'hover:bg-gray-100' : ''}
+      <div class="mt-1">
+        <slot name="below" />
+        {#if linkItems.length > 0}
+          {#each linkItems as linkItem}
+            <div
+              class={`flex w-full rounded ${!linkItem.isSelected ? 'hover:bg-gray-100' : ''}
           `}
-            style={`padding-left: ${linkPadding}rem;`}
-            class:bg-neutral-100={linkItem.isSelected}
-          >
-            <a
-              href={linkItem.link}
-              on:click={() => goto(linkItem.link)}
-              class:text-black={linkItem.isSelected}
-              class:font-semibold={linkItem.isSelected}
-              class="w-full truncate px-1 py-1 text-xs text-black"
+              style={`padding-left: ${linkPadding}rem;`}
+              class:bg-neutral-100={linkItem.isSelected}
             >
-              {linkItem.name}
-            </a>
-          </div>
-        {/each}
-      {/if}
+              <a
+                href={linkItem.link}
+                on:click={() => goto(linkItem.link)}
+                class:text-black={linkItem.isSelected}
+                class:font-semibold={linkItem.isSelected}
+                class="w-full truncate px-1 py-1 text-xs text-black"
+              >
+                {linkItem.name}
+              </a>
+            </div>
+          {/each}
+        {/if}
+      </div>
     {/if}
   </div>
 {:else}
