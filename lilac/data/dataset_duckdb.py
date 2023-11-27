@@ -105,6 +105,7 @@ from .dataset import (
   LIST_OPS,
   MAX_TEXT_LEN_DISTINCT_COUNT,
   SAMPLE_AVG_TEXT_LENGTH,
+  STRING_OPS,
   TOO_MANY_DISTINCT,
   UNARY_OPS,
   BinaryOp,
@@ -1141,6 +1142,11 @@ class DatasetDuckDB(Dataset):
 
       if filter.op in BINARY_OPS and not current_field.dtype:
         raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
+      if filter.op in STRING_OPS:
+        if current_field.dtype != STRING:
+          raise ValueError(f'Unable to apply string filter to path {filter.path}. ')
+        if filter.op in ('length_shorter', 'length_shorter') and not isinstance(filter.value, int):
+          raise ValueError(f'TypeError: String length {filter.value} should be an integer. ')
 
   def _validate_udfs(self, udf_cols: Sequence[Column], source_schema: Schema) -> None:
     for col in udf_cols:
@@ -2343,6 +2349,24 @@ class DatasetDuckDB(Dataset):
         else:
           nan_filter = f'NOT isnan({select_str}) AND' if filter_nans else ''
           filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
+      elif f.op in STRING_OPS:
+        if f.op == 'contains':
+          filter_val = cast(str, f.value)
+          filter_query = f'contains({select_str}, {escape_string_literal(filter_val)})'
+        elif f.op == 'not_contains':
+          filter_val = cast(str, f.value)
+          filter_query = f'not contains({select_str}, {escape_string_literal(filter_val)})'
+        elif f.op == 'length_shorter':
+          filter_val = cast(int, f.value)
+          filter_query = f'length({select_str}) <= {filter_val}'
+        elif f.op == 'length_longer':
+          filter_val = cast(int, f.value)
+          filter_query = f'length({select_str}) >= {filter_val}'
+        elif f.op == 'regex_matches':
+          filter_val = cast(str, f.value)
+          filter_query = f'regexp_matches({select_str}, {escape_string_literal(filter_val)})'
+        else:
+          raise ValueError(f'String op: {f.op} is not yet supported')
       elif f.op in UNARY_OPS:
         if f.op == 'exists':
           filter_query = (

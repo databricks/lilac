@@ -4,7 +4,7 @@ from typing import ClassVar, Iterable, Optional
 
 from ..schema import ROWID, Field, Item, MapType, RichData, field, schema
 from ..signal import TextSignal
-from .dataset import BinaryFilterTuple, ListFilterTuple, UnaryFilterTuple
+from .dataset import BinaryFilterTuple, ListFilterTuple, StringFilterTuple, UnaryFilterTuple
 from .dataset_test_utils import TestDataMaker
 
 TEST_DATA: list[Item] = [
@@ -12,6 +12,13 @@ TEST_DATA: list[Item] = [
   {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
   {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
   {'float': float('nan')},
+]
+
+
+STRING_TEST_DATA: list[Item] = [
+  {'str': 'abcde', 'int': 1},
+  {'str': 'a' * 10, 'int': 2},
+  {'str': '', 'int': 3},
 ]
 
 
@@ -87,6 +94,51 @@ def test_filter_not_equal(make_test_data: TestDataMaker) -> None:
     {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
     # NaNs are not counted when we are filtering a field.
   ]
+
+
+def test_filter_length_longer(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(STRING_TEST_DATA)
+
+  filter: StringFilterTuple = ('str', 'length_longer', 5)
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': 'abcde', 'int': 1}, {'str': 'a' * 10, 'int': 2}]
+
+
+def test_filter_length_shorter(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(STRING_TEST_DATA)
+
+  filter: StringFilterTuple = ('str', 'length_shorter', 5)
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': 'abcde', 'int': 1}, {'str': '', 'int': 3}]
+
+
+def test_filter_string_contains(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(STRING_TEST_DATA)
+
+  filter: StringFilterTuple = ('str', 'contains', 'bc')
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': 'abcde', 'int': 1}]
+
+
+def test_filter_string_not_contains(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(STRING_TEST_DATA)
+
+  filter: StringFilterTuple = ('str', 'not_contains', 'bc')
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': 'a' * 10, 'int': 2}, {'str': '', 'int': 3}]
+
+
+def test_filter_string_regex_matches(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(STRING_TEST_DATA)
+
+  filter: StringFilterTuple = ('str', 'regex_matches', 'a+')
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': 'abcde', 'int': 1}, {'str': 'a' * 10, 'int': 2}]
 
 
 def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
