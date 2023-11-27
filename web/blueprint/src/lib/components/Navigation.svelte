@@ -10,7 +10,7 @@
   import {conceptLink, signalLink} from '$lib/utils';
   import {getTaggedConcepts, getTaggedDatasets} from '$lib/view_utils';
   import {AddAlt, Settings, SidePanelClose} from 'carbon-icons-svelte';
-  import NavigationGroup from './NavigationGroup.svelte';
+  import NavigationCategory from './NavigationCategory.svelte';
   import {Command, triggerCommand} from './commands/Commands.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
 
@@ -100,7 +100,7 @@
       >
     </div>
   </div>
-  <NavigationGroup title="Datasets" tagGroups={taggedDatasets} isFetching={$datasets.isFetching}>
+  <NavigationCategory title="Datasets" tagGroups={taggedDatasets} isFetching={$datasets.isFetching}>
     <div slot="add" class="w-full">
       {#if canCreateDataset}
         <button
@@ -109,8 +109,8 @@
         >
       {/if}
     </div>
-  </NavigationGroup>
-  <NavigationGroup title="Concepts" tagGroups={taggedConcepts} isFetching={$concepts.isFetching}>
+  </NavigationCategory>
+  <NavigationCategory title="Concepts" tagGroups={taggedConcepts} isFetching={$concepts.isFetching}>
     <div slot="add">
       <div
         class="w-full"
@@ -128,8 +128,12 @@
         >
       </div>
     </div>
-  </NavigationGroup>
-  <NavigationGroup title="Signals" tagGroups={signalNavGroups} isFetching={$signals.isFetching} />
+  </NavigationCategory>
+  <NavigationCategory
+    title="Signals"
+    tagGroups={signalNavGroups}
+    isFetching={$signals.isFetching}
+  />
   <div class="w-full px-1">
     <button
       class={`w-full px-4 py-2 text-left  ${!settingsSelected ? 'hover:bg-gray-100' : ''}`}
