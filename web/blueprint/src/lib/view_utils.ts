@@ -335,7 +335,7 @@ export function conceptDisplayName(
 }
 
 /** Returns the input path used to compute this field, if it was computed via map, otherwise returns undefined. */
-function getInputPath(field: LilacField): Path | undefined {
+function getMapInputPath(field: LilacField): Path | undefined {
   let currentField: LilacField | undefined = field;
   while (currentField != null) {
     if (currentField.map?.input_path) {
@@ -373,7 +373,7 @@ export function getSpanValuePaths(
   // Find if any of the highlighted fields were derived from the current field and include any
   // spans from those fields as well.
   for (const highlightedField of highlightedFields || []) {
-    const inputPath = getInputPath(highlightedField);
+    const inputPath = getMapInputPath(highlightedField);
     const derivedFromCurrentField = inputPath && pathIsEqual(inputPath, field.path);
     if (derivedFromCurrentField) {
       const highlightedSpans = childFields(highlightedField).filter(

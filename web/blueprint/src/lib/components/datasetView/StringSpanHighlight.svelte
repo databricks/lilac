@@ -68,7 +68,10 @@
     pathToSpans = {};
     spanPaths.forEach(sp => {
       let valueNodes = getValueNodes(row, sp);
-      if (pathMatchesPrefix(path, sp)) {
+      const isSpanNestedUnder = pathMatchesPrefix(path, sp);
+      if (isSpanNestedUnder) {
+        // Filter out any span values that do not share the same coordinates as the current path we
+        // are rendering.
         valueNodes = valueNodes.filter(v => pathIncludes(L.path(v), path) || path == null);
       }
       pathToSpans[serializePath(sp)] = valueNodes as LilacValueNodeCasted<'string_span'>[];
