@@ -116,32 +116,33 @@ export function getSearchEmbedding(
   searchPath: Path | undefined,
   embeddings: string[]
 ): string | null {
+  const existingEmbeddings = getComputedEmbeddings(schema, searchPath);
+  if (existingEmbeddings != null && existingEmbeddings.length > 0) {
+    // Sort embeddings by what have already been precomputed first.
+    const sortedEmbeddings =
+      existingEmbeddings != null
+        ? [...(embeddings || [])].sort((a, b) => {
+            const hasA = existingEmbeddings.includes(a);
+            const hasB = existingEmbeddings.includes(b);
+            if (hasA && hasB) {
+              return 0;
+            } else if (hasA) {
+              return -1;
+            } else if (hasB) {
+              return 1;
+            }
+            return 0;
+          })
+        : [];
+    return sortedEmbeddings[0];
+  }
   if (datasetSettings != null && datasetSettings.preferred_embedding != null) {
     return datasetSettings.preferred_embedding;
   }
   if (appSettings.embedding != null) {
     return appSettings.embedding;
   }
-  if (searchPath == null) return null;
-
-  const existingEmbeddings = getComputedEmbeddings(schema, searchPath);
-  // Sort embeddings by what have already been precomputed first.
-  const sortedEmbeddings =
-    existingEmbeddings != null
-      ? [...(embeddings || [])].sort((a, b) => {
-          const hasA = existingEmbeddings.includes(a);
-          const hasB = existingEmbeddings.includes(b);
-          if (hasA && hasB) {
-            return 0;
-          } else if (hasA) {
-            return -1;
-          } else if (hasB) {
-            return 1;
-          }
-          return 0;
-        })
-      : [];
-  return sortedEmbeddings[0];
+  return null;
 }
 
 /** Get the computed embeddings for a path. */
