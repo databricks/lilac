@@ -2808,9 +2808,16 @@ def _select_sql(
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
   """Read the manifest file."""
+  manifest_filepath = os.path.join(dataset_path, MANIFEST_FILENAME)
+  if not os.path.exists(manifest_filepath):
+    raise ValueError(
+      f'Dataset manifest does not exist at path: {manifest_filepath}. '
+      'Please check that the dataset name is correct and that you set the lilac project dir '
+      'correctly. To set the project dir call: `ll.set_project_dir("path/to/project")`.'
+    )
   # TODO(nsthorat): Overwrite the source manifest with a "source" added if the source is not defined
   # by reading the config yml.
-  with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'r') as f:
+  with open_file(manifest_filepath, 'r') as f:
     source_manifest = SourceManifest.model_validate_json(f.read())
 
   # For backwards compatibility, check if the config has the source and write it back to the
