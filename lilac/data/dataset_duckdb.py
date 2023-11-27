@@ -955,7 +955,7 @@ class DatasetDuckDB(Dataset):
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
-    _, _, parquet_filepath = self._reshard_cache(
+    _, signal_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
       schema=signal_schema,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
@@ -1032,6 +1032,8 @@ class DatasetDuckDB(Dataset):
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
+
+    assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
 
     row_ids = (item[ROWID] for item in output_items)
 
@@ -1665,7 +1667,8 @@ class DatasetDuckDB(Dataset):
         select_sqls.append(f'{sql} AS {escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
-        if column.signal_udf and span_from and _schema_has_spans(column.signal_udf.fields()):
+        udf_schema = column.signal_udf and column.signal_udf.fields()
+        if span_from and udf_schema and _schema_has_spans(udf_schema):
           sql = _select_sql(
             duckdb_path,
             flatten=False,
@@ -1678,10 +1681,7 @@ class DatasetDuckDB(Dataset):
           temp_offset_column_name = f'{temp_column_name}/offset'
           temp_offset_column_name = temp_offset_column_name.replace("'", "\\'")
           select_sqls.append(f'{sql} AS {escape_string_literal(temp_offset_column_name)}')
-          temp_column_to_offset_column[temp_column_name] = (
-            temp_offset_column_name,
-            column.signal_udf.fields(),
-          )
+          temp_column_to_offset_column[temp_column_name] = (temp_offset_column_name, udf_schema)
 
       # `select_sqls` can be empty if this column points to a path that will be created by a UDF.
       if select_sqls:
@@ -1908,6 +1908,7 @@ class DatasetDuckDB(Dataset):
       if col.signal_udf:
         udfs.append(SelectRowsSchemaUDF(path=dest_path, alias=col.alias))
         field = col.signal_udf.fields()
+        assert field, f'Expected signal {col.signal_udf.name} to have a schema defined.'
         field.signal = col.signal_udf.model_dump()
       elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)
