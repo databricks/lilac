@@ -38,7 +38,7 @@ import {
   Time,
   type CarbonIcon
 } from 'carbon-icons-svelte';
-import type {NavigationGroupItem, NavigationTagGroup} from './components/NavigationGroup.svelte';
+import type {NavigationGroupItem, NavigationTagGroup} from './components/NavigationCategory.svelte';
 import type {SpanValueInfo} from './components/datasetView/spanHighlight';
 import type {DatasetViewState} from './stores/datasetViewStore';
 import type {SettingsState} from './stores/settingsStore';
