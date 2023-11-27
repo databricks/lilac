@@ -114,24 +114,6 @@ def test_filter_length_shorter(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{'str': 'abcde', 'int': 1}, {'str': '', 'int': 3}]
 
 
-def test_filter_string_contains(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(STRING_TEST_DATA)
-
-  filter: StringFilterTuple = ('str', 'contains', 'bc')
-  result = dataset.select_rows(filters=[filter])
-
-  assert list(result) == [{'str': 'abcde', 'int': 1}]
-
-
-def test_filter_string_not_contains(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(STRING_TEST_DATA)
-
-  filter: StringFilterTuple = ('str', 'not_contains', 'bc')
-  result = dataset.select_rows(filters=[filter])
-
-  assert list(result) == [{'str': 'a' * 10, 'int': 2}, {'str': '', 'int': 3}]
-
-
 def test_filter_string_regex_matches(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(STRING_TEST_DATA)
 
@@ -139,6 +121,15 @@ def test_filter_string_regex_matches(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows(filters=[filter])
 
   assert list(result) == [{'str': 'abcde', 'int': 1}, {'str': 'a' * 10, 'int': 2}]
+
+
+def test_filter_string_not_regex_matches(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(STRING_TEST_DATA)
+
+  filter: StringFilterTuple = ('str', 'not_regex_matches', 'a+')
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': '', 'int': 3}]
 
 
 def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:

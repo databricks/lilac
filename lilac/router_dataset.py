@@ -22,6 +22,7 @@ from .data.dataset import (
   SelectRowsSchemaResult,
   SortOrder,
   StatsResult,
+  StringOp,
   UnaryOp,
 )
 from .data.dataset import Column as DBColumn
@@ -184,6 +185,14 @@ class BinaryFilter(BaseModel):
   value: FeatureValue
 
 
+class StringFilter(BaseModel):
+  """A filter on a column."""
+
+  path: Path
+  op: StringOp
+  value: str
+
+
 class UnaryFilter(BaseModel):
   """A filter on a column."""
 
@@ -200,7 +209,7 @@ class ListFilter(BaseModel):
   value: FeatureListValue
 
 
-Filter = Union[BinaryFilter, UnaryFilter, ListFilter]
+Filter = Union[BinaryFilter, StringFilter, UnaryFilter, ListFilter]
 
 AllSignalTypes = Union[
   ConceptSignal,

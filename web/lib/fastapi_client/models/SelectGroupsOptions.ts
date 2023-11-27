@@ -7,6 +7,7 @@ import type { BinaryFilter } from './BinaryFilter';
 import type { GroupsSortBy } from './GroupsSortBy';
 import type { ListFilter } from './ListFilter';
 import type { SortOrder } from './SortOrder';
+import type { StringFilter } from './StringFilter';
 import type { UnaryFilter } from './UnaryFilter';
 
 /**
@@ -14,7 +15,7 @@ import type { UnaryFilter } from './UnaryFilter';
  */
 export type SelectGroupsOptions = {
     leaf_path: (Array<string> | string);
-    filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
+    filters?: Array<(BinaryFilter | StringFilter | UnaryFilter | ListFilter)>;
     sort_by?: (GroupsSortBy | null);
     sort_order?: (SortOrder | null);
     limit?: (number | null);

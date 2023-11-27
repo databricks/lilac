@@ -83,7 +83,11 @@
     ['less_equal', 'less or equal (<=)'],
     ['in', 'in'],
     ['exists', 'exists'],
-    ['not_exists', 'not exists']
+    ['not_exists', 'not exists'],
+    ['length_longer', 'String length longer than'],
+    ['length_shorter', 'String length shorter than'],
+    ['regex_matches', 'String matches regex'],
+    ['not_regex_matches', 'String does not match regex']
   ];
 
   function close() {
