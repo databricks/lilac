@@ -25,8 +25,15 @@
   );
 
   $: {
-    if ($rowsQuery.data != null && !$rowsQuery.isPreviousData) {
+    if (
+      $rowsQuery != null &&
+      $rowsQuery.data != null &&
+      !$rowsQuery.isPreviousData &&
+      !$rowsQuery.isFetching
+    ) {
       rowsResponse = $rowsQuery.data;
+    } else {
+      rowsResponse = undefined;
     }
   }
 </script>

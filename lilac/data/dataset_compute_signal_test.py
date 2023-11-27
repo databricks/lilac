@@ -1,5 +1,6 @@
 """Tests for dataset.compute_signal()."""
 
+import re
 from typing import ClassVar, Iterable, Optional, Union, cast
 
 import numpy as np
@@ -18,8 +19,8 @@ from ..schema import (
   SignalInputType,
   field,
   lilac_embedding,
-  lilac_span,
   schema,
+  span,
 )
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
@@ -39,19 +40,6 @@ SIMPLE_ITEMS: list[Item] = [
   {'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
   {'str': 'b', 'int': 2, 'bool': True, 'float': 1.0},
 ]
-
-
-class TestInvalidSignal(TextSignal):
-  name: ClassVar[str] = 'test_invalid_signal'
-
-  @override
-  def fields(self) -> Field:
-    return field('int32')
-
-  @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    # Return an invalid output that doesn't match the input length.
-    return []
 
 
 class TestSparseSignal(TextSignal):
@@ -130,8 +118,7 @@ class TestSplitSignal(TextSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        lilac_span(text.index(sentence), text.index(sentence) + len(sentence))
-        for sentence in sentences
+        span(text.index(sentence), text.index(sentence) + len(sentence)) for sentence in sentences
       ]
 
 
@@ -198,12 +185,52 @@ def setup_teardown() -> Iterable[None]:
 
 
 def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
-  signal = TestInvalidSignal()
+  class _TestInvalidSignal(TextSignal):
+    name: ClassVar[str] = 'test_invalid_signal'
+
+    @override
+    def fields(self) -> Field:
+      return field('int32')
+
+    @override
+    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+      # Return an invalid output that doesn't match the input length.
+      return []
+
+  signal = _TestInvalidSignal()
 
   dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
 
   with pytest.raises(
-    ValueError, match='The signal generated a different number of values than was input.'
+    ValueError,
+    match=re.escape(
+      'The signal generated a different number of outputs than was given as input. '
+      'Please yield `None` for sparse signals. For signals that output multiple values, '
+      'please yield an array for each input.'
+    ),
+  ):
+    dataset.compute_signal(signal, 'text')
+
+
+def test_signal_error_propagates(make_test_data: TestDataMaker) -> None:
+  class _TestInvalidSignal(TextSignal):
+    name: ClassVar[str] = 'test_invalid_signal'
+
+    @override
+    def fields(self) -> Field:
+      return field('int32')
+
+    @override
+    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+      raise ValueError('signal error')
+
+  signal = _TestInvalidSignal()
+
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
+
+  with pytest.raises(
+    ValueError,
+    match=re.escape('signal error'),
   ):
     dataset.compute_signal(signal, 'text')
 
@@ -489,13 +516,13 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         '[1, 1] first sentence. [1, 1] second sentence.',
-        {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]},
+        {'test_split': [span(0, 22), span(23, 46)]},
       )
     },
     {
       'text': enriched_item(
         'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        {'test_split': [lilac_span(0, 25), lilac_span(26, 49)]},
+        {'test_split': [span(0, 25), span(26, 49)]},
       )
     },
   ]
@@ -565,13 +592,13 @@ def test_text_splitter(make_test_data: TestDataMaker) -> None:
     {
       'text': enriched_item(
         '[1, 1] first sentence. [1, 1] second sentence.',
-        {'test_split': [lilac_span(0, 22), lilac_span(23, 46)]},
+        {'test_split': [span(0, 22), span(23, 46)]},
       )
     },
     {
       'text': enriched_item(
         'b2 [2, 1] first sentence. [2, 1] second sentence.',
-        {'test_split': [lilac_span(0, 25), lilac_span(26, 49)]},
+        {'test_split': [span(0, 25), span(26, 49)]},
       )
     },
   ]
@@ -630,8 +657,8 @@ def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:
   dataset.compute_signal(test_splitter, 'text')
 
   test_embedding = TestEmbedding()
-  with pytest.raises(ValueError, match='Cannot compute signal over a non-string field.'):
-    dataset.compute_signal(test_splitter, ('text', 'test_split', '*'))
+  with pytest.raises(ValueError, match='Cannot compute embedding over a non-string field.'):
+    dataset.compute_signal(test_embedding, ('text', 'test_split', '*'))
 
 
 def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:

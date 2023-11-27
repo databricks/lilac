@@ -6,7 +6,7 @@ from typing_extensions import override
 from ..auth import UserInfo
 from ..concepts.concept import DRAFT_MAIN, draft_examples
 from ..concepts.db_concept import DISK_CONCEPT_DB, ConceptDB
-from ..schema import Field, Item, RichData, field, lilac_span
+from ..schema import Field, Item, RichData, field, span
 from ..signal import TextSignal
 
 
@@ -63,7 +63,7 @@ class ConceptLabelsSignal(TextSignal):
           if offset == -1:
             break
           label_spans.append(
-            lilac_span(
+            span(
               offset,
               offset + len(example.text),
               {

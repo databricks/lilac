@@ -10,7 +10,7 @@ from ..concepts.concept import DRAFT_MAIN, ConceptModel
 from ..concepts.db_concept import DISK_CONCEPT_MODEL_DB, ConceptModelDB
 from ..embeddings.embedding import get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, span
 from ..signal import VectorSignal
 
 
@@ -74,7 +74,7 @@ class ConceptSignal(VectorSignal):
     vectors = [sv['vector'] for sv in span_vectors]
     spans = [sv['span'] for sv in span_vectors]
     scores = concept_model.score_embeddings(self.draft, np.array(vectors)).tolist()
-    return [lilac_span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
+    return [span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
 
   @override
   def setup(self) -> None:

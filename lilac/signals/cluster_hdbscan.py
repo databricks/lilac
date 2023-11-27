@@ -9,7 +9,7 @@ from typing_extensions import override
 
 from ..embeddings.embedding import get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, lilac_span
+from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, span
 from ..signal import VectorSignal
 from ..utils import DebugTimer
 
@@ -96,12 +96,12 @@ class ClusterHDBScan(VectorSignal):
     span_index = 0
     for spans in all_spans:
       span_clusters: list[Item] = []
-      for span in spans:
+      for text_span in spans:
         cluster_id: Optional[int] = int(hdbscan.labels_[span_index])
-        start, end = span
+        start, end = text_span
         if cluster_id == -1:
           cluster_id = None
-        span_clusters.append(lilac_span(start, end, {CLUSTER_ID: cluster_id}))
+        span_clusters.append(span(start, end, {CLUSTER_ID: cluster_id}))
         span_index += 1
 
       yield span_clusters

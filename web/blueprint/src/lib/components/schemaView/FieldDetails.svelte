@@ -22,7 +22,7 @@
   $: statsQuery = queryDatasetStats($store.namespace, $store.datasetName, {leaf_path: field.path});
 
   let sortBy: GroupsSortBy;
-  $: sortBy = isNumeric(field.dtype!) && !field.categorical ? 'value' : 'count';
+  $: sortBy = isNumeric(field.dtype) && !field.categorical ? 'value' : 'count';
 
   let sortOrder: SortOrder;
   $: sortOrder = sortBy === 'value' ? 'ASC' : 'DESC';

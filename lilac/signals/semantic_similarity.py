@@ -19,7 +19,7 @@ from ..schema import (
   SignalInputType,
   SpanVector,
   field,
-  lilac_span,
+  span,
 )
 from ..signal import VectorSignal
 
@@ -81,7 +81,7 @@ class SemanticSimilaritySignal(VectorSignal):
     batch_matrix = np.array([sv['vector'] for sv in span_vectors])
     spans = [sv['span'] for sv in span_vectors]
     scores = batch_matrix.dot(self._get_search_embedding()).reshape(-1).tolist()
-    return [lilac_span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
+    return [span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
 
   @override
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:

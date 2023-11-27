@@ -18,8 +18,8 @@ from ..schema import (
   SignalInputType,
   field,
   lilac_embedding,
-  lilac_span,
   schema,
+  span,
 )
 from ..signal import (
   TextEmbeddingSignal,
@@ -70,8 +70,7 @@ class TestSplitter(TextSignal):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
       sentences = [f'{sentence.strip()}.' for sentence in text.split('.') if sentence]
       yield [
-        lilac_span(text.index(sentence), text.index(sentence) + len(sentence))
-        for sentence in sentences
+        span(text.index(sentence), text.index(sentence) + len(sentence)) for sentence in sentences
       ]
 
 
@@ -189,4 +188,4 @@ class NamedEntity(TextSignal):
       if not isinstance(text, str):
         yield None
         continue
-      yield [lilac_span(m.start(0), m.end(0)) for m in re.finditer(ENTITY_REGEX, text)]
+      yield [span(m.start(0), m.end(0)) for m in re.finditer(ENTITY_REGEX, text)]

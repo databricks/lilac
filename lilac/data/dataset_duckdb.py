@@ -82,6 +82,7 @@ from ..schema import (
   normalize_path,
   signal_type_supports_dtype,
 )
+from ..schema_duckdb import duckdb_schema, escape_col_name, escape_string_literal
 from ..signal import Signal, TextEmbeddingSignal, VectorSignal, get_signal_by_type, resolve_signal
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
@@ -333,7 +334,7 @@ class DatasetDuckDB(Dataset):
 
     self.con.execute(
       f"""
-      CREATE OR REPLACE VIEW {_escape_col_name(view_name)} AS ({inner_select});
+      CREATE OR REPLACE VIEW {escape_col_name(view_name)} AS ({inner_select});
     """
     )
 
@@ -403,23 +404,23 @@ class DatasetDuckDB(Dataset):
     # NOTE: "root_column" for each signal is defined as the top-level column.
     signal_column_selects = [
       (
-        f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-        f'AS {_escape_col_name(manifest.parquet_id)}'
+        f'{escape_col_name(manifest.parquet_id)}.{escape_col_name(_root_column(manifest))} '
+        f'AS {escape_col_name(manifest.parquet_id)}'
       )
       for manifest in self._signal_manifests
       if manifest.files
     ]
     map_column_selects = [
       (
-        f'{_escape_col_name(manifest.parquet_id)}.{_escape_col_name(_root_column(manifest))} '
-        f'AS {_escape_col_name(manifest.parquet_id)}'
+        f'{escape_col_name(manifest.parquet_id)}.{escape_col_name(_root_column(manifest))} '
+        f'AS {escape_col_name(manifest.parquet_id)}'
       )
       for manifest in self._map_manifests
       if manifest.files
     ]
     label_column_selects = []
     for label_name in self._label_schemas.keys():
-      col_name = _escape_col_name(label_name)
+      col_name = escape_col_name(label_name)
       # We use a case here because labels are sparse and we don't want to return an object at all
       # when there is no label.
       label_column_selects.append(
@@ -443,7 +444,7 @@ class DatasetDuckDB(Dataset):
     ] + list(self._label_schemas.keys())
     join_sql = ' '.join(
       [SOURCE_VIEW_NAME]
-      + [f'LEFT JOIN {_escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
+      + [f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
     )
     view_or_table = 'TABLE'
     # When in a dask worker, always use views to reduce memory overhead.
@@ -605,7 +606,7 @@ class DatasetDuckDB(Dataset):
         if unnest_input_path:
           unnest_column_alias = column_alias
 
-        select_sqls.append(f'{sql} AS {_escape_string_literal(column_alias)}')
+        select_sqls.append(f'{sql} AS {escape_string_literal(column_alias)}')
         columns_to_merge[final_col_name][column_alias] = column
 
       if select_sqls:
@@ -647,7 +648,7 @@ class DatasetDuckDB(Dataset):
       con.execute(
         f"""
         CREATE OR REPLACE VIEW t_cache as (
-          SELECT * FROM read_json_auto(
+          SELECT {ROWID} FROM read_json_auto(
             '{shard_cache_filepath}',
             IGNORE_ERRORS=true,
             format='newline_delimited')
@@ -783,8 +784,12 @@ class DatasetDuckDB(Dataset):
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
-        raise ValueError(f'Unknown type of transform_fn: {type(transform_fn)}')
-
+        map_fn = transform_fn
+        assert not isinstance(map_fn, Signal)
+        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        dense_out = sparse_to_dense_compute(
+          flat_input, lambda x: map_fn(cast(Iterable[RichData], x))
+        )
       output_items = deep_unflatten(dense_out, input_values_1)
 
     else:
@@ -809,14 +814,22 @@ class DatasetDuckDB(Dataset):
 
     output_items, jsonl_cache_items = itertools.tee(output_items, 2)
     # TODO(nsthorat): Support continuation of embeddings.
-    if not isinstance(transform_fn, TextEmbeddingSignal):
-      try:
+    try:
+      if not isinstance(transform_fn, TextEmbeddingSignal):
         with open_file(jsonl_cache_filepath, 'a') as file:
           for item in output_items:
             json.dump(item, file)
             file.write('\n')
-      except RuntimeError as e:
-        raise ValueError('The signal generated a different number of values than was input.') from e
+    except RuntimeError as e:
+      # NOTE: A RuntimeError exception is thrown when the output_items iterator, which is a zip of
+      # input and output items, yields a StopIterator exception.
+      raise ValueError(
+        'The signal generated a different number of outputs than was given as input. '
+        'Please yield `None` for sparse signals. For signals that output multiple values, '
+        'please yield an array for each input.'
+      )
+    except Exception as e:
+      raise e
 
     return jsonl_cache_items
 
@@ -824,6 +837,7 @@ class DatasetDuckDB(Dataset):
     self,
     output_path: PathTuple,
     jsonl_cache_filepaths: list[str],
+    schema: Optional[Schema] = None,
     is_tmp_output: bool = False,
     parquet_filename_prefix: Optional[str] = None,
     overwrite: bool = False,
@@ -836,12 +850,17 @@ class DatasetDuckDB(Dataset):
     jsonl_view_name = 'tmp_output'
     con = self.con.cursor()
 
-    # TODO(nsthorat): Use read_json and the signal schema to speed this up and make it more precise.
+    if schema and ROWID not in schema.fields:
+      schema = schema.model_copy(deep=True)
+      schema.fields[ROWID] = Field(dtype=STRING)
+
     con.execute(
       f"""
       CREATE OR REPLACE VIEW {jsonl_view_name} as (
-        SELECT * FROM read_json_auto(
+        SELECT * FROM read_json(
           {jsonl_cache_filepaths},
+          {f'columns={duckdb_schema(schema)},' if schema else ''}
+          auto_detect={'false' if schema else 'true'},
           ignore_errors=true,
           format='newline_delimited'
         )
@@ -934,8 +953,11 @@ class DatasetDuckDB(Dataset):
       task_step_description=f'Computing signal {signal} over {input_path}',
     )
 
+    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
+
     _, _, parquet_filepath = self._reshard_cache(
       output_path=output_path,
+      schema=signal_schema,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
       parquet_filename_prefix='data',
       overwrite=overwrite,
@@ -945,8 +967,6 @@ class DatasetDuckDB(Dataset):
     output_dir = os.path.dirname(parquet_filepath)
 
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
-
-    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     signal_manifest = SignalManifest(
       files=[parquet_filename],
@@ -1642,7 +1662,7 @@ class DatasetDuckDB(Dataset):
         temp_column_name = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
         )
-        select_sqls.append(f'{sql} AS {_escape_string_literal(temp_column_name)}')
+        select_sqls.append(f'{sql} AS {escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
         if column.signal_udf and span_from and _schema_has_spans(column.signal_udf.fields()):
@@ -1657,7 +1677,7 @@ class DatasetDuckDB(Dataset):
           )
           temp_offset_column_name = f'{temp_column_name}/offset'
           temp_offset_column_name = temp_offset_column_name.replace("'", "\\'")
-          select_sqls.append(f'{sql} AS {_escape_string_literal(temp_offset_column_name)}')
+          select_sqls.append(f'{sql} AS {escape_string_literal(temp_offset_column_name)}')
           temp_column_to_offset_column[temp_column_name] = (
             temp_offset_column_name,
             column.signal_udf.fields(),
@@ -1784,8 +1804,8 @@ class DatasetDuckDB(Dataset):
             offset_column_name, field = temp_column_to_offset_column[signal_column]
             nested_spans: Iterable[Item] = df[offset_column_name]
             flat_spans = deep_flatten(nested_spans)
-            for span, item in zip(flat_spans, signal_out_list):
-              _offset_any_span(cast(int, span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
+            for text_span, item in zip(flat_spans, signal_out_list):
+              _offset_any_span(cast(int, text_span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
           if len(signal_out_list) != num_rich_data:
             raise ValueError(
@@ -1806,7 +1826,9 @@ class DatasetDuckDB(Dataset):
         udf_filter_queries = self._create_where(manifest, udf_filters)
         if udf_filter_queries:
           rel = rel.filter(' AND '.join(udf_filter_queries))
-          total_num_rows = cast(tuple, rel.count('*').fetchone())[0]  # type: ignore
+          count = rel.count('*').fetchone()
+          assert count is not None
+          (total_num_rows,) = count
 
       if sort_sql_after_udf:
         if not sort_order:
@@ -2029,12 +2051,16 @@ class DatasetDuckDB(Dataset):
 
   def _resolve_span(
     self, span_path: PathTuple, manifest: DatasetManifest
-  ) -> Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]]:
+  ) -> Optional[tuple[Optional[str], PathTuple]]:
     schema = manifest.data_schema
-    leafs = schema.leafs
-    is_span = span_path in leafs and leafs[span_path].dtype == STRING_SPAN
-    if not is_span:
+    if not schema.has_field(span_path):
       return None
+    span_field = schema.get_field(span_path)
+    if not span_field.dtype == STRING_SPAN:
+      return None
+
+    if span_field.map and span_field.map.input_path:
+      return (metadata.version('lilac'), span_field.map.input_path)
 
     # Find the manifest that contains the span path.
     manifests: list[Union[SignalManifest, MapManifest]] = (
@@ -2048,14 +2074,13 @@ class DatasetDuckDB(Dataset):
     )
 
     # Find the original text, which is the closest parent of `path` above the signal root.
-    text_path: PathTuple
     for i in reversed(range(len(span_path))):
       sub_path = span_path[:i]
       sub_field = schema.get_field(sub_path)
-      if sub_field.signal is not None or sub_field.map is not None:
-        # Skip the signal name at the end to get the source path that was enriched.
-        text_path = sub_path[:-1]
-        return (span_manifest, text_path)
+      if sub_field.map and sub_field.map.input_path:
+        return (span_manifest.py_version, sub_field.map.input_path)
+      if sub_field.dtype == STRING:
+        return (span_manifest.py_version, sub_path)
 
     raise ValueError('Cannot find the source path for the enriched path: {path}')
 
@@ -2305,7 +2330,7 @@ class DatasetDuckDB(Dataset):
         sql_op = BINARY_OP_TO_SQL[cast(BinaryOp, f.op)]
         filter_val = cast(FeatureValue, f.value)
         if isinstance(filter_val, str):
-          filter_val = _escape_string_literal(filter_val)
+          filter_val = escape_string_literal(filter_val)
         elif isinstance(filter_val, bytes):
           filter_val = _bytes_to_blob_literal(filter_val)
         else:
@@ -2376,10 +2401,7 @@ class DatasetDuckDB(Dataset):
     if isinstance(path, str):
       path = (path,)
     return '.'.join(
-      [
-        f'{_escape_col_name(path_comp)}' if quote_each_part else str(path_comp)
-        for path_comp in path
-      ]
+      [f'{escape_col_name(path_comp)}' if quote_each_part else str(path_comp) for path_comp in path]
     )
 
   def _get_selection(
@@ -2427,7 +2449,7 @@ class DatasetDuckDB(Dataset):
         )
       _, duckdb_path = duckdb_paths[0]
       sql = _select_sql(duckdb_path, flatten=False, unnest=False, path=column.path, schema=schema)
-      select_queries.append(f'{sql} AS {_escape_string_literal(col_name)}')
+      select_queries.append(f'{sql} AS {escape_string_literal(col_name)}')
     selection = ', '.join(select_queries)
     return f'SELECT {selection} FROM t {where_query}'
 
@@ -2435,6 +2457,7 @@ class DatasetDuckDB(Dataset):
   def map(
     self,
     map_fn: MapFn,
+    input_path: Optional[Path] = None,
     output_column: Optional[str] = None,
     nest_under: Optional[Path] = None,
     overwrite: bool = False,
@@ -2445,6 +2468,15 @@ class DatasetDuckDB(Dataset):
     is_tmp_output = output_column is None
 
     manifest = self.manifest()
+
+    input_path = normalize_path(input_path) if input_path else None
+    if input_path:
+      input_field = manifest.data_schema.get_field(input_path)
+      if not input_field.dtype:
+        raise ValueError(
+          f'Input path {input_path} is not a leaf path. This is currently unsupported. If you '
+          'require this, please file an issue and we will prioritize.'
+        )
 
     # Validate output_column and nest_under.
     if nest_under is not None:
@@ -2524,6 +2556,7 @@ class DatasetDuckDB(Dataset):
         jsonl_cache_filepath,
         i,
         num_jobs,
+        input_path,
         overwrite,
         combine_columns,
         resolve_span,
@@ -2547,7 +2580,10 @@ class DatasetDuckDB(Dataset):
       map_field_root = map_schema.get_field(output_path)
 
       map_field_root.map = MapInfo(
-        fn_name=map_fn.__name__, fn_source=inspect.getsource(map_fn), date_created=datetime.now()
+        fn_name=map_fn.__name__,
+        input_path=input_path,
+        fn_source=inspect.getsource(map_fn),
+        date_created=datetime.now(),
       )
 
       parquet_dir = os.path.dirname(parquet_filepath)
@@ -2574,19 +2610,33 @@ class DatasetDuckDB(Dataset):
     jsonl_cache_filepath: str,
     job_id: int,
     job_count: int,
+    unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
+    map_sig = inspect.signature(map_fn)
+    if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
+      raise ValueError(
+        f'Invalid map function {map_fn.__name__}. Must have 1 or 2 arguments: '
+        f'(item: Item, job_id: int).'
+      )
+
+    has_job_id_arg = len(map_sig.parameters) == 2
+
     def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
       for item in items:
-        yield map_fn(item, job_id=job_id)
+        args: Union[tuple[Item], tuple[Item, int]] = (
+          (item,) if not has_job_id_arg else (item, job_id)
+        )
+        yield map_fn(*args)
 
     self._compute_disk_cached(
       _map_iterable,
       output_path=output_path,
       jsonl_cache_filepath=jsonl_cache_filepath,
+      unnest_input_path=unnest_input_path,
       overwrite=overwrite,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
@@ -2653,16 +2703,6 @@ class DatasetDuckDB(Dataset):
     log(f'Dataset exported to {filepath}')
 
 
-def _escape_string_literal(string: str) -> str:
-  string = string.replace("'", "''")
-  return f"'{string}'"
-
-
-def _escape_col_name(col_name: str) -> str:
-  col_name = col_name.replace('"', '""')
-  return f'"{col_name}"'
-
-
 def _escape_like_value(value: str) -> str:
   value = value.replace('%', '\\%').replace('_', '\\_')
   return f"'%{value}%' ESCAPE '\\'"
@@ -2674,23 +2714,23 @@ def _inner_select(
   schema: Schema,
   inner_var: Optional[str] = None,
   empty: bool = False,
-  span_from: Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]] = None,
+  span_from: Optional[tuple[Optional[str], PathTuple]] = None,
 ) -> str:
   """Recursively generate the inner select statement for a list of sub paths."""
   current_sub_path = sub_paths[0]
   lambda_var = inner_var + 'x' if inner_var else 'x'
   if not inner_var:
     lambda_var = 'x'
-    inner_var = _escape_col_name(current_sub_path[0])
+    inner_var = escape_col_name(current_sub_path[0])
     current_sub_path = current_sub_path[1:]
   # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
-  path_key = inner_var + ''.join([f'[{_escape_string_literal(p)}]' for p in current_sub_path])
+  path_key = inner_var + ''.join([f'[{escape_string_literal(p)}]' for p in current_sub_path])
   if len(sub_paths) == 1:
     if span_from:
-      manifest, span_path = span_from
+      py_version, span_path = span_from
       # Older signal manifests (w/o py_version) store spans under `VALUE_KEY` instead of `SPAN_KEY`.
       # TODO(smilkov): Remove this once we bump the semver to breaking.
-      span_key = SPAN_KEY if manifest.py_version else VALUE_KEY
+      span_key = SPAN_KEY if py_version else VALUE_KEY
       derived_col = _select_sql(span_path, flatten=False, unnest=False, path=path, schema=schema)
       path_key = (
         f'{derived_col}[{path_key}.{span_key}.{TEXT_SPAN_START_FEATURE}+1:'
@@ -2729,7 +2769,7 @@ def _select_sql(
   path: PathTuple,
   schema: Schema,
   empty: bool = False,
-  span_from: Optional[tuple[Union[SignalManifest, MapManifest], PathTuple]] = None,
+  span_from: Optional[tuple[Optional[str], PathTuple]] = None,
 ) -> str:
   """Create a select column for a path.
 

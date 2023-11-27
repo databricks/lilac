@@ -17,7 +17,7 @@ from ..schema import (
   VectorKey,
   field,
   lilac_embedding,
-  lilac_span,
+  span,
 )
 from ..signal import (
   TextEmbeddingSignal,
@@ -479,7 +479,7 @@ class TopKSignal(VectorSignal):
       res: Item = []
       for vector_span, score in zip(vector_spans, scores):
         start, end = vector_span['span']
-        res.append(lilac_span(start, end, {'score': score}))
+        res.append(span(start, end, {'score': score}))
       yield res
 
   @override
@@ -504,12 +504,12 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     {
       'scores': enriched_item(
-        '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}), lilac_span(2, 3, {'score': 7.0})]}
+        '9_7', {signal.key(): [span(0, 1, {'score': 9.0}), span(2, 3, {'score': 7.0})]}
       )
     },
     {
       'scores': enriched_item(
-        '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}), lilac_span(2, 3, {'score': 1.0})]}
+        '8_1', {signal.key(): [span(0, 1, {'score': 8.0}), span(2, 3, {'score': 1.0})]}
       )
     },
   ]
@@ -521,17 +521,17 @@ def test_sort_by_topk_embedding_udf(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     {
       'scores': enriched_item(
-        '9_7', {signal.key(): [lilac_span(0, 1, {'score': 9.0}), lilac_span(2, 3, {'score': 7.0})]}
+        '9_7', {signal.key(): [span(0, 1, {'score': 9.0}), span(2, 3, {'score': 7.0})]}
       )
     },
     {
       'scores': enriched_item(
-        '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}), lilac_span(2, 3, {'score': 1.0})]}
+        '8_1', {signal.key(): [span(0, 1, {'score': 8.0}), span(2, 3, {'score': 1.0})]}
       )
     },
     {
       'scores': enriched_item(
-        '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}), lilac_span(2, 3, {'score': 5.0})]}
+        '3_5', {signal.key(): [span(0, 1, {'score': 3.0}), span(2, 3, {'score': 5.0})]}
       )
     },
   ]
@@ -566,13 +566,13 @@ def test_sort_by_topk_udf_with_filter(make_test_data: TestDataMaker) -> None:
     {
       'active': True,
       'scores': enriched_item(
-        '8_1', {signal.key(): [lilac_span(0, 1, {'score': 8.0}), lilac_span(2, 3, {'score': 1.0})]}
+        '8_1', {signal.key(): [span(0, 1, {'score': 8.0}), span(2, 3, {'score': 1.0})]}
       ),
     },
     {
       'active': True,
       'scores': enriched_item(
-        '3_5', {signal.key(): [lilac_span(0, 1, {'score': 3.0}), lilac_span(2, 3, {'score': 5.0})]}
+        '3_5', {signal.key(): [span(0, 1, {'score': 3.0}), span(2, 3, {'score': 5.0})]}
       ),
     },
   ]

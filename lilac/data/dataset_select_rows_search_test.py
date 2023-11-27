@@ -11,7 +11,7 @@ from typing_extensions import override
 from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..db_manager import set_default_dataset_cls
-from ..schema import ROWID, Item, RichData, SignalInputType, lilac_embedding, lilac_span
+from ..schema import ROWID, Item, RichData, SignalInputType, lilac_embedding, span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
@@ -64,12 +64,12 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
     {
-      'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
+      'text': enriched_item('hello world', {expected_signal_udf.key(): [span(6, 11)]}),
       'text2': 'again hello world',
     },
     {
       'text': enriched_item(
-        'looking for world in text', {expected_signal_udf.key(): [lilac_span(12, 17)]}
+        'looking for world in text', {expected_signal_udf.key(): [span(12, 17)]}
       ),
       'text2': 'again looking for world in text',
     },
@@ -86,7 +86,7 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
-    {'text': enriched_item('This is 100%', {expected_signal_udf.key(): [lilac_span(8, 12)]})}
+    {'text': enriched_item('This is 100%', {expected_signal_udf.key(): [span(8, 12)]})}
   ]
 
   query = '_underscore_'
@@ -96,11 +96,7 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
 
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
-    {
-      'text': enriched_item(
-        'This has _underscore_', {expected_signal_udf.key(): [lilac_span(9, 21)]}
-      )
-    }
+    {'text': enriched_item('This has _underscore_', {expected_signal_udf.key(): [span(9, 21)]})}
   ]
 
 
@@ -123,10 +119,10 @@ def test_search_keyword_multiple(make_test_data: TestDataMaker) -> None:
   assert list(result) == [
     {
       'text': enriched_item(
-        'looking for world in text', {expected_world_udf.key(): [lilac_span(12, 17)]}
+        'looking for world in text', {expected_world_udf.key(): [span(12, 17)]}
       ),
       'text2': enriched_item(
-        'again looking for world in text', {expected_again_looking_udf.key(): [lilac_span(6, 23)]}
+        'again looking for world in text', {expected_again_looking_udf.key(): [span(6, 23)]}
       ),
     }
   ]
@@ -146,7 +142,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
     {
-      'text': enriched_item('hello world', {expected_signal_udf.key(): [lilac_span(6, 11)]}),
+      'text': enriched_item('hello world', {expected_signal_udf.key(): [span(6, 11)]}),
       'text2': 'again hello world',
     }
     # The second row doesn't match the rowid filter.
@@ -182,12 +178,12 @@ def test_semantic_search(make_test_data: TestDataMaker) -> None:
     # Results are sorted by score desc.
     {
       'text': enriched_item(
-        'hello world2.', {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3})]}
+        'hello world2.', {expected_signal_udf.key(): [span(0, 13, {'score': 3})]}
       )
     },
     {
       'text': enriched_item(
-        'hello world.', {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2})]}
+        'hello world.', {expected_signal_udf.key(): [span(0, 12, {'score': 2})]}
       )
     },
   ]
@@ -247,8 +243,8 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world2.',
         {
-          expected_signal_udf.key(): [lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})],
-          'test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})],
+          expected_signal_udf.key(): [span(0, 13, {'score': approx(0.75, abs=0.25)})],
+          'test_namespace/test_concept/labels/preview': [span(0, 13, {'label': True})],
         },
       ),
     },
@@ -257,8 +253,8 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       'text': enriched_item(
         'hello world.',
         {
-          expected_signal_udf.key(): [lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})],
-          'test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})],
+          expected_signal_udf.key(): [span(0, 12, {'score': approx(0.25, abs=0.25)})],
+          'test_namespace/test_concept/labels/preview': [span(0, 12, {'label': False})],
         },
       ),
     },
@@ -309,16 +305,16 @@ def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
     {
       'text': 'hello world2.',
       'text.test_namespace/test_concept/test_embedding/preview': [
-        lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
+        span(0, 13, {'score': approx(0.75, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})],
+      'text.test_namespace/test_concept/labels/preview': [span(0, 13, {'label': True})],
     },
     {
       'text': 'hello world.',
       'text.test_namespace/test_concept/test_embedding/preview': [
-        lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
+        span(0, 12, {'score': approx(0.25, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})],
+      'text.test_namespace/test_concept/labels/preview': [span(0, 12, {'label': False})],
     },
   ]
 
@@ -342,9 +338,9 @@ def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
         'hello world2.',
         {
           'test_namespace/test_concept/test_embedding/preview': [
-            lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
+            span(0, 13, {'score': approx(0.75, abs=0.25)})
           ],
-          'test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})],
+          'test_namespace/test_concept/labels/preview': [span(0, 13, {'label': True})],
         },
       )
     },
@@ -353,9 +349,9 @@ def test_concept_search_without_rowid(make_test_data: TestDataMaker) -> None:
         'hello world.',
         {
           'test_namespace/test_concept/test_embedding/preview': [
-            lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
+            span(0, 12, {'score': approx(0.25, abs=0.25)})
           ],
-          'test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})],
+          'test_namespace/test_concept/labels/preview': [span(0, 12, {'label': False})],
         },
       )
     },
@@ -400,16 +396,16 @@ def test_concept_search_sort_by_rowid(make_test_data: TestDataMaker) -> None:
     {
       'text': 'hello world.',
       'text.test_namespace/test_concept/test_embedding/preview': [
-        lilac_span(0, 12, {'score': approx(0.25, abs=0.25)})
+        span(0, 12, {'score': approx(0.25, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 12, {'label': False})],
+      'text.test_namespace/test_concept/labels/preview': [span(0, 12, {'label': False})],
     },
     {
       'text': 'hello world2.',
       'text.test_namespace/test_concept/test_embedding/preview': [
-        lilac_span(0, 13, {'score': approx(0.75, abs=0.25)})
+        span(0, 13, {'score': approx(0.75, abs=0.25)})
       ],
-      'text.test_namespace/test_concept/labels/preview': [lilac_span(0, 13, {'label': True})],
+      'text.test_namespace/test_concept/labels/preview': [span(0, 13, {'label': True})],
     },
   ]
 
@@ -485,13 +481,13 @@ def test_sort_override_search(make_test_data: TestDataMaker) -> None:
   expected_signal_udf = SemanticSimilaritySignal(query=query, embedding='test_embedding')
   expected_item_1 = {
     'text': enriched_item(
-      'hello world.', {expected_signal_udf.key(): [lilac_span(0, 12, {'score': 2.0})]}
+      'hello world.', {expected_signal_udf.key(): [span(0, 12, {'score': 2.0})]}
     ),
     'value': 10,
   }
   expected_item_2 = {
     'text': enriched_item(
-      'hello world2.', {expected_signal_udf.key(): [lilac_span(0, 13, {'score': 3.0})]}
+      'hello world2.', {expected_signal_udf.key(): [span(0, 13, {'score': 3.0})]}
     ),
     'value': 20,
   }
@@ -540,8 +536,8 @@ def test_search_keyword_and_semantic(make_test_data: TestDataMaker) -> None:
       'text': enriched_item(
         'hello world2.',
         {
-          expected_semantic_signal.key(): [lilac_span(0, 13, {'score': 3})],
-          expected_keyword_signal.key(): [lilac_span(8, 12)],
+          expected_semantic_signal.key(): [span(0, 13, {'score': 3})],
+          expected_keyword_signal.key(): [span(8, 12)],
         },
       )
     }

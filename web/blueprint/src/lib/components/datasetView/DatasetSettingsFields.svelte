@@ -30,10 +30,8 @@
   $: settingsQuery = querySettings(namespace, datasetName);
 
   $: {
-    if (settings == null && !$settingsQuery.isFetching) {
+    if (!$settingsQuery.isFetching) {
       settings = JSON.parse(JSON.stringify($settingsQuery.data));
-      selectedMediaFields = null;
-      markdownMediaFields = null;
     }
   }
 
@@ -148,14 +146,19 @@
     if (
       markdownMediaFields == null &&
       mediaFieldOptions != null &&
-      $settingsQuery.data?.ui?.markdown_paths != null
+      $settingsQuery.data?.ui?.markdown_paths != null &&
+      !$settingsQuery.isFetching
     ) {
       const mardownPathsFromSettings = $settingsQuery.data.ui.markdown_paths.map(p =>
         Array.isArray(p) ? p : [p]
       );
-      markdownMediaFields = mediaFieldOptions.filter(f =>
-        mardownPathsFromSettings.some(path => pathIsEqual(f.path, path))
-      );
+      markdownMediaFields = mardownPathsFromSettings.flatMap(path => {
+        const field = mediaFieldOptions!.find(f => pathIsEqual(f.path, path));
+        if (field == null) {
+          return [];
+        }
+        return [field];
+      });
     }
   }
 
@@ -288,6 +291,7 @@
               items={mediaFieldOptionsItems}
               buttonText="Add media field"
               comboBoxPlaceholder="Add media field"
+              hoist={false}
               on:select={selectMediaField}
             />
           {/if}

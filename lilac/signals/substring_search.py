@@ -3,7 +3,7 @@ from typing import ClassVar, Iterable, Optional
 
 from typing_extensions import override
 
-from ..schema import Field, Item, RichData, SignalInputType, field, lilac_span
+from ..schema import Field, Item, RichData, SignalInputType, field, span
 from ..signal import Signal
 
 
@@ -40,4 +40,4 @@ class SubstringSignal(Signal):
       if not isinstance(text, str):
         yield None
         continue
-      yield [lilac_span(start, end) for start, end in _find_all(text, self.query)]
+      yield [span(start, end) for start, end in _find_all(text, self.query)]

@@ -9,7 +9,7 @@ from typing_extensions import override
 
 from ..data.dataset_test_utils import make_vector_index
 from ..embeddings.vector_store import VectorStore, register_vector_store
-from ..schema import Item, RichData, VectorKey, lilac_embedding, lilac_span
+from ..schema import Item, RichData, VectorKey, lilac_embedding, span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .semantic_similarity import SemanticSimilaritySignal
 
@@ -91,9 +91,9 @@ def test_semantic_similarity_compute_keys(mocker: MockerFixture) -> None:
   assert embed_mock.call_count == 1
 
   assert scores == [
-    [lilac_span(0, 0, {'score': 1})],
-    [lilac_span(0, 0, {'score': 0.9})],
-    [lilac_span(0, 0, {'score': 0})],
+    [span(0, 0, {'score': 1})],
+    [span(0, 0, {'score': 0.9})],
+    [span(0, 0, {'score': 0})],
   ]
 
 
@@ -108,7 +108,7 @@ def test_semantic_similarity_compute_data(mocker: MockerFixture) -> None:
   assert embed_mock.call_count == 2
 
   assert scores == [
-    [lilac_span(0, 5, {'score': 1})],
-    [lilac_span(0, 11, {'score': 0.9})],
-    [lilac_span(0, 3, {'score': 0})],
+    [span(0, 5, {'score': 1})],
+    [span(0, 11, {'score': 0.9})],
+    [span(0, 3, {'score': 0})],
   ]

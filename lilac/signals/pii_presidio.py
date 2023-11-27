@@ -5,7 +5,7 @@ from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import SpacyNlpEngine
 from presidio_analyzer.nlp_engine.ner_model_configuration import NerModelConfiguration
 
-from ..schema import Item, lilac_span
+from ..schema import Item, span
 
 ## Circular import; we would like to lazy import this module as it uses optional dependencies.
 from .pii import PII_CATEGORIES
@@ -52,5 +52,5 @@ def find_pii(text: str) -> dict[str, list[Item]]:
   for result in results:
     if CATEGORY_THRESHOLDS.get(result.entity_type, 0) > result.score:
       continue
-    pii_dict[PII_CATEGORIES[result.entity_type]].append(lilac_span(result.start, result.end))
+    pii_dict[PII_CATEGORIES[result.entity_type]].append(span(result.start, result.end))
   return pii_dict
