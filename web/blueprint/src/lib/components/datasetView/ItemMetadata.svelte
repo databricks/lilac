@@ -17,7 +17,8 @@
     type DataTypeCasted,
     type LilacField,
     type LilacSelectRowsSchema,
-    type LilacValueNode
+    type LilacValueNode,
+    type Path
   } from '$lilac';
   import ItemMetadataField, {type RenderNode} from './ItemMetadataField.svelte';
 
@@ -36,16 +37,26 @@
       // We default to __value__ for back compat.
       span = span || (value as {start: number; end: number});
       if (span != null) {
-        const stringValues = [];
+        const stringValues: string[] = [];
         // Get the parent that is dtype string to resolve the span.
         for (let i = path.length - 1; i >= 0; i--) {
           const parentPath = path.slice(0, i);
           const parent = getField(selectRowsSchema!.schema, parentPath)!;
-
-          if (parent.dtype?.type === 'string') {
-            const text = L.value<'string'>(valueAtPath(row, parentPath)!)!;
-            stringValues.push(text.slice(span.start, span.end));
-            break;
+          let stringPath: Path | null = null;
+          if (parent.map?.input_path != null) {
+            stringPath = parent.map.input_path;
+          } else if (parent.dtype?.type === 'string') {
+            stringPath = parentPath;
+          }
+          if (stringPath != null) {
+            const node = valueAtPath(row, stringPath);
+            if (node) {
+              const text = L.value<'string'>(node);
+              if (text) {
+                stringValues.push(text.slice(span.start, span.end));
+                break;
+              }
+            }
           }
         }
         value = stringValues as unknown as DataTypeCasted;

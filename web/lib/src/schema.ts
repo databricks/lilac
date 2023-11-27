@@ -145,6 +145,17 @@ export function pathIncludes(
   return pathIsEqual(path.slice(0, prefix.length), prefix);
 }
 
+/** Return true if the path matches a prefix, with support for wildcards. */
+export function pathMatchesPrefix(path: Path | undefined, prefix: Path | undefined) {
+  if (!path || !prefix) return false;
+  if (path.length < prefix.length) return false;
+  for (let i = 0; i < prefix.length; i++) {
+    if (prefix[i] === PATH_WILDCARD || path[i] == PATH_WILDCARD) continue;
+    if (prefix[i] !== path[i]) return false;
+  }
+  return true;
+}
+
 /**
  * Returns true if path2 matches the pattern of path1
  * @param path1 Path that may contain wildcard pattern

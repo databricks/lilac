@@ -13,6 +13,7 @@
     getValueNodes,
     pathIncludes,
     pathIsEqual,
+    pathMatchesPrefix,
     serializePath,
     type ConceptSignal,
     type LilacField,
@@ -66,10 +67,14 @@
   $: {
     pathToSpans = {};
     spanPaths.forEach(sp => {
-      const valueNodes = getValueNodes(row, sp);
-      pathToSpans[serializePath(sp)] = valueNodes.filter(
-        v => pathIncludes(L.path(v), path) || path == null
-      ) as LilacValueNodeCasted<'string_span'>[];
+      let valueNodes = getValueNodes(row, sp);
+      const isSpanNestedUnder = pathMatchesPrefix(path, sp);
+      if (isSpanNestedUnder) {
+        // Filter out any span values that do not share the same coordinates as the current path we
+        // are rendering.
+        valueNodes = valueNodes.filter(v => pathIncludes(L.path(v), path) || path == null);
+      }
+      pathToSpans[serializePath(sp)] = valueNodes as LilacValueNodeCasted<'string_span'>[];
     });
   }
 
