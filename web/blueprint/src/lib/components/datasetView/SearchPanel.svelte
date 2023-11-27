@@ -236,6 +236,7 @@
   interface LabelId {
     type: 'label';
     name: string;
+    exclude?: boolean;
   }
   interface SearchItem {
     id:
@@ -280,9 +281,14 @@
           : []),
         ...(isEmbeddingComputed ? [newConceptItem] : [computeEmbeddingItem]),
         ...labels.map(label => ({
-          id: {type: 'label', name: label} as LabelId,
+          id: {type: 'label', name: label, exclude: false} as LabelId,
           text: label,
           description: `Find documents labeled "${label}"`
+        })),
+        ...labels.map(label => ({
+          id: {type: 'label', name: label, exclude: true} as LabelId,
+          text: label,
+          description: `Exclude documents labeled "${label}"`
         })),
         ...fieldSearchItems,
         ...namespaceConcepts.flatMap(namespaceConcept =>
@@ -329,11 +335,10 @@
     comboBox.clear();
   };
 
-  const searchLabel = (label: string) => {
+  const searchLabel = (label: string, exclude: boolean) => {
     datasetViewStore.addFilter({
       path: [label, 'label'],
-      op: 'equals',
-      value: 'true'
+      op: exclude ? 'not_exists' : 'exists'
     });
   };
 
@@ -387,7 +392,8 @@
     } else if (e.detail.selectedId.type === 'concept') {
       searchConceptPreview(e.detail.selectedId.namespace, e.detail.selectedId.name);
     } else if (e.detail.selectedId.type === 'label') {
-      searchLabel(e.detail.selectedId.name);
+      const searchItem = e.detail.selectedId as LabelId;
+      searchLabel(searchItem.name, searchItem.exclude || false);
     } else if (e.detail.selectedId.type === 'field') {
       const searchItem = e.detail.selectedId as FieldId;
       if (searchItem.sort != null) {
@@ -481,6 +487,11 @@
         {@const isConcept =
           item != null && typeof item.id === 'object' && item.id.type === 'concept'}
         {@const isLabel = item != null && typeof item.id === 'object' && item.id.type === 'label'}
+        {@const isExcludeLabel =
+          item != null &&
+          typeof item.id === 'object' &&
+          item.id.type === 'label' &&
+          (item.id.exclude || false)}
         {#if item == null}
           <div />
         {:else if item.id === 'new-concept'}
@@ -512,8 +523,13 @@
             <Tag><Chip /></Tag>
             <div class="ml-2">Compute embeddings to enable concept search.</div>
           </div>
+        {:else if isLabel}
+          <div class="flex justify-between gap-x-8" class:isExcludeLabel class:isLabel>
+            <div>{item.text}</div>
+            <div class="truncate text-xs text-gray-500">{item.description}</div>
+          </div>
         {:else}
-          <div class="flex justify-between gap-x-8" class:isSignal class:isConcept class:isLabel>
+          <div class="flex justify-between gap-x-8" class:isSignal class:isConcept>
             <div>{item.text}</div>
             {#if item.description}
               <div class="truncate text-xs text-gray-500">{item.description}</div>
@@ -556,6 +572,11 @@
   }
   :global(.bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isLabel)) {
     @apply bg-teal-100;
+  }
+  :global(
+      .bx--list-box__menu-item:not(.bx--list-box__menu-item--highlighted):has(.isExcludeLabel)
+    ) {
+    @apply bg-red-100;
   }
   :global(.search-container .bx--list-box__menu) {
     max-height: 26rem !important;

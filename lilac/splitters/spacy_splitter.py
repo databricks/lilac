@@ -24,7 +24,7 @@ def embed_tokenizer_BoW(texts: list[str]) -> np.ndarray:
   tokenizer = get_tokenizer()
   out = np.zeros((len(texts), BOW_VECTOR_SIZE), dtype=np.float32)
   for i, text in enumerate(texts):
-    token_ids = np.array(tokenizer.encode(text)) % BOW_VECTOR_SIZE
+    token_ids = np.array(tokenizer.encode(text, disallowed_special=())) % BOW_VECTOR_SIZE
     out[i] = np.bincount(token_ids, minlength=BOW_VECTOR_SIZE)
   return out
 
