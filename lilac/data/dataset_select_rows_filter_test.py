@@ -123,6 +123,34 @@ def test_filter_string_regex_matches(make_test_data: TestDataMaker) -> None:
   assert list(result) == [{'str': 'abcde', 'int': 1}, {'str': 'a' * 10, 'int': 2}]
 
 
+def test_filter_string_regex_matches_escaped(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'str': '..', 'int': 1},
+      {'str': 'abc', 'int': 2},
+    ]
+  )
+
+  filter: StringFilterTuple = ('str', 'regex_matches', r'\.+')
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': '..', 'int': 1}]
+
+
+def test_filter_string_regex_matches_newlines(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'str': 'hello\nworld', 'int': 1},
+      {'str': 'hello\nworld\n', 'int': 2},
+    ]
+  )
+
+  filter: StringFilterTuple = ('str', 'regex_matches', r'world\n')
+  result = dataset.select_rows(filters=[filter])
+
+  assert list(result) == [{'str': 'hello\nworld\n', 'int': 2}]
+
+
 def test_filter_string_not_regex_matches(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(STRING_TEST_DATA)
 

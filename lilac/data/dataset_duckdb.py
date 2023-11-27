@@ -1149,7 +1149,7 @@ class DatasetDuckDB(Dataset):
           )
         if filter.op in ('length_shorter', 'length_shorter'):
           try:
-            filter.value = int(filter.value)
+            filter.value = int(filter.value)  # type: ignore
           except ValueError:
             raise ValueError(f'TypeError: String length {filter.value!r} should be an integer. ')
 
