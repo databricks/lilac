@@ -53,14 +53,12 @@
             if (node) {
               const text = L.value<'string'>(node);
               if (text) {
-                console.log('text', text);
                 stringValues.push(text.slice(span.start, span.end));
                 break;
               }
             }
           }
         }
-        console.log(field.path, stringValues);
         value = stringValues as unknown as DataTypeCasted;
       }
     }

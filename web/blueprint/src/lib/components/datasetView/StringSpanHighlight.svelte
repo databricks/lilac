@@ -13,6 +13,7 @@
     getValueNodes,
     pathIncludes,
     pathIsEqual,
+    pathMatchesPrefix,
     serializePath,
     type ConceptSignal,
     type LilacField,
@@ -66,10 +67,11 @@
   $: {
     pathToSpans = {};
     spanPaths.forEach(sp => {
-      const valueNodes = getValueNodes(row, sp);
-      pathToSpans[serializePath(sp)] = valueNodes.filter(
-        v => pathIncludes(L.path(v), path) || path == null
-      ) as LilacValueNodeCasted<'string_span'>[];
+      let valueNodes = getValueNodes(row, sp);
+      if (pathMatchesPrefix(path, sp)) {
+        valueNodes = valueNodes.filter(v => pathIncludes(L.path(v), path) || path == null);
+      }
+      pathToSpans[serializePath(sp)] = valueNodes as LilacValueNodeCasted<'string_span'>[];
     });
   }
 
