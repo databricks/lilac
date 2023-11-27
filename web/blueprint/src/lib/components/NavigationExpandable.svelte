@@ -56,7 +56,7 @@
       {#if linkItems.length > 0}
         {#each linkItems as linkItem}
           <div
-            class={`my-0.5 flex w-full rounded ${!linkItem.isSelected ? 'hover:bg-gray-100' : ''}
+            class={`flex w-full rounded ${!linkItem.isSelected ? 'hover:bg-gray-100' : ''}
           `}
             style={`padding-left: ${linkPadding}rem;`}
             class:bg-neutral-100={linkItem.isSelected}
