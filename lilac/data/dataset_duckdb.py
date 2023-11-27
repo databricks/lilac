@@ -1144,7 +1144,9 @@ class DatasetDuckDB(Dataset):
         raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
       if filter.op in STRING_OPS:
         if current_field.dtype != STRING:
-          raise ValueError(f'Unable to apply string filter to path {filter.path}. ')
+          raise ValueError(
+            f'Unable to apply string filter to path {filter.path} of type {current_field.dtype}. '
+          )
         if filter.op in ('length_shorter', 'length_shorter'):
           try:
             filter.value = int(filter.value)
