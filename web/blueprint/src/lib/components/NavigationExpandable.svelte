@@ -74,5 +74,5 @@
     {/if}
   </div>
 {:else}
-  <div class={`mt-1`}><slot name="below" /></div>
+  <div class="mt-1"><slot name="below" /></div>
 {/if}
