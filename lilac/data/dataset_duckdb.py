@@ -652,6 +652,7 @@ class DatasetDuckDB(Dataset):
           SELECT {ROWID} FROM read_json_auto(
             '{shard_cache_filepath}',
             IGNORE_ERRORS=true,
+            hive_partitioning=false,
             format='newline_delimited')
         );
       """
@@ -704,6 +705,8 @@ class DatasetDuckDB(Dataset):
 
       yield from zip(row_ids, values)
 
+    con.close()
+
   def _compute_disk_cached(
     self,
     transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
@@ -727,21 +730,22 @@ class DatasetDuckDB(Dataset):
 
     use_jsonl_cache = not overwrite and os.path.exists(jsonl_cache_filepath)
 
-    con = self.con.cursor()
-
     # Compute the start index where the cache file left off.
     start_idx = 0
     if use_jsonl_cache:
+      con = self.con.cursor()
       count_result = con.execute(
         f"""
         SELECT COUNT(*) FROM read_json_auto(
           '{jsonl_cache_filepath}',
           IGNORE_ERRORS=true,
+          hive_partitioning=false,
           format='newline_delimited')
         """
       ).fetchone()
       if count_result:
         (start_idx,) = count_result
+      con.close()
 
     rows = self._select_iterable_values(
       unnest_input_path=unnest_input_path,
@@ -858,10 +862,10 @@ class DatasetDuckDB(Dataset):
     con.execute(
       f"""
       CREATE OR REPLACE VIEW {jsonl_view_name} as (
-        SELECT * FROM read_json(
+        SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
           {jsonl_cache_filepaths},
           {f'columns={duckdb_schema(schema)},' if schema else ''}
-          auto_detect={'false' if schema else 'true'},
+          hive_partitioning=false,
           ignore_errors=true,
           format='newline_delimited'
         )
@@ -873,6 +877,8 @@ class DatasetDuckDB(Dataset):
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
       rows_per_batch=10_000
     )
+    output_schema = arrow_schema_to_schema(reader.schema)
+
     if not is_tmp_output:
       parquet_filepath = _get_parquet_filepath(
         dataset_path=self.dataset_path,
@@ -891,7 +897,6 @@ class DatasetDuckDB(Dataset):
 
       con.close()
 
-    output_schema = arrow_schema_to_schema(reader.schema)
     if ROWID in output_schema.fields:
       del output_schema.fields[ROWID]
 
@@ -956,13 +961,18 @@ class DatasetDuckDB(Dataset):
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
-    _, _, parquet_filepath = self._reshard_cache(
+    _, inferred_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
       schema=signal_schema,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
       parquet_filename_prefix='data',
       overwrite=overwrite,
     )
+
+    if not signal_schema:
+      signal_schema = inferred_schema
+      signal_schema.get_field(output_path).signal = signal.model_dump()
+
     assert parquet_filepath is not None
     parquet_filename = os.path.basename(parquet_filepath)
     output_dir = os.path.dirname(parquet_filepath)
@@ -1033,6 +1043,8 @@ class DatasetDuckDB(Dataset):
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
+
+    assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
 
     row_ids = (item[ROWID] for item in output_items)
 
@@ -1676,7 +1688,8 @@ class DatasetDuckDB(Dataset):
         select_sqls.append(f'{sql} AS {escape_string_literal(temp_column_name)}')
         columns_to_merge[final_col_name][temp_column_name] = column
 
-        if column.signal_udf and span_from and _schema_has_spans(column.signal_udf.fields()):
+        udf_schema = column.signal_udf and column.signal_udf.fields()
+        if span_from and udf_schema and _schema_has_spans(udf_schema):
           sql = _select_sql(
             duckdb_path,
             flatten=False,
@@ -1689,10 +1702,7 @@ class DatasetDuckDB(Dataset):
           temp_offset_column_name = f'{temp_column_name}/offset'
           temp_offset_column_name = temp_offset_column_name.replace("'", "\\'")
           select_sqls.append(f'{sql} AS {escape_string_literal(temp_offset_column_name)}')
-          temp_column_to_offset_column[temp_column_name] = (
-            temp_offset_column_name,
-            column.signal_udf.fields(),
-          )
+          temp_column_to_offset_column[temp_column_name] = (temp_offset_column_name, udf_schema)
 
       # `select_sqls` can be empty if this column points to a path that will be created by a UDF.
       if select_sqls:
@@ -1919,6 +1929,7 @@ class DatasetDuckDB(Dataset):
       if col.signal_udf:
         udfs.append(SelectRowsSchemaUDF(path=dest_path, alias=col.alias))
         field = col.signal_udf.fields()
+        assert field, f'Signal {col.signal_udf.name} needs `Signal.fields` defined when run as UDF.'
         field.signal = col.signal_udf.model_dump()
       elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)

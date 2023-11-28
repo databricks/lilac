@@ -111,14 +111,22 @@ def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
   return True
 
 
-def create_signal_schema(signal: Signal, source_path: PathTuple, current_schema: Schema) -> Schema:
-  """Create a schema describing the enriched fields added an enrichment."""
+def create_signal_schema(
+  signal: Signal, source_path: PathTuple, current_schema: Schema
+) -> Optional[Schema]:
+  """Create a signal schema describing the enriched fields.
+
+  Returns None if the signal has no predefined schema.
+  """
   leafs = current_schema.leafs
   # Validate that the enrich fields are actually a valid leaf path.
   if source_path not in leafs:
     raise ValueError(f'"{source_path}" is not a valid leaf path. Leaf paths: {leafs.keys()}')
 
   signal_schema = signal.fields()
+  if not signal_schema:
+    return None
+
   signal_schema.signal = signal.model_dump()
 
   enriched_schema = field(fields={signal.key(is_computed_signal=True): signal_schema})

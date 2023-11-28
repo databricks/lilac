@@ -70,13 +70,13 @@ class Signal(BaseModel):
 
   model_config = ConfigDict(extra='ignore', json_schema_extra=_signal_schema_extra)
 
-  def fields(self) -> Field:
-    """Return the fields schema for this signal.
+  def fields(self) -> Optional[Field]:
+    """Return the schema for the signal output. If None, the schema will be automatically inferred.
 
     Returns:
       A Field object that describes the schema of the signal.
     """
-    raise NotImplementedError
+    return None
 
   def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
     """Compute the signal for an iterable of documents or images.
