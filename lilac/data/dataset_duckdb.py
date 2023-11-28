@@ -651,6 +651,7 @@ class DatasetDuckDB(Dataset):
           SELECT {ROWID} FROM read_json_auto(
             '{shard_cache_filepath}',
             IGNORE_ERRORS=true,
+            hive_partitioning=false,
             format='newline_delimited')
         );
       """
@@ -703,6 +704,8 @@ class DatasetDuckDB(Dataset):
 
       yield from zip(row_ids, values)
 
+    con.close()
+
   def _compute_disk_cached(
     self,
     transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
@@ -726,21 +729,22 @@ class DatasetDuckDB(Dataset):
 
     use_jsonl_cache = not overwrite and os.path.exists(jsonl_cache_filepath)
 
-    con = self.con.cursor()
-
     # Compute the start index where the cache file left off.
     start_idx = 0
     if use_jsonl_cache:
+      con = self.con.cursor()
       count_result = con.execute(
         f"""
         SELECT COUNT(*) FROM read_json_auto(
           '{jsonl_cache_filepath}',
           IGNORE_ERRORS=true,
+          hive_partitioning=false,
           format='newline_delimited')
         """
       ).fetchone()
       if count_result:
         (start_idx,) = count_result
+      con.close()
 
     rows = self._select_iterable_values(
       unnest_input_path=unnest_input_path,
@@ -857,10 +861,10 @@ class DatasetDuckDB(Dataset):
     con.execute(
       f"""
       CREATE OR REPLACE VIEW {jsonl_view_name} as (
-        SELECT * FROM read_json(
+        SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
           {jsonl_cache_filepaths},
           {f'columns={duckdb_schema(schema)},' if schema else ''}
-          auto_detect={'false' if schema else 'true'},
+          hive_partitioning=false,
           ignore_errors=true,
           format='newline_delimited'
         )
@@ -872,6 +876,8 @@ class DatasetDuckDB(Dataset):
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
       rows_per_batch=10_000
     )
+    output_schema = arrow_schema_to_schema(reader.schema)
+
     if not is_tmp_output:
       parquet_filepath = _get_parquet_filepath(
         dataset_path=self.dataset_path,
@@ -890,7 +896,6 @@ class DatasetDuckDB(Dataset):
 
       con.close()
 
-    output_schema = arrow_schema_to_schema(reader.schema)
     if ROWID in output_schema.fields:
       del output_schema.fields[ROWID]
 
@@ -955,13 +960,18 @@ class DatasetDuckDB(Dataset):
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
-    _, signal_schema, parquet_filepath = self._reshard_cache(
+    _, inferred_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
       schema=signal_schema,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
       parquet_filename_prefix='data',
       overwrite=overwrite,
     )
+
+    if not signal_schema:
+      signal_schema = inferred_schema
+      signal_schema.get_field(output_path).signal = signal.model_dump()
+
     assert parquet_filepath is not None
     parquet_filename = os.path.basename(parquet_filepath)
     output_dir = os.path.dirname(parquet_filepath)
