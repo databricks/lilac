@@ -1929,7 +1929,7 @@ class DatasetDuckDB(Dataset):
       if col.signal_udf:
         udfs.append(SelectRowsSchemaUDF(path=dest_path, alias=col.alias))
         field = col.signal_udf.fields()
-        assert field, f'Expected signal {col.signal_udf.name} to have a schema defined.'
+        assert field, f'Signal {col.signal_udf.name} needs `Signal.fields` defined when run as UDF.'
         field.signal = col.signal_udf.model_dump()
       elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)
