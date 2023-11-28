@@ -11,6 +11,7 @@ import type { ListFilter } from './ListFilter';
 import type { MetadataSearch } from './MetadataSearch';
 import type { SemanticSearch } from './SemanticSearch';
 import type { SortOrder } from './SortOrder';
+import type { StringFilter } from './StringFilter';
 import type { UnaryFilter } from './UnaryFilter';
 
 /**
@@ -19,7 +20,7 @@ import type { UnaryFilter } from './UnaryFilter';
 export type SelectRowsOptions = {
     columns?: Array<(Column | Array<string> | string)>;
     searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch)>;
-    filters?: Array<(BinaryFilter | UnaryFilter | ListFilter)>;
+    filters?: Array<(BinaryFilter | StringFilter | UnaryFilter | ListFilter)>;
     sort_by?: Array<(Array<string> | string)>;
     sort_order?: (SortOrder | null);
     limit?: (number | null);

@@ -78,6 +78,7 @@ export type { SortResult } from './models/SortResult';
 export type { Source } from './models/Source';
 export type { SourcesList } from './models/SourcesList';
 export type { StatsResult } from './models/StatsResult';
+export type { StringFilter } from './models/StringFilter';
 export type { SubstringSignal } from './models/SubstringSignal';
 export type { TaskInfo } from './models/TaskInfo';
 export type { TaskManifest } from './models/TaskManifest';

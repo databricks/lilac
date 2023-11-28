@@ -105,6 +105,7 @@ from .dataset import (
   LIST_OPS,
   MAX_TEXT_LEN_DISTINCT_COUNT,
   SAMPLE_AVG_TEXT_LENGTH,
+  STRING_OPS,
   TOO_MANY_DISTINCT,
   UNARY_OPS,
   BinaryOp,
@@ -1153,6 +1154,16 @@ class DatasetDuckDB(Dataset):
 
       if filter.op in BINARY_OPS and not current_field.dtype:
         raise ValueError(f'Unable to filter on path {filter.path}. The field has no value.')
+      if filter.op in STRING_OPS:
+        if current_field.dtype != STRING:
+          raise ValueError(
+            f'Unable to apply string filter to path {filter.path} of type {current_field.dtype}. '
+          )
+        if filter.op in ('length_shorter', 'length_shorter'):
+          try:
+            filter.value = int(filter.value)  # type: ignore
+          except ValueError:
+            raise ValueError(f'TypeError: String length {filter.value!r} should be an integer. ')
 
   def _validate_udfs(self, udf_cols: Sequence[Column], source_schema: Schema) -> None:
     for col in udf_cols:
@@ -2354,6 +2365,21 @@ class DatasetDuckDB(Dataset):
         else:
           nan_filter = f'NOT isnan({select_str}) AND' if filter_nans else ''
           filter_query = f'{nan_filter} {select_str} {sql_op} {filter_val}'
+      elif f.op in STRING_OPS:
+        if f.op == 'length_shorter':
+          filter_val = cast(int, f.value)
+          filter_query = f'length({select_str}) <= {filter_val}'
+        elif f.op == 'length_longer':
+          filter_val = cast(int, f.value)
+          filter_query = f'length({select_str}) >= {filter_val}'
+        elif f.op == 'regex_matches':
+          filter_val = cast(str, f.value)
+          filter_query = f'regexp_matches({select_str}, {escape_string_literal(filter_val)})'
+        elif f.op == 'not_regex_matches':
+          filter_val = cast(str, f.value)
+          filter_query = f'NOT regexp_matches({select_str}, {escape_string_literal(filter_val)})'
+        else:
+          raise ValueError(f'String op: {f.op} is not yet supported')
       elif f.op in UNARY_OPS:
         if f.op == 'exists':
           filter_query = (
@@ -2819,9 +2845,16 @@ def _select_sql(
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:
   """Read the manifest file."""
+  manifest_filepath = os.path.join(dataset_path, MANIFEST_FILENAME)
+  if not os.path.exists(manifest_filepath):
+    raise ValueError(
+      f'Dataset manifest does not exist at path: {manifest_filepath}. '
+      'Please check that the dataset name is correct and that you set the lilac project dir '
+      'correctly. To set the project dir call: `ll.set_project_dir("path/to/project")`.'
+    )
   # TODO(nsthorat): Overwrite the source manifest with a "source" added if the source is not defined
   # by reading the config yml.
-  with open_file(os.path.join(dataset_path, MANIFEST_FILENAME), 'r') as f:
+  with open_file(manifest_filepath, 'r') as f:
     source_manifest = SourceManifest.model_validate_json(f.read())
 
   # For backwards compatibility, check if the config has the source and write it back to the

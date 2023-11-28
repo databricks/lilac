@@ -8,7 +8,7 @@
  */
 export type MetadataSearch = {
     path: (Array<string> | string);
-    op: ('equals' | 'not_equal' | 'greater' | 'greater_equal' | 'less' | 'less_equal' | 'exists' | 'not_exists' | 'in');
+    op: ('equals' | 'not_equal' | 'greater' | 'greater_equal' | 'less' | 'less_equal' | 'length_longer' | 'length_shorter' | 'regex_matches' | 'not_regex_matches' | 'exists' | 'not_exists' | 'in');
     value?: (number | boolean | string | Blob | Array<string> | null);
     type: 'metadata';
 };

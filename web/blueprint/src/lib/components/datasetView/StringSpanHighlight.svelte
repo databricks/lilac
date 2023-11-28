@@ -68,7 +68,7 @@
     pathToSpans = {};
     spanPaths.forEach(sp => {
       let valueNodes = getValueNodes(row, sp);
-      const isSpanNestedUnder = pathMatchesPrefix(path, sp);
+      const isSpanNestedUnder = pathMatchesPrefix(sp, path);
       if (isSpanNestedUnder) {
         // Filter out any span values that do not share the same coordinates as the current path we
         // are rendering.

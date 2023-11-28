@@ -116,10 +116,12 @@ class MediaResult(BaseModel):
 
 
 BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal']
+StringOp = Literal['length_longer', 'length_shorter', 'regex_matches', 'not_regex_matches']
 UnaryOp = Literal['exists', 'not_exists', None]
 ListOp = Literal['in', None]
 
 BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
+STRING_OPS = set(['length_longer', 'length_shorter', 'regex_matches', 'not_regex_matches'])
 UNARY_OPS = set(['exists', 'not_exists'])
 LIST_OPS = set(['in'])
 
@@ -240,10 +242,11 @@ def column_from_identifier(column: ColumnId) -> Column:
 FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, datetime]
 FeatureListValue = list[StrictStr]
 BinaryFilterTuple = tuple[Path, BinaryOp, FeatureValue]
+StringFilterTuple = tuple[Path, StringOp, FeatureValue]
 ListFilterTuple = tuple[Path, ListOp, FeatureListValue]
 UnaryFilterTuple = tuple[Path, UnaryOp]
 
-FilterOp = Union[BinaryOp, UnaryOp, ListOp]
+FilterOp = Union[BinaryOp, StringOp, UnaryOp, ListOp]
 
 
 class SelectGroupsResult(BaseModel):
@@ -262,7 +265,9 @@ class Filter(BaseModel):
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
 
 
-FilterLike: TypeAlias = Union[Filter, BinaryFilterTuple, UnaryFilterTuple, ListFilterTuple]
+FilterLike: TypeAlias = Union[
+  Filter, BinaryFilterTuple, StringFilterTuple, UnaryFilterTuple, ListFilterTuple
+]
 
 SearchValue = StrictStr
 

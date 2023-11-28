@@ -23,7 +23,11 @@
     greater_equal: '≥',
     in: 'in',
     exists: 'exists',
-    not_exists: 'not exists'
+    not_exists: 'not exists',
+    length_shorter: 'len ≤',
+    length_longer: 'len ≥',
+    regex_matches: 'matches',
+    not_regex_matches: 'does not match'
   };
 
   export let filter: Filter;

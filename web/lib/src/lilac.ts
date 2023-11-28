@@ -12,6 +12,7 @@ import type {
   SemanticSearch,
   Signal,
   SignalInfo,
+  StringFilter,
   UnaryFilter
 } from '../fastapi_client';
 import {
@@ -35,8 +36,8 @@ export type SearchType = Exclude<
 >;
 export type Search = ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch;
 
-export type Op = BinaryFilter['op'] | UnaryFilter['op'] | ListFilter['op'];
-export type Filter = BinaryFilter | UnaryFilter | ListFilter;
+export type Op = BinaryFilter['op'] | StringFilter['op'] | UnaryFilter['op'] | ListFilter['op'];
+export type Filter = BinaryFilter | StringFilter | UnaryFilter | ListFilter;
 
 export type LilacField<S extends Signal = Signal> = Field & {
   path: Path;
