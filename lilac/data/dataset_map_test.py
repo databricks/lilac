@@ -983,3 +983,15 @@ def test_map_entire_input_with_input_path(make_test_data: TestDataMaker) -> None
 
   rows = dataset.select_rows()
   assert list(rows) == [{'text': 'abcd', 'text_len': 4}, {'text': 'efghi', 'text_len': 5}]
+
+
+def test_map_entire_input_size_mismatch(make_test_data: TestDataMaker) -> None:
+  def text_len(texts: Iterable[Item]) -> Iterable[Item]:
+    for i, text in enumerate(texts):
+      # Skip the first item.
+      if i > 0:
+        yield len(text)
+
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
+  with pytest.raises(Exception):
+    dataset.map(text_len, input_path='text', output_column='text_len', entire_input=True)
