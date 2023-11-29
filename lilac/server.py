@@ -22,6 +22,7 @@ from . import (
   router_concept,
   router_data_loader,
   router_dataset,
+  router_dataset_signals,
   router_google_login,
   router_rag,
   router_signal,
@@ -113,6 +114,7 @@ app.include_router(router_google_login.router, prefix='/google', tags=['google_l
 
 v1_router = APIRouter(route_class=RouteErrorHandler)
 v1_router.include_router(router_dataset.router, prefix='/datasets', tags=['datasets'])
+v1_router.include_router(router_dataset_signals.router, prefix='/datasets', tags=['datasets'])
 v1_router.include_router(router_concept.router, prefix='/concepts', tags=['concepts'])
 v1_router.include_router(router_data_loader.router, prefix='/data_loaders', tags=['data_loaders'])
 v1_router.include_router(router_signal.router, prefix='/signals', tags=['signals'])
