@@ -1,16 +1,19 @@
 """Routing endpoints for running signals on datasets."""
 from typing import Annotated, Optional
 
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from pydantic import BaseModel, SerializeAsAny, field_validator
 
 from lilac.auth import UserInfo, get_session_user, get_user_access
 from lilac.db_manager import get_dataset
-from lilac.router_dataset import router
 from lilac.schema import Path
 from lilac.signal import Signal, TextEmbeddingSignal, resolve_signal
 from lilac.tasks import TaskId, get_task_manager
+
+from .router_utils import RouteErrorHandler
+
+router = APIRouter(route_class=RouteErrorHandler)
 
 
 class ComputeSignalOptions(BaseModel):
