@@ -5,13 +5,12 @@ from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from pydantic import BaseModel, SerializeAsAny, field_validator
 
-from lilac.auth import UserInfo, get_session_user, get_user_access
-from lilac.db_manager import get_dataset
-from lilac.schema import Path
-from lilac.signal import Signal, TextEmbeddingSignal, resolve_signal
-from lilac.tasks import TaskId, get_task_manager
-
+from .auth import UserInfo, get_session_user, get_user_access
+from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
+from .schema import Path
+from .signal import Signal, TextEmbeddingSignal, resolve_signal
+from .tasks import TaskId, get_task_manager
 
 router = APIRouter(route_class=RouteErrorHandler)
 
