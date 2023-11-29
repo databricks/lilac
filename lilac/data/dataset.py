@@ -6,7 +6,7 @@ import enum
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, Iterable, Iterator, Literal, Optional, Sequence, Union
+from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union
 
 import pandas as pd
 from pydantic import (
@@ -593,7 +593,6 @@ class Dataset(abc.ABC):
     combine_columns: bool = False,
     resolve_span: bool = False,
     num_jobs: int = 1,
-    entire_input: bool = False,
   ) -> Iterable[Item]:
     """Maps a function over all rows in the dataset and writes the result to a new column.
 
@@ -618,12 +617,48 @@ class Dataset(abc.ABC):
       num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
         jobs will correspond to the number of processors.. If `num_jobs` is greater than the number
         of processors, it split the work into `num_jobs` and distribute amongst processors.
-      entire_input: If true, pass an iterable of the entire input column to the map function. When
-        true, `num_jobs` must be 1 since a single process will be responsible for the entire input.
 
     Returns:
       An iterable of items that are the result of map. The result item does not have the column name
       as part of the dictionary, it is exactly what is returned from the map.
+    """
+    pass
+
+  @abc.abstractmethod
+  def transform(
+    self,
+    transform_fn: Callable[[Iterable[Item]], Iterable[Item]],
+    output_column: str,
+    input_path: Optional[Path] = None,
+    nest_under: Optional[Path] = None,
+    overwrite: bool = False,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+  ) -> Iterable[Item]:
+    """Transforms the entire dataset (or a column) and writes the result to a new column.
+
+    Args:
+      transform_fn: A callable that takes a full row item dictionary, and returns an Item for the
+        result. The result Item can be a primitive, like a string.
+      output_column: The name of the output column to write to. When `nest_under` is False
+        (the default), this will be the name of the top-level column. When `nest_under` is True,
+        the output_column will be the name of the column under the path given by `nest_under`.
+      input_path: The path to the input column to map over. If not specified, the map function will
+        be called with the full row item dictionary. If specified, the map function will be called
+        with the value at the given path, flattened. The output column will be written in the same
+        shape as the input column, paralleling its nestedness.
+      nest_under: The path to nest the output under. This is useful when emitting annotations, like
+        spans, so they will get hierarchically shown in the UI.
+      overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
+        an error will be thrown if the column already exists.
+      combine_columns: When true, the row passed to the map function will be a deeply nested object
+        reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
+        fields.
+      resolve_span: Whether to resolve the spans into text before calling the map function.
+
+    Returns:
+      An iterable of items that are the result of transforming the dataset that will be written to
+      the output column.
     """
     pass
 

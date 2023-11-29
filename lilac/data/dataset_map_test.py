@@ -951,41 +951,31 @@ def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
   ]
 
 
-def test_map_entire_input(make_test_data: TestDataMaker) -> None:
+def test_transform(make_test_data: TestDataMaker) -> None:
   def text_len(items: Iterable[Item]) -> Iterable[Item]:
     for item in items:
       yield len(item['text'])
 
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
-  dataset.map(text_len, output_column='text_len', entire_input=True)
+  dataset.transform(text_len, output_column='text_len')
 
   rows = dataset.select_rows()
   assert list(rows) == [{'text': 'abcd', 'text_len': 4}, {'text': 'efghi', 'text_len': 5}]
 
 
-def test_map_entire_input_with_parallel_jobs(make_test_data: TestDataMaker) -> None:
-  def text_len(items: Iterable[Item]) -> Iterable[Item]:
-    for item in items:
-      yield len(item['text'])
-
-  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
-  with pytest.raises(Exception):
-    dataset.map(text_len, output_column='text_len', entire_input=True, num_jobs=2)
-
-
-def test_map_entire_input_with_input_path(make_test_data: TestDataMaker) -> None:
+def test_transform_with_input_path(make_test_data: TestDataMaker) -> None:
   def text_len(texts: Iterable[Item]) -> Iterable[Item]:
     for text in texts:
       yield len(text)
 
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
-  dataset.map(text_len, input_path='text', output_column='text_len', entire_input=True)
+  dataset.transform(text_len, input_path='text', output_column='text_len')
 
   rows = dataset.select_rows()
   assert list(rows) == [{'text': 'abcd', 'text_len': 4}, {'text': 'efghi', 'text_len': 5}]
 
 
-def test_map_entire_input_size_mismatch(make_test_data: TestDataMaker) -> None:
+def test_transform_size_mismatch(make_test_data: TestDataMaker) -> None:
   def text_len(texts: Iterable[Item]) -> Iterable[Item]:
     for i, text in enumerate(texts):
       # Skip the first item.
@@ -994,4 +984,4 @@ def test_map_entire_input_size_mismatch(make_test_data: TestDataMaker) -> None:
 
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
   with pytest.raises(Exception):
-    dataset.map(text_len, input_path='text', output_column='text_len', entire_input=True)
+    dataset.transform(text_len, input_path='text', output_column='text_len')
