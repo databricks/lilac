@@ -310,36 +310,13 @@ def sparse_to_dense_compute(
   """Densifies the input before calling the provided `func` and sparsifies the output."""
   total_size: int = 0
 
-  def densify(x: Iterator[Optional[Tin]]) -> Iterator[tuple[int, Tin]]:
-    nonlocal total_size
-    for i, value in enumerate(x):
-      total_size += 1
+  def densify(x: Iterator[Optional[Tin]]) -> Iterator[Tin]:
+    for value in x:
       if value is not None:
-        yield i, value
+        yield value
 
-  dense_input_with_locations = densify(sparse_input)
-  dense_input_with_locations_0, dense_input_with_locations_1 = itertools.tee(
-    dense_input_with_locations, 2
-  )
-  dense_input = (value for (_, value) in dense_input_with_locations_0)
-
+  sparse_input, sparse_input_2 = itertools.tee(sparse_input, 2)
+  dense_input = densify(sparse_input_2)
   dense_output = iter(func(dense_input))
-  index = 0
-
-  location_index = 0
-
-  while True:
-    try:
-      out = next(dense_output)
-      out_index, _ = next(dense_input_with_locations_1)
-      while index < out_index:
-        yield None
-        index += 1
-      yield out
-      location_index += 1
-      index += 1
-    except StopIteration:
-      while index < total_size:
-        yield None
-        index += 1
-      return
+  for input in sparse_input:
+    yield None if input is None else next(dense_output)

@@ -949,3 +949,39 @@ def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
     {'text': 'abcd', 'skip': span(1, 3)},
     {'text': 'efghi', 'skip': span(1, 4)},
   ]
+
+
+def test_transform(make_test_data: TestDataMaker) -> None:
+  def text_len(items: Iterable[Item]) -> Iterable[Item]:
+    for item in items:
+      yield len(item['text'])
+
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
+  dataset.transform(text_len, output_column='text_len')
+
+  rows = dataset.select_rows()
+  assert list(rows) == [{'text': 'abcd', 'text_len': 4}, {'text': 'efghi', 'text_len': 5}]
+
+
+def test_transform_with_input_path(make_test_data: TestDataMaker) -> None:
+  def text_len(texts: Iterable[Item]) -> Iterable[Item]:
+    for text in texts:
+      yield len(text)
+
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
+  dataset.transform(text_len, input_path='text', output_column='text_len')
+
+  rows = dataset.select_rows()
+  assert list(rows) == [{'text': 'abcd', 'text_len': 4}, {'text': 'efghi', 'text_len': 5}]
+
+
+def test_transform_size_mismatch(make_test_data: TestDataMaker) -> None:
+  def text_len(texts: Iterable[Item]) -> Iterable[Item]:
+    for i, text in enumerate(texts):
+      # Skip the first item.
+      if i > 0:
+        yield len(text)
+
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
+  with pytest.raises(Exception):
+    dataset.transform(text_len, input_path='text', output_column='text_len')

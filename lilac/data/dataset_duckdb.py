@@ -2640,6 +2640,138 @@ class DatasetDuckDB(Dataset):
 
     return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
 
+  @override
+  def transform(
+    self,
+    transform_fn: Callable[[Iterable[Item]], Iterable[Item]],
+    output_column: str,
+    input_path: Optional[Path] = None,
+    nest_under: Optional[Path] = None,
+    overwrite: bool = False,
+    combine_columns: bool = False,
+    resolve_span: bool = False,
+  ) -> None:
+    manifest = self.manifest()
+    input_path = normalize_path(input_path) if input_path else None
+    if input_path:
+      input_field = manifest.data_schema.get_field(input_path)
+      if not input_field.dtype:
+        raise ValueError(
+          f'Input path {input_path} is not a leaf path. This is currently unsupported. If you '
+          'require this, please file an issue and we will prioritize.'
+        )
+
+    # Validate output_column and nest_under.
+    if nest_under is not None:
+      nest_under = normalize_path(nest_under)
+      if output_column is None:
+        raise ValueError('When using `nest_under`, you must specify an output column name.')
+
+      # Make sure nest_under does not contain any repeated values.
+      for path_part in nest_under:
+        if path_part == PATH_WILDCARD:
+          raise ValueError('Nesting map outputs under a repeated field is not yet supported.')
+
+      if not manifest.data_schema.has_field(nest_under):
+        raise ValueError(f'The `nest_under` column {nest_under} does not exist.')
+
+    if nest_under is not None:
+      output_path = (*nest_under, output_column)
+    else:
+      output_path = (output_column,)
+
+    parquet_filepath: Optional[str] = None
+    if manifest.data_schema.has_field(output_path):
+      if overwrite:
+        field = manifest.data_schema.get_field(output_path)
+        if field.map is None:
+          raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
+        # Delete the parquet file and map manifest.
+        assert output_column is not None
+        parquet_filepath = os.path.join(
+          self.dataset_path, get_parquet_filename(output_column, shard_index=0, num_shards=1)
+        )
+        if os.path.exists(parquet_filepath):
+          delete_file(parquet_filepath)
+
+        map_manifest_filepath = os.path.join(
+          self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
+        )
+        if os.path.exists(map_manifest_filepath):
+          delete_file(map_manifest_filepath)
+
+      else:
+        raise ValueError(
+          f'Cannot map to path "{output_column}" which already exists in the dataset. '
+          'Use overwrite=True to overwrite the column.'
+        )
+
+    task_ids = []
+    jsonl_cache_filepaths: list[str] = []
+    output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
+    task_id = get_task_manager().task_id(
+      name=f'[{self.namespace}/{self.dataset_name}] transform '
+      f'"{transform_fn.__name__}"{output_col_desc_suffix}',
+    )
+    jsonl_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=output_path,
+      project_dir=self.project_dir,
+      shard_id=0,
+      shard_count=1,
+    )
+    get_task_manager().execute(
+      task_id,
+      self._map_worker,
+      transform_fn,
+      output_path,
+      jsonl_cache_filepath,
+      0,
+      1,
+      input_path,
+      overwrite,
+      combine_columns,
+      resolve_span,
+      (task_id, 0),
+      True,  # entire_input
+    )
+    task_ids.append(task_id)
+    jsonl_cache_filepaths.append(jsonl_cache_filepath)
+
+    # Wait for the tasks to finish before reading the outputs.
+    get_task_manager().wait(task_ids)
+
+    _, map_schema, parquet_filepath = self._reshard_cache(
+      output_path=output_path, jsonl_cache_filepaths=jsonl_cache_filepaths
+    )
+
+    assert parquet_filepath is not None
+
+    map_field_root = map_schema.get_field(output_path)
+
+    map_field_root.map = MapInfo(
+      fn_name=transform_fn.__name__,
+      input_path=input_path,
+      fn_source=inspect.getsource(transform_fn),
+      date_created=datetime.now(),
+    )
+
+    parquet_dir = os.path.dirname(parquet_filepath)
+    map_manifest_filepath = os.path.join(parquet_dir, f'{output_column}.{MAP_MANIFEST_SUFFIX}')
+    parquet_filename = os.path.basename(parquet_filepath)
+    map_manifest = MapManifest(
+      files=[parquet_filename],
+      data_schema=map_schema,
+      parquet_id=get_map_parquet_id(output_path),
+      py_version=metadata.version('lilac'),
+    )
+    with open_file(map_manifest_filepath, 'w') as f:
+      f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
+
+    parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
+    log(f'Wrote transform output to {parquet_filepath}')
+
   def _map_worker(
     self,
     map_fn: MapFn,
@@ -2652,6 +2784,7 @@ class DatasetDuckDB(Dataset):
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
+    entire_input: bool = False,
   ) -> None:
     map_sig = inspect.signature(map_fn)
     if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
@@ -2662,12 +2795,18 @@ class DatasetDuckDB(Dataset):
 
     has_job_id_arg = len(map_sig.parameters) == 2
 
-    def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
-      for item in items:
-        args: Union[tuple[Item], tuple[Item, int]] = (
-          (item,) if not has_job_id_arg else (item, job_id)
-        )
-        yield map_fn(*args)
+    if not entire_input:
+
+      def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
+        for item in items:
+          args: Union[tuple[Item], tuple[Item, int]] = (
+            (item,) if not has_job_id_arg else (item, job_id)
+          )
+          yield map_fn(*args)
+    else:
+
+      def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
+        return map_fn(items)
 
     self._compute_disk_cached(
       _map_iterable,
