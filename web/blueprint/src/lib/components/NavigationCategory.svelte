@@ -18,14 +18,22 @@
 <script lang="ts">
   import {SkeletonText} from 'carbon-components-svelte';
 
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import NavigationExpandable from './NavigationExpandable.svelte';
 
   export let title: string;
+  export let key: string;
   export let isFetching: boolean;
   export let tagGroups: NavigationTagGroup[];
-  export let expanded = true;
+  const navigationStore = getNavigationContext();
+
+  $: expanded = $navigationStore.expanded[key] != null ? $navigationStore.expanded[key] : true;
+
+  function toggleCategoryExpanded() {
+    navigationStore.toggleExpanded(key);
+  }
 
   $: hasTags = tagGroups.some(({tag}) => tag != '');
 </script>
@@ -33,7 +41,7 @@
 <div class="my-1 w-full px-1">
   <button
     class="w-full py-2 pl-4 pr-2 text-left hover:bg-gray-200"
-    on:click={() => (expanded = !expanded)}
+    on:click={toggleCategoryExpanded}
   >
     <div class="flex items-center justify-between">
       <div class="text-sm font-medium">{title}</div>
@@ -53,7 +61,11 @@
         <div class="mt-1">
           {#each tagGroups as { tag, groups }}
             <div class="my-1">
-              <NavigationExpandable expanded indentLevel={1} renderBelowOnly={!hasTags}>
+              <NavigationExpandable
+                key={`${key}.${tag}`}
+                indentLevel={1}
+                renderBelowOnly={!hasTags}
+              >
                 <div slot="above">
                   {#if hasTags}
                     <div class="flex flex-row justify-between text-sm opacity-80">
@@ -73,7 +85,7 @@
                   {#each groups as { group, items }}
                     <div class="mt-1">
                       <NavigationExpandable
-                        expanded
+                        key={`${key}.${tag}.${group}`}
                         indentLevel={hasTags ? 2 : 1}
                         linkItems={items}
                       >
