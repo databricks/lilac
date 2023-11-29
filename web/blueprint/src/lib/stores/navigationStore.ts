@@ -23,7 +23,6 @@ export function createNavigationStore() {
     toggleExpanded(key: string) {
       update(state => {
         state.expanded[key] = !(state.expanded[key] == null ? true : state.expanded[key]);
-        console.log(state.expanded);
         return state;
       });
     }

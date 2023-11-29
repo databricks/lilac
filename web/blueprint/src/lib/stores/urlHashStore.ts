@@ -81,13 +81,11 @@ export function createUrlHashStore(navStore: Writable<NavigationState>) {
             if (Object.keys(navValue).length == 0) {
               foundNav = false;
             } else {
-              console.log('....nav value', navValue);
               navStore.set(navValue);
             }
           }
         }
         if (!foundNav) {
-          console.log('....setting default');
           navStore.set(defaultNavigationState());
         }
 

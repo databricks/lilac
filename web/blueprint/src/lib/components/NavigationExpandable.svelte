@@ -11,9 +11,7 @@
   import {getNavigationContext} from '$lib/stores/navigationStore';
 
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
-  import {slide} from 'svelte/transition';
 
-  // export let expanded = false;
   export let indentLevel = 0;
   export let linkItems: NavigationLinkItem[] = [];
   export let key: string;
@@ -31,6 +29,7 @@
   }
   const navigationStore = getNavigationContext();
 
+  let expanded = true;
   $: expanded = $navigationStore.expanded[key] != null ? $navigationStore.expanded[key] : true;
 
   function toggleCategoryExpanded() {
@@ -58,7 +57,7 @@
       </div>
     </button>
     {#if expanded}
-      <div class="mt-1" transition:slide>
+      <div class="mt-1">
         <slot name="below" />
         {#if linkItems.length > 0}
           {#each linkItems as linkItem}
