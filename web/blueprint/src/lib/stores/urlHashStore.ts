@@ -74,8 +74,15 @@ export function createUrlHashStore(navStore: Writable<NavigationState>) {
           const [key, value] = param.split('=');
           if (key == NAV_STORE_KEY) {
             foundNav = true;
-            const navValue = JSON.parse(decodeURIComponent(value));
-            navStore.set(navValue);
+            const navValue = mergeDeep(
+              JSON.parse(decodeURIComponent(value)),
+              defaultNavigationState()
+            );
+            if (Object.keys(navValue).length == 0) {
+              foundNav = false;
+            } else {
+              navStore.set(navValue);
+            }
           }
         }
         if (!foundNav) {

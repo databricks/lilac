@@ -100,7 +100,12 @@
       >
     </div>
   </div>
-  <NavigationCategory title="Datasets" tagGroups={taggedDatasets} isFetching={$datasets.isFetching}>
+  <NavigationCategory
+    title="Datasets"
+    key="datasets"
+    tagGroups={taggedDatasets}
+    isFetching={$datasets.isFetching}
+  >
     <div slot="add" class="w-full">
       {#if canCreateDataset}
         <button
@@ -110,7 +115,12 @@
       {/if}
     </div>
   </NavigationCategory>
-  <NavigationCategory title="Concepts" tagGroups={taggedConcepts} isFetching={$concepts.isFetching}>
+  <NavigationCategory
+    title="Concepts"
+    key="concepts"
+    tagGroups={taggedConcepts}
+    isFetching={$concepts.isFetching}
+  >
     <div slot="add">
       <div
         class="w-full"
@@ -131,6 +141,7 @@
   </NavigationCategory>
   <NavigationCategory
     title="Signals"
+    key="signals"
     tagGroups={signalNavGroups}
     isFetching={$signals.isFetching}
   />

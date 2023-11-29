@@ -9,14 +9,25 @@ export type NavigationStore = ReturnType<typeof createNavigationStore>;
 
 export interface NavigationState {
   open: boolean;
+  expanded: {[key: string]: boolean};
 }
 export function defaultNavigationState() {
-  return {open: !isMobile()};
+  return {open: !isMobile(), expanded: {}};
 }
 export function createNavigationStore() {
-  return writable<NavigationState>(defaultNavigationState());
+  const {subscribe, update, set} = writable<NavigationState>(defaultNavigationState());
+  return {
+    subscribe,
+    update,
+    set,
+    toggleExpanded(key: string) {
+      update(state => {
+        state.expanded[key] = !(state.expanded[key] == null ? true : state.expanded[key]);
+        return state;
+      });
+    }
+  };
 }
-
 export function setNavigationContext(store: NavigationStore) {
   setContext(NAVIGATION_CONTEXT, store);
 }

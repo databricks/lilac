@@ -8,12 +8,13 @@
 
 <script lang="ts">
   import {goto} from '$app/navigation';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
 
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
 
-  export let expanded = false;
   export let indentLevel = 0;
   export let linkItems: NavigationLinkItem[] = [];
+  export let key: string;
   // When true, renders the content of below without an expandable. We use this when there are no
   // tags, to avoid branching logic upstream.
   export let renderBelowOnly = false;
@@ -26,6 +27,14 @@
   function indentLevelToPadding(indentLevel: number): number {
     return indentLevel * INDENT_LEVEL_PADDING_REM + INDENT_LEVEL_PADDING_OFFSET_REM;
   }
+  const navigationStore = getNavigationContext();
+
+  let expanded = true;
+  $: expanded = $navigationStore.expanded[key] != null ? $navigationStore.expanded[key] : true;
+
+  function toggleCategoryExpanded() {
+    navigationStore.toggleExpanded(key);
+  }
 
   $: indentPadding = indentLevelToPadding(indentLevel);
   $: linkPadding = indentLevelToPadding(indentLevel + 1);
@@ -36,7 +45,7 @@
     <button
       class="w-full flex-grow py-1 text-left hover:bg-gray-200"
       style={`padding-left: ${indentPadding}rem;`}
-      on:click={() => (expanded = !expanded)}
+      on:click={toggleCategoryExpanded}
     >
       <div class="flex w-full items-center justify-between gap-x-3">
         <slot name="above" />
