@@ -35,8 +35,11 @@
     '/rag': 'rag'
   };
 
+  const navStore = createNavigationStore();
+  setNavigationContext(navStore);
+
   $: currentPage = $page.route.id != null ? routeToPage[$page.route.id] : 'home';
-  let urlHashStore = createUrlHashStore();
+  let urlHashStore = createUrlHashStore(navStore);
   setUrlHashContext(urlHashStore);
 
   const notificationsStore = createNotificationsStore();
@@ -74,9 +77,6 @@
 
   const settingsStore = createSettingsStore();
   setSettingsContext(settingsStore);
-
-  const navStore = createNavigationStore();
-  setNavigationContext(navStore);
 </script>
 
 <!-- Monitor for hash changes in the URL. -->

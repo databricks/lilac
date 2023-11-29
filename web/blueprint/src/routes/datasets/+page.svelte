@@ -6,7 +6,6 @@
     setDatasetViewContext,
     type DatasetViewState
   } from '$lib/stores/datasetViewStore';
-  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {
     deserializeState,
     getUrlHashContext,
@@ -17,7 +16,6 @@
   let namespace: string | undefined = undefined;
   let datasetName: string | undefined = undefined;
   const urlHashStore = getUrlHashContext();
-  const navStore = getNavigationContext();
 
   $: {
     if ($urlHashStore.page === 'datasets') {
@@ -42,7 +40,6 @@
       persistedHashStore<DatasetViewState>(
         'datasets',
         `${namespace}/${datasetName}`,
-        navStore,
         datasetViewStore,
         urlHashStore,
         hashState => deserializeState(hashState, defaultState),
