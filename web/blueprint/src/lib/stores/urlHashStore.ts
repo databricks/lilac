@@ -1,6 +1,7 @@
 import {mergeDeep} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Writable} from 'svelte/store';
+import {NAV_STORE_KEY, defaultNavigationState, type NavigationState} from './navigationStore';
 
 export type AppPage =
   | 'home'
@@ -17,6 +18,7 @@ interface UrlHashState {
   identifier: string | null;
   // The sub-page serialized state.
   hashState: string | null;
+  navigationState: NavigationState | null;
 }
 
 export type UrlHashStateStore = ReturnType<typeof createUrlHashStore>;
@@ -24,13 +26,33 @@ export type PageStateCallback = (page: AppPage) => void;
 
 const URL_HASH_CONTEXT = 'URL_HASH_CONTEXT';
 
-export function createUrlHashStore() {
+export function createUrlHashStore(navStore: Writable<NavigationState>) {
   const {subscribe, update} = writable<UrlHashState>({
     hash: '',
     page: null,
     identifier: null,
-    hashState: null
+    hashState: null,
+    navigationState: null
   });
+
+  // Skip the first update which happens on nav store initialization.
+  let skipNavUpdate = true;
+  let navState: NavigationState;
+  navStore.subscribe(state => {
+    navState = state;
+    if (navState == null) return;
+    if (!skipNavUpdate) {
+      pushCombinedState();
+    }
+    skipNavUpdate = false;
+  });
+
+  let lastStoreHashState: string | null = null;
+  let lastStoreIdentifier: string | null = null;
+
+  function pushCombinedState() {
+    pushState(lastStoreIdentifier, navState, lastStoreHashState);
+  }
 
   return {
     subscribe,
@@ -41,15 +63,58 @@ export function createUrlHashStore() {
         state.hash = hash;
         state.identifier = identifier;
         state.hashState = hashStateValues.join('&');
+
+        lastStoreIdentifier = identifier;
+
+        // Update the navigation store based on the URL.
+        skipNavUpdate = true;
+        let foundNav = false;
+        for (const param of hashStateValues) {
+          if (param == null) continue;
+          const [key, value] = param.split('=');
+          if (key == NAV_STORE_KEY) {
+            foundNav = true;
+            const navValue = JSON.parse(decodeURIComponent(value));
+            navStore.set(navValue);
+          }
+        }
+        if (!foundNav) {
+          navStore.set(defaultNavigationState());
+        }
+
         return state;
       });
+    },
+    pushStoreState(identifier: string, storeHashState: string) {
+      lastStoreHashState = storeHashState;
+      lastStoreIdentifier = identifier;
+      pushCombinedState();
     }
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function pushState(identifier: string, hashState: string) {
-  const hash = `#${identifier}` + (hashState != '' ? `&${hashState}` : '');
+export function pushState(
+  identifier: string | null,
+  navState: NavigationState,
+  pageHashState: string | null
+) {
+  const navHash = serializeState(
+    {[NAV_STORE_KEY]: navState},
+    {[NAV_STORE_KEY]: defaultNavigationState()}
+  );
+  const hashStateComponents = [];
+  if (navHash != '' && navHash != null) {
+    hashStateComponents.push(navHash);
+  }
+  if (pageHashState != '' && pageHashState != null) {
+    hashStateComponents.push(pageHashState);
+  }
+
+  const hash =
+    '#' +
+    (identifier != null ? identifier : '') +
+    (hashStateComponents.length > 0 ? `&${hashStateComponents.join('&')}` : '');
   // Sometimes state can be double rendered, so to avoid that at all costs we check the existing
   // hash before pushing a new one.
   if (hash != location.hash) {
@@ -128,6 +193,9 @@ export function deserializeState(
   for (const param of params) {
     if (param == null) continue;
     const [key, value] = param.split('=');
+    if (key == '' || key == NAV_STORE_KEY) {
+      continue;
+    }
     urlState[decodeURIComponent(key)] = JSON.parse(decodeURIComponent(value));
   }
   return mergeDeep(urlState, defaultState);
@@ -165,7 +233,7 @@ export function persistedHashStore<T extends object>(
   store.subscribe(state => {
     if (state == null) return;
     if (!skipUpdate) {
-      pushState(identifier, hashFromState(state));
+      urlHashStore.pushStoreState(identifier, hashFromState(state));
     }
     skipUpdate = false;
   });
