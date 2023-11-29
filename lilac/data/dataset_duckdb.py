@@ -2501,8 +2501,13 @@ class DatasetDuckDB(Dataset):
     combine_columns: bool = False,
     resolve_span: bool = False,
     num_jobs: int = 1,
+    entire_input: bool = False,
   ) -> Iterable[Item]:
     is_tmp_output = output_column is None
+
+    assert (
+      not entire_input or num_jobs == 1
+    ), 'map(entire_input=True,...) is only supported when num_jobs is 1'
 
     manifest = self.manifest()
 
@@ -2598,6 +2603,7 @@ class DatasetDuckDB(Dataset):
         combine_columns,
         resolve_span,
         (task_id, 0),
+        entire_input,
       )
       task_ids.append(task_id)
       jsonl_cache_filepaths.append(jsonl_cache_filepath)
@@ -2652,6 +2658,7 @@ class DatasetDuckDB(Dataset):
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
+    entire_input: bool = False,
   ) -> None:
     map_sig = inspect.signature(map_fn)
     if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
@@ -2662,12 +2669,18 @@ class DatasetDuckDB(Dataset):
 
     has_job_id_arg = len(map_sig.parameters) == 2
 
-    def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
-      for item in items:
-        args: Union[tuple[Item], tuple[Item, int]] = (
-          (item,) if not has_job_id_arg else (item, job_id)
-        )
-        yield map_fn(*args)
+    if not entire_input:
+
+      def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
+        for item in items:
+          args: Union[tuple[Item], tuple[Item, int]] = (
+            (item,) if not has_job_id_arg else (item, job_id)
+          )
+          yield map_fn(*args)
+    else:
+
+      def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
+        return map_fn(items)
 
     self._compute_disk_cached(
       _map_iterable,

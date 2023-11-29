@@ -593,6 +593,7 @@ class Dataset(abc.ABC):
     combine_columns: bool = False,
     resolve_span: bool = False,
     num_jobs: int = 1,
+    entire_input: bool = False,
   ) -> Iterable[Item]:
     """Maps a function over all rows in the dataset and writes the result to a new column.
 
@@ -617,6 +618,8 @@ class Dataset(abc.ABC):
       num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
         jobs will correspond to the number of processors.. If `num_jobs` is greater than the number
         of processors, it split the work into `num_jobs` and distribute amongst processors.
+      entire_input: If true, pass an iterable of the entire input to the map function. When true,
+        `num_jobs` must be 1 since a single process will be responsible for the entire input.
 
     Returns:
       An iterable of items that are the result of map. The result item does not have the column name
