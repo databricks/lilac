@@ -34,7 +34,6 @@ from distributed import Future, get_client, get_worker, wait
 from pydantic import BaseModel, TypeAdapter
 from tqdm import tqdm
 
-from .env import env
 from .utils import log, pretty_timedelta
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
@@ -121,10 +120,16 @@ class TaskManager:
     # is particularly useful for signals that use libraries with multiprocessing support.
     dask.config.set({'distributed.worker.daemon': False})
 
+    asynchronous = True
+    try:
+      asyncio.get_running_loop()
+    except RuntimeError as e:
+      asynchronous = False
+
     self.n_workers = multiprocessing.cpu_count()
     total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
-      asynchronous=not env('LILAC_TEST'),
+      asynchronous=asynchronous,
       memory_limit=f'{total_memory_gb} GB',
       processes=True,
       n_workers=self.n_workers,
