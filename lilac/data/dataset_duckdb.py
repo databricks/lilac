@@ -2650,7 +2650,7 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
-  ) -> Iterable[Item]:
+  ) -> None:
     manifest = self.manifest()
     input_path = normalize_path(input_path) if input_path else None
     if input_path:
@@ -2742,7 +2742,7 @@ class DatasetDuckDB(Dataset):
     # Wait for the tasks to finish before reading the outputs.
     get_task_manager().wait(task_ids)
 
-    reader, map_schema, parquet_filepath = self._reshard_cache(
+    _, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path, jsonl_cache_filepaths=jsonl_cache_filepaths
     )
 
@@ -2771,8 +2771,6 @@ class DatasetDuckDB(Dataset):
 
     parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
     log(f'Wrote transform output to {parquet_filepath}')
-
-    return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
 
   def _map_worker(
     self,

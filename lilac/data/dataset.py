@@ -634,7 +634,7 @@ class Dataset(abc.ABC):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
-  ) -> Iterable[Item]:
+  ) -> None:
     """Transforms the entire dataset (or a column) and writes the result to a new column.
 
     Args:
@@ -655,10 +655,6 @@ class Dataset(abc.ABC):
         reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
         fields.
       resolve_span: Whether to resolve the spans into text before calling the map function.
-
-    Returns:
-      An iterable of items that are the result of transforming the dataset that will be written to
-      the output column.
     """
     pass
 
