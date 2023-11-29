@@ -4,6 +4,8 @@
 from .tasks import TaskManager
 
 
-def test_task_manager_outside_event_loop() -> None:
+async def test_task_manager_outside_event_loop() -> None:
   # Make sure we can make a default TaskManager from outside a running loop.
-  assert TaskManager() is not None
+  task_manager = TaskManager()
+  assert task_manager is not None
+  await task_manager.stop()
