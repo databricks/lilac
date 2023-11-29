@@ -73,7 +73,8 @@
   </div>
   {#if dropdownOpen}
     <div
-      class="absolute z-50 w-60"
+      class="z-50 w-60"
+      class:absolute={hoist}
       class:hidden={!dropdownOpen}
       use:clickOutside={() => (dropdownOpen = false)}
       use:hoistElement={{disable: !hoist}}

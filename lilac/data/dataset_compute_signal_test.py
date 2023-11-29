@@ -718,3 +718,61 @@ def test_concept_signal_with_select_groups(make_test_data: TestDataMaker) -> Non
     f'text.{concept_key}.*.score', sort_by=GroupsSortBy.COUNT, sort_order=SortOrder.ASC
   )
   assert result.counts == [('In concept', 1), ('Not in concept', 2)]
+
+
+def test_optional_schema(make_test_data: TestDataMaker) -> None:
+  class TestSignal(TextSignal):
+    name: ClassVar[str] = 'len_of_text'
+
+    @override
+    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+      for text in data:
+        yield len(text)
+
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
+  dataset.compute_signal(TestSignal(), 'text')
+  result = dataset.select_rows(['text'], combine_columns=True)
+  assert list(result) == [
+    {'text': enriched_item('hello', {'len_of_text': 5})},
+    {'text': enriched_item('hello world', {'len_of_text': 11})},
+  ]
+
+
+def test_optional_schema_parameterized_signal(make_test_data: TestDataMaker) -> None:
+  class TestSignal(TextSignal):
+    name: ClassVar[str] = 'len_of_text'
+
+    param: str
+
+    @override
+    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+      for text in data:
+        yield {'len': len(text), 'first_and_last': [text[0], text[-1]]}
+
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'hello world'}])
+  dataset.compute_signal(TestSignal(param='a'), 'text')
+  result = dataset.select_rows(['text'], combine_columns=True)
+  assert list(result) == [
+    {
+      'text': enriched_item(
+        'hello',
+        {
+          'len_of_text(param=a)': {
+            'len': 5,
+            'first_and_last': ['h', 'o'],
+          }
+        },
+      )
+    },
+    {
+      'text': enriched_item(
+        'hello world',
+        {
+          'len_of_text(param=a)': {
+            'len': 11,
+            'first_and_last': ['h', 'd'],
+          }
+        },
+      )
+    },
+  ]
