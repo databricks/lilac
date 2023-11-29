@@ -1,6 +1,7 @@
 import {mergeDeep} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Writable} from 'svelte/store';
+import {NAV_STORE_KEY, defaultNavigationState, type NavigationState} from './navigationStore';
 
 export type AppPage =
   | 'home'
@@ -17,6 +18,7 @@ interface UrlHashState {
   identifier: string | null;
   // The sub-page serialized state.
   hashState: string | null;
+  navigationState: NavigationState | null;
 }
 
 export type UrlHashStateStore = ReturnType<typeof createUrlHashStore>;
@@ -29,7 +31,8 @@ export function createUrlHashStore() {
     hash: '',
     page: null,
     identifier: null,
-    hashState: null
+    hashState: null,
+    navigationState: null
   });
 
   return {
@@ -128,6 +131,9 @@ export function deserializeState(
   for (const param of params) {
     if (param == null) continue;
     const [key, value] = param.split('=');
+    if (key == '' || key == NAV_STORE_KEY) {
+      continue;
+    }
     urlState[decodeURIComponent(key)] = JSON.parse(decodeURIComponent(value));
   }
   return mergeDeep(urlState, defaultState);
@@ -139,6 +145,7 @@ export function deserializeState(
 export function persistedHashStore<T extends object>(
   page: string,
   identifier: string,
+  navStore: Writable<NavigationState>,
   store: Writable<T>,
   urlHashStore: UrlHashStateStore,
   stateFromHash: (hashState: string) => T,
@@ -146,13 +153,33 @@ export function persistedHashStore<T extends object>(
   // Calls the user back when a load from the URL happens.
   loadFromUrlCallback?: () => void
 ) {
+  console.log('persisted hash store.');
+  store.subscribe(state => {
+    if (NAV_STORE_KEY in state) {
+      throw new Error('`nav` is a reserved key for stores when using persistedHashStore.');
+    }
+  });
+
+  const defaultNavState = defaultNavigationState();
+
   // Skip the first update which happens on store initialization.
-  let skipUpdate = true;
+  let skipStoreUpdate = true;
+  let skipNavUpdate = true;
+
+  let lastHashState: UrlHashState | null = null;
+
   urlHashStore.subscribe(urlHashState => {
+    if (lastHashState != null && JSON.stringify(lastHashState) == JSON.stringify(urlHashState)) {
+      return;
+    }
+    lastHashState = urlHashState;
+    console.log(':::Got change to URL.', urlHashState);
+
     if (urlHashState.page === page && urlHashState.identifier === identifier) {
       // Skip the URL update when the state change came from the URL.
-      skipUpdate = true;
+      skipStoreUpdate = true;
 
+      console.log('===== pushing original store');
       // The original store needs to be updated so it reflects the changes from the URL.
       store.set(stateFromHash(urlHashState.hashState!));
 
@@ -160,13 +187,58 @@ export function persistedHashStore<T extends object>(
         loadFromUrlCallback();
       }
     }
+    const params = (urlHashState.hashState! || '').split('&');
+    console.log('params=', params);
+    skipNavUpdate = true;
+
+    // Check if 'nav' is in params.
+    let foundNav = false;
+    for (const param of params) {
+      if (param == null) continue;
+      const [key, value] = param.split('=');
+      if (key == NAV_STORE_KEY) {
+        foundNav = true;
+        const navValue = JSON.parse(decodeURIComponent(value));
+        console.log('===== pushing nav store got `nav` in url', skipNavUpdate);
+        navStore.set(navValue);
+      }
+    }
+    if (!foundNav) {
+      console.log('====== pushing nav store DIDNT GET `nav` in url', skipNavUpdate);
+      navStore.set(defaultNavState);
+    }
   });
 
-  store.subscribe(state => {
-    if (state == null) return;
-    if (!skipUpdate) {
-      pushState(identifier, hashFromState(state));
+  let navState: NavigationState;
+  navStore.subscribe(state => {
+    navState = state;
+    console.log('~~~ Nav store got update. Skip?: ', skipNavUpdate);
+    if (navState == null) return;
+    if (!skipNavUpdate) {
+      console.log('updating from nav....');
+      update();
     }
-    skipUpdate = false;
+    console.log('!! nav store ste to false.');
+    skipNavUpdate = false;
   });
+
+  let storeState: T;
+  // When the store changes, update the hash.
+  store.subscribe(state => {
+    storeState = state;
+    if (state == null) return;
+    if (!skipStoreUpdate) {
+      console.log('updating from store....');
+
+      update();
+    }
+    skipStoreUpdate = false;
+  });
+
+  function update() {
+    console.log('~~~~~~~~~~~~~~pushing state');
+    const hashState = hashFromState(storeState);
+    const navHash = serializeState({[NAV_STORE_KEY]: navState}, {[NAV_STORE_KEY]: defaultNavState});
+    pushState(identifier, navHash + '&' + hashState);
+  }
 }

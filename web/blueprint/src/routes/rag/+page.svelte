@@ -3,6 +3,7 @@
   import Page from '$lib/components/Page.svelte';
   import RagPrompt from '$lib/components/rag/RagPrompt.svelte';
   import RagRetrieval, {type RagRetrievalResult} from '$lib/components/rag/RagRetrieval.svelte';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {
     createRagViewStore,
     defaultRagViewState,
@@ -23,6 +24,8 @@
   const ragViewStore = createRagViewStore();
   setRagViewContext(ragViewStore);
 
+  const navStore = getNavigationContext();
+
   // URL state.
   const urlHashStore = getUrlHashContext();
   const identifier = '';
@@ -30,6 +33,7 @@
   persistedHashStore<RagViewState>(
     'rag',
     identifier,
+    navStore,
     ragViewStore,
     urlHashStore,
     hashState => deserializeState(hashState, defaultRagViewState()),
