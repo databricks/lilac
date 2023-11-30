@@ -91,64 +91,6 @@ export class DatasetsService {
     }
 
     /**
-     * Compute Signal
-     * Compute a signal for a dataset.
-     * @param namespace
-     * @param datasetName
-     * @param requestBody
-     * @returns ComputeSignalResponse Successful Response
-     * @throws ApiError
-     */
-    public static computeSignal(
-        namespace: string,
-        datasetName: string,
-        requestBody: ComputeSignalOptions,
-    ): CancelablePromise<ComputeSignalResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal',
-            path: {
-                'namespace': namespace,
-                'dataset_name': datasetName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Delete Signal
-     * Delete a signal from a dataset.
-     * @param namespace
-     * @param datasetName
-     * @param requestBody
-     * @returns DeleteSignalResponse Successful Response
-     * @throws ApiError
-     */
-    public static deleteSignal(
-        namespace: string,
-        datasetName: string,
-        requestBody: DeleteSignalOptions,
-    ): CancelablePromise<DeleteSignalResponse> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/v1/datasets/{namespace}/{dataset_name}/delete_signal',
-            path: {
-                'namespace': namespace,
-                'dataset_name': datasetName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
      * Get Stats
      * Get the stats for the dataset.
      * @param namespace
@@ -478,6 +420,64 @@ export class DatasetsService {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/labels',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Compute Signal
+     * Compute a signal for a dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns ComputeSignalResponse Successful Response
+     * @throws ApiError
+     */
+    public static computeSignal(
+        namespace: string,
+        datasetName: string,
+        requestBody: ComputeSignalOptions,
+    ): CancelablePromise<ComputeSignalResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Delete Signal
+     * Delete a signal from a dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns DeleteSignalResponse Successful Response
+     * @throws ApiError
+     */
+    public static deleteSignal(
+        namespace: string,
+        datasetName: string,
+        requestBody: DeleteSignalOptions,
+    ): CancelablePromise<DeleteSignalResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/delete_signal',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,

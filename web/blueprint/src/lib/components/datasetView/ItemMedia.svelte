@@ -7,12 +7,14 @@
    */
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {notEmpty} from '$lib/utils';
-  import {displayPath, getComputedEmbeddings, getSpanValuePaths} from '$lib/view_utils';
+  import {getComputedEmbeddings, getDisplayPath, getSpanValuePaths} from '$lib/view_utils';
   import {
     L,
+    PATH_WILDCARD,
     formatValue,
     getValueNodes,
     pathIsEqual,
+    pathIsMatching,
     type DataTypeCasted,
     type LilacField,
     type LilacValueNode,
@@ -24,10 +26,43 @@
   import ItemMediaDiff from './ItemMediaDiff.svelte';
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
-  export let path: Path;
+  export let mediaPath: Path;
   export let row: LilacValueNode;
   export let field: LilacField;
   export let highlightedFields: LilacField[];
+  // The root path contains the sub-path up to the point of this leaf.
+  export let rootPath: Path | undefined = undefined;
+  // The showPath is a subset of the path that will be displayed for this node.
+  export let showPath: Path | undefined = undefined;
+
+  // Choose the root path which is up to the point of the next repeated value.
+  $: firstRepeatedIndex = mediaPath.findIndex(p => p === PATH_WILDCARD);
+  $: {
+    if (rootPath == null) {
+      if (firstRepeatedIndex != -1) {
+        rootPath = mediaPath.slice(0, firstRepeatedIndex + 1);
+      } else {
+        rootPath = mediaPath;
+      }
+    }
+  }
+
+  $: valueNodes = getValueNodes(row, rootPath!);
+  $: isLeaf = valueNodes.length === 1;
+
+  // Get the list of next root paths for children of a repeated node.
+  $: nextRootPaths = valueNodes.map(v => {
+    const path = L.path(v)!;
+    const nextRepeatedIdx = mediaPath.findIndex((p, i) => p === PATH_WILDCARD && i >= path.length);
+    const showPath = mediaPath.slice(nextRepeatedIdx).filter(p => p !== PATH_WILDCARD);
+    return {
+      rootPath: [
+        ...path,
+        ...mediaPath.slice(path.length, nextRepeatedIdx === -1 ? undefined : nextRepeatedIdx)
+      ],
+      showPath
+    };
+  });
 
   // The child component will communicate this back upwards to this component.
   let textIsOverBudget = false;
@@ -36,32 +71,34 @@
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
 
-  $: valueNode = getValueNodes(row, path)[0];
-  $: value = L.value(valueNode);
+  $: pathForDisplay = showPath != null ? showPath : rootPath!;
 
+  $: displayPath = getDisplayPath(pathForDisplay);
+
+  $: valueNode = valueNodes[0];
+  $: value = L.value(valueNode);
   $: datasetSettings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
   // Compare media paths should contain media paths with resolved path wildcards as sometimes the
   // user wants to compare items in an array.
   $: compareMediaPaths = ($datasetSettings.data?.ui?.media_paths || [])
     .map(p => (Array.isArray(p) ? p : [p]))
     .flatMap(p => {
-      const paths = getValueNodes(row, p)
+      return getValueNodes(row, p)
         .map(v => L.path(v))
-        .filter(p => !pathIsEqual(p, path));
-      return paths;
+        .filter(p => !pathIsMatching(p, rootPath));
     }) as Path[];
 
   $: compareItems = compareMediaPaths.map(p => ({
     id: p,
-    text: displayPath(p)
+    text: getDisplayPath(p)
   }));
   function selectCompareColumn(event: CustomEvent<{id: Path}>) {
-    datasetViewStore.addCompareColumn([path, event.detail.id]);
+    datasetViewStore.addCompareColumn([rootPath!, event.detail.id]);
   }
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: computedEmbeddings = getComputedEmbeddings($schema.data, path);
+  $: computedEmbeddings = getComputedEmbeddings($schema.data, mediaPath);
   $: noEmbeddings = computedEmbeddings.length === 0;
 
   $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
@@ -96,83 +133,112 @@
   $: {
     colCompareState = null;
     for (const compareCols of $datasetViewStore.compareColumns) {
-      if (pathIsEqual(compareCols.column, path)) {
+      if (pathIsEqual(compareCols.column, rootPath)) {
         colCompareState = compareCols;
         break;
       }
     }
   }
   function removeComparison() {
-    datasetViewStore.removeCompareColumn(path);
+    datasetViewStore.removeCompareColumn(mediaPath);
   }
 </script>
 
 {#if notEmpty(valueNode)}
-  {@const markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, path)) != null}
+  {@const markdown =
+    $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null}
   <div class="flex w-full gap-x-4">
-    <div class="relative flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
-      <div class="sticky top-0 mt-2 flex w-full flex-col gap-y-2 self-start">
-        <div title={displayPath(path)} class="w-full flex-initial truncate">
-          {displayPath(path)}
-        </div>
-        <div class="flex flex-row">
-          <div
-            use:hoverTooltip={{
-              text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
-            }}
-            class:opacity-50={noEmbeddings}
-          >
+    {#if isLeaf}
+      <div class="relative mr-4 flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
+        <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
+          {#if displayPath != ''}
+            <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
+              {displayPath}
+            </div>
+          {/if}
+          <div class="flex flex-row">
+            <div
+              use:hoverTooltip={{
+                text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
+              }}
+              class:opacity-50={noEmbeddings}
+            >
+              <button
+                disabled={noEmbeddings}
+                on:click={() => findSimilar(value)}
+                use:hoverTooltip={{text: 'More like this'}}
+                ><Search size={16} />
+              </button>
+            </div>
+            {#if !colCompareState}
+              <ButtonDropdown
+                disabled={compareItems.length === 0}
+                helperText={'Compare to'}
+                items={compareItems}
+                buttonIcon={DirectionFork}
+                on:select={selectCompareColumn}
+                hoist={true}
+              />
+            {:else}
+              <button
+                on:click={() => removeComparison()}
+                use:hoverTooltip={{text: 'Remove comparison'}}
+                ><Undo size={16} />
+              </button>
+            {/if}
             <button
-              disabled={noEmbeddings}
-              on:click={() => findSimilar(value)}
-              use:hoverTooltip={{text: 'More like this'}}
-              ><Search size={16} />
+              disabled={!textIsOverBudget}
+              class:opacity-50={!textIsOverBudget}
+              on:click={() => (userExpanded = !userExpanded)}
+              use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
+              >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
             </button>
           </div>
-          {#if !colCompareState}
-            <ButtonDropdown
-              helperText={'Compare to'}
-              items={compareItems}
-              buttonIcon={DirectionFork}
-              on:select={selectCompareColumn}
-              hoist={true}
-            />
-          {:else}
-            <button
-              on:click={() => removeComparison()}
-              use:hoverTooltip={{text: 'Remove comparison'}}
-              ><Undo size={16} />
-            </button>
-          {/if}
-          <button
-            disabled={!textIsOverBudget}
-            class:opacity-50={!textIsOverBudget}
-            on:click={() => (userExpanded = !userExpanded)}
-            use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
-            >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
-          </button>
         </div>
       </div>
-    </div>
-
-    <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
-      {#if colCompareState == null}
-        <StringSpanHighlight
-          text={formatValue(value)}
-          {row}
-          {path}
-          {field}
-          {markdown}
-          isExpanded={userExpanded}
-          spanPaths={spanValuePaths.spanPaths}
-          valuePaths={spanValuePaths.valuePaths}
-          {datasetViewStore}
-          embeddings={computedEmbeddings}
-          bind:textIsOverBudget
-        />
-      {:else}
-        <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
-      {/if}
-    </div>
+      <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
+        {#if colCompareState == null}
+          <StringSpanHighlight
+            text={formatValue(value)}
+            {row}
+            path={rootPath}
+            {field}
+            {markdown}
+            isExpanded={userExpanded}
+            spanPaths={spanValuePaths.spanPaths}
+            valuePaths={spanValuePaths.valuePaths}
+            {datasetViewStore}
+            embeddings={computedEmbeddings}
+            bind:textIsOverBudget
+          />
+        {:else}
+          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
+        {/if}
+      </div>
+    {:else}
+      <!-- Repeated values will render <ItemMedia> again. -->
+      <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
+        <div class="m-2 flex flex-col gap-y-2">
+          <div
+            title={displayPath}
+            class="mx-2 mt-2 truncate font-mono font-medium text-neutral-500"
+          >
+            {displayPath}
+          </div>
+          {#each nextRootPaths as nextRootPath}
+            <div class="m-2 rounded border border-neutral-100 p-2">
+              <svelte:self
+                rootPath={nextRootPath.rootPath}
+                showPath={nextRootPath.showPath}
+                {row}
+                {field}
+                {highlightedFields}
+                {mediaPath}
+              />
+            </div>
+          {/each}
+        </div>
+      </div>
+    {/if}
   </div>
 {/if}

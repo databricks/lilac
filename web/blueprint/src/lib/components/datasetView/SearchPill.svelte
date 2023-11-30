@@ -1,7 +1,7 @@
 <script lang="ts">
   import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
-  import {displayPath} from '$lib/view_utils';
+  import {getDisplayPath} from '$lib/view_utils';
   import type {KeywordSearch, MetadataSearch, Search, SearchType, SemanticSearch} from '$lilac';
   import type {Tag} from 'carbon-components-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -53,6 +53,6 @@
     type={tagType}
     on:click
     on:remove={() => datasetViewStore.removeSearch(search, $selectRowsSchema?.data || null)}
-    ><span class="font-mono">{displayPath(search.path)}</span> has "{pillText}"
+    ><span class="font-mono">{getDisplayPath(search.path)}</span> has "{pillText}"
   </RemovableTag>
 </div>

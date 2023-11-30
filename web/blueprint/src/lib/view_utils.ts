@@ -654,7 +654,7 @@ export function shortFieldName(path: Path, label?: string | null): string {
   return [...path].reverse().find(p => p !== PATH_WILDCARD)!;
 }
 
-export function displayPath(path: Path | string): string {
+export function getDisplayPath(path: Path | string): string {
   if (!Array.isArray(path)) {
     path = [path];
   }
@@ -664,7 +664,7 @@ export function displayPath(path: Path | string): string {
 
 export function shortPath(path: Path): string {
   if (path.length <= 2) {
-    return displayPath(path);
+    return getDisplayPath(path);
   }
-  return displayPath([path[0], '...', path[path.length - 1]]);
+  return getDisplayPath([path[0], '...', path[path.length - 1]]);
 }
