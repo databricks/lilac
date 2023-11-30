@@ -7,7 +7,6 @@ export interface HoistOptions {
  */
 export function hoistElement(element: HTMLElement, {disable}: HoistOptions) {
   disable = disable ?? false;
-  const originalParent = element.parentElement;
   if (!disable) {
     const boundingRect = element.getBoundingClientRect();
     document.body.append(element);
@@ -15,14 +14,4 @@ export function hoistElement(element: HTMLElement, {disable}: HoistOptions) {
     element.style.top = `${boundingRect.top}px`;
     element.style.left = `${boundingRect.left}px`;
   }
-  return {
-    destroy() {
-      if (!disable) {
-        originalParent?.append(element);
-        element.style.position = '';
-        element.style.top = '';
-        element.style.left = '';
-      }
-    }
-  };
 }

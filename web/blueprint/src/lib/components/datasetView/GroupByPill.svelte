@@ -1,7 +1,7 @@
 <script lang="ts">
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {displayPath, shortPath} from '$lib/view_utils';
+  import {getDisplayPath, shortPath} from '$lib/view_utils';
   import {childFields, isNumeric, serializePath, type LilacField} from '$lilac';
   import type {
     DropdownItem,
@@ -36,7 +36,7 @@
     }
     return categoricalFields.map(f => ({
       id: serializePath(f.path),
-      text: open ? displayPath(f.path) : shortPath(f.path),
+      text: open ? getDisplayPath(f.path) : shortPath(f.path),
       field: f
     }));
   }
@@ -64,7 +64,7 @@
   bind:open
   on:select={selectItem}
   {selectedId}
-  tooltip={selectedPath ? `Grouping by ${displayPath(selectedPath)}` : null}
+  tooltip={selectedPath ? `Grouping by ${getDisplayPath(selectedPath)}` : null}
   let:item
 >
   <div slot="icon"><Folder title="Group by" /></div>

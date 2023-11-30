@@ -13,8 +13,8 @@
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {
     conceptDisplayName,
-    displayPath,
     getComputedEmbeddings,
+    getDisplayPath,
     getSearchEmbedding,
     getSearches,
     getSortedConcepts,
@@ -152,7 +152,7 @@
         // Ignore any embeddings since they are special "index" fields.
         continue;
       }
-      const text = displayPath(field.path.slice(searchPath.length));
+      const text = getDisplayPath(field.path.slice(searchPath.length));
 
       const shortName = shortFieldName(field.path);
       // Suggest sorting for numeric fields.
@@ -419,7 +419,7 @@
   let dropdownItems: {id: string; text: string; path: Path; embeddings: string[]}[] = [];
   $: dropdownItems = (mediaPaths || []).map(p => ({
     id: serializePath(p),
-    text: displayPath(p),
+    text: getDisplayPath(p),
     path: p,
     embeddings: $schema.data != null ? getComputedEmbeddings($schema.data, p) : []
   }));
