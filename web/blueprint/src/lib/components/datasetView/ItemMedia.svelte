@@ -201,7 +201,7 @@
           <StringSpanHighlight
             text={formatValue(value)}
             {row}
-            path={mediaPath}
+            path={rootPath}
             {field}
             {markdown}
             isExpanded={userExpanded}
