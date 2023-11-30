@@ -5,7 +5,7 @@
     getSelectRowsSchemaOptions,
     type DatasetViewState
   } from '$lib/stores/datasetViewStore';
-  import {displayPath, shortPath} from '$lib/view_utils';
+  import {getDisplayPath, shortPath} from '$lib/view_utils';
   import {
     ROWID,
     deserializePath,
@@ -71,7 +71,7 @@
         return {
           id: serializePath(field.path),
           path: field.path,
-          text: open ? displayPath(field.path) : shortPath(field.path),
+          text: open ? getDisplayPath(field.path) : shortPath(field.path),
           disabled: false
         };
       });

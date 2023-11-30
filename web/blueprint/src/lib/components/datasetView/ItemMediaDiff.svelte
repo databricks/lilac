@@ -4,7 +4,7 @@
 
   import {getMonaco} from '$lib/monaco';
   import {getDatasetViewContext, type ColumnComparisonState} from '$lib/stores/datasetViewStore';
-  import {displayPath} from '$lib/view_utils';
+  import {getDisplayPath} from '$lib/view_utils';
   import {L, getValueNodes, type LilacValueNode} from '$lilac';
   import {PropertyRelationship} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -106,10 +106,10 @@
   });
 </script>
 
-<div class="relative -ml-4 flex h-fit w-full flex-col gap-x-4">
+<div class="relative -ml-6 flex h-fit w-full flex-col gap-x-4">
   <div class="flex flex-row items-center font-mono text-xs font-medium text-neutral-500">
-    <div class="ml-8 w-1/2">{displayPath(leftPath)}</div>
-    <div class="ml-8 w-1/2">{displayPath(rightPath)}</div>
+    <div class="ml-8 w-1/2">{getDisplayPath(leftPath)}</div>
+    <div class="ml-8 w-1/2">{getDisplayPath(rightPath)}</div>
     <div>
       <button
         class="-mr-1 mb-1 flex flex-row"

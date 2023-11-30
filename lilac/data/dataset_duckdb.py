@@ -2881,7 +2881,8 @@ class DatasetDuckDB(Dataset):
 
 def _escape_like_value(value: str) -> str:
   value = value.replace('%', '\\%').replace('_', '\\_')
-  return f"'%{value}%' ESCAPE '\\'"
+  value = escape_string_literal(f'%{value}%')
+  return f"{value} ESCAPE '\\'"
 
 
 def _inner_select(

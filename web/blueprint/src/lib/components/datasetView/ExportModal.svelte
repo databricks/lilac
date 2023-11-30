@@ -1,7 +1,7 @@
 <script lang="ts">
   import {exportDatasetMutation, querySelectRows} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {displayPath} from '$lib/view_utils';
+  import {getDisplayPath} from '$lib/view_utils';
   import {
     childFields,
     isLabelField,
@@ -151,7 +151,7 @@
             <tbody>
               {#each labelFields as label, i}
                 <tr>
-                  <td>{displayPath(label.path)}</td>
+                  <td>{getDisplayPath(label.path)}</td>
                   <td
                     ><Checkbox
                       bind:checked={includeOnlyLabels[i]}

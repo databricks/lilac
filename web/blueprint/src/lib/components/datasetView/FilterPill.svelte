@@ -1,6 +1,6 @@
 <script lang="ts">
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
-  import {displayPath, shortFieldName} from '$lib/view_utils';
+  import {getDisplayPath, shortFieldName} from '$lib/view_utils';
   import {
     deserializePath,
     formatValue,
@@ -43,10 +43,10 @@
   $: path = deserializePath(filter.path);
   $: tooltip =
     filter.op === 'exists'
-      ? `has ${displayPath(path)}`
+      ? `has ${getDisplayPath(path)}`
       : filter.op === 'not_exists'
-      ? `lacks ${displayPath(path)}`
-      : `${displayPath(path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
+      ? `lacks ${getDisplayPath(path)}`
+      : `${getDisplayPath(path)} ${FILTER_SHORTHANDS[filter.op]} ${formattedValue}`;
   $: shortenPath = shortFieldName(path, label);
 </script>
 

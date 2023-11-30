@@ -15,10 +15,8 @@
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import {
-    L,
     getRowLabels,
     getSchemaLabels,
-    getValueNodes,
     serializePath,
     type AddLabelsOptions,
     type LilacField,
@@ -159,17 +157,13 @@
       </div>
       {#if mediaFields.length > 0}
         {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
-          {@const valueNodes = getValueNodes(row, mediaField.path)}
-          {#each valueNodes as valueNode}
-            {@const path = L.path(valueNode) || []}
-            <div
-              class:border-b={i < mediaFields.length - 1}
-              class:pb-2={i < mediaFields.length - 1}
-              class="flex h-full w-full flex-col border-neutral-200"
-            >
-              <ItemMedia {row} {path} field={mediaField} {highlightedFields} />
-            </div>
-          {/each}
+          <div
+            class:border-b={i < mediaFields.length - 1}
+            class:pb-2={i < mediaFields.length - 1}
+            class="flex h-full w-full flex-col border-neutral-200"
+          >
+            <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
+          </div>
         {/each}
       {/if}
       <div class="absolute right-0 top-0">

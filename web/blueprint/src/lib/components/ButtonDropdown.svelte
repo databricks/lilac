@@ -76,7 +76,10 @@
       class="z-50 w-60"
       class:absolute={hoist}
       class:hidden={!dropdownOpen}
-      use:clickOutside={() => (dropdownOpen = false)}
+      use:clickOutside={() => {
+        comboBox.clear();
+        dropdownOpen = false;
+      }}
       use:hoistElement={{disable: !hoist}}
     >
       <ComboBox
