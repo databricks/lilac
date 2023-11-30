@@ -214,16 +214,16 @@
       </div>
     {:else}
       <!-- Repeated values will render <ItemMedia> again. -->
-      <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
-        <div class="m-2 flex w-full flex-col gap-y-2">
+      <div class="my-2 flex flex-col rounded border border-neutral-200">
+        <div class="m-2 flex flex-col gap-y-2">
           <div
             title={displayPath}
-            class="mx-2 mt-2 w-full truncate font-mono font-medium text-neutral-500"
+            class="mx-2 mt-2 truncate font-mono font-medium text-neutral-500"
           >
             {displayPath}
           </div>
           {#each nextRootPaths as nextRootPath}
-            <div class="m-2 w-full rounded border border-neutral-100 p-2">
+            <div class="m-2 rounded border border-neutral-100 p-2">
               <svelte:self
                 rootPath={nextRootPath.rootPath}
                 showPath={nextRootPath.showPath}
