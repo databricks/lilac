@@ -46,14 +46,15 @@
       }
     }
   }
-  $: isLeaf = rootPath != null && rootPath.length == mediaPath.length;
 
   $: valueNodes = getValueNodes(row, rootPath!);
+  $: isLeaf = valueNodes.length === 1;
+
   // Get the list of next root paths for children of a repeated node.
   $: nextRootPaths = valueNodes.map(v => {
     const path = L.path(v)!;
     const nextRepeatedIdx = mediaPath.findIndex((p, i) => p === PATH_WILDCARD && i >= path.length);
-    const showPath = mediaPath.slice(nextRepeatedIdx);
+    const showPath = mediaPath.slice(nextRepeatedIdx).filter(p => p !== PATH_WILDCARD);
     return {
       rootPath: [
         ...path,
@@ -149,10 +150,12 @@
   <div class="flex w-full gap-x-4">
     {#if isLeaf}
       <div class="relative mr-4 flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
-        <div class="sticky top-0 mt-2 flex w-full flex-col gap-y-2 self-start">
-          <div title={displayPath} class="mx-2 w-full flex-initial truncate">
-            {displayPath}
-          </div>
+        <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
+          {#if displayPath != ''}
+            <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
+              {displayPath}
+            </div>
+          {/if}
           <div class="flex flex-row">
             <div
               use:hoverTooltip={{
@@ -214,7 +217,7 @@
       </div>
     {:else}
       <!-- Repeated values will render <ItemMedia> again. -->
-      <div class="my-2 flex flex-col rounded border border-neutral-200">
+      <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
         <div class="m-2 flex flex-col gap-y-2">
           <div
             title={displayPath}
