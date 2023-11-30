@@ -116,6 +116,6 @@ Now that we've enriched the dataset, let's download it by clicking on the `Downl
 the top-right corner. This will download a json file with the same name as the dataset. Once we have
 the data, we can continue working with it in a Python notebook, or any other language.
 
-You can also get the dataset as a Pandas dataframe trhough the [Python API.](quickstart_python.md).
+You can also get the dataset as a Pandas dataframe through the [Python API](quickstart_python.md).
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-download.mp4"></video>

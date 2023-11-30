@@ -6,6 +6,10 @@ workflow, read on.
 
 ## Import lilac
 
+```bash
+pip install lilac[all]
+```
+
 ```python
 import lilac as ll
 

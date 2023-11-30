@@ -82,8 +82,8 @@
    :hidden:
    :maxdepth: 1
 
-   collaboration/self_hosted.md
-   collaboration/huggingface_spaces.md
+   deployment/self_hosted.md
+   deployment/huggingface_spaces.md
 
 .. toctree::
    :caption: Environment
