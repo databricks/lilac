@@ -122,8 +122,6 @@
       }
     });
   }
-
-  $: console.log('media fields:', mediaFields);
 </script>
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
@@ -159,8 +157,6 @@
       </div>
       {#if mediaFields.length > 0}
         {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
-          <!-- {#each valueNodes as valueNode} -->
-          <!-- {@const path = L.path(valueNode) || []} -->
           <div
             class:border-b={i < mediaFields.length - 1}
             class:pb-2={i < mediaFields.length - 1}
@@ -168,7 +164,6 @@
           >
             <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
           </div>
-          <!-- {/each} -->
         {/each}
       {/if}
       <div class="absolute right-0 top-0">
