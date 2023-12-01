@@ -1,35 +1,29 @@
-# Quick Start (Python)
+# Python API
 
-```{tip}
-Make sure you've followed the [installation](installation.md) steps first.
+Lilac's UI is built atop a Python library, which you can access through the `lilac` module. If you'd
+like to use Lilac's features alongside other popular Python libraries, or prefer a notebook
+workflow, read on.
+
+## Import lilac
+
+```bash
+pip install lilac[all]
 ```
-
-```{note}
-For a UI-based quick start, see [Quick Start](./quickstart.md).
-```
-
-## Overview
-
-In this quick start we're going to:
-
-- Load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction dataset
-  for tuning LLMs.
-- Find PII (emails, etc)
-- Find profanity in the responses (using powerful text embeddings)
-- Download the enriched dataset as a json file so we can clean it in a Python notebook
-
-## Add a dataset
-
-Let's load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction
-dataset used for tuning LLM models. While the Lilac tool can scale to millions of rows on a single
-machine, we are sampling to 100,000 so we can get started quickly.
 
 ```python
 import lilac as ll
 
 # Set the global project directory to where project files will be stored.
 ll.set_project_dir('~/my_project')
+```
 
+## Create or load a dataset
+
+Let's load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction
+dataset used for tuning LLM models. While the Lilac tool can scale to millions of rows on a single
+machine, we are sampling to 100,000 so we can get started quickly.
+
+```python
 source = ll.HuggingFaceSource(dataset_name='Open-Orca/OpenOrca', sample_size=100_000)
 config = ll.DatasetConfig(namespace='local', name='open-orca-100k', source=source)
 dataset = ll.create_dataset(config)
@@ -46,29 +40,17 @@ Reading from source huggingface...: 100%|█████████████
 Dataset "open-orca-100k" written to ./data/datasets/local/open-orca-100k
 ```
 
-## Enrich
+Alternately, you can load a preexisting dataset:
 
-Lilac can enrich your media fields with additional metadata by:
-
-- Running a [signal](../signals/signals.md) (e.g. PII detection, language detection, text
-  statistics, etc.)
-- Running a [concept](../concepts/concepts.md) (e.g. profanity, sentiment, etc. or a custom concept
-  that you create)
-
-### PII detection
-
-To keep the binary pip package small, we don't include the optional dependencies for signals like
-PII detection. To install the optional pii, run:
-
-```sh
-pip install lilac[pii]
+```python
+dataset = ll.get_dataset('local', 'open-orca-100k')
 ```
+
+## Run signals
 
 Let's run the PII detection signal on both the `question` and the `response` field.
 
 ```python
-import lilac as ll
-dataset = ll.get_dataset('local', 'open-orca-100k')
 dataset.compute_signal(ll.PIISignal(), 'question')
 dataset.compute_signal(ll.PIISignal(), 'response')
 ```
@@ -114,6 +96,8 @@ __rowid__: string
 
 Note that `question.pii.emails` is a list of `string_span` values. These are objects with `start`
 and `end` indices that point to the location of the email in the original `question` text.
+
+## Select specific rows
 
 Let's query 5 rows that have emails in the `response` field via [](#Dataset.select_rows), a python
 API that is analogous to a `SQL Select` statement. We do this by adding an [`exists`](#Filter.op)
@@ -196,7 +180,7 @@ Computing lilac/profanity/gte-small on local/open-orca-100k:('response',): 100%|
 Wrote signal output to ./data/datasets/local/open-orca-100k/response/lilac/profanity/gte-small/v34
 ```
 
-## Download
+## Convert formats
 
 Now that we’ve enriched the dataset, let’s download it so we can continue our work in a Python
 notebook, or any other language. [](#Dataset.to_pandas) will create a DataFrame in memory. For other

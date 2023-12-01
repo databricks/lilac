@@ -9,7 +9,7 @@
         <img alt="Site" src="https://img.shields.io/badge/Site-lilacml.com-ed2dd0?link=https%3A%2F%2Flilacml.com"/>
     </a>
     <a href="https://discord.gg/jNzw9mC8pp">
-        <img alt="Discord" src="https://img.shields.io/badge/Join-important.svg?color=ed2dd0&label=Discord&logo=slack" />
+        <img alt="Discord" src="https://img.shields.io/discord/1135996772280451153?label=Join%20Discord" />
     </a>
     <a href="https://github.com/lilacai/lilac/blob/main/LICENSE">
           <img alt="License Apache 2.0" src="https://img.shields.io/badge/License-Apache 2.0-blue.svg?style=flat&color=ed2dd0" height="20" width="auto">

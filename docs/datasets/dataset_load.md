@@ -32,13 +32,13 @@ This will open the dataset loader UI:
 
 <img src="../_static/dataset/dataset_load.png"></img>
 
-##### Step 1: Name your dataset
+#### Step 1: Name your dataset
 
 - `namespace`: The dataset namespace group. This is useful for organizing dataset into categories,
   or organizations.
 - `name`: The name of the dataset within the namespace.
 
-##### Step 2: Chose a source (data loader)
+#### Step 2: Chose a source (data loader)
 
 - [`csv`](#lilac.sources.CSVSource): Load from CSV files.
 - [`huggingface`](#lilac.sources.HuggingFaceSource): Load from a HuggingFace dataset.
@@ -53,7 +53,7 @@ More details on the available data loaders can be found in [](#lilac.sources).
 Don't see a data loader? File a bug, or send a PR to
 [https://github.com/lilacai/lilac](https://github.com/lilacai/lilac)!
 
-##### Step 3: Load your data!
+#### Step 3: Load your data!
 
 After you click "Add", a task will be created:
 

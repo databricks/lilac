@@ -1,13 +1,5 @@
 # Quick Start
 
-```{tip}
-Make sure you've followed the [installation](installation.md) steps first.
-```
-
-```{note}
-For a Python-based quick start, see [Quick Start (Python)](./quickstart_python.md).
-```
-
 ## Overview
 
 In this quick start we're going to:
@@ -23,6 +15,8 @@ In this quick start we're going to:
 Start a new Lilac project.
 
 ```bash
+pip install lilac[all]
+
 lilac start ~/my_project
 ```
 
@@ -122,7 +116,6 @@ Now that we've enriched the dataset, let's download it by clicking on the `Downl
 the top-right corner. This will download a json file with the same name as the dataset. Once we have
 the data, we can continue working with it in a Python notebook, or any other language.
 
-For other formats (csv, parquet, pandas, etc.) see the
-[Download section](quickstart_python.md#download) in [Quick Start (Python)](quickstart_python.md).
+You can also get the dataset as a Pandas dataframe through the [Python API](quickstart_python.md).
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-download.mp4"></video>
