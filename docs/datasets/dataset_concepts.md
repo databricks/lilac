@@ -5,7 +5,7 @@ to a concept.
 
 ## From the UI
 
-#### Step 1: Compute an embedding index
+### Step 1: Compute an embedding index
 
 Before we can use conceptual search, we first must compute an embedding index for the field of
 interest. See [Embeddings](../embeddings/embeddings.md) for details on choosing an embedding.
@@ -16,20 +16,20 @@ Embedding indexes can be expensive to compute, however this is a one-time task a
 
 We can compute an embedding index with one of two approaches:
 
-##### 1a. From the search box
+#### 1a. From the search box
 
 From the search box, we can choose a column and an embedding. Then we can click the blue gear icon
 to compute the index!
 
 <img src="../_static/dataset/dataset_search_compute.png"></img>
 
-##### 1b. From the schema
+#### 1b. From the schema
 
 From the schema, we can choose the field's hamburger menu to click "Compute Embedding".
 
 <img width=360 src="../_static/dataset/dataset_schema_compute_embedding.png"></img>
 
-#### Step 2: Search by concept
+### Step 2: Search by concept
 
 Once the embedding index has been computed, we can now use the search box to search by a concept:
 
@@ -40,7 +40,7 @@ will be highlighted according to their concept score:
 
 <img src="../_static/dataset/dataset_search_concept_results.png"></img>
 
-#### (Optional) Step 3: Compute the concept for the whole column
+### (Optional) Step 3: Compute the concept for the whole column
 
 Search by concept does not produce a score for every item in the dataset. If we want to add a score
 for every item, click the blue "compute" chip next to the preview in the schema.

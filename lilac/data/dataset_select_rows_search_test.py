@@ -77,7 +77,9 @@ def test_search_keyword(make_test_data: TestDataMaker) -> None:
 
 
 def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{'text': 'This is 100%'}, {'text': 'This has _underscore_'}])
+  dataset = make_test_data(
+    [{'text': 'This is 100%'}, {'text': 'This has _underscore_'}, {'text': "Let's do this"}]
+  )
 
   query = '100%'
   result = dataset.select_rows(
@@ -97,6 +99,15 @@ def test_search_keyword_special_chars(make_test_data: TestDataMaker) -> None:
   expected_signal_udf = SubstringSignal(query=query)
   assert list(result) == [
     {'text': enriched_item('This has _underscore_', {expected_signal_udf.key(): [span(9, 21)]})}
+  ]
+
+  query = "let's"
+  result = dataset.select_rows(
+    searches=[KeywordSearch(path='text', query=query)], combine_columns=True
+  )
+  expected_signal_udf = SubstringSignal(query=query)
+  assert list(result) == [
+    {'text': enriched_item("Let's do this", {expected_signal_udf.key(): [span(0, 5)]})}
   ]
 
 

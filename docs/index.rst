@@ -12,34 +12,21 @@
    :parser: myst_parser.sphinx_
 
 .. toctree::
+   :caption: Getting Started
+   :hidden:
+   :maxdepth: 1
+
+   getting_started/quickstart.md
+   getting_started/installation.md
+   getting_started/quickstart_python.md
+
+.. toctree::
    :caption: Blog posts
    :hidden:
    :maxdepth: 1
    :glob:
 
    blog/*
-
-
-.. toctree::
-   :caption: Getting Started
-   :hidden:
-   :maxdepth: 1
-
-   getting_started/installation.md
-   getting_started/quickstart.md
-   getting_started/quickstart_python.md
-
-.. toctree::
-   :caption: Concepts
-   :hidden:
-   :maxdepth: 1
-
-   concepts/concepts.md
-   concepts/concept_use.md
-   concepts/concept_create.md
-   concepts/concept_tuning.md
-   concepts/concept_metrics.md
-   concepts/concept_technical.md
 
 .. toctree::
    :caption: Datasets
@@ -77,12 +64,26 @@
 
    embeddings/embeddings.md
 
+
 .. toctree::
-   :caption: HuggingFace Spaces
+   :caption: Concepts
    :hidden:
    :maxdepth: 1
 
-   huggingface/huggingface_spaces.md
+   concepts/concepts.md
+   concepts/concept_use.md
+   concepts/concept_create.md
+   concepts/concept_tuning.md
+   concepts/concept_metrics.md
+   concepts/concept_technical.md
+
+.. toctree::
+   :caption: Deploying Lilac
+   :hidden:
+   :maxdepth: 1
+
+   deployment/self_hosted.md
+   deployment/huggingface_spaces.md
 
 .. toctree::
    :caption: Environment

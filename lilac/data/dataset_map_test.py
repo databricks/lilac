@@ -985,3 +985,13 @@ def test_transform_size_mismatch(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
   with pytest.raises(Exception):
     dataset.transform(text_len, input_path='text', output_column='text_len')
+
+
+def test_map_outputs_long_string_that_promotes_to_media(make_test_data: TestDataMaker) -> None:
+  def long_str(text: str) -> str:
+    return text * 100
+
+  dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
+  dataset.map(long_str, input_path='text', output_column='text_long')
+
+  assert ('text_long',) in dataset.settings().ui.media_paths

@@ -11,14 +11,14 @@ see [Load a dataset](./dataset_load.md).
 
 <img src="../_static/dataset/dataset_explore.png"></img>
 
-#### Items
+## Items
 
 The right hand side contains a panel where we can see the examples with their metadata. You can
 choose between an infinite scroll or a paginated single item view via the
 [view type](./dataset_configure.md#view-type) in the [dataset settings](./dataset_configure.md)
 menu.
 
-##### Compare mode
+### Compare mode
 
 When looking at a single item, you can compare any two fields by clicking on the compare icon:
 
@@ -29,7 +29,7 @@ When looking at a single item, you can compare any two fields by clicking on the
 The compare mode is very useful for comparing two versions of the same field, before and after
 applying a dataset transformation.
 
-#### Schema
+## Schema
 
 The left hand side contains the schema, which represents the columns.
 
@@ -45,7 +45,7 @@ If we click on one of the bars of the histogram, we'll apply a filter with that 
 
 <img src="../_static/dataset/dataset_filter.png"></img>
 
-#### Keyword search
+## Keyword search
 
 Before we do advanced searching, like concept or semantic search, we can immediately use keyword
 search by typing a keyword in the search box and choosing "keyword search":
@@ -58,7 +58,7 @@ both keywords are present.
 
 <img src="../_static/dataset/dataset_keyword_search_results.png"></img>
 
-#### Sharing URLs
+## Sharing URLs
 
 After clicking around and finding interested findings in datasets, we can share the URL to exactly
 the view we are looking at by:
