@@ -339,7 +339,10 @@ class TaskManager:
 
   def get_num_workers(self) -> int:
     """Get the number of workers."""
-    return self.n_workers
+    scheduler_info = self._dask_client.scheduler_info()
+    # The scheduler can be delayed with updating the number of workers, so we use number of workers
+    # we provide explicitly as a fallback.
+    return len(scheduler_info['workers']) if 'workers' in scheduler_info else self.n_workers
 
 
 def get_is_dask_worker() -> bool:
