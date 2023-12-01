@@ -16,8 +16,8 @@
   <div class="flex flex-col gap-y-8 rounded-lg border border-gray-200 p-9">
     <GettingStartedStep
       stepNumber={1}
-      title="Import your dataset"
-      description="Click 'Add dataset' to add a new dataset."
+      title="Import or select a dataset"
+      description="Click 'Add dataset', or select a dataset from the left panel."
     >
       <div class="mt-4">
         <Button disabled={!canCreateDataset} size="small" on:click={() => goto('/datasets/new')}

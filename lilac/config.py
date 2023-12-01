@@ -118,7 +118,7 @@ class DatasetUISettings(BaseModel):
 class DatasetSettings(BaseModel):
   """The persistent settings for a dataset."""
 
-  ui: Optional[DatasetUISettings] = None
+  ui: DatasetUISettings = DatasetUISettings()
   preferred_embedding: Optional[str] = DEFAULT_EMBEDDING
   model_config = ConfigDict(extra='forbid')
   tags: Optional[list[str]] = PydanticField(
