@@ -2612,32 +2612,36 @@ class DatasetDuckDB(Dataset):
       is_tmp_output=is_tmp_output,
     )
 
-    if not is_tmp_output:
-      assert parquet_filepath is not None
+    result = DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
 
-      map_field_root = map_schema.get_field(output_path)
+    if is_tmp_output:
+      return result
 
-      map_field_root.map = MapInfo(
-        fn_name=map_fn.__name__,
-        input_path=input_path,
-        fn_source=inspect.getsource(map_fn),
-        date_created=datetime.now(),
-      )
+    assert parquet_filepath is not None
 
-      parquet_dir = os.path.dirname(parquet_filepath)
-      map_manifest_filepath = os.path.join(parquet_dir, f'{output_column}.{MAP_MANIFEST_SUFFIX}')
-      parquet_filename = os.path.basename(parquet_filepath)
-      map_manifest = MapManifest(
-        files=[parquet_filename],
-        data_schema=map_schema,
-        parquet_id=get_map_parquet_id(output_path),
-        py_version=metadata.version('lilac'),
-      )
-      with open_file(map_manifest_filepath, 'w') as f:
-        f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
+    map_field_root = map_schema.get_field(output_path)
 
-      parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
-      log(f'Wrote map output to {parquet_filepath}')
+    map_field_root.map = MapInfo(
+      fn_name=map_fn.__name__,
+      input_path=input_path,
+      fn_source=inspect.getsource(map_fn),
+      date_created=datetime.now(),
+    )
+
+    parquet_dir = os.path.dirname(parquet_filepath)
+    map_manifest_filepath = os.path.join(parquet_dir, f'{output_column}.{MAP_MANIFEST_SUFFIX}')
+    parquet_filename = os.path.basename(parquet_filepath)
+    map_manifest = MapManifest(
+      files=[parquet_filename],
+      data_schema=map_schema,
+      parquet_id=get_map_parquet_id(output_path),
+      py_version=metadata.version('lilac'),
+    )
+    with open_file(map_manifest_filepath, 'w') as f:
+      f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
+
+    parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
+    log(f'Wrote map output to {parquet_filepath}')
 
     # Promote any new string columns as media fields if the length is above a threshold.
     for path, field in map_schema.leafs.items():
@@ -2646,7 +2650,7 @@ class DatasetDuckDB(Dataset):
         if stats.avg_text_length and stats.avg_text_length >= MEDIA_AVG_TEXT_LEN:
           self.add_media_field(path)
 
-    return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
+    return result
 
   @override
   def transform(
