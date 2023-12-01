@@ -780,6 +780,7 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
     s.path for s in stats if s.avg_text_length and s.avg_text_length >= MEDIA_AVG_TEXT_LEN
   ]
   if not media_paths:
+    # If there are no long text fields, pick the longest of the short text field.
     sorted_stats = sorted(
       [s for s in stats if s.avg_text_length], key=lambda s: s.avg_text_length or -1.0, reverse=True
     )
