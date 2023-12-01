@@ -2647,7 +2647,6 @@ class DatasetDuckDB(Dataset):
       with open_file(map_manifest_filepath, 'w') as f:
         f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
-      parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
       log(f'Wrote map output to {parquet_filepath}')
 
     return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)

@@ -179,7 +179,7 @@ class TaskManager:
           task.details = (
             (
               f'{it_idx:,}/{estimated_len:,} '
-              f'[{cur_step.elapsed_sec}, {cur_step.it_per_sec:,.2f} ex/s]'
+              f'[{int(cur_step.elapsed_sec)}, {cur_step.it_per_sec:,.2f} ex/s]'
             )
             if it_idx is not None
             and estimated_len is not None
@@ -339,7 +339,7 @@ class TaskManager:
 
   def get_num_workers(self) -> int:
     """Get the number of workers."""
-    return len(self._dask_client.scheduler_info()['workers'])
+    return self.n_workers
 
 
 def get_is_dask_worker() -> bool:
