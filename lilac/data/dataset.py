@@ -242,7 +242,7 @@ def column_from_identifier(column: ColumnId) -> Column:
   return Column(path=column)
 
 
-FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, datetime]
+FeatureValue = Union[StrictBool, StrictInt, StrictFloat, StrictStr, StrictBytes, datetime]
 FeatureListValue = list[StrictStr]
 BinaryFilterTuple = tuple[Path, BinaryOp, FeatureValue]
 StringFilterTuple = tuple[Path, StringOp, FeatureValue]
