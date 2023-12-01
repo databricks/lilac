@@ -104,6 +104,7 @@ from .dataset import (
   BINARY_OPS,
   LIST_OPS,
   MAX_TEXT_LEN_DISTINCT_COUNT,
+  MEDIA_AVG_TEXT_LEN,
   SAMPLE_AVG_TEXT_LENGTH,
   STRING_OPS,
   TOO_MANY_DISTINCT,
@@ -2637,6 +2638,13 @@ class DatasetDuckDB(Dataset):
 
       parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
       log(f'Wrote map output to {parquet_filepath}')
+
+    # Promote any new string columns as media fields if the length is above a threshold.
+    for path, field in map_schema.leafs.items():
+      if field.dtype in (STRING, STRING_SPAN):
+        stats = self.stats(path)
+        if stats.avg_text_length and stats.avg_text_length >= MEDIA_AVG_TEXT_LEN:
+          self.add_media_field(path)
 
     return DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
 
