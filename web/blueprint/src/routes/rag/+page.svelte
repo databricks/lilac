@@ -108,7 +108,7 @@
 </script>
 
 <Page hideTasks>
-  <div slot="header-subtext" class="text-lg">Retrival Augmented Generation (RAG)</div>
+  <div slot="header-subtext" class="text-lg">Retrieval Augmented Generation (RAG)</div>
   <div slot="header-right" class="dataset-selector py-2">
     {#if hasLoadedFromUrl}
       <!-- Dataset selector -->
