@@ -1,5 +1,5 @@
 """OpenAI embeddings."""
-from typing import TYPE_CHECKING, Any, ClassVar, Iterable, cast
+from typing import Any, ClassVar, Iterable, cast
 
 import numpy as np
 from openai import OpenAI
@@ -11,9 +11,6 @@ from ..schema import Item, RichData
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from .embedding import compute_split_embeddings
-
-if TYPE_CHECKING:
-  pass
 
 API_NUM_PARALLEL_REQUESTS = 10
 API_OPENAI_BATCH_SIZE = 128

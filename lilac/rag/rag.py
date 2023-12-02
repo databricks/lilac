@@ -10,6 +10,8 @@ from ..generators.generator_openai import OpenAIChatCompletionGenerator
 from ..schema import ROWID, SPAN_KEY, Item, Path, normalize_path
 
 
+# NOTE: I know this is unused. Going to use this for the router soon, so want to keep it for that
+# PR.
 class RagRetrievalConfig(BaseModel):
   """The config for the rag retrieval."""
 
