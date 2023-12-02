@@ -41,6 +41,7 @@ from ..schema import (
   STRING_SPAN,
   Bin,
   EmbeddingInputType,
+  Field,
   Item,
   MapFn,
   Path,
@@ -766,6 +767,10 @@ class Dataset(abc.ABC):
       exclude_labels: The labels to exclude in the export.
     """
     pass
+
+  def petals(self) -> dict[PathTuple, Field]:
+    """Return the leafs of the dataset."""
+    return self.manifest().data_schema.leafs
 
 
 def default_settings(dataset: Dataset) -> DatasetSettings:
