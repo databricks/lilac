@@ -46,7 +46,6 @@
           top_k: $ragViewStore.topK
         })
       : null;
-  $: console.log($retrievalResults2?.data);
   $: isFetching = $retrievalResults2?.isFetching ?? false;
   $: retrievalResults = $retrievalResults2?.data;
 

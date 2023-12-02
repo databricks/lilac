@@ -92,7 +92,6 @@
       !$generationResult.isStale
     ) {
       answer = $generationResult.data;
-      console.log('answer=', answer);
     }
   }
 
