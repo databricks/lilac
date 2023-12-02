@@ -29,6 +29,9 @@ export function onTasksUpdate(taskManifest: TaskManifest) {
         if (task.type === 'dataset_load') {
           queryClient.invalidateQueries([DATASETS_TAG]);
         }
+        if (task.type === 'dataset_map') {
+          queryClient.invalidateQueries([DATASETS_TAG]);
+        }
       }
       state.taskStatus.set(taskId, task);
     }
