@@ -246,7 +246,6 @@ def generate_examples(description: str) -> list[str]:
   """Generate positive examples for a given concept using an LLM model."""
   api_key = env('OPENAI_API_KEY')
   api_type = env('OPENAI_API_TYPE')
-  api_base = env('OPENAI_API_BASE')
   api_version = env('OPENAI_API_VERSION')
   api_engine = env('OPENAI_API_ENGINE_CHAT')
   if not api_key:
@@ -289,7 +288,7 @@ def generate_examples(description: str) -> list[str]:
     return result.examples
 
   except openai.AuthenticationError:
-    raise openai.AuthenticationError(
+    raise ValueError(
       'Your `OPENAI_API_KEY` environment variable need to be completed with '
       '`OPENAI_API_TYPE`, `OPENAI_API_BASE`, `OPENAI_API_VERSION`, `OPENAI_API_ENGINE_CHAT`'
     )

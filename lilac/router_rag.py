@@ -3,7 +3,7 @@
 
 from fastapi import APIRouter
 
-from .generators.generator_openai import OpenAIChatCompletionGenerator
+from .gen.generator_openai import OpenAIChatCompletionGenerator
 from .router_utils import RouteErrorHandler
 
 router = APIRouter(route_class=RouteErrorHandler)

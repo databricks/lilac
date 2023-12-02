@@ -6,7 +6,8 @@ from instructor import OpenAISchema
 from pydantic import Field
 from typing_extensions import override
 
-from ..generator import TextGenerator
+from ..env import env
+from ..text_gen import TextGenerator
 
 
 class OpenAIChatCompletionGenerator(TextGenerator):
@@ -18,6 +19,12 @@ class OpenAIChatCompletionGenerator(TextGenerator):
   @override
   def generate(self, prompt: str) -> str:
     """Generate a completion for a prompt."""
+    api_key = env('OPENAI_API_KEY')
+    api_type = env('OPENAI_API_TYPE')
+    api_version = env('OPENAI_API_VERSION')
+    if not api_key:
+      raise ValueError('`OPENAI_API_KEY` environment variable not set.')
+
     try:
       import openai
     except ImportError:
@@ -25,6 +32,11 @@ class OpenAIChatCompletionGenerator(TextGenerator):
         'Could not import the "openai" python package. '
         'Please install it with `pip install openai`.'
       )
+    openai.api_key = api_key
+    if api_type:
+      openai.api_type = api_type
+      openai.api_version = api_version
+
     # Enables response_model in the openai client.
     client = instructor.patch(openai.OpenAI())
 
