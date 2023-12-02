@@ -2,6 +2,7 @@
 
 from typing import Annotated, Iterable, Optional, cast
 
+import instructor
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from instructor import OpenAISchema
@@ -264,20 +265,14 @@ def generate_examples(description: str) -> list[str]:
 
     if api_type:
       openai.api_type = api_type
-      openai.api_base = api_base
       openai.api_version = api_version
 
   try:
-    openai.Model.list()
-  except openai.error.AuthenticationError:
-    raise openai.error.AuthenticationError(
-      'Your `OPENAI_API_KEY` environment variable need to be completed with '
-      '`OPENAI_API_TYPE`, `OPENAI_API_BASE`, `OPENAI_API_VERSION`, `OPENAI_API_ENGINE_CHAT`'
-    )
-  else:
-    completion = openai.ChatCompletion.create(
-      model=None if api_engine else 'gpt-3.5-turbo-0613',
-      engine=api_engine,
+    # Enables response_model in the openai client.
+    client = instructor.patch(openai.OpenAI())
+
+    completion = client.chat.completions.create(
+      model='gpt-3.5-turbo',
       functions=[Examples.openai_schema],
       messages=[
         {
@@ -292,3 +287,9 @@ def generate_examples(description: str) -> list[str]:
     )
     result = Examples.from_response(completion)
     return result.examples
+
+  except openai.AuthenticationError:
+    raise openai.AuthenticationError(
+      'Your `OPENAI_API_KEY` environment variable need to be completed with '
+      '`OPENAI_API_TYPE`, `OPENAI_API_BASE`, `OPENAI_API_VERSION`, `OPENAI_API_ENGINE_CHAT`'
+    )
