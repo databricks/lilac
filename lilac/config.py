@@ -88,7 +88,7 @@ class DatasetUISettings(BaseModel):
   media_paths: list[PathTuple] = []
   markdown_paths: list[PathTuple] = []
   model_config = ConfigDict(extra='forbid')
-  view_type: Literal['scroll', 'single_item'] = 'scroll'
+  view_type: Literal['scroll', 'single_item'] = 'single_item'
 
   @field_validator('media_paths', mode='before')
   @classmethod
@@ -118,7 +118,7 @@ class DatasetUISettings(BaseModel):
 class DatasetSettings(BaseModel):
   """The persistent settings for a dataset."""
 
-  ui: Optional[DatasetUISettings] = None
+  ui: DatasetUISettings = DatasetUISettings()
   preferred_embedding: Optional[str] = DEFAULT_EMBEDDING
   model_config = ConfigDict(extra='forbid')
   tags: Optional[list[str]] = PydanticField(

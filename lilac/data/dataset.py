@@ -38,6 +38,7 @@ from ..schema import (
   PATH_WILDCARD,
   ROWID,
   STRING,
+  STRING_SPAN,
   Bin,
   EmbeddingInputType,
   Item,
@@ -62,6 +63,8 @@ from ..tasks import TaskStepId
 TOO_MANY_DISTINCT = 1_000_000
 SAMPLE_AVG_TEXT_LENGTH = 1000
 MAX_TEXT_LEN_DISTINCT_COUNT = 250
+# Threshold for promoting a column to a media field.
+MEDIA_AVG_TEXT_LEN = 150
 
 
 class SelectRowsResult:
@@ -386,6 +389,32 @@ class Dataset(abc.ABC):
   def update_settings(self, settings: DatasetSettings) -> None:
     """Update the persistent settings for the dataset."""
     update_project_dataset_settings(self.namespace, self.dataset_name, settings, self.project_dir)
+
+  def add_media_field(self, path: Path, markdown: bool = False) -> None:
+    """Add a media field to the dataset."""
+    settings = self.settings()
+    path = normalize_path(path)
+    if not self.manifest().data_schema.has_field(path):
+      raise ValueError(f'Field "{path}" does not exist in dataset.')
+    field = self.manifest().data_schema.get_field(path)
+    if field.dtype not in (STRING, STRING_SPAN):
+      raise ValueError(f'Field "{path}" is not a string field.')
+    if path not in settings.ui.media_paths:
+      settings.ui.media_paths.append(path)
+    if markdown:
+      if path not in settings.ui.markdown_paths:
+        settings.ui.markdown_paths.append(path)
+    self.update_settings(settings)
+
+  def remove_media_field(self, path: Path) -> None:
+    """Remove a media field from the dataset."""
+    settings = self.settings()
+    path = normalize_path(path)
+    if path in settings.ui.media_paths:
+      settings.ui.media_paths.remove(path)
+    if path in settings.ui.markdown_paths:
+      settings.ui.markdown_paths.remove(path)
+    self.update_settings(settings)
 
   @abc.abstractmethod
   def compute_signal(
@@ -747,12 +776,16 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   ]
   pool = ThreadPoolExecutor()
   stats: list[StatsResult] = list(pool.map(lambda leaf: dataset.stats(leaf), leaf_paths))
-  sorted_stats = sorted(
-    [stat for stat in stats if stat.avg_text_length], key=lambda stat: stat.avg_text_length or -1.0
-  )
-  media_paths: list[PathTuple] = []
-  if sorted_stats:
-    media_paths = [sorted_stats[-1].path]
+  media_paths: list[PathTuple] = [
+    s.path for s in stats if s.avg_text_length and s.avg_text_length >= MEDIA_AVG_TEXT_LEN
+  ]
+  if not media_paths:
+    # If there are no long text fields, pick the longest of the short text field.
+    sorted_stats = sorted(
+      [s for s in stats if s.avg_text_length], key=lambda s: s.avg_text_length or -1.0, reverse=True
+    )
+    if sorted_stats:
+      media_paths = [sorted_stats[0].path]
 
   return DatasetSettings(ui=DatasetUISettings(media_paths=media_paths))
 

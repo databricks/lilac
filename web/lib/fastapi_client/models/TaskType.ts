@@ -6,4 +6,4 @@
 /**
  * Enum holding a task type.
  */
-export type TaskType = string;
+export type TaskType = 'dataset_load' | 'dataset_map';
