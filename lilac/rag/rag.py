@@ -82,7 +82,7 @@ def get_rag_retrieval(
       f'`dataset.compute_embedding("{embedding}", path)'
     )
 
-  cols = [ROWID, path, *metadata_columns]
+  cols: Sequence[Union[Column, Path]] = [ROWID, path, *metadata_columns]
   searches = [
     SemanticSearch(
       path=path,

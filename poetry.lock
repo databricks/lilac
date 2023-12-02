@@ -2403,6 +2403,17 @@ files = [
 numpy = "*"
 
 [[package]]
+name = "html2text"
+version = "2020.1.16"
+description = "Turn HTML into equivalent Markdown-structured text."
+optional = true
+python-versions = ">=3.5"
+files = [
+    {file = "html2text-2020.1.16-py3-none-any.whl", hash = "sha256:c7c629882da0cf377d66f073329ccf34a12ed2adf0169b9285ae4e63ef54c82b"},
+    {file = "html2text-2020.1.16.tar.gz", hash = "sha256:e296318e16b059ddb97f7a8a1d6a5c1d7af4544049a01e261731d2d5cc277bbb"},
+]
+
+[[package]]
 name = "httpcore"
 version = "0.17.3"
 description = "A minimal low-level HTTP client."
@@ -3311,6 +3322,24 @@ optional = ["IPython (>=7.14.0)", "IPython (>=7.18.0)", "IPython (>=8.12.2)", "I
 optional-strict = ["IPython (==7.14.0)", "IPython (==7.18.0)", "IPython (==8.12.2)", "IPython (==8.14.0)", "rich (==12.3.0)"]
 tests = ["coverage[toml] (>=5.3)", "pytest (>=4.6.0)", "pytest (>=4.6.0)", "pytest (>=4.6.0,<=4.6.11)", "pytest (>=4.6.0,<=4.6.11)", "pytest (>=4.6.0,<=6.1.2)", "pytest (>=6.2.5)", "pytest-cov (>=2.8.1)", "pytest-cov (>=2.8.1)", "pytest-cov (>=2.9.0)", "pytest-cov (>=3.0.0)", "ubelt (>=1.3.3)", "xdoctest (>=1.1.1)"]
 tests-strict = ["coverage[toml] (==5.3)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==4.6.0)", "pytest (==6.2.5)", "pytest-cov (==2.8.1)", "pytest-cov (==2.8.1)", "pytest-cov (==2.9.0)", "pytest-cov (==3.0.0)", "ubelt (==1.3.3)", "xdoctest (==1.1.1)"]
+
+[[package]]
+name = "llama-hub"
+version = "0.0.50"
+description = "A library of community-driven data loaders for LLMs. Use with LlamaIndex and/or LangChain. "
+optional = true
+python-versions = ">=3.8.1,<3.12"
+files = [
+    {file = "llama_hub-0.0.50-py3-none-any.whl", hash = "sha256:1d04661b23117b98a60a24adbdf11e0325f994e59ff3a07b59e20ffaf230325b"},
+    {file = "llama_hub-0.0.50.tar.gz", hash = "sha256:7369ec1e98901417d52a5da8b542a497c80d7bdfc128b8a9d469036261879737"},
+]
+
+[package.dependencies]
+html2text = "*"
+llama-index = ">=0.9.8"
+psutil = "*"
+pyaml = ">=23.9.7,<24.0.0"
+retrying = "*"
 
 [[package]]
 name = "llama-index"
@@ -4699,6 +4728,23 @@ files = [
 ]
 
 [[package]]
+name = "pyaml"
+version = "23.9.7"
+description = "PyYAML-based module to produce a bit more pretty and readable YAML-serialized data"
+optional = true
+python-versions = ">=3.8"
+files = [
+    {file = "pyaml-23.9.7-py3-none-any.whl", hash = "sha256:fdb4c111b676d2381d1aa88c378fcde46c167575dfd688e656977a77075b692c"},
+    {file = "pyaml-23.9.7.tar.gz", hash = "sha256:581ea4e99f0e308864407e04c03c609241aefa3a15dfba8964da7644baf3b217"},
+]
+
+[package.dependencies]
+PyYAML = "*"
+
+[package.extras]
+anchors = ["unidecode"]
+
+[[package]]
 name = "pyarrow"
 version = "13.0.0"
 description = "Python library for Apache Arrow"
@@ -5448,6 +5494,20 @@ requests = ">=2.0.0"
 
 [package.extras]
 rsa = ["oauthlib[signedtoken] (>=3.0.0)"]
+
+[[package]]
+name = "retrying"
+version = "1.3.4"
+description = "Retrying"
+optional = true
+python-versions = "*"
+files = [
+    {file = "retrying-1.3.4-py3-none-any.whl", hash = "sha256:8cc4d43cb8e1125e0ff3344e9de678fefd85db3b750b81b2240dc0183af37b35"},
+    {file = "retrying-1.3.4.tar.gz", hash = "sha256:345da8c5765bd982b1d1915deb9102fd3d1f7ad16bd84a9700b85f64d24e8f3e"},
+]
+
+[package.dependencies]
+six = ">=1.7.0"
 
 [[package]]
 name = "rfc3339-validator"
@@ -7664,10 +7724,10 @@ docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.link
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
 [extras]
-all = ["cohere", "detect-secrets", "email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "google-cloud-aiplatform", "google-generativeai", "langdetect", "langsmith", "llama-index", "openai", "sentence-transformers", "textacy"]
+all = ["cohere", "detect-secrets", "email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib", "google-cloud-aiplatform", "google-generativeai", "langdetect", "langsmith", "llama-hub", "llama-index", "openai", "sentence-transformers", "textacy"]
 cohere = ["cohere"]
 embeddings = ["cohere", "google-cloud-aiplatform", "google-generativeai", "openai", "sentence-transformers"]
-github = ["llama-index"]
+github = ["llama-hub", "llama-index"]
 gmail = ["email-reply-parser", "google-api-python-client", "google-auth-httplib2", "google-auth-oauthlib"]
 gte = ["sentence-transformers"]
 lang-detection = ["langdetect"]
@@ -7684,4 +7744,4 @@ text-stats = ["textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "6867a4aece58d84fc7037756b21fc0fb0f4cc80123010dba7c1766519445b981"
+content-hash = "4bb61ea17affcb1e6b4a07ff0f858594975bcf966389fc5c8caaf4b6d14958cb"
