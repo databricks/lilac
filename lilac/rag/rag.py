@@ -6,7 +6,7 @@ from typing import Any, Sequence, Union
 from pydantic import BaseModel
 
 from ..data.dataset import Column, Dataset, Filter, SemanticSearch
-from ..generators.generator_openai import OpenAIChatCompletionGenerator
+from ..gen.generator_openai import OpenAIChatCompletionGenerator
 from ..schema import ROWID, SPAN_KEY, Item, Path, normalize_path
 
 

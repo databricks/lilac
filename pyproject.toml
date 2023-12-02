@@ -79,7 +79,7 @@ langdetect = { version = "^1.0.9", optional = true }
 langsmith = { version = "^0.0.41", optional = true }
 
 # LlamaIndex for GitHub source ingestion.
-llama-index = { version = "^0.8.38", optional = true }
+llama-index = { version = "^0.9.10", optional = true, python = ">=3.9,<3.12" }
 
 # For HDBScan to reduce dimensionality before running clustering.
 umap-learn = { version = "^0.5.4" }
