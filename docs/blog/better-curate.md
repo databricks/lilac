@@ -138,3 +138,16 @@ the parameters to the formatter, re-run the map with `overwrite=True`, and visua
 Once we are comfortable with how the formatter changes python code, we can export the edited dataset
 using the download dialog or the python API. See
 [the guide for exporting data](../datasets/dataset_export.md) for more details.
+
+## Going forward
+
+In this blog post, we've shown how to use Lilac to curate a dataset for a code assistant model. We
+used a formatter to standardize the python code outputted by our AI product. We then visualized the
+changes to the dataset to understand the behavior of the formatter and any side-effects.
+
+Looking ahead, the landscape of programming is undergoing a paradigm shift with the emergence of
+text as a new programming language. Lilac plays a big part in this transformation as the traditional
+boundaries between code and data dissolve.
+
+We hope you enjoyed this blog post. If you have any questions or feedback, please reach out to us on
+[Discord](https://discord.gg/jNzw9mC8pp) or [Github](https://github.com/lilacai/lilac).
