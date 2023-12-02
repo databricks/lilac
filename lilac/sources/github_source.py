@@ -49,12 +49,12 @@ class GithubSource(Source):
   ignore_directories: Optional[list[str]] = Field(
     default=None,
     description='A list of directories to ignore. Can only be used if filter_directories '
-    'is not specified.'
+    'is not specified.',
   )
   ignore_file_extensions: Optional[list[str]] = Field(
     default=None,
     description='A list of file extensions to ignore. Can only be used if filter_file_extensions '
-    'is not specified.'
+    'is not specified.',
   )
 
   github_token: Optional[str] = Field(
@@ -113,7 +113,7 @@ class GithubSource(Source):
       filter_file_extensions=(
         (self.ignore_file_extensions or []) + IGNORE_MEDIA_EXTENSIONS,
         GithubRepositoryReader.FilterType.EXCLUDE,
-      )
+      ),
       verbose=True,
       concurrent_requests=10,
     )
