@@ -164,6 +164,8 @@ def get_project_dir() -> str:
 
 def set_project_dir(project_dir: Union[str, pathlib.Path]) -> None:
   """Set the project directory."""
+  project_dir = os.path.expanduser(project_dir)
+  os.makedirs(project_dir, exist_ok=True)
   os.environ['LILAC_PROJECT_DIR'] = str(project_dir)
 
 

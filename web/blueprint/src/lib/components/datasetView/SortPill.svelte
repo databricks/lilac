@@ -82,8 +82,6 @@
   }
   $: items = $selectRowsSchema.data && makeItems($selectRowsSchema.data.schema, open);
 
-  $: console.log(items);
-
   const selectSort = (
     ev: CustomEvent<{
       selectedId: DropdownItemId;
