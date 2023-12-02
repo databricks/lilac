@@ -14,7 +14,7 @@ import type { TextSignal } from './TextSignal';
 /**
  * A column in the dataset.
  */
-export type Column = {
+export type lilac__router_dataset__Column = {
     path: Array<string>;
     alias?: (string | null);
     signal_udf?: (ConceptSignal | ConceptLabelsSignal | SubstringSignal | SemanticSimilaritySignal | TextEmbeddingSignal | TextSignal | Signal | null);

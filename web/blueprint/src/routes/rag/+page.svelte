@@ -2,7 +2,8 @@
   import DatasetFieldEmbeddingSelector from '$lib/components/concepts/DatasetFieldEmbeddingSelector.svelte';
   import Page from '$lib/components/Page.svelte';
   import RagPrompt from '$lib/components/rag/RagPrompt.svelte';
-  import RagRetrieval, {type RagRetrievalResult} from '$lib/components/rag/RagRetrieval.svelte';
+  import RagRetrieval from '$lib/components/rag/RagRetrieval.svelte';
+  import {getRagGeneration} from '$lib/queries/ragQueries';
   import {
     createRagViewStore,
     defaultRagViewState,
@@ -15,7 +16,7 @@
     persistedHashStore,
     serializeState
   } from '$lib/stores/urlHashStore';
-  import {RagService, type Path} from '$lilac';
+  import {type Path, type RagRetrievalResultItem} from '$lilac';
   import {SkeletonText, TextInput} from 'carbon-components-svelte';
   import {Search} from 'carbon-icons-svelte';
   import SvelteMarkdown from 'svelte-markdown';
@@ -67,23 +68,31 @@
   }
 
   // Retrieval.
-  let retrievalResults: RagRetrievalResult[] | undefined;
+  let retrievalResults: RagRetrievalResultItem[] | undefined;
   let retrievalIsFetching = false;
 
   // Prompt.
-  let prompt: string | undefined;
+  let promptTemplate: string | undefined;
 
   // Get the answer.
-  let answerFetching = false;
   let answer: string | null = null;
+  $: generationResult =
+    questionInputText != null && promptTemplate != null && retrievalResults != null
+      ? getRagGeneration({
+          query: questionInputText,
+          prompt_template: promptTemplate,
+          retrieval_results: retrievalResults
+        })
+      : null;
   $: {
-    if (prompt != null) {
-      answerFetching = true;
-      answer = null;
-      RagService.generateCompletion(prompt).then(result => {
-        answer = result;
-        answerFetching = false;
-      });
+    if (
+      generationResult != null &&
+      $generationResult?.data != null &&
+      !$generationResult.isFetching &&
+      !$generationResult.isStale
+    ) {
+      answer = $generationResult.data;
+      console.log('answer=', answer);
     }
   }
 
@@ -156,7 +165,7 @@
           <div class="font-medium">Answer</div>
 
           <div class="pt-4">
-            {#if answerFetching || retrievalIsFetching}
+            {#if $generationResult?.isFetching || retrievalIsFetching}
               <SkeletonText />
             {:else if answer != null}
               <div class="markdown whitespace-break-spaces leading-5">
@@ -176,7 +185,13 @@
           <RagRetrieval bind:retrievalResults bind:isFetching={retrievalIsFetching} />
         </div>
         <div class="w-1/2">
-          <RagPrompt {questionInputText} {retrievalResults} on:prompt={e => (prompt = e.detail)} />
+          <RagPrompt
+            {questionInputText}
+            {retrievalResults}
+            on:promptTemplate={e => {
+              promptTemplate = e.detail;
+            }}
+          />
         </div>
       </div>
     </div>

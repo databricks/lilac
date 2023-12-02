@@ -4,6 +4,7 @@
     QUERY_TEMPLATE_VAR,
     getRagViewContext
   } from '$lib/stores/ragViewStore';
+  import type {RagRetrievalResultItem} from '$lilac';
   import {
     ComposedModal,
     ModalBody,
@@ -13,13 +14,12 @@
   } from 'carbon-components-svelte';
   import {Edit} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
-  import type {RagRetrievalResult} from './RagRetrieval.svelte';
 
   // The question while the user is typing. When the user presses the search button, the rag store
   // updated and the prompt is updated.
   export let questionInputText: string;
   // Results from the retrieval component.
-  export let retrievalResults: RagRetrievalResult[] | undefined;
+  export let retrievalResults: RagRetrievalResultItem[] | undefined;
 
   const ragViewStore = getRagViewContext();
   const dispatch = createEventDispatcher();
@@ -39,9 +39,7 @@
   }
 
   $: contextStr =
-    retrievalResults == null
-      ? CONTEXT_TEMPLATE_VAR
-      : retrievalResults.map(r => r.contextText).join('\n');
+    retrievalResults == null ? CONTEXT_TEMPLATE_VAR : retrievalResults.map(r => r.text).join('\n');
   // The pending prompt. This is always defined, and can contain the template variables. Used for
   // displaying the prompt while the user is typing.
   $: pendingPrompt = getPrompt(questionInputText, contextStr);
@@ -49,7 +47,7 @@
   // The final prompt. This is only defined when there are valid retrieval results.
   $: {
     if (retrievalResults != null && $ragViewStore.query != null) {
-      dispatch('prompt', pendingPrompt);
+      dispatch('promptTemplate', promptTemplateInputText);
     }
   }
 

@@ -10,24 +10,11 @@ from ..gen.generator_openai import OpenAIChatCompletionGenerator
 from ..schema import ROWID, SPAN_KEY, Item, Path, normalize_path
 
 
-# NOTE: I know this is unused. Going to use this for the router soon, so want to keep it for that
-# PR.
-class RagRetrievalConfig(BaseModel):
-  """The config for the rag retrieval."""
+class RagRetrievalSpan(BaseModel):
+  """A span in the RAG retrieval result."""
 
-  embedding: str
-
-  # The main column that will be used for the retrieval. This should have an embedding index already
-  # computed.
-  path: Path
-  # Columns that will be used for additional metadata information.
-  metadata_columns: Sequence[Union[Column, Path]] = []
-  filters: Sequence[Filter] = []
-
-  # Hyper-parameters.
-  chunk_window: int = 1
-  top_k: int = 10
-  similarity_threshold: float = 0.0
+  start: int
+  end: int
 
 
 class RagRetrievalResultItem(BaseModel):
@@ -36,28 +23,16 @@ class RagRetrievalResultItem(BaseModel):
   rowid: str
   text: str
   metadata: dict[str, Any]
+  score: float
 
   # The spans inside the text that matched the original query.
-  match_spans: list[tuple[int, int]]
-
-
-class RagRetrievalResult(BaseModel):
-  """The result of the RAG retrieval model."""
-
-  results: list[RagRetrievalResultItem]
+  match_spans: list[RagRetrievalSpan]
 
 
 class RagGeneratorConfig(BaseModel):
   """The request for the select rows endpoint."""
 
   prompt_template: str
-
-
-class RagConfig(BaseModel):
-  """The config for the RAG."""
-
-  retrieval: RagRetrievalConfig
-  generator: RagGeneratorConfig
 
 
 def get_rag_retrieval(
@@ -117,6 +92,9 @@ def get_rag_retrieval(
   # Choose the topk results.
   similarity_results = similarity_results[:top_k]
 
+  # TODO(nsthorat): If multiple results share the same rowid, and are in range of one another, they
+  # can be merged to reduce the total context window (the amount of repetitive text in the context
+  # window).
   retrieval_results: list[RagRetrievalResultItem] = []
   for rowid, span_id, span in similarity_results:
     # Find the row in the `res` array by rowid key.
@@ -133,9 +111,13 @@ def get_rag_retrieval(
         rowid=rowid,
         text=row['.'.join(path)][start_span_start:end_span_end],
         metadata={},
+        score=span['score'],
         # Offset the span given by the start and end span start and end.
         match_spans=[
-          (span[SPAN_KEY]['start'] - start_span_start, span[SPAN_KEY]['end'] - start_span_start)
+          RagRetrievalSpan(
+            start=span[SPAN_KEY]['start'] - start_span_start,
+            end=span[SPAN_KEY]['end'] - start_span_start,
+          )
         ],
       )
     )
@@ -157,7 +139,7 @@ Answer: \
 """
 
 
-def get_rag_response(
+def get_rag_generation(
   query: str,
   retrieval_results: list[RagRetrievalResultItem],
   prompt_template: str = DEFAULT_PROMPT_TEMPLATE,
