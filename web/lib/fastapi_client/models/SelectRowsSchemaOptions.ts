@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { Column } from './Column';
 import type { ConceptSearch } from './ConceptSearch';
 import type { KeywordSearch } from './KeywordSearch';
-import type { lilac__router_dataset__Column } from './lilac__router_dataset__Column';
 import type { MetadataSearch } from './MetadataSearch';
 import type { SemanticSearch } from './SemanticSearch';
 import type { SortOrder } from './SortOrder';
@@ -14,7 +14,7 @@ import type { SortOrder } from './SortOrder';
  * The request for the select rows schema endpoint.
  */
 export type SelectRowsSchemaOptions = {
-    columns?: Array<(lilac__router_dataset__Column | Array<string> | string)>;
+    columns?: Array<(Column | Array<string> | string)>;
     searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch)>;
     sort_by?: Array<(Array<string> | string)>;
     sort_order?: (SortOrder | null);

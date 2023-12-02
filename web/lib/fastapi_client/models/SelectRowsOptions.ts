@@ -4,9 +4,9 @@
 /* eslint-disable */
 
 import type { BinaryFilter } from './BinaryFilter';
+import type { Column } from './Column';
 import type { ConceptSearch } from './ConceptSearch';
 import type { KeywordSearch } from './KeywordSearch';
-import type { lilac__router_dataset__Column } from './lilac__router_dataset__Column';
 import type { ListFilter } from './ListFilter';
 import type { MetadataSearch } from './MetadataSearch';
 import type { SemanticSearch } from './SemanticSearch';
@@ -18,7 +18,7 @@ import type { UnaryFilter } from './UnaryFilter';
  * The request for the select rows endpoint.
  */
 export type SelectRowsOptions = {
-    columns?: Array<(lilac__router_dataset__Column | Array<string> | string)>;
+    columns?: Array<(Column | Array<string> | string)>;
     searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch)>;
     filters?: Array<(BinaryFilter | StringFilter | UnaryFilter | ListFilter)>;
     sort_by?: Array<(Array<string> | string)>;

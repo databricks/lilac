@@ -6,9 +6,9 @@ from typing import Sequence, Union
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from .data.dataset import Column, Filter
 from .db_manager import get_dataset
 from .rag.rag import RagRetrievalResultItem, get_rag_generation, get_rag_retrieval
+from .router_dataset import Column, Filter
 from .router_utils import RouteErrorHandler
 from .schema import Path
 
