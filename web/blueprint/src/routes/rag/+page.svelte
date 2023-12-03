@@ -171,7 +171,7 @@
         </div>
       </div>
 
-      <div class="flex grow flex-row gap-x-8">
+      <div class="flex w-full flex-row gap-x-8">
         <div class="w-1/2">
           <RagRetrieval bind:retrievalResults bind:isFetching={retrievalIsFetching} />
         </div>

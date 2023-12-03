@@ -1,7 +1,6 @@
 <script lang="ts">
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
-  import {getSettingsContext} from '$lib/stores/settingsStore';
   import {DTYPE_TO_ICON} from '$lib/view_utils';
   import {
     PATH_WILDCARD,
@@ -28,8 +27,6 @@
   const embeddings = queryEmbeddings();
 
   $: viewType = newSettings?.ui?.view_type || 'single_item';
-
-  const appSettings = getSettingsContext();
 
   $: mediaFieldOptions =
     $schema.data != null

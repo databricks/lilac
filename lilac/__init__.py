@@ -19,6 +19,7 @@ from .env import LilacEnvironment, get_project_dir, set_project_dir
 from .load import load
 from .load_dataset import create_dataset
 from .project import init
+from .rag import *  # noqa: F403
 from .schema import *  # noqa: F403
 from .schema import Field
 from .server import start_server, stop_server

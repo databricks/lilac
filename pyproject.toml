@@ -25,7 +25,7 @@ google-cloud-storage = "^2.5.0"
 gunicorn = "^21.2.0"
 hnswlib = "^0.7.0"                                       # Fast KNN vector store.
 httpx = "^0.24.1"
-instructor = "^0.2.7"
+instructor = "^0.4.0"
 itsdangerous = "^2.1.2"
 joblib = "^1.3.1"
 orjson = "^3.8.10"                                       # Fast JSON serialization: https://fastapi.tiangolo.com/advanced/custom-response/#use-orjsonresponse
@@ -53,7 +53,7 @@ google-generativeai = { version = "^0.1.0", optional = true } # PaLM / MakerSuit
 google-cloud-aiplatform = { version = "^1.35.0", optional = true, extras = [
   "grpcio",
 ] } # PaLM via GCP
-openai = { version = "^0.27.8", optional = true }
+openai = { version = "^1.3.7", optional = true }
 sentence-transformers = { version = "^2.2.2", optional = true } # SBERT on-device embeddings.
 
 # Gmail source.
@@ -79,7 +79,8 @@ langdetect = { version = "^1.0.9", optional = true }
 langsmith = { version = "^0.0.41", optional = true }
 
 # LlamaIndex for GitHub source ingestion.
-llama-index = { version = "^0.8.38", optional = true }
+llama-index = { version = "^0.9.10", optional = true, python = ">=3.9,<3.12" }
+llama-hub = { version = "^0.0.50", optional = true, python = ">=3.9,<3.12" }
 
 # For HDBScan to reduce dimensionality before running clustering.
 umap-learn = { version = "^0.5.4" }
@@ -105,6 +106,7 @@ all = [
   "langdetect",
   "langsmith",
   "llama-index",
+  "llama-hub",
   "hdbscan",
 ]
 
@@ -128,7 +130,7 @@ gmail = [
   "google-auth-oauthlib",
 ]
 langsmith = ["langsmith"]
-github = ["llama-index"]
+github = ["llama-index", "llama-hub"]
 
 # Signals.
 signals = ["textacy", "detect-secrets", "langdetect", "hdbscan"]
