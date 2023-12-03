@@ -335,7 +335,7 @@ class TaskManager:
   async def stop(self) -> None:
     """Stop the task manager and close the dask client."""
     await cast(Coroutine, self._dask_client.close())
-    self._dask_client.shutdown()
+    await cast(Coroutine, self._dask_client.shutdown())
 
   def get_num_workers(self) -> int:
     """Get the number of workers."""

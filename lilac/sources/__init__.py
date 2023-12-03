@@ -2,6 +2,7 @@
 
 from .csv_source import CSVSource
 from .default_sources import register_default_sources
+from .dict_source import DictSource
 from .github_source import GithubSource
 from .gmail_source import GmailSource
 from .huggingface_source import HuggingFaceSource
@@ -20,6 +21,7 @@ __all__ = [
   'GmailSource',
   'PandasSource',
   'ParquetSource',
+  'DictSource',
   'LangSmithSource',
   'GithubSource',
   'LlamaIndexDocsSource',
