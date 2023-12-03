@@ -20,9 +20,10 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
   import ItemMetadataField, {type RenderNode} from './ItemMetadataField.svelte';
 
-  export let row: LilacValueNode;
+  export let row: LilacValueNode | null | undefined = undefined;
   export let selectRowsSchema: LilacSelectRowsSchema | undefined = undefined;
   export let highlightedFields: LilacField[];
 
@@ -49,7 +50,7 @@
             stringPath = parentPath;
           }
           if (stringPath != null) {
-            const node = valueAtPath(row, stringPath);
+            const node = row != null ? valueAtPath(row, stringPath) : null;
             if (node) {
               const text = L.value<'string'>(node);
               if (text) {
@@ -116,9 +117,13 @@
       formattedValue
     };
   }
-  $: renderNode = makeRenderNode(row);
+  $: renderNode = row != null ? makeRenderNode(row) : null;
 </script>
 
-{#each renderNode.children || [] as child}
-  <ItemMetadataField node={child} />
-{/each}
+{#if renderNode}
+  {#each renderNode.children || [] as child}
+    <ItemMetadataField node={child} />
+  {/each}
+{:else}
+  <SkeletonText lines={3} paragraph class="w-full" />
+{/if}
