@@ -61,7 +61,7 @@
     }
     const existingPath = newSettings.ui.media_paths.find(p => pathIsEqual(p, field.path));
     if (existingPath != null) return;
-    newSettings.ui.media_paths.push(field.path);
+    newSettings.ui.media_paths = [...newSettings.ui.media_paths, field.path];
   }
   function removeMediaField(field: LilacField) {
     if (newSettings.ui?.media_paths == null) return;
@@ -111,7 +111,7 @@
     }
     const existingPath = newSettings.ui.markdown_paths.find(p => pathIsEqual(p, field.path));
     if (existingPath != null) return;
-    newSettings.ui.markdown_paths.push(field.path);
+    newSettings.ui.markdown_paths = [...newSettings.ui.markdown_paths, field.path];
   }
   function removeMarkdownField(field: LilacField) {
     if (newSettings.ui == null) {
