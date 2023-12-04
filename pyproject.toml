@@ -175,6 +175,8 @@ wheel = "^0.37.1"
 freezegun = "^1.2.2"
 line-profiler = "^4.1.1"
 pytest-repeat = "^0.9.3"
+memray = "^1.10.0"
+
 
 [tool.poetry.scripts]
 lilac = "lilac.cli:cli"
