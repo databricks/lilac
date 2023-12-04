@@ -26,6 +26,7 @@
     not_exists: 'not exists',
     length_shorter: 'len ≤',
     length_longer: 'len ≥',
+    ilike: 'contains',
     regex_matches: 'matches',
     not_regex_matches: 'does not match'
   };
