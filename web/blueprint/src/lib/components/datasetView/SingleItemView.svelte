@@ -30,7 +30,8 @@
   $: rows = rowsResponse?.rows;
 
   $: manifest = queryDatasetManifest($store.namespace, $store.datasetName);
-  $: rowId = $store.rowId || L.value(rows?.[0][ROWID], 'string');
+  $: firstRowId = rows && rows.length > 0 ? L.value(rows[0][ROWID], 'string') : undefined;
+  $: rowId = $store.rowId || firstRowId;
 
   // Find the index if the row id is known.
   $: index =
@@ -77,40 +78,44 @@
 <div
   class="mx-5 my-2 flex items-center justify-between rounded-lg border border-neutral-300 bg-neutral-100 py-2"
 >
-  <div class="flex-0">
-    {#if rowId != null && index != null && index > 0}
-      <button on:click={() => updateRowId(false)}>
-        <ChevronLeft title="Previous item" size={24} />
-      </button>
-    {/if}
-  </div>
-
-  <div class="flex-col items-center justify-items-center">
-    <div class="min-w-0 max-w-lg truncate text-center text-lg">
-      <span class="inline-flex">
-        {#if index != null && index >= 0}
-          {index + 1}
-        {:else}
-          <SkeletonText lines={1} class="!w-10" />
-        {/if}
-      </span>
-      of
-      <span class="inline-flex">
-        {#if rowsResponse?.total_num_rows != null}
-          {formatValue(rowsResponse?.total_num_rows)}
-        {:else}
-          <SkeletonText lines={1} class="!w-20" />
-        {/if}
-      </span>
+  {#if rows?.length === 0}
+    <div class="w-full text-center">No results found</div>
+  {:else}
+    <div class="flex-0">
+      {#if rowId != null && index != null && index > 0}
+        <button on:click={() => updateRowId(false)}>
+          <ChevronLeft title="Previous item" size={24} />
+        </button>
+      {/if}
     </div>
-  </div>
-  <div class="flex-0">
-    {#if index != null && index < (rowsResponse?.total_num_rows || 0) - 1}
-      <button on:click={() => updateRowId(true)}>
-        <ChevronRight title="Next item" size={24} />
-      </button>
-    {/if}
-  </div>
+
+    <div class="flex-col items-center justify-items-center">
+      <div class="min-w-0 max-w-lg truncate text-center text-lg">
+        <span class="inline-flex">
+          {#if index != null && index >= 0}
+            {index + 1}
+          {:else}
+            <SkeletonText lines={1} class="!w-10" />
+          {/if}
+        </span>
+        of
+        <span class="inline-flex">
+          {#if rowsResponse?.total_num_rows != null}
+            {formatValue(rowsResponse?.total_num_rows)}
+          {:else}
+            <SkeletonText lines={1} class="!w-20" />
+          {/if}
+        </span>
+      </div>
+    </div>
+    <div class="flex-0">
+      {#if index != null && index < (rowsResponse?.total_num_rows || 0) - 1}
+        <button on:click={() => updateRowId(true)}>
+          <ChevronRight title="Next item" size={24} />
+        </button>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <SingleItemSelectRows {limit} bind:rowsResponse />

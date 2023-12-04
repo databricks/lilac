@@ -22,7 +22,6 @@
     type LilacField,
     type RemoveLabelsOptions
   } from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
   import {SidePanelClose, SidePanelOpen, Tag} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -125,78 +124,72 @@
 </script>
 
 <div class="flex flex-col rounded border border-neutral-300 md:flex-row">
-  {#if row == null}
-    <SkeletonText lines={4} paragraph class="w-full" />
-  {:else}
-    <div
-      class={`flex flex-col gap-y-1 p-4 ${
-        !$datasetViewStore.showMetadataPanel ? 'grow' : 'w-full'
-      }`}
-      bind:clientHeight={mediaHeight}
-    >
-      <div class="flex flex-wrap items-center gap-x-2 gap-y-2" class:opacity-50={disableLabels}>
-        {#each schemaLabels || [] as label}
-          <div class:opacity-50={labelsInProgress.has(label)}>
-            <LabelPill
-              {label}
-              disabled={labelsInProgress.has(label)}
-              active={rowLabels.includes(label)}
-              on:click={() => {
-                if (rowLabels.includes(label)) {
-                  removeLabel(label);
-                } else {
-                  addLabel(label);
-                }
-              }}
-            />
-          </div>
-        {/each}
-        <div class="relative h-8">
-          <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
+  <div
+    class={`flex flex-col gap-y-1 p-4 ${!$datasetViewStore.showMetadataPanel ? 'grow' : 'w-full'}`}
+    bind:clientHeight={mediaHeight}
+  >
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-2" class:opacity-50={disableLabels}>
+      {#each schemaLabels || [] as label}
+        <div class:opacity-50={labelsInProgress.has(label)}>
+          <LabelPill
+            {label}
+            disabled={labelsInProgress.has(label)}
+            active={rowLabels.includes(label)}
+            on:click={() => {
+              if (rowLabels.includes(label)) {
+                removeLabel(label);
+              } else {
+                addLabel(label);
+              }
+            }}
+          />
         </div>
-      </div>
-      {#if mediaFields.length > 0}
-        {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
-          <div
-            class:border-b={i < mediaFields.length - 1}
-            class:pb-2={i < mediaFields.length - 1}
-            class="flex h-full w-full flex-col border-neutral-200"
-          >
-            <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
-          </div>
-        {/each}
-      {/if}
-      <div class="absolute right-0 top-0">
-        <button
-          class="mr-1 mt-1 opacity-60 hover:bg-gray-200"
-          use:hoverTooltip={{
-            text: $datasetViewStore.showMetadataPanel ? 'Close metadata' : 'Open metadata'
-          }}
-          on:click={() =>
-            ($datasetViewStore.showMetadataPanel = !$datasetViewStore.showMetadataPanel)}
-        >
-          {#if $datasetViewStore.showMetadataPanel}
-            <SidePanelOpen />
-          {:else}
-            <SidePanelClose />
-          {/if}</button
-        >
+      {/each}
+      <div class="relative h-8">
+        <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
       </div>
     </div>
-    {#if $datasetViewStore.showMetadataPanel}
-      <div
-        class="flex h-full bg-neutral-100 md:w-1/3"
-        transition:slide={{axis: 'x', duration: SIDEBAR_TRANSITION_TIME_MS}}
+    {#if mediaFields.length > 0}
+      {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
+        <div
+          class:border-b={i < mediaFields.length - 1}
+          class:pb-2={i < mediaFields.length - 1}
+          class="flex h-full w-full flex-col border-neutral-200"
+        >
+          <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
+        </div>
+      {/each}
+    {/if}
+    <div class="absolute right-0 top-0">
+      <button
+        class="mr-1 mt-1 opacity-60 hover:bg-gray-200"
+        use:hoverTooltip={{
+          text: $datasetViewStore.showMetadataPanel ? 'Close metadata' : 'Open metadata'
+        }}
+        on:click={() =>
+          ($datasetViewStore.showMetadataPanel = !$datasetViewStore.showMetadataPanel)}
       >
-        <div class="sticky top-0 w-full self-start">
-          <div
-            style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
-            class="overflow-y-auto"
-          >
-            <ItemMetadata {row} selectRowsSchema={$selectRowsSchema.data} {highlightedFields} />
-          </div>
+        {#if $datasetViewStore.showMetadataPanel}
+          <SidePanelOpen />
+        {:else}
+          <SidePanelClose />
+        {/if}</button
+      >
+    </div>
+  </div>
+  {#if $datasetViewStore.showMetadataPanel}
+    <div
+      class="flex h-full bg-neutral-100 md:w-1/3"
+      transition:slide={{axis: 'x', duration: SIDEBAR_TRANSITION_TIME_MS}}
+    >
+      <div class="sticky top-0 w-full self-start">
+        <div
+          style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
+          class="overflow-y-auto"
+        >
+          <ItemMetadata {row} selectRowsSchema={$selectRowsSchema.data} {highlightedFields} />
         </div>
       </div>
-    {/if}
+    </div>
   {/if}
 </div>

@@ -41,6 +41,7 @@ from ..schema import (
   STRING_SPAN,
   Bin,
   EmbeddingInputType,
+  Field,
   Item,
   MapFn,
   Path,
@@ -242,7 +243,7 @@ def column_from_identifier(column: ColumnId) -> Column:
   return Column(path=column)
 
 
-FeatureValue = Union[StrictInt, StrictFloat, StrictBool, StrictStr, StrictBytes, datetime]
+FeatureValue = Union[StrictBool, StrictInt, StrictFloat, StrictStr, StrictBytes, datetime]
 FeatureListValue = list[StrictStr]
 BinaryFilterTuple = tuple[Path, BinaryOp, FeatureValue]
 StringFilterTuple = tuple[Path, StringOp, FeatureValue]
@@ -766,6 +767,10 @@ class Dataset(abc.ABC):
       exclude_labels: The labels to exclude in the export.
     """
     pass
+
+  def petals(self) -> dict[PathTuple, Field]:
+    """Return the leafs of the dataset."""
+    return self.manifest().data_schema.leafs
 
 
 def default_settings(dataset: Dataset) -> DatasetSettings:

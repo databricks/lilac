@@ -438,9 +438,7 @@ def progress(
   it_idx = initial_id if initial_id else 0
   start_time = time.time()
   last_emit = time.time() - emit_every_s
-  with tqdm(
-    it, initial=it_idx, desc=step_description, total=estimated_len, position=shard_id
-  ) as tq:
+  with tqdm(it, initial=it_idx, desc=step_description, total=estimated_len) as tq:
     for t in tq:
       cur_time = time.time()
       if estimated_len and cur_time - last_emit > emit_every_s:

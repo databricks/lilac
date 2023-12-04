@@ -1,13 +1,18 @@
 """Router for RAG."""
 
 
-from typing import Optional, Sequence, Union
+from typing import Sequence, Union
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from .db_manager import get_dataset
-from .rag.rag import RagGenerationResult, RagRetrievalResultItem, get_rag_generation, get_rag_retrieval
+from .rag.rag import (
+  RagGenerationResult,
+  RagRetrievalResultItem,
+  get_rag_generation,
+  get_rag_retrieval,
+)
 from .router_dataset import Column, Filter
 from .router_utils import RouteErrorHandler
 from .schema import Path
