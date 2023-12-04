@@ -300,3 +300,17 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
     80
     81         1          0.0      0.0      0.0    return output_dir
 ```
+
+#### Profiling memory usage with memray
+
+`memray` enables profiling memory usage over time, allowing one to pinpoint which sources are
+responsible for memory usage/leakage.
+
+This short snippet will run a test script `test_script.py` and open the profiler results.
+
+```bash
+rm memray.bin memray-flamegraph-memray.html &&
+  poetry run memray run -o memray.bin test_script.py &&
+  poetry run memray flamegraph memray.bin &&
+  open memray-flamegraph-memray.html
+```
