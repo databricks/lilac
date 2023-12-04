@@ -128,7 +128,9 @@
                 These settings can be changed from the dataset page at any time.
               </div>
             </div>
-            <DatasetSettingsFields {namespace} {datasetName} bind:settings={newSettings} />
+            {#if newSettings}
+              <DatasetSettingsFields {namespace} {datasetName} bind:newSettings />
+            {/if}
           </section>
         </div>
 

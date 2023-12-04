@@ -46,13 +46,19 @@ class GithubSource(Source):
   branch: Optional[str] = Field(
     default='main', description='The branch to load from. Defaults to the main branch.'
   )
-  ignore_directories: list[str] = Field(
-    description='A list of directories to load from. If not specified, loads from '
-    'all directories.'
+  ignore_directories: Optional[list[str]] = Field(
+    default=None,
+    description='A list of directories to ignore. Can only be used if filter_directories '
+    'is not specified.',
   )
-  ignore_file_extensions: list[str] = Field(description='A list of file extensions to ignore.')
+  ignore_file_extensions: Optional[list[str]] = Field(
+    default=None,
+    description='A list of file extensions to ignore. Can only be used if filter_file_extensions '
+    'is not specified.',
+  )
+
   github_token: Optional[str] = Field(
-    default='',
+    default=None,
     description='The GitHub token to use for authentication. If not specified, '
     'uses the `GITHUB_TOKEN` environment variable.',
   )
@@ -68,7 +74,17 @@ class GithubSource(Source):
   @override
   def setup(self) -> None:
     try:
-      from llama_index import GithubRepositoryReader, download_loader
+      from llama_index import download_loader
+
+    except ImportError:
+      raise ImportError(
+        'Could not import dependencies for the "github" source. '
+        'Please install with pip install lilac[github]'
+      )
+
+    try:
+      from llama_hub.github_repo import GithubClient, GithubRepositoryReader
+
     except ImportError:
       raise ImportError(
         'Could not import dependencies for the "github" source. '
@@ -78,24 +94,32 @@ class GithubSource(Source):
     download_loader('GithubRepositoryReader')
 
     github_token = os.getenv('GITHUB_TOKEN', self.github_token)
+
     if not github_token:
       raise ValueError(
         'Environment variable `GITHUB_TOKEN` is not set and the github_token arg is not set.'
       )
+    github_client = GithubClient(github_token)
 
     owner, repo = self.repo.split('/')
 
     loader = GithubRepositoryReader(
+      github_client=github_client,
       owner=owner,
       repo=repo,
-      ignore_directories=self.ignore_directories,
-      ignore_file_extensions=(self.ignore_file_extensions or []) + IGNORE_MEDIA_EXTENSIONS,
+      filter_directories=(self.ignore_directories, GithubRepositoryReader.FilterType.EXCLUDE)
+      if self.ignore_directories
+      else None,
+      filter_file_extensions=(
+        (self.ignore_file_extensions or []) + IGNORE_MEDIA_EXTENSIONS,
+        GithubRepositoryReader.FilterType.EXCLUDE,
+      ),
       verbose=True,
       concurrent_requests=10,
-      github_token=github_token,
     )
+    docs = loader.load_data(branch=self.branch)
 
-    self._llama_index_docs_source = LlamaIndexDocsSource(loader.load_data(branch=self.branch))
+    self._llama_index_docs_source = LlamaIndexDocsSource(docs)
     self._llama_index_docs_source.setup()
 
   @override

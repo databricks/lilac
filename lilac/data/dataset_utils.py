@@ -320,3 +320,13 @@ def sparse_to_dense_compute(
   dense_output = iter(func(dense_input))
   for input in sparse_input:
     yield None if input is None else next(dense_output)
+
+
+def shard_id_to_range(
+  shard_id: Optional[int], shard_count: Optional[int], num_items: int
+) -> tuple[int, int]:
+  """Compute the start and end offsets for a shard."""
+  shard_size = math.ceil(num_items / shard_count) if shard_count is not None else num_items
+  shard_start_idx = shard_id * shard_size if shard_id is not None else 0
+  shard_end_idx = min((shard_id + 1) * shard_size, num_items) if shard_id is not None else num_items
+  return (shard_start_idx, shard_end_idx)

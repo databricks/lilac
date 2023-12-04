@@ -4,6 +4,10 @@
 /* eslint-disable */
 
 /**
- * Enum holding a task type.
+ * A span in the RAG retrieval result.
  */
-export type TaskType = 'dataset_load' | 'dataset_map';
+export type RagRetrievalSpan = {
+    start: number;
+    end: number;
+};
+

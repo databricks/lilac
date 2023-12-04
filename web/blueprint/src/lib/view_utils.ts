@@ -90,7 +90,9 @@ export function getMediaFields(
   if (schema == null) return [];
   if (settings == null) return [];
 
-  return (settings?.ui?.media_paths || []).map(path => getField(schema!, path)!);
+  return (settings?.ui?.media_paths || [])
+    .map(path => getField(schema!, path)!)
+    .filter(f => f != null);
 }
 
 function isPathHighlighted(

@@ -90,7 +90,7 @@ from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..source import NoSource, SourceManifest
-from ..tasks import TaskStepId, get_is_dask_worker, get_task_manager, progress
+from ..tasks import TaskFn, TaskStepId, TaskType, get_is_dask_worker, get_task_manager, progress
 from ..utils import (
   DebugTimer,
   delete_file,
@@ -140,6 +140,7 @@ from .dataset_utils import (
   flatten_keys,
   get_parquet_filename,
   schema_contains_path,
+  shard_id_to_range,
   sparse_to_dense_compute,
   wrap_in_dicts,
   write_embeddings_to_disk,
@@ -565,13 +566,9 @@ class DatasetDuckDB(Dataset):
   ) -> Iterable[tuple[str, Item]]:
     """Returns an iterable of (rowid, item), discluding results in the cache filepath."""
     manifest = self.manifest()
-
     num_items = self.manifest().num_items
-    shard_size = math.ceil(num_items / shard_count) if shard_count else num_items
-    shard_start_idx = shard_id * shard_size if shard_id is not None else 0
-    shard_end_idx = (
-      min((shard_id + 1) * shard_size, num_items) if shard_id is not None else num_items
-    )
+
+    (shard_start_idx, shard_end_idx) = shard_id_to_range(shard_id, shard_count, num_items)
 
     column: Optional[Column] = None
     cols = self._normalize_columns(
@@ -810,11 +807,19 @@ class DatasetDuckDB(Dataset):
 
     # Add progress.
     if task_step_id is not None:
+      estimated_len = manifest.num_items
+      # When sharding, compute the length of the work for the shard.
+      (shard_start_idx, shard_end_idx) = shard_id_to_range(
+        shard_id, shard_count, manifest.num_items
+      )
+      estimated_len = shard_end_idx - shard_start_idx
+
       output_items = progress(
         output_items,
         task_step_id=task_step_id,
         initial_id=start_idx,
-        estimated_len=manifest.num_items,
+        shard_id=shard_id,
+        estimated_len=estimated_len,
         step_description=task_step_description,
       )
 
@@ -2569,14 +2574,16 @@ class DatasetDuckDB(Dataset):
 
     num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
 
-    task_ids = []
     jsonl_cache_filepaths: list[str] = []
+
+    output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
+    task_id = get_task_manager().task_id(
+      name=f'[{self.namespace}/{self.dataset_name}][{num_jobs} shards] map '
+      f'"{map_fn.__name__}"{output_col_desc_suffix}',
+      type=TaskType.DATASET_MAP,
+    )
+    subtasks: list[tuple[TaskFn, list[Any]]] = []
     for i in range(num_jobs):
-      output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
-      task_id = get_task_manager().task_id(
-        name=f'[{self.namespace}/{self.dataset_name}][shard {i}/{num_jobs}] map '
-        f'"{map_fn.__name__}"{output_col_desc_suffix}',
-      )
       jsonl_cache_filepath = _jsonl_cache_filepath(
         namespace=self.namespace,
         dataset_name=self.dataset_name,
@@ -2586,25 +2593,30 @@ class DatasetDuckDB(Dataset):
         shard_id=i,
         shard_count=num_jobs,
       )
-      get_task_manager().execute(
-        task_id,
-        self._map_worker,
-        map_fn,
-        output_path,
-        jsonl_cache_filepath,
-        i,
-        num_jobs,
-        input_path,
-        overwrite,
-        combine_columns,
-        resolve_span,
-        (task_id, 0),
+      subtasks.append(
+        (
+          self._map_worker,
+          [
+            map_fn,
+            output_path,
+            jsonl_cache_filepath,
+            i,
+            num_jobs,
+            input_path,
+            overwrite,
+            combine_columns,
+            resolve_span,
+            (task_id, 0),
+          ],
+        )
       )
-      task_ids.append(task_id)
+
       jsonl_cache_filepaths.append(jsonl_cache_filepath)
 
+    # Execute all the subtasks in parallel.
+    get_task_manager().execute_sharded(task_id, subtasks)
     # Wait for the tasks to finish before reading the outputs.
-    get_task_manager().wait(task_ids)
+    get_task_manager().wait([task_id])
 
     reader, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
@@ -2640,7 +2652,6 @@ class DatasetDuckDB(Dataset):
     with open_file(map_manifest_filepath, 'w') as f:
       f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
-    parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
     log(f'Wrote map output to {parquet_filepath}')
 
     # Promote any new string columns as media fields if the length is above a threshold.
@@ -2831,7 +2842,8 @@ class DatasetDuckDB(Dataset):
       shard_id=job_id,
       shard_count=job_count,
       task_step_id=task_step_id,
-      task_step_description=f'[shard {job_id+1}/{job_count}] map "{map_fn.__name__}"',
+      task_step_description=f'[Shard {job_id}/{job_count}] map "{map_fn.__name__}" '
+      f'to "{output_path}"',
     )
 
   @override

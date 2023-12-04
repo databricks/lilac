@@ -46,10 +46,10 @@ def create_dataset(
       'globally with `set_project_dir(path)`'
     )
 
-  # Update the config before processing the source.
   add_project_dataset_config(config, project_dir, overwrite)
 
   process_source(project_dir, config)
+
   return get_dataset(config.namespace, config.name, project_dir)
 
 

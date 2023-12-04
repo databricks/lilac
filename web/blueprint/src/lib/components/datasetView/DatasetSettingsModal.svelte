@@ -46,13 +46,7 @@
   ];
   let labelComboBox: ComboBox;
 
-  $: currentSettings = querySettings(namespace, name);
-  let newTags: Set<string> | null = null;
-  $: {
-    if (newTags == null && $currentSettings.data != null) {
-      newTags = new Set($currentSettings.data.tags);
-    }
-  }
+  $: settingsQuery = querySettings(namespace, name);
 
   const updateSettings = updateDatasetSettingsMutation();
 
@@ -60,8 +54,23 @@
 
   let settingsPage: 'fields' | 'tags' | 'administration' = 'fields';
 
-  let newSettings: DatasetSettings | undefined = undefined;
-  // TODO: bind settings to newSettings
+  function parseSettings(settings: DatasetSettings | undefined): DatasetSettings | null {
+    if (settings == null) return null;
+    const result = JSON.parse(JSON.stringify(settings)) as DatasetSettings;
+    if (result.ui != null) {
+      result.ui.media_paths = result.ui.media_paths?.map(p => (Array.isArray(p) ? p : [p]));
+      result.ui.markdown_paths = result.ui.markdown_paths?.map(p => (Array.isArray(p) ? p : [p]));
+    }
+    return result;
+  }
+  let newSettings: DatasetSettings | null = parseSettings($settingsQuery?.data);
+  $: isFetching = $settingsQuery.isFetching;
+  $: newSettings = isFetching
+    ? null
+    : newSettings == null
+    ? parseSettings($settingsQuery.data)
+    : newSettings;
+
   function submit() {
     if (newSettings == null) return;
     $updateSettings.mutate([namespace, name, newSettings], {
@@ -79,23 +88,23 @@
       selectedItem: TagItem;
     }>
   ) {
-    if (newTags == null) return;
+    if (newSettings == null) return;
+    if (newSettings.tags == null) {
+      newSettings.tags = [];
+    }
     labelComboBox.clear();
-    newTags.add(e.detail.selectedItem.text);
-    newTags = newTags;
-    newSettings = {
-      ...newSettings,
-      tags: Array.from(newTags)
-    };
+    const newTag = e.detail.selectedItem.text;
+    const existingTag = newSettings.tags.find(t => t === newTag);
+    if (existingTag) return;
+    newSettings.tags = [...newSettings.tags, newTag];
   }
+
   function removeTag(tag: string) {
-    if (newTags == null) return;
-    newTags.delete(tag);
-    newTags = newTags;
-    newSettings = {
-      ...newSettings,
-      tags: Array.from(newTags)
-    };
+    if (newSettings == null) return;
+    if (newSettings.tags == null) {
+      newSettings.tags = [];
+    }
+    newSettings.tags = newSettings.tags.filter(t => t !== tag);
   }
 </script>
 
@@ -118,8 +127,8 @@
         />
       </div>
       <div class="flex w-full flex-col gap-y-6 rounded border border-gray-300 bg-white p-4">
-        {#if settingsPage === 'fields'}
-          <DatasetSettingsFields {namespace} datasetName={name} bind:settings={newSettings} />
+        {#if settingsPage === 'fields' && newSettings}
+          <DatasetSettingsFields {namespace} datasetName={name} bind:newSettings />
         {:else if settingsPage === 'tags'}
           <div class="mb-8 flex flex-col gap-y-4">
             <section class="flex flex-col gap-y-1">
@@ -129,9 +138,9 @@
                 panel.
               </div>
             </section>
-            {#if newTags?.size}
+            {#if newSettings?.tags?.length}
               <div class="flex h-8 flex-row">
-                {#each Array.from(newTags || []) as tag}
+                {#each newSettings.tags as tag}
                   <RemovableTag type="purple" on:remove={() => removeTag(tag)}>
                     {tag}
                   </RemovableTag>

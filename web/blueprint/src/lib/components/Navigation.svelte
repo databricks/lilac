@@ -9,7 +9,7 @@
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
   import {conceptLink, signalLink} from '$lib/utils';
   import {getTaggedConcepts, getTaggedDatasets} from '$lib/view_utils';
-  import {AddAlt, Settings, SidePanelClose} from 'carbon-icons-svelte';
+  import {AddAlt, DataVis_3, Settings, SidePanelClose} from 'carbon-icons-svelte';
   import NavigationCategory from './NavigationCategory.svelte';
   import {Command, triggerCommand} from './commands/Commands.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
@@ -145,6 +145,18 @@
     tagGroups={signalNavGroups}
     isFetching={$signals.isFetching}
   />
+  <div class="w-full px-1">
+    <button
+      class={`w-full px-4 py-2 text-left  ${!settingsSelected ? 'hover:bg-gray-100' : ''}`}
+      class:bg-neutral-200={settingsSelected}
+      on:click={() => goto('/rag')}
+    >
+      <div class="flex items-center gap-x-3">
+        <div class="flex-grow text-sm font-medium">RAG</div>
+        <div><DataVis_3 /></div>
+      </div>
+    </button>
+  </div>
   <div class="w-full px-1">
     <button
       class={`w-full px-4 py-2 text-left  ${!settingsSelected ? 'hover:bg-gray-100' : ''}`}

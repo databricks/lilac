@@ -39,7 +39,7 @@
   const datasetViewStore = getDatasetViewContext();
 
   $: settingsQuery = querySettings(namespace, datasetName);
-  $: viewType = $settingsQuery.data?.ui?.view_type || 'scroll';
+  $: viewType = $settingsQuery.data?.ui?.view_type || 'single_item';
 
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
   function toggleSchemaCollapsed() {

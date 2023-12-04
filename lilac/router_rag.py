@@ -1,56 +1,69 @@
 """Router for RAG."""
 
-from typing import cast
 
-import instructor
+from typing import Sequence, Union
+
 from fastapi import APIRouter
-from instructor import OpenAISchema
-from pydantic import Field
+from pydantic import BaseModel
 
-from .env import env
+from .db_manager import get_dataset
+from .rag.rag import RagRetrievalResultItem, get_rag_generation, get_rag_retrieval
+from .router_dataset import Column, Filter
 from .router_utils import RouteErrorHandler
+from .schema import Path
 
 router = APIRouter(route_class=RouteErrorHandler)
 
-# Enables response_model in the openai client.
-instructor.patch()
+
+class RagRetrievalOptions(BaseModel):
+  """The config for the rag retrieval."""
+
+  dataset_namespace: str
+  dataset_name: str
+  embedding: str
+
+  query: str
+
+  # The main column that will be used for the retrieval. This should have an embedding index already
+  # computed.
+  path: Path
+  # Columns that will be used for additional metadata information.
+  metadata_columns: Sequence[Union[Column, Path]] = []
+  filters: Sequence[Filter] = []
+
+  # Hyper-parameters.
+  chunk_window: int = 1
+  top_k: int = 10
+  similarity_threshold: float = 0.0
 
 
-class Completion(OpenAISchema):
-  """Generated completion of a prompt."""
+class RagGenerationOptions(BaseModel):
+  """The config for the rag generation."""
 
-  completion: str = Field(
-    ..., description='The answer to the question, given the context and query.'
+  query: str
+  retrieval_results: list[RagRetrievalResultItem]
+  prompt_template: str
+
+
+@router.post('/retrieval')
+def retrieval(options: RagRetrievalOptions) -> list[RagRetrievalResultItem]:
+  """Get the retrieval results for a prompt."""
+  ds = get_dataset(options.dataset_namespace, options.dataset_name)
+  return get_rag_retrieval(
+    path=options.path,
+    dataset=ds,
+    embedding=options.embedding,
+    query=options.query,
+    top_k=options.top_k,
+    chunk_window=options.chunk_window,
   )
 
 
-@router.get('/generate_completion')
-def generate_completion(prompt: str) -> str:
-  """Generate the completion for a prompt."""
-  try:
-    import openai
-  except ImportError:
-    raise ImportError(
-      'Could not import the "openai" python package. '
-      'Please install it with `pip install openai`.'
-    )
-
-  openai.api_key = env('OPENAI_API_KEY')
-  if not openai.api_key:
-    raise ValueError('The `OPENAI_API_KEY` environment flag is not set.')
-  completion = cast(
-    Completion,
-    openai.ChatCompletion.create(
-      model='gpt-3.5-turbo-0613',
-      response_model=Completion,
-      messages=[
-        {
-          'role': 'system',
-          'content': 'You must call the `Completion` function with the generated completion.',
-        },
-        {'role': 'user', 'content': prompt},
-      ],
-      temperature=0,
-    ),
+@router.post('/generate')
+def generate(options: RagGenerationOptions) -> str:
+  """Get the retrieval results for a prompt."""
+  return get_rag_generation(
+    query=options.query,
+    retrieval_results=options.retrieval_results,
+    prompt_template=options.prompt_template,
   )
-  return completion.completion

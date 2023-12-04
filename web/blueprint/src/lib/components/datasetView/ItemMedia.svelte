@@ -6,7 +6,6 @@
    * In the case of strings with string_spans, it will render the derived string spans as well
    */
   import {getSettingsContext} from '$lib/stores/settingsStore';
-  import {notEmpty} from '$lib/utils';
   import {getComputedEmbeddings, getDisplayPath, getSpanValuePaths} from '$lib/view_utils';
   import {
     L,
@@ -20,6 +19,7 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
   import {ChevronDown, ChevronUp, DirectionFork, Search, Undo} from 'carbon-icons-svelte';
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -27,7 +27,7 @@
   import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let mediaPath: Path;
-  export let row: LilacValueNode;
+  export let row: LilacValueNode | undefined | null = undefined;
   export let field: LilacField;
   export let highlightedFields: LilacField[];
   // The root path contains the sub-path up to the point of this leaf.
@@ -47,8 +47,8 @@
     }
   }
 
-  $: valueNodes = getValueNodes(row, rootPath!);
-  $: isLeaf = valueNodes.length === 1;
+  $: valueNodes = row != null ? getValueNodes(row, rootPath!) : [];
+  $: isLeaf = valueNodes.length <= 1;
 
   // Get the list of next root paths for children of a repeated node.
   $: nextRootPaths = valueNodes.map(v => {
@@ -77,13 +77,14 @@
 
   $: valueNode = valueNodes[0];
   $: value = L.value(valueNode);
-  $: datasetSettings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
   // Compare media paths should contain media paths with resolved path wildcards as sometimes the
   // user wants to compare items in an array.
-  $: compareMediaPaths = ($datasetSettings.data?.ui?.media_paths || [])
+  $: mediaPaths = row != null ? $settings.data?.ui?.media_paths || [] : [];
+  $: compareMediaPaths = mediaPaths
     .map(p => (Array.isArray(p) ? p : [p]))
     .flatMap(p => {
-      return getValueNodes(row, p)
+      return getValueNodes(row!, p)
         .map(v => L.path(v))
         .filter(p => !pathIsMatching(p, rootPath));
     }) as Path[];
@@ -102,8 +103,6 @@
   $: noEmbeddings = computedEmbeddings.length === 0;
 
   $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
-
-  $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   function findSimilar(searchText: DataTypeCasted) {
     let embedding = computedEmbeddings[0];
@@ -142,61 +141,60 @@
   function removeComparison() {
     datasetViewStore.removeCompareColumn(mediaPath);
   }
+  $: markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null;
 </script>
 
-{#if notEmpty(valueNode)}
-  {@const markdown =
-    $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null}
-  <div class="flex w-full gap-x-4">
-    {#if isLeaf}
-      <div class="relative mr-4 flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
-        <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
-          {#if displayPath != ''}
-            <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
-              {displayPath}
-            </div>
-          {/if}
-          <div class="flex flex-row">
-            <div
-              use:hoverTooltip={{
-                text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
-              }}
-              class:opacity-50={noEmbeddings}
-            >
-              <button
-                disabled={noEmbeddings}
-                on:click={() => findSimilar(value)}
-                use:hoverTooltip={{text: 'More like this'}}
-                ><Search size={16} />
-              </button>
-            </div>
-            {#if !colCompareState}
-              <ButtonDropdown
-                disabled={compareItems.length === 0}
-                helperText={'Compare to'}
-                items={compareItems}
-                buttonIcon={DirectionFork}
-                on:select={selectCompareColumn}
-                hoist={true}
-              />
-            {:else}
-              <button
-                on:click={() => removeComparison()}
-                use:hoverTooltip={{text: 'Remove comparison'}}
-                ><Undo size={16} />
-              </button>
-            {/if}
+<div class="flex w-full gap-x-4">
+  {#if isLeaf}
+    <div class="relative mr-4 flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
+      <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
+        {#if displayPath != ''}
+          <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
+            {displayPath}
+          </div>
+        {/if}
+        <div class="flex flex-row">
+          <div
+            use:hoverTooltip={{
+              text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
+            }}
+            class:opacity-50={noEmbeddings}
+          >
             <button
-              disabled={!textIsOverBudget}
-              class:opacity-50={!textIsOverBudget}
-              on:click={() => (userExpanded = !userExpanded)}
-              use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
-              >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
+              disabled={noEmbeddings}
+              on:click={() => findSimilar(value)}
+              use:hoverTooltip={{text: 'More like this'}}
+              ><Search size={16} />
             </button>
           </div>
+          {#if !colCompareState}
+            <ButtonDropdown
+              disabled={compareItems.length === 0}
+              helperText={'Compare to'}
+              items={compareItems}
+              buttonIcon={DirectionFork}
+              on:select={selectCompareColumn}
+              hoist={true}
+            />
+          {:else}
+            <button
+              on:click={() => removeComparison()}
+              use:hoverTooltip={{text: 'Remove comparison'}}
+              ><Undo size={16} />
+            </button>
+          {/if}
+          <button
+            disabled={!textIsOverBudget}
+            class:opacity-50={!textIsOverBudget}
+            on:click={() => (userExpanded = !userExpanded)}
+            use:hoverTooltip={{text: userExpanded ? 'Collapse text' : 'Expand text'}}
+            >{#if userExpanded}<ChevronUp size={16} />{:else}<ChevronDown size={16} />{/if}
+          </button>
         </div>
       </div>
-      <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
+    </div>
+    <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
+      {#if row != null}
         {#if colCompareState == null}
           <StringSpanHighlight
             text={formatValue(value)}
@@ -214,31 +212,30 @@
         {:else}
           <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
         {/if}
-      </div>
-    {:else}
-      <!-- Repeated values will render <ItemMedia> again. -->
-      <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
-        <div class="m-2 flex flex-col gap-y-2">
-          <div
-            title={displayPath}
-            class="mx-2 mt-2 truncate font-mono font-medium text-neutral-500"
-          >
-            {displayPath}
-          </div>
-          {#each nextRootPaths as nextRootPath}
-            <div class="m-2 rounded border border-neutral-100 p-2">
-              <svelte:self
-                rootPath={nextRootPath.rootPath}
-                showPath={nextRootPath.showPath}
-                {row}
-                {field}
-                {highlightedFields}
-                {mediaPath}
-              />
-            </div>
-          {/each}
+      {:else}
+        <SkeletonText lines={3} paragraph class="w-full" />
+      {/if}
+    </div>
+  {:else}
+    <!-- Repeated values will render <ItemMedia> again. -->
+    <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
+      <div class="m-2 flex flex-col gap-y-2">
+        <div title={displayPath} class="mx-2 mt-2 truncate font-mono font-medium text-neutral-500">
+          {displayPath}
         </div>
+        {#each nextRootPaths as nextRootPath}
+          <div class="m-2 rounded border border-neutral-100 p-2">
+            <svelte:self
+              rootPath={nextRootPath.rootPath}
+              showPath={nextRootPath.showPath}
+              {row}
+              {field}
+              {highlightedFields}
+              {mediaPath}
+            />
+          </div>
+        {/each}
       </div>
-    {/if}
-  </div>
-{/if}
+    </div>
+  {/if}
+</div>

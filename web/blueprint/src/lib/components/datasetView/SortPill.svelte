@@ -15,6 +15,7 @@
     type LilacSchema,
     type Path,
     type SearchResultInfo,
+    type SelectRowsSchemaResult,
     type SortResult
   } from '$lilac';
   import type {
@@ -34,7 +35,10 @@
 
   let open = false;
 
-  function getSort(viewState: DatasetViewState): SortResult | null {
+  function getSort(
+    viewState: DatasetViewState,
+    selectRowsSchema: SelectRowsSchemaResult | undefined
+  ): SortResult | null {
     // Explicit user selection of sort.
     if (viewState.query.sort_by && viewState.query.sort_by.length > 0) {
       return {
@@ -43,14 +47,14 @@
       };
     }
     // Implicit sort from select rows schema.
-    const sort = ($selectRowsSchema?.data?.sorts || [])[0];
+    const sort = (selectRowsSchema?.sorts || [])[0];
     if (sort == null || pathIsEqual(sort.path, [ROWID])) {
       return null;
     }
     return sort;
   }
 
-  $: sort = getSort($datasetViewStore);
+  $: sort = getSort($datasetViewStore, $selectRowsSchema.data);
   let pathToSearchResult: {[path: string]: SearchResultInfo} = {};
   $: {
     for (const search of $selectRowsSchema?.data?.search_results || []) {
