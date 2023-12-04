@@ -14,10 +14,10 @@ from typing import (
   Any,
   Awaitable,
   Callable,
-  Coroutine,
   Generator,
   Iterable,
   Iterator,
+  Literal,
   Optional,
   TypeVar,
   Union,
@@ -26,7 +26,6 @@ from typing import (
 
 import dask
 import nest_asyncio
-import psutil
 from dask import config as cfg
 from dask.distributed import Client
 from distributed import Future, get_client, get_worker, wait
@@ -136,18 +135,18 @@ class TaskManager:
     except RuntimeError as e:
       asynchronous = False
 
-    self.n_workers = multiprocessing.cpu_count()
-    total_memory_gb = psutil.virtual_memory().total / (1024**3)
+    # self.n_workers = multiprocessing.cpu_count()
+    # total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
       asynchronous=asynchronous,
-      memory_limit=f'{total_memory_gb} GB',
+      # memory_limit=f'{total_memory_gb} GB',
       processes=True,
-      n_workers=self.n_workers,
+      # n_workers=self.n_workers,
     )
-
-  def set_client(self, dask_client: Client) -> None:
-    """Sets the dask client."""
-    self._dask_client = dask_client
+    # self._dask_thread_client = dask_thread_client or Client(
+    #   processes=False,
+    #   asynchronous=False,
+    # )
 
   async def _update_tasks(self) -> None:
     adapter = TypeAdapter(list[TaskStepInfo])
@@ -294,7 +293,9 @@ class TaskManager:
     if self._task_shard_completions[task_id] == num_shards:
       self._set_task_completed(task_id, task_future)
 
-  def execute(self, task_id: str, task: TaskFn, *args: Any) -> None:
+  def execute(
+    self, task_id: str, type: Literal['processes', 'threads'], task: TaskFn, *args: Any
+  ) -> None:
     """Execute a task."""
     log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
 
@@ -311,7 +312,12 @@ class TaskManager:
 
     self._futures[task_id] = task_future
 
-  def execute_sharded(self, task_id: str, subtasks: list[tuple[TaskFn, list[Any]]]) -> None:
+  def execute_sharded(
+    self,
+    task_id: str,
+    type: Literal['processes', 'threads'],
+    subtasks: list[tuple[TaskFn, list[Any]]],
+  ) -> None:
     """Execute a task in multiple shards."""
     log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
 
@@ -332,17 +338,24 @@ class TaskManager:
 
     self._futures[task_id] = futures
 
-  async def stop(self) -> None:
+  def stop(self) -> None:
     """Stop the task manager and close the dask client."""
-    await cast(Coroutine, self._dask_client.close())
-    self._dask_client.shutdown()
+    process_shutdown = self._dask_client.shutdown()
+    if asyncio.iscoroutine(process_shutdown):
+      asyncio.get_event_loop().run_until_complete(process_shutdown)
+
+    # thread_shutdown = self._dask_thread_client.shutdown()
+    # if asyncio.iscoroutine(thread_shutdown):
+    #   asyncio.get_event_loop().run_until_complete(thread_shutdown)
 
   def get_num_workers(self) -> int:
     """Get the number of workers."""
     scheduler_info = self._dask_client.scheduler_info()
     # The scheduler can be delayed with updating the number of workers, so we use number of workers
     # we provide explicitly as a fallback.
-    return len(scheduler_info['workers']) if 'workers' in scheduler_info else self.n_workers
+    return (
+      len(scheduler_info['workers']) if 'workers' in scheduler_info else multiprocessing.cpu_count()
+    )
 
 
 def get_is_dask_worker() -> bool:

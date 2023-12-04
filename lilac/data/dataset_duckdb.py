@@ -2614,7 +2614,7 @@ class DatasetDuckDB(Dataset):
       jsonl_cache_filepaths.append(jsonl_cache_filepath)
 
     # Execute all the subtasks in parallel.
-    get_task_manager().execute_sharded(task_id, subtasks)
+    get_task_manager().execute_sharded(task_id, 'processes', subtasks)
     # Wait for the tasks to finish before reading the outputs.
     get_task_manager().wait([task_id])
 
@@ -2746,6 +2746,7 @@ class DatasetDuckDB(Dataset):
     )
     get_task_manager().execute(
       task_id,
+      'processes',
       self._map_worker,
       transform_fn,
       output_path,

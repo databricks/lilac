@@ -51,9 +51,10 @@ class TestFirstCharSignal(TextSignal):
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
-  dask_cluster = LocalCluster(n_workers=2, threads_per_worker=2, processes=False)
-  dask_client = Client(dask_cluster)
-  tasks._TASK_MANAGER = tasks.TaskManager(dask_client=dask_client)
+  dask_client = Client(LocalCluster(n_workers=2, threads_per_worker=2, processes=False))
+  tasks._TASK_MANAGER = tasks.TaskManager(
+    dask_process_client=dask_client, dask_thread_client=dask_client
+  )
 
   allow_any_datetime(DatasetManifest)
 

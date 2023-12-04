@@ -61,7 +61,7 @@ def _load(load_task_id: str) -> None:
   load(
     project_dir=get_project_dir(),
     overwrite=False,
-    task_manager=TaskManager(dask_client=get_client()),
+    task_manager=TaskManager(dask_process_client=get_client()),
     load_task_id=load_task_id,
   )
 
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
       description='This can be disabled by setting the environment variable '
       'LILAC_LOAD_ON_START_SERVER=false',
     )
-    task_manager.execute(task_id, _load, task_id)
+    task_manager.execute(task_id, 'processes', _load, task_id)
 
   yield
 
