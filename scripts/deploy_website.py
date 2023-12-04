@@ -19,7 +19,8 @@ import click
   is_flag=True,
   help='If true, it deploys to a staging environment.',
   default=False,
-  type=bool)
+  type=bool,
+)
 def main(staging: bool) -> None:
   """Generate a web client from the OpenAPI spec."""
   run('./scripts/build_docs.sh')
