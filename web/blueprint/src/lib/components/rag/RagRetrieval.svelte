@@ -28,7 +28,7 @@
 
   const dispatch = createEventDispatcher();
 
-  $: retrievalResults2 =
+  $: retrievalResultsQuery =
     $ragViewStore.datasetNamespace != null &&
     $ragViewStore.datasetName != null &&
     $ragViewStore.embedding != null &&
@@ -46,18 +46,17 @@
           top_k: $ragViewStore.topK
         })
       : null;
-  $: isFetching = $retrievalResults2?.isFetching ?? false;
-  $: retrievalResults = $retrievalResults2?.data;
+  $: isFetching = $retrievalResultsQuery?.isFetching ?? false;
+  $: retrievalResults = $retrievalResultsQuery?.data;
 
   $: {
-    if ($retrievalResults2?.data != null && !$retrievalResults2?.isStale) {
-      dispatch('results', $retrievalResults2?.data);
+    if ($retrievalResultsQuery?.data != null && !$retrievalResultsQuery?.isStale) {
+      dispatch('results', $retrievalResultsQuery?.data);
     }
   }
 </script>
 
-<div class="rag-section-header mb-4 flex w-full flex-row justify-between">
-  <div>Retrieval</div>
+<div class="mb-4 flex w-full flex-row justify-between">
   <div class="flex h-4 flex-row gap-x-4 font-normal">
     <div>
       <span class="mr-2">Chunk window</span>
@@ -76,12 +75,12 @@
   </div>
 </div>
 <div class="mb-8 h-full">
-  {#if $retrievalResults2?.isFetching}
+  {#if $retrievalResultsQuery?.isFetching}
     <SkeletonText lines={$ragViewStore.topK} />
   {/if}
-  {#if $retrievalResults2?.data != null}
+  {#if $retrievalResultsQuery?.data != null}
     <div class="flex h-96 flex-col overflow-y-scroll">
-      {#each $retrievalResults2.data as retrievalResult}
+      {#each $retrievalResultsQuery.data as retrievalResult}
         <!-- There is currently only one match span -->
         {@const windowSpan = retrievalResult.match_spans[0]}
         {@const prefix = retrievalResult.text.slice(0, windowSpan.start)}

@@ -1,10 +1,14 @@
 """An interface for OpenAI chat completion generators."""
 
 
+from typing import Optional
+
 import instructor
 from instructor import OpenAISchema
 from pydantic import Field
 from typing_extensions import override
+
+import tiktoken
 
 from ..env import env
 from ..text_gen import TextGenerator
@@ -56,3 +60,8 @@ class OpenAIChatCompletionGenerator(TextGenerator):
         {'role': 'user', 'content': prompt},
       ],
     ).completion
+
+  @override
+  def num_tokens(self, prompt: str) -> Optional[int]:
+    """Count the number of tokens for a prompt."""
+    return len(tiktoken.encoding_for_model(self.model).encode(prompt))
