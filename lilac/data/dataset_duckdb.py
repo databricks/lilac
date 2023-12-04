@@ -253,12 +253,15 @@ class DuckDBMapOutput:
 class DuckDBQueryParams(BaseModel):
   """Representation of a DuckDB select query.
 
-  Most dataset operations involve some combination of DuckDB SQL and Python. The SQL is more efficient
-  but the Python is more flexible and enables more complex operations. This class encapsulates the
-  set of available options for the initial DuckDB SQL query.
+  Most dataset operations involve some combination of DuckDB SQL and Python. The SQL is more
+  efficient but the Python is more flexible and enables more complex operations. This class
+  encapsulates the set of available options for the initial DuckDB SQL query.
 
-  Functions that wrap DuckDBSelectOptions:
-      Exporters: choose the columns, choose some filters. Has some unique logic around "include" tags.
+  The columns are not included in this interface for now, because there are too many ways
+  that we use selects - all columns, one column, aliasing, unwrapping/flattening, etc.
+
+  Functions that will eventually wrap DuckDBQueryParams:
+      Exporters: choose the columns, choose some filters. Has some unique logic for "include" tags.
       to_pandas -> _get_selection
       to_json -> _get_selection
       to_parquet -> _get_selection
@@ -267,10 +270,10 @@ class DuckDBQueryParams(BaseModel):
       The megafunction. Needs to be sliced down featurewise to simplify.
       select_rows -> ???
 
-      This function only applies to one column at a time. Doesn't yet support partial application. Has complicated caching logic.
+      Compute on one column. No partial application. Has complicated caching logic.
       compute_concept/embedding -> _compute_disk_cached -> _select_iterable_values
 
-      This function applies to the whole row at once. Has complicated caching logic. Has complicated sharding logic.
+      Compute on a whole row. Has complicated caching logic. Has complicated sharding logic.
       map/transform -> _map_worker -> _compute_disk_cached -> _select_iterable_values
 
   Searches and tag inclusions should be compiled down to the equivalent Filter operations.
