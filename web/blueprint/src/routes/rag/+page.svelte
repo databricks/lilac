@@ -145,7 +145,7 @@
       <div class="flex h-fit w-1/2 flex-col gap-y-4 rounded-xl border border-gray-300">
         <div class="relative overflow-x-auto rounded-t-xl">
           <div class="w-full text-left text-sm text-gray-500 rtl:text-right">
-            <div class="bg-gray-50 text-xs uppercase text-gray-700">
+            <div class="bg-neutral-100 text-xs uppercase text-gray-700">
               <div>
                 <div class="px-6 py-3">Question</div>
               </div>
@@ -194,7 +194,7 @@
         <div>
           <div class="relative overflow-x-auto rounded-t-xl">
             <div class="w-full text-left text-sm text-gray-500 rtl:text-right">
-              <div class="bg-gray-50 text-xs uppercase text-gray-700">
+              <div class="bg-gray-100 text-xs uppercase text-gray-700">
                 <div>
                   <div class="px-6 py-3">Editor</div>
                 </div>
