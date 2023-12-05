@@ -91,6 +91,7 @@ async def load(
   )
   get_task_manager().execute(
     task_id,
+    'processes',
     process_source,
     get_project_dir(),
     DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
