@@ -67,7 +67,7 @@ returns a new `answer_formatted` column that has two sub-fields:
    UI to filter on the rows that got updated.
 
 To modify the dataset in Lilac, we will use [](#Dataset.map). To learn more about `Dataset.map`, see
-the guide on [](../datasets/dataset_iterate.md).
+the guide on [](../datasets/dataset_edit.md).
 
 ````python
 import re

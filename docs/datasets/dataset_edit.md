@@ -1,4 +1,4 @@
-# Enrich a dataset
+# Edit a dataset
 
 ```{note}
 This page goes into the technical details of iterating on a dataset in Lilac.
