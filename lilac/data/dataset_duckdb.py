@@ -22,7 +22,6 @@ from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequenc
 import duckdb
 import numpy as np
 import pandas as pd
-import pyarrow as pa
 import yaml
 from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
@@ -246,17 +245,18 @@ class MapManifest(BaseModel):
 class DuckDBMapOutput:
   """The output of a map computation."""
 
-  def __init__(self, pyarrow_reader: pa.RecordBatchReader, output_column: str):
-    self.pyarrow_reader = pyarrow_reader
+  def __init__(self, con: duckdb.DuckDBPyConnection, query: str, output_column: str):
+    self.con = con
+    self.query = query
     self.output_column = output_column
 
   def __iter__(self) -> Iterator[Item]:
-    for batch in self.pyarrow_reader:
+    cursor = self.con.cursor()
+    pyarrow_reader = cursor.execute(self.query).fetch_record_batch(rows_per_batch=10_000)
+    for batch in pyarrow_reader:
       yield from (row[self.output_column] for row in batch.to_pylist())
 
-    # TODO(nsthorat): Implement next() and allow multiple iterations once we actually write to
-    # JSONL. We can't do this now because the memory connection to the jsonl file does not persist.
-    self.pyarrow_reader.close()
+    pyarrow_reader.close()
 
 
 class DuckDBQueryParams(BaseModel):
@@ -903,7 +903,7 @@ class DatasetDuckDB(Dataset):
     is_tmp_output: bool = False,
     parquet_filename_prefix: Optional[str] = None,
     overwrite: bool = False,
-  ) -> tuple[pa.RecordBatchReader, Schema, Optional[str]]:
+  ) -> tuple[str, Schema, Optional[str]]:
     """Reshards the jsonl cache files into a single parquet file.
 
     When is_tmp_output is true, the results are still merged to a single iterable PyArrow reader.
@@ -916,19 +916,16 @@ class DatasetDuckDB(Dataset):
       schema = schema.model_copy(deep=True)
       schema.fields[ROWID] = Field(dtype=STRING)
 
-    con.execute(
-      f"""
-      CREATE OR REPLACE VIEW {jsonl_view_name} as (
-        SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
-          {jsonl_cache_filepaths},
-          {f'columns={duckdb_schema(schema)},' if schema else ''}
-          hive_partitioning=false,
-          ignore_errors=true,
-          format='newline_delimited'
-        )
-      );
+    json_query = f"""
+      SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
+        {jsonl_cache_filepaths},
+        {f'columns={duckdb_schema(schema)},' if schema else ''}
+        hive_partitioning=false,
+        ignore_errors=true,
+        format='newline_delimited'
+      )
     """
-    )
+    con.execute(f'CREATE OR REPLACE VIEW "{jsonl_view_name}" as ({json_query});')
 
     parquet_filepath: Optional[str] = None
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
@@ -957,7 +954,7 @@ class DatasetDuckDB(Dataset):
     if ROWID in output_schema.fields:
       del output_schema.fields[ROWID]
 
-    return reader, output_schema, parquet_filepath
+    return json_query, output_schema, parquet_filepath
 
   @override
   def compute_signal(
@@ -2683,13 +2680,13 @@ class DatasetDuckDB(Dataset):
     # Wait for the tasks to finish before reading the outputs.
     get_task_manager().wait([task_id])
 
-    reader, map_schema, parquet_filepath = self._reshard_cache(
+    json_query, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
       jsonl_cache_filepaths=jsonl_cache_filepaths,
       is_tmp_output=is_tmp_output,
     )
 
-    result = DuckDBMapOutput(pyarrow_reader=reader, output_column=output_column)
+    result = DuckDBMapOutput(con=self.con, query=json_query, output_column=output_column)
 
     if is_tmp_output:
       return result
