@@ -123,11 +123,13 @@ BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'l
 StringOp = Literal['length_longer', 'length_shorter', 'ilike', 'regex_matches', 'not_regex_matches']
 UnaryOp = Literal['exists', 'not_exists', None]
 ListOp = Literal['in', None]
+RawSqlOp = Literal['raw_sql']
 
 BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
 STRING_OPS = set(['length_longer', 'length_shorter', 'ilike', 'regex_matches', 'not_regex_matches'])
 UNARY_OPS = set(['exists', 'not_exists'])
 LIST_OPS = set(['in'])
+RAW_SQL_OPS = set(['raw_sql'])
 
 
 class SortOrder(str, enum.Enum):
@@ -250,7 +252,7 @@ StringFilterTuple = tuple[Path, StringOp, FeatureValue]
 ListFilterTuple = tuple[Path, ListOp, FeatureListValue]
 UnaryFilterTuple = tuple[Path, UnaryOp]
 
-FilterOp = Union[BinaryOp, StringOp, UnaryOp, ListOp]
+FilterOp = Union[BinaryOp, StringOp, UnaryOp, ListOp, RawSqlOp]
 
 
 class SelectGroupsResult(BaseModel):
