@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { RagGenerationOptions } from '../models/RagGenerationOptions';
+import type { RagGenerationResult } from '../models/RagGenerationResult';
 import type { RagRetrievalOptions } from '../models/RagRetrievalOptions';
 import type { RagRetrievalResultItem } from '../models/RagRetrievalResultItem';
 
@@ -37,12 +38,12 @@ export class RagService {
      * Generate
      * Get the retrieval results for a prompt.
      * @param requestBody
-     * @returns string Successful Response
+     * @returns RagGenerationResult Successful Response
      * @throws ApiError
      */
     public static generate(
         requestBody: RagGenerationOptions,
-    ): CancelablePromise<string> {
+    ): CancelablePromise<RagGenerationResult> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/rag/generate',
