@@ -2,7 +2,7 @@
 
 ```{note}
 This page goes into the technical details of iterating on a dataset in Lilac.
-For a real world example, see the blog post on [](../blog/better-curate.md).
+For a real world example, see the blog post on [](../blog/curate-coding-dataset.md).
 ```
 
 ## `Dataset.map`

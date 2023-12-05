@@ -1,4 +1,4 @@
-# A better way to curate data
+# Using Lilac to curate a coding dataset
 
 Dec 2, 2023
 
@@ -23,7 +23,7 @@ changed.
 
 Let's load the Glaive dataset into Lilac from the HuggingFace hub. In this example, we're going to
 be using a Jupyter notebook (follow along
-[here](https://github.com/lilacai/lilac/blob/main/notebooks/BetterWayToCurate.ipynb)).
+[here](https://github.com/lilacai/lilac/blob/main/notebooks/CurateCodingDataset.ipynb)).
 
 ```python
 import lilac as ll
@@ -47,7 +47,7 @@ ll.start_server()
 INFO:     Uvicorn running on http://127.0.0.1:5432 (Press CTRL+C to quit)
 ```
 
-<img src="../_static/better_curate_blog/open-dataset.png"></img>
+<img src="../_static/curate_coding_dataset/open-dataset.png"></img>
 
 You can see that the dataset consists of `question` and `answer` pairs, where the answer is in
 markdown format, often containing python code blocks. Immediately we can see that the python
@@ -124,13 +124,13 @@ First, let's focus on the rows that have been changed by applying a filter on ou
 `answer_formatted > has_edit` column, expand the histogram, and click the `True`` bar, applying a
 filter for the edited results.
 
-<video loop muted autoplay controls src="../_static/better_curate_blog/filter_items.mp4"></video>
+<video loop muted autoplay controls src="../_static/curate_coding_dataset/filter_items.mp4"></video>
 
 Next, let's compare the two fields and show a visual diff. To do this, we click the “compare to”
 button next to `answer` and select the `answer_formatted > answer` field. We can easily flip through
 different examples by using the left and right arrow keys.
 
-<video loop muted autoplay controls src="../_static/better_curate_blog/compare.mp4"></video>
+<video loop muted autoplay controls src="../_static/curate_coding_dataset/compare.mp4"></video>
 
 The process of refining data is iterative. If the diff is not exactly what we like, we can change
 the parameters to the formatter, re-run the map with `overwrite=True`, and visualize the results.
