@@ -250,6 +250,44 @@ class DuckDBMapOutput:
     self.pyarrow_reader.close()
 
 
+class DuckDBQueryParams(BaseModel):
+  """Representation of a DuckDB select query.
+
+  Most dataset operations involve some combination of DuckDB SQL and Python. The SQL is more
+  efficient but the Python is more flexible and enables more complex operations. This class
+  encapsulates the set of available options for the initial DuckDB SQL query.
+
+  The columns are not included in this interface for now, because there are too many ways
+  that we use selects - all columns, one column, aliasing, unwrapping/flattening, etc.
+
+  Functions that will eventually wrap DuckDBQueryParams:
+      Exporters: choose the columns, choose some filters. Has some unique logic for "include" tags.
+      to_pandas -> _get_selection
+      to_json -> _get_selection
+      to_parquet -> _get_selection
+      to_csv -> _get_selection
+
+      The megafunction. Needs to be sliced down featurewise to simplify.
+      select_rows -> ???
+
+      Compute on one column. No partial application. Has complicated caching logic.
+      compute_concept/embedding -> _compute_disk_cached -> _select_iterable_values
+
+      Compute on a whole row. Has complicated caching logic. Has complicated sharding logic.
+      map/transform -> _map_worker -> _compute_disk_cached -> _select_iterable_values
+
+  Searches and tag inclusions should be compiled down to the equivalent Filter operations.
+  Sharding limit/offsets should be handled by computing and setting the desired offsets/limits/sort.
+  """
+
+  # Filters; this includes tag matching, regex searches, column filters, searches, inclusion lists.
+  filters: Sequence[Filter] = []
+  sort_by: Optional[str] = None
+  sort_order: Optional[SortOrder] = SortOrder.ASC
+  offset: Optional[int] = None
+  limit: Optional[int] = None
+
+
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
