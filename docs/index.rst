@@ -36,7 +36,7 @@
    datasets/dataset_load.md
    datasets/dataset_explore.md
    datasets/dataset_configure.md
-   datasets/dataset_iterate.md
+   datasets/dataset_edit.md
    datasets/dataset_labels.md
    datasets/dataset_concepts.md
    datasets/dataset_signals.md
