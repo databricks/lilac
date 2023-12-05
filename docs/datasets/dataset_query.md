@@ -137,12 +137,8 @@ the data, and can either be expressed as a tuple, or as a period-separated strin
 
 In the example above, the `emails` field under `pii` can be accessed with:
 
-- `('text', 'pii', 'emails', '*')`
-- `'text.pii.emails.*'`
-
-You'll notice there is a `*` in the paths. This is a _path wildcard_, which refers to a field that
-is repeated (e.g. a list of values). By selecting with a `*`, we will get all of the values under
-the emails field, which is a list of emails.
+- `('text', 'pii', 'emails')`
+- `'text.pii.emails'`
 
 If we want to see all of the leaf paths from the schema, we can use [](#Schema.leafs), which returns
 a dictionary mapping a path to a [](#Field).
@@ -320,7 +316,7 @@ Output (actual email redacted from text):
 [{
   'text': "I know this sounds odd coming from someone born almost 15 years after the show stopped airing, but I love this show. I don't know why, but I enjoy watching it. I love Adam the best. The only disappointing thing is that the only place I found to buy the seasons on DVD was in Germany, and that was only the first two seasons. That is disappointing, but that's OK. I'll keep looking online. If anyone has any tips on where to buy the second through 14th seasons, please email me at ______________@yahoo.com. I already own the first one. The only down side is that the DVDs being from Germany, they only play on my portable DVD player and my computer. Oh well. I still own it!",
   'label': 'pos',
-  'text.pii.emails.*': [{
+  'text.pii.emails': [{
     '__value__': {'start': 480, 'end': 504}}
   ]
 }]

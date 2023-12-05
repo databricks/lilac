@@ -285,9 +285,9 @@ def test_map_input_path_nested(
   # The rows should not reflect the output of the unfinished map.
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {'id': 0, 'texts.*.value': ['a'], 'texts_upper.*': ['A']},
-    {'id': 1, 'texts.*.value': ['b', 'c'], 'texts_upper.*': ['B', 'C']},
-    {'id': 2, 'texts.*.value': ['d', 'e', 'f'], 'texts_upper.*': ['D', 'E', 'F']},
+    {'id': 0, 'texts.*.value': ['a'], 'texts_upper': ['A']},
+    {'id': 1, 'texts.*.value': ['b', 'c'], 'texts_upper': ['B', 'C']},
+    {'id': 2, 'texts.*.value': ['d', 'e', 'f'], 'texts_upper': ['D', 'E', 'F']},
   ]
 
 
@@ -549,14 +549,14 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
   dataset.map(_split_fn, output_column='splits', combine_columns=False)
 
   def _rearrange_fn(item: Item) -> Item:
-    return item['splits.*'][1] + ' ' + item['splits.*'][0]
+    return item['splits'][1] + ' ' + item['splits'][0]
 
   dataset.map(_rearrange_fn, output_column='rearrange', combine_columns=False)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
-    {'text': 'a sentence', 'splits.*': ['a', 'sentence'], 'rearrange': 'sentence a'},
-    {'text': 'b sentence', 'splits.*': ['b', 'sentence'], 'rearrange': 'sentence b'},
+    {'text': 'a sentence', 'splits': ['a', 'sentence'], 'rearrange': 'sentence a'},
+    {'text': 'b sentence', 'splits': ['b', 'sentence'], 'rearrange': 'sentence b'},
   ]
 
   assert dataset.manifest() == DatasetManifest(

@@ -97,16 +97,4 @@ Wrote map output to ./datasets/local/tutorial2/questions_prefixed-00000-of-00001
 We can see that the `questions_prefixed` column is a nested list, with the same structure as the
 `questions` column.
 
-### Annotations
-
-A common use case of `dataset.map` is to enrich an existing input with additional metadata. For
-example, we want to use an LLM to extract a structure field from unstructured text. Lilac let's you
-annotate any outputs to parts of the original input text via `ll.span`.
-
-let's add a simple company name detector using regex and emit the company name along with the
-coordinates where we found it:
-
-```python
-import re
-import lilac as ll
-```
+### Structured output

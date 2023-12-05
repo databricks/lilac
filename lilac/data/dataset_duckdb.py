@@ -3180,7 +3180,10 @@ def _unique_alias(column: Column) -> str:
   """Get a unique alias for a selection column."""
   if column.signal_udf:
     return make_signal_parquet_id(column.signal_udf, column.path)
-  return '.'.join(map(str, column.path))
+  path = tuple(column.path)
+  while path[-1] == PATH_WILDCARD:
+    path = path[:-1]
+  return '.'.join(path)
 
 
 def _path_contains(parent_path: PathTuple, child_path: PathTuple) -> bool:
