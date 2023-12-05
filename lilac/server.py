@@ -76,12 +76,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
       description='This can be disabled by setting the environment variable '
       'LILAC_LOAD_ON_START_SERVER=false',
     )
-    task_manager.execute(task_id, _load, task_id)
+    task_manager.execute(task_id, 'processes', _load, task_id)
 
   yield
 
   # Clean up the ML models and release the resources
-  await get_task_manager().stop()
+  get_task_manager().stop()
 
 
 app = FastAPI(

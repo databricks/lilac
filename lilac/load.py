@@ -117,7 +117,7 @@ def load(
       task_id = task_manager.task_id(
         f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD
       )
-      task_manager.execute(task_id, process_source, project_dir, d, (task_id, 0))
+      task_manager.execute(task_id, 'processes', process_source, project_dir, d, (task_id, 0))
       dataset_task_ids.append(task_id)
     task_manager.wait(dataset_task_ids)
 
@@ -172,7 +172,14 @@ def load(
         if embedding_field is None or overwrite:
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           task_manager.execute(
-            task_id, _compute_embedding, d.namespace, d.name, e, project_dir, (task_id, 0)
+            task_id,
+            'processes',
+            _compute_embedding,
+            d.namespace,
+            d.name,
+            e,
+            project_dir,
+            (task_id, 0),
           )
           embedding_task_ids.append(task_id)
         else:
@@ -216,7 +223,15 @@ def load(
           if signal_field is None or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(
-              task_id, _compute_signal, d.namespace, d.name, s, project_dir, (task_id, 0), overwrite
+              task_id,
+              'processes',
+              _compute_signal,
+              d.namespace,
+              d.name,
+              s,
+              project_dir,
+              (task_id, 0),
+              overwrite,
             )
             # Wait for each signal to reduce memory pressure.
             task_manager.wait([task_id])

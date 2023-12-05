@@ -90,7 +90,15 @@ from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..source import NoSource, SourceManifest
-from ..tasks import TaskFn, TaskStepId, TaskType, get_is_dask_worker, get_task_manager, progress
+from ..tasks import (
+  TaskExecutionType,
+  TaskFn,
+  TaskStepId,
+  TaskType,
+  get_is_dask_worker,
+  get_task_manager,
+  progress,
+)
 from ..utils import (
   DebugTimer,
   delete_file,
@@ -659,9 +667,10 @@ class DatasetDuckDB(Dataset):
     con = self.con.cursor()
 
     # Create a view for the work of the shard before anti-joining.
+    t_shard_table = f't_shard_{shard_id}'
     con.execute(
       f"""
-      CREATE OR REPLACE VIEW t_shard as (
+      CREATE OR REPLACE VIEW {t_shard_table} as (
         SELECT * FROM t
         ORDER BY {ROWID}
         LIMIT {shard_end_idx - shard_start_idx}
@@ -681,10 +690,11 @@ class DatasetDuckDB(Dataset):
         first_line = f.readline()
       use_jsonl_cache = True if first_line.strip() else False
 
+    t_cache_table = f't_cache_{shard_id}'
     if use_jsonl_cache:
       con.execute(
         f"""
-        CREATE OR REPLACE VIEW t_cache as (
+        CREATE OR REPLACE VIEW {t_cache_table} as (
           SELECT {ROWID} FROM read_json_auto(
             '{shard_cache_filepath}',
             IGNORE_ERRORS=true,
@@ -694,11 +704,11 @@ class DatasetDuckDB(Dataset):
       """
       )
 
-      anti_join = f'ANTI JOIN t_cache USING({ROWID})'
+      anti_join = f'ANTI JOIN {t_cache_table} USING({ROWID})'
 
     result = con.execute(
       f"""
-      SELECT {ROWID}, {select_sql} FROM t_shard
+      SELECT {ROWID}, {select_sql} FROM {t_shard_table}
       {anti_join}
     """
     )
@@ -2550,6 +2560,7 @@ class DatasetDuckDB(Dataset):
     combine_columns: bool = False,
     resolve_span: bool = False,
     num_jobs: int = 1,
+    execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
     is_tmp_output = output_column is None
 
@@ -2657,7 +2668,11 @@ class DatasetDuckDB(Dataset):
       jsonl_cache_filepaths.append(jsonl_cache_filepath)
 
     # Execute all the subtasks in parallel.
-    get_task_manager().execute_sharded(task_id, subtasks)
+    get_task_manager().execute_sharded(
+      task_id,
+      type=execution_type,
+      subtasks=subtasks,
+    )
     # Wait for the tasks to finish before reading the outputs.
     get_task_manager().wait([task_id])
 
@@ -2676,10 +2691,15 @@ class DatasetDuckDB(Dataset):
 
     map_field_root = map_schema.get_field(output_path)
 
+    map_source: str = ''
+    try:
+      map_source = inspect.getsource(map_fn)
+    except Exception:
+      pass
     map_field_root.map = MapInfo(
       fn_name=map_fn.__name__,
       input_path=input_path,
-      fn_source=inspect.getsource(map_fn),
+      fn_source=map_source,
       date_created=datetime.now(),
     )
 
@@ -2789,6 +2809,7 @@ class DatasetDuckDB(Dataset):
     )
     get_task_manager().execute(
       task_id,
+      'processes',
       self._map_worker,
       transform_fn,
       output_path,

@@ -58,7 +58,7 @@ from ..signal import (
 )
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
-from ..tasks import TaskStepId
+from ..tasks import TaskExecutionType, TaskStepId
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 TOO_MANY_DISTINCT = 1_000_000
@@ -623,6 +623,7 @@ class Dataset(abc.ABC):
     combine_columns: bool = False,
     resolve_span: bool = False,
     num_jobs: int = 1,
+    execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
     """Maps a function over all rows in the dataset and writes the result to a new column.
 
@@ -645,8 +646,11 @@ class Dataset(abc.ABC):
         fields.
       resolve_span: Whether to resolve the spans into text before calling the map function.
       num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
-        jobs will correspond to the number of processors.. If `num_jobs` is greater than the number
+        jobs will correspond to the number of processors. If `num_jobs` is greater than the number
         of processors, it split the work into `num_jobs` and distribute amongst processors.
+      execution_type: The local execution type of the map. Either "threads" or "processes". Threads
+        are better for network bound tasks like making requests to an external server, while
+        processes are better for CPU bound tasks, like running a local LLM.
 
     Returns:
       An iterable of items that are the result of map. The result item does not have the column name
