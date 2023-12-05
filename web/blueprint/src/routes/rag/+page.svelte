@@ -209,7 +209,7 @@
                   <div class="w-8"><SkeletonText /></div>
                 {:else if numInputTokens != null}
                   <div class="text-right">
-                    {numInputTokens}
+                    {numInputTokens.toLocaleString()}
                   </div>
                 {:else}
                   <div class="text-right italic">None</div>
@@ -221,7 +221,7 @@
                   <div class="w-8"><SkeletonText /></div>
                 {:else if numOutputTokens != null}
                   <div class="text-right">
-                    {numOutputTokens}
+                    {numOutputTokens.toLocaleString()}
                   </div>
                 {:else}
                   <div class="text-right italic">None</div>
