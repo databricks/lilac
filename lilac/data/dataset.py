@@ -648,7 +648,9 @@ class Dataset(abc.ABC):
       num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
         jobs will correspond to the number of processors. If `num_jobs` is greater than the number
         of processors, it split the work into `num_jobs` and distribute amongst processors.
-      execution_type: The local execution type of the map. Either "threads" or "processes".
+      execution_type: The local execution type of the map. Either "threads" or "processes". Threads
+        are better for network bound tasks like making requests to an external server, while
+        processes are better for CPU bound tasks, like running a local LLM.
 
     Returns:
       An iterable of items that are the result of map. The result item does not have the column name
