@@ -245,7 +245,7 @@ class TaskManager:
         future.result()
 
     for future in dask_futures:
-      if future.status == 'error':
+      if isinstance(future, DaskFuture) and future.status == 'error':
         task_error = future.exception()
         if asyncio.iscoroutine(task_error):
           task_error = asyncio.get_event_loop().run_until_complete(task_error)

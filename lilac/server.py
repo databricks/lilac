@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
   yield
 
   # Clean up the ML models and release the resources
-  await get_task_manager().stop()
+  get_task_manager().stop()
 
 
 app = FastAPI(
