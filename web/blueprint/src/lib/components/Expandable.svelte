@@ -15,7 +15,5 @@
       {/if}
     </div>
   </button>
-  {#if expanded}
-    <div class="p-4"><slot name="below" /></div>
-  {/if}
+  <div class="p-4" class:hidden={!expanded}><slot name="below" /></div>
 </div>
