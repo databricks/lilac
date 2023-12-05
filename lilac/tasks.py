@@ -500,9 +500,8 @@ def progress(
   it_idx = initial_id if initial_id else 0
   start_time = time.time()
   last_emit = time.time() - emit_every_s
-  print()
   with tqdm(
-    it, initial=it_idx, desc=step_description, total=estimated_len, position=shard_id, leave=False
+    it, initial=it_idx, desc=step_description, total=estimated_len, position=shard_id, leave=True
   ) as tq:
     for t in tq:
       cur_time = time.time()
@@ -520,7 +519,6 @@ def progress(
         last_emit = cur_time
       yield t
       it_idx += 1
-      tq.reset()
 
   total_time = time.time() - start_time
   set_worker_task_progress(

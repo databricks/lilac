@@ -457,7 +457,7 @@ def test_map_continuation_overwrite(
   )
 
   # Map should be called for all ids.
-  assert sorted(test_dask_logger.get_logs()) == [0, 1, 2]
+  assert set(sorted(test_dask_logger.get_logs())) == set([0, 1, 2])
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,

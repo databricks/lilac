@@ -2624,7 +2624,6 @@ class DatasetDuckDB(Dataset):
 
       jsonl_cache_filepaths.append(jsonl_cache_filepath)
 
-    print('executing....', execution_type)
     # Execute all the subtasks in parallel.
     get_task_manager().execute_sharded(
       task_id,
