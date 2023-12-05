@@ -56,6 +56,17 @@ export function createUrlHashStore(navStore: Writable<NavigationState>) {
 
   return {
     subscribe,
+    gotoPageIdentifier(page: AppPage, identifier: string) {
+      update(state => {
+        state.page = page;
+        state.identifier = identifier;
+        state.hashState = null;
+        lastStoreIdentifier = identifier;
+
+        pushCombinedState();
+        return state;
+      });
+    },
     setHash(page: AppPage, hash: string) {
       update(state => {
         const [identifier, ...hashStateValues] = hash.slice(1).split('&');

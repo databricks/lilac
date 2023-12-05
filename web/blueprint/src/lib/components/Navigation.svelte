@@ -6,8 +6,8 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {querySignals} from '$lib/queries/signalQueries';
   import {getNavigationContext} from '$lib/stores/navigationStore';
-  import {getUrlHashContext} from '$lib/stores/urlHashStore';
-  import {conceptLink, signalLink} from '$lib/utils';
+  import {getUrlHashContext, type AppPage} from '$lib/stores/urlHashStore';
+  import {conceptLink} from '$lib/utils';
   import {getTaggedConcepts, getTaggedDatasets} from '$lib/view_utils';
   import {AddAlt, DataVis_3, Settings, SidePanelClose} from 'carbon-icons-svelte';
   import NavigationCategory from './NavigationCategory.svelte';
@@ -73,7 +73,8 @@
           group: 'lilac',
           items: (sortedSignals || []).map(s => ({
             name: s.name,
-            link: signalLink(s.name),
+            page: 'signals' as AppPage,
+            identifier: s.name,
             isSelected: $urlHashContext.page === 'signals' && $urlHashContext.identifier === s.name,
             item: s
           }))
