@@ -1,12 +1,12 @@
 """Manage FastAPI background tasks."""
 
 import asyncio
-import builtins
 import functools
 import multiprocessing
 import time
 import traceback
 import uuid
+from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timedelta
 from enum import Enum
 from types import TracebackType
@@ -28,7 +28,8 @@ import dask
 import nest_asyncio
 from dask import config as cfg
 from dask.distributed import Client
-from distributed import Future, get_client, get_worker, wait
+from distributed import Future as DaskFuture
+from distributed import get_client, get_worker, wait
 from pydantic import BaseModel, TypeAdapter
 from tqdm import tqdm
 
@@ -37,9 +38,9 @@ from .utils import log, pretty_timedelta
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jupyter notebook.
 # https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
-if hasattr(builtins, '__IPYTHON__'):
-  # Check if in an iPython environment, then apply nest_asyncio.
-  nest_asyncio.apply()
+# if hasattr(builtins, '__IPYTHON__'):
+# Check if in an iPython environment, then apply nest_asyncio.
+nest_asyncio.apply()
 
 # Disable the heartbeats of the dask workers to avoid dying after computer goes to sleep.
 cfg.set({'distributed.scheduler.worker-ttl': None})
@@ -81,6 +82,9 @@ class TaskStepInfo(BaseModel):
   shard_progresses: list[tuple[int, tuple[int, int]]] = []
 
 
+TaskExecutionType = Literal['processes', 'threads']
+
+
 class TaskInfo(BaseModel):
   """Metadata about a task."""
 
@@ -115,10 +119,16 @@ class TaskManager:
   """Manage FastAPI background tasks."""
 
   _tasks: dict[str, TaskInfo] = {}
-  # Maps task_ids to their futures.
-  _futures: dict[str, Union[Future, list[Future]]] = {}
+
+  # Maps task_ids to their dask futures.
+  _dask_futures: dict[str, list[DaskFuture]] = {}
+  # Maps thread task_ids to their futures.
+  _thread_futures: dict[str, list[Future]] = {}
+
   # Maps a task_id to the count of shard completions.
   _task_shard_completions: dict[str, int] = {}
+
+  _task_threadpools: dict[str, ThreadPoolExecutor] = {}
 
   def __init__(self, dask_client: Optional[Client] = None) -> None:
     """By default, use a dask multi-processing client.
@@ -143,10 +153,6 @@ class TaskManager:
       processes=True,
       # n_workers=self.n_workers,
     )
-    # self._dask_thread_client = dask_thread_client or Client(
-    #   processes=False,
-    #   asynchronous=False,
-    # )
 
   async def _update_tasks(self) -> None:
     adapter = TypeAdapter(list[TaskStepInfo])
@@ -214,22 +220,31 @@ class TaskManager:
 
   def wait(self, task_ids: Optional[list[str]] = None) -> None:
     """Wait until all tasks are completed."""
-    futures: list[Future] = []
+    dask_futures: list[DaskFuture] = []
+    thread_futures: list[Future] = []
     if task_ids is None:
-      task_ids = list(self._futures.keys())
+      task_ids = list(self._dask_futures.keys())
     for task_id in task_ids:
-      task_futures = self._futures[task_id]
-      if isinstance(task_futures, list):
-        futures.extend(task_futures)
-      else:
-        futures.append(task_futures)
+      # task_id isn't in dask_futures when it's a thread task.
+      if task_id in self._dask_futures:
+        task_futures = self._dask_futures[task_id]
+        dask_futures.extend(task_futures)
 
-    if futures:
-      wait_result = wait(futures)
+      if task_id in self._thread_futures:
+        task_futures = self._thread_futures[task_id]
+        thread_futures.extend(task_futures)
+
+    # Wait for all dask futures.
+    if dask_futures:
+      wait_result = wait(dask_futures)
       if asyncio.iscoroutine(wait_result):
         asyncio.get_event_loop().run_until_complete(wait_result)
+    # Wait for all thread futures.
+    if thread_futures:
+      for future in thread_futures:
+        future.result()
 
-    for future in futures:
+    for future in dask_futures:
       if future.status == 'error':
         task_error = future.exception()
         if asyncio.iscoroutine(task_error):
@@ -254,7 +269,9 @@ class TaskManager:
     )
     return task_id
 
-  def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:
+  def _set_task_completed(
+    self, task_id: TaskId, task_future: Union[DaskFuture, Future], type: TaskExecutionType
+  ) -> None:
     end_timestamp = datetime.now().isoformat()
     self._tasks[task_id].end_timestamp = end_timestamp
 
@@ -263,7 +280,7 @@ class TaskManager:
     )
     elapsed_formatted = pretty_timedelta(elapsed)
 
-    if task_future.status == 'error':
+    if isinstance(task_future, DaskFuture) and task_future.status == 'error':
       self._tasks[task_id].status = TaskStatus.ERROR
       e = cast(Exception, task_future.exception())
       tb = traceback.format_tb(cast(TracebackType, task_future.traceback()))
@@ -279,74 +296,108 @@ class TaskManager:
       self._tasks[task_id].progress = 1.0
       self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
 
-    log(
-      f'Task {task_future.status} "{task_id}": "{self._tasks[task_id].name}" in '
-      f'{elapsed_formatted}.'
-    )
+      if type == 'threads':
+        # Close the threadpool.'
+        try:
+          self._task_threadpools[task_id].shutdown(wait=True)
+        except Exception as e:
+          log(f'Warning: could not shutdown threadpool: {e}')
+
+    status = task_future.status if isinstance(task_future, DaskFuture) else 'completed'
+    log(f'Task {status} "{task_id}": "{self._tasks[task_id].name}" in ' f'{elapsed_formatted}.')
 
   def _set_task_shard_completed(
-    self, task_id: TaskId, task_future: Future, num_shards: int
+    self,
+    task_id: TaskId,
+    task_future: Union[DaskFuture, Future],
+    num_shards: int,
+    type: TaskExecutionType,
   ) -> None:
     # Increment task_shard_competions. When the num_shards is reached, set the task as completed.
     self._task_shard_completions[task_id] = self._task_shard_completions.get(task_id, 0) + 1
 
     if self._task_shard_completions[task_id] == num_shards:
-      self._set_task_completed(task_id, task_future)
+      self._set_task_completed(task_id, task_future, type)
 
-  def execute(
-    self, task_id: str, type: Literal['processes', 'threads'], task: TaskFn, *args: Any
-  ) -> None:
+  def execute(self, task_id: str, type: TaskExecutionType, task: TaskFn, *args: Any) -> None:
     """Execute a task."""
-    log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
+    log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}" with type {type}.')
 
     task_info = self._tasks[task_id]
-    dask_task_id = _dask_task_id(task_id, None)
-    task_future = self._dask_client.submit(
-      functools.partial(_execute_task, task, task_info, dask_task_id),
-      *args,
-      key=dask_task_id,
-    )
-    task_future.add_done_callback(
-      lambda task_future: self._set_task_completed(task_id, task_future)
-    )
 
-    self._futures[task_id] = task_future
+    if type == 'processes':
+      dask_task_id = _dask_task_id(task_id, None)
+      task_future = self._dask_client.submit(
+        functools.partial(_execute_task, task, task_info, dask_task_id),
+        *args,
+        key=dask_task_id,
+      )
+      task_future.add_done_callback(
+        lambda task_future: self._set_task_completed(task_id, task_future, type)
+      )
+      self._dask_futures[task_id] = [task_future]
+    elif type == 'threads':
+      if task_id in self._task_threadpools:
+        raise ValueError(f'Task {task_id} already exists.')
+      self._task_threadpools[task_id] = ThreadPoolExecutor(max_workers=1)
+      task_future = self._task_threadpools[task_id].submit(task, *args)
+      task_future.add_done_callback(
+        lambda task_future: self._set_task_completed(task_id, task_future, type)
+      )
 
   def execute_sharded(
     self,
     task_id: str,
-    type: Literal['processes', 'threads'],
+    type: TaskExecutionType,
     subtasks: list[tuple[TaskFn, list[Any]]],
   ) -> None:
     """Execute a task in multiple shards."""
     log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
 
+    if task_id in self._task_threadpools:
+      raise ValueError(f'Task {task_id} already exists.')
+
     task_info = self._tasks[task_id]
-    futures: list[Future] = []
+    dask_futures: list[DaskFuture] = []
+    thread_futures: list[Future] = []
+
+    # Create the threadpool.
+    if type == 'threads':
+      self._task_threadpools[task_id] = ThreadPoolExecutor()
+
     for i, (task, args) in enumerate(subtasks):
-      dask_task_id = _dask_task_id(task_id, i)
+      if type == 'processes':
+        dask_task_id = _dask_task_id(task_id, i)
 
-      task_future = self._dask_client.submit(
-        functools.partial(_execute_task, task, task_info, dask_task_id), *args, key=dask_task_id
-      )
-      task_future.add_done_callback(
-        lambda task_future: self._set_task_shard_completed(
-          task_id, task_future, num_shards=len(subtasks)
+        task_future = self._dask_client.submit(
+          functools.partial(_execute_task, task, task_info, dask_task_id), *args, key=dask_task_id
         )
-      )
-      futures.append(task_future)
+        task_future.add_done_callback(
+          lambda task_future: self._set_task_shard_completed(
+            task_id, task_future, num_shards=len(subtasks), type=type
+          )
+        )
+        dask_futures.append(task_future)
+      elif type == 'threads':
+        task_future = self._task_threadpools[task_id].submit(task, *args)
+        task_future.add_done_callback(
+          lambda task_future: self._set_task_shard_completed(
+            task_id, task_future, num_shards=len(subtasks), type=type
+          )
+        )
+        thread_futures.append(task_future)
 
-    self._futures[task_id] = futures
+    if dask_futures:
+      self._dask_futures[task_id] = dask_futures
+    if thread_futures:
+      self._thread_futures[task_id] = thread_futures
 
   def stop(self) -> None:
     """Stop the task manager and close the dask client."""
-    process_shutdown = self._dask_client.shutdown()
-    if asyncio.iscoroutine(process_shutdown):
-      asyncio.get_event_loop().run_until_complete(process_shutdown)
-
-    # thread_shutdown = self._dask_thread_client.shutdown()
-    # if asyncio.iscoroutine(thread_shutdown):
-    #   asyncio.get_event_loop().run_until_complete(thread_shutdown)
+    if self._dask_client.scheduler:
+      process_shutdown = self._dask_client.shutdown()
+      if asyncio.iscoroutine(process_shutdown):
+        asyncio.get_event_loop().run_until_complete(process_shutdown)
 
   def get_num_workers(self) -> int:
     """Get the number of workers."""
@@ -481,16 +532,35 @@ def progress(
   )
 
 
+# These methods wrap the dask events so that we can use them in threads (global state) or in dask
+# using dask events.
+THREADED_EVENTS: dict[str, list[Any]] = {}
+
+
+def log_event(topic: str, message: dict[str, Any]) -> None:
+  """Logs an event to the dask scheduler."""
+  if get_is_dask_worker():
+    get_worker().log_event(topic, message)
+  else:
+    THREADED_EVENTS.setdefault(topic, []).append((datetime.now(), message))
+
+
+def get_events(topic: str) -> list[Any]:
+  """Gets the events for a topic."""
+  if get_is_dask_worker():
+    return cast(Any, get_client().get_events(topic))
+  else:
+    return THREADED_EVENTS.get(topic, [])
+
+
 def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
   """Sets up worker steps. Use to provide task step descriptions before they compute."""
-  get_worker().log_event(
-    _progress_event_topic(task_id), {STEPS_LOG_KEY: [step.model_dump() for step in steps]}
-  )
+  log_event(_progress_event_topic(task_id), {STEPS_LOG_KEY: [step.model_dump() for step in steps]})
 
 
 def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:
   """Gets the last worker steps."""
-  events = cast(Any, get_client().get_events(_progress_event_topic(task_id)))
+  events = get_events(_progress_event_topic(task_id))
   if not events or not events[-1]:
     return []
 

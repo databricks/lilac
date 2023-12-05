@@ -61,7 +61,7 @@ def _load(load_task_id: str) -> None:
   load(
     project_dir=get_project_dir(),
     overwrite=False,
-    task_manager=TaskManager(dask_process_client=get_client()),
+    task_manager=TaskManager(dask_client=get_client()),
     load_task_id=load_task_id,
   )
 
