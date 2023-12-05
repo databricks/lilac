@@ -2649,10 +2649,15 @@ class DatasetDuckDB(Dataset):
 
     map_field_root = map_schema.get_field(output_path)
 
+    map_source: str = ''
+    try:
+      map_source = inspect.getsource(map_fn)
+    except Exception:
+      pass
     map_field_root.map = MapInfo(
       fn_name=map_fn.__name__,
       input_path=input_path,
-      fn_source=inspect.getsource(map_fn),
+      fn_source=map_source,
       date_created=datetime.now(),
     )
 

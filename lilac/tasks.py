@@ -146,13 +146,9 @@ class TaskManager:
     except RuntimeError as e:
       asynchronous = False
 
-    # self.n_workers = multiprocessing.cpu_count()
-    # total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
       asynchronous=asynchronous,
-      # memory_limit=f'{total_memory_gb} GB',
       processes=True,
-      # n_workers=self.n_workers,
     )
 
   async def _update_tasks(self) -> None:
@@ -297,15 +293,17 @@ class TaskManager:
       self._tasks[task_id].progress = 1.0
       self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
 
-      if type == 'threads':
-        # Close the threadpool.'
-        try:
-          self._task_threadpools[task_id].shutdown(wait=True)
-        except Exception as e:
-          log(f'Warning: could not shutdown threadpool: {e}')
+    if type == 'threads':
+      # Close the threadpool.'
+      for task_future in self._thread_futures[task_id]:
+        task_future.result()
+      self._task_threadpools[task_id].shutdown(wait=False)
+      del self._task_threadpools[task_id]
 
     status = task_future.status if isinstance(task_future, DaskFuture) else 'completed'
     log(f'Task {status} "{task_id}": "{self._tasks[task_id].name}" in ' f'{elapsed_formatted}.')
+
+    del self._dask_futures[task_id]
 
   def _set_task_shard_completed(
     self,
