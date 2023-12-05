@@ -113,6 +113,7 @@ from .dataset import (
   LIST_OPS,
   MAX_TEXT_LEN_DISTINCT_COUNT,
   MEDIA_AVG_TEXT_LEN,
+  RAW_SQL_OPS,
   SAMPLE_AVG_TEXT_LENGTH,
   STRING_OPS,
   TOO_MANY_DISTINCT,
@@ -288,10 +289,12 @@ class DuckDBQueryParams(BaseModel):
   Sharding limit/offsets should be handled by computing and setting the desired offsets/limits/sort.
   """
 
-  # Filters; this includes tag matching, regex searches, column filters, searches, inclusion lists.
+  # Filters encompass anything that goes into a WHERE clause.
   filters: Sequence[Filter] = []
+  # A column name to sort by.
   sort_by: Optional[str] = None
   sort_order: Optional[SortOrder] = SortOrder.ASC
+  # If offset is specified, a sort must also be specified for stable results.
   offset: Optional[int] = None
   limit: Optional[int] = None
 
@@ -1175,6 +1178,10 @@ class DatasetDuckDB(Dataset):
     for filter in filters:
       if filter.path[0] in col_aliases:
         # This is a filter on a column alias, which is always allowed.
+        continue
+
+      if filter.op in RAW_SQL_OPS:
+        # Assume that raw SQL is correct.
         continue
 
       current_field = Field(fields=manifest.data_schema.fields)
@@ -2363,7 +2370,7 @@ class DatasetDuckDB(Dataset):
   def _create_where(
     self,
     manifest: DatasetManifest,
-    filters: list[Filter],
+    filters: Sequence[Filter],
   ) -> list[str]:
     if not filters:
       return []
@@ -2371,6 +2378,9 @@ class DatasetDuckDB(Dataset):
 
     # Add filter where queries.
     for f in filters:
+      if f.op in RAW_SQL_OPS:
+        sql_filter_queries.append(f.path[0])
+        continue
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
       select_str = _select_sql(
         duckdb_path,
@@ -2491,27 +2501,24 @@ class DatasetDuckDB(Dataset):
     self,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
-  ) -> tuple[Sequence[Filter], Sequence[str]]:
+  ) -> Sequence[Filter]:
     exclude_labels = exclude_labels or []
     manifest = self.manifest()
 
     filters = []
-    filter_sql = []
 
     if include_labels:
       include_filters = [Filter(path=(label,), op='exists') for label in include_labels]
       include_labels_query = f"({' OR '.join(self._create_where(manifest, include_filters))})"
-      filter_sql.append(include_labels_query)
+      filters.append(Filter(path=(include_labels_query,), op='raw_sql'))
 
     for label in exclude_labels:
       filters.append(Filter(path=(label,), op='not_exists'))
-    return filters, filter_sql
+    return filters
 
   def _get_selection(
     self,
     columns: Optional[Sequence[ColumnId]] = None,
-    filters: Optional[Sequence[FilterLike]] = None,
-    filter_sql: Optional[Sequence[str]] = None,
   ) -> str:
     """Get the selection clause for download a dataset.
 
@@ -2522,16 +2529,6 @@ class DatasetDuckDB(Dataset):
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
     schema = manifest.data_schema
     self._validate_columns(cols, manifest.data_schema, schema)
-
-    filters = list(filters or [])
-
-    where_query = ''
-    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
-    filter_queries = self._create_where(manifest, filters)
-    if filter_sql:
-      filter_queries.extend(filter_sql)
-    if filter_queries:
-      where_query = f"WHERE {' AND '.join(filter_queries)}"
 
     select_queries: list[str] = []
     for column in cols:
@@ -2547,7 +2544,17 @@ class DatasetDuckDB(Dataset):
       sql = _select_sql(duckdb_path, flatten=False, unnest=False, path=column.path, schema=schema)
       select_queries.append(f'{sql} AS {escape_string_literal(col_name)}')
     selection = ', '.join(select_queries)
-    return f'SELECT {selection} FROM t {where_query}'
+    return f'SELECT {selection} FROM t'
+
+  def _compile_select_options(self, query_options: DuckDBQueryParams) -> str:
+    """Compiles SQL WHERE/ORDER BY/LIMIT clauses for select queries."""
+    manifest = self.manifest()
+    where_query = ''
+    filter_queries = self._create_where(manifest, query_options.filters)
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
+    return where_query
 
   @override
   def map(
@@ -2920,15 +2927,16 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
   ) -> None:
-    filters = list(filters or [])
-    extra_filters, filter_sql = self._compile_include_exclude_filters(
-      include_labels, exclude_labels
+    filters, _ = self._normalize_filters(
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
-    filters.extend(extra_filters)
-    selection = self._get_selection(columns, filters, filter_sql)
+    filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
     filepath = os.path.expanduser(filepath)
     self._execute(
-      f"COPY ({selection}) TO '{filepath}' " f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})"
+      f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' "
+      f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})"
     )
     log(f'Dataset exported to {filepath}')
 
@@ -2940,13 +2948,13 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
   ) -> pd.DataFrame:
-    filters = list(filters or [])
-    extra_filters, filter_sql = self._compile_include_exclude_filters(
-      include_labels, exclude_labels
+    filters, _ = self._normalize_filters(
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
-    filters.extend(extra_filters)
-    selection = self._get_selection(columns, filters, filter_sql)
-    return self._query_df(f'{selection}')
+    filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
+    return self._query_df(f'{select_from_clause} {options_clauses}')
 
   @override
   def to_csv(
@@ -2957,14 +2965,16 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
   ) -> None:
-    filters = list(filters or [])
-    extra_filters, filter_sql = self._compile_include_exclude_filters(
-      include_labels, exclude_labels
+    filters, _ = self._normalize_filters(
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
-    filters.extend(extra_filters)
-    selection = self._get_selection(columns, filters, filter_sql)
+    filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
     filepath = os.path.expanduser(filepath)
-    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT CSV, HEADER)")
+    self._execute(
+      f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT CSV, HEADER)"
+    )
     log(f'Dataset exported to {filepath}')
 
   @override
@@ -2976,14 +2986,14 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
   ) -> None:
-    filters = list(filters or [])
-    extra_filters, filter_sql = self._compile_include_exclude_filters(
-      include_labels, exclude_labels
+    filters, _ = self._normalize_filters(
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
-    filters.extend(extra_filters)
-    selection = self._get_selection(columns, filters, filter_sql)
+    filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
     filepath = os.path.expanduser(filepath)
-    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT PARQUET)")
+    self._execute(f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 
 
