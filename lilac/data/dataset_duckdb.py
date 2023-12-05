@@ -2509,7 +2509,6 @@ class DatasetDuckDB(Dataset):
   def _get_selection(
     self,
     columns: Optional[Sequence[ColumnId]] = None,
-    filters: Optional[Sequence[Filter]] = None,
   ) -> str:
     """Get the selection clause for download a dataset.
 
@@ -2520,13 +2519,6 @@ class DatasetDuckDB(Dataset):
     cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
     schema = manifest.data_schema
     self._validate_columns(cols, manifest.data_schema, schema)
-
-    filters = list(filters or [])
-
-    where_query = ''
-    filter_queries = self._create_where(manifest, filters)
-    if filter_queries:
-      where_query = f"WHERE {' AND '.join(filter_queries)}"
 
     select_queries: list[str] = []
     for column in cols:
@@ -2542,7 +2534,17 @@ class DatasetDuckDB(Dataset):
       sql = _select_sql(duckdb_path, flatten=False, unnest=False, path=column.path, schema=schema)
       select_queries.append(f'{sql} AS {escape_string_literal(col_name)}')
     selection = ', '.join(select_queries)
-    return f'SELECT {selection} FROM t {where_query}'
+    return f'SELECT {selection} FROM t'
+
+  def _compile_select_options(self, query_options: DuckDBQueryParams) -> str:
+    """Compiles SQL WHERE/ORDER BY/LIMIT clauses for select queries."""
+    manifest = self.manifest()
+    where_query = ''
+    filter_queries = self._create_where(manifest, query_options.filters)
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
+    return where_query
 
   @override
   def map(
@@ -2908,10 +2910,12 @@ class DatasetDuckDB(Dataset):
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    selection = self._get_selection(columns, filters)
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
     filepath = os.path.expanduser(filepath)
     self._execute(
-      f"COPY ({selection}) TO '{filepath}' " f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})"
+      f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' "
+      f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})"
     )
     log(f'Dataset exported to {filepath}')
 
@@ -2927,8 +2931,9 @@ class DatasetDuckDB(Dataset):
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    selection = self._get_selection(columns, filters)
-    return self._query_df(f'{selection}')
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
+    return self._query_df(f'{select_from_clause} {options_clauses}')
 
   @override
   def to_csv(
@@ -2943,9 +2948,12 @@ class DatasetDuckDB(Dataset):
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    selection = self._get_selection(columns, filters)
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
     filepath = os.path.expanduser(filepath)
-    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT CSV, HEADER)")
+    self._execute(
+      f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT CSV, HEADER)"
+    )
     log(f'Dataset exported to {filepath}')
 
   @override
@@ -2961,9 +2969,10 @@ class DatasetDuckDB(Dataset):
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    selection = self._get_selection(columns, filters)
+    select_from_clause = self._get_selection(columns)
+    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
     filepath = os.path.expanduser(filepath)
-    self._execute(f"COPY ({selection}) TO '{filepath}' (FORMAT PARQUET)")
+    self._execute(f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
 
 
