@@ -14,7 +14,7 @@ having more eyes on data ultimately leads to fundamental discoveries of how a mo
 giving the developer more control of their downstream AI product.
 
 In this blog post, we'll delve into the excellent
-[Glaive coding assistant](https://huggingface.co/datasets/glaiveai/glaive-code-assistant-v2) dataset
+[Glaive coding assistant](https://huggingface.co/datasets/glaiveai/glaive-code-assistant) dataset
 with the goal of fine-tuning a code assistant model. We'll modify the dataset so that code outputted
 by our AI product follows consistent formatting rules, and we'll visualize how the dataset has
 changed.
@@ -31,7 +31,7 @@ import lilac as ll
 config = ll.DatasetConfig(
  namespace='local',
  name='glaive',
- source=ll.HuggingFaceSource(dataset_name='glaiveai/glaive-code-assistant-v2'),
+ source=ll.HuggingFaceSource(dataset_name='glaiveai/glaive-code-assistant'),
 )
 dataset = ll.create_dataset(config)
 ```

@@ -22,53 +22,68 @@ few key differences:
 - When the computation is done, the Lilac UI will auto-refresh and we'll see the new column
   immediately.
 
-In the following example, we will add a prefix to each "question" field in the dataset.
+In the following example, we will add a prefix for each `question` value in the dataset.
 
 ```python
+import lilac as ll
+
+items = [{'question': 'A'}, {'question': 'B'}, {'question': 'C'}]
+dataset = ll.from_dicts('local', 'questions', items)
+
 def add_prefix(item):
   return 'Q: ' + item['question']
 
 dataset.map(add_prefix, output_column='question_prefixed')
+dataset.to_pandas()
+```
+
+```
+  question question_prefixed
+0        A              Q: A
+1        B              Q: B
+2        C              Q: C
 ```
 
 ### `input_path`
 
-For faster disk reads and simpler `map` function, we can provide `input_path='question'`, which will
-tell Lilac to only read the `question` field from disk and pass it to the `map` function.
+If we want to `map` over a single field, we can provide `input_path`. Let's tell Lilac to only read
+the `question` field and pass it to the `map` function:
 
 ```python
 def add_prefix(question):
   return 'Q: ' + question
 
-dataset.map(add_prefix, input_path='question', output_column='question_prefixed')
+dataset.map(add_prefix, input_path='question', output_column='question_prefixed2')
+dataset.to_pandas()
 ```
 
-`input_path` can be very useful when transforming an arbitrarily nested list, because Lilac can
-handle nested inputs and mimic the same nested structure in the output column.
+```
+  question question_prefixed question_prefixed2
+0        A              Q: A               Q: A
+1        B              Q: B               Q: B
+2        C              Q: C               Q: C
+```
+
+`input_path` is very useful when transforming an arbitrarily nested list, because Lilac can handle
+the nested input for us and mimic the same nested structure in the output column.
 
 Let's make a new dataset with a nested list of questions:
 
 ```python
-
 items = [
   {'questions': ['A', 'B']},
   {'questions': ['C']},
   {'questions': ['D', 'E']},
 ]
-config = ll.DatasetConfig(
-  namespace='local',
-  name='tutorial2',
-  source=ll.DictSource(items),
-)
-dataset = ll.create_dataset(config)
+dataset = ll.from_dicts('local', 'nested_questions', items)
 dataset.to_pandas()
 ```
 
 ```
-       questions.*
-0      [A, B]
-1         [C]
-2      [D, E]
+  questions
+0    [A, B]
+1       [C]
+2    [D, E]
 ```
 
 Let's do the map again, but this time we'll use `input_path=('questions', '*')` to tell Lilac to map
@@ -84,17 +99,76 @@ dataset.to_pandas()
 ```
 
 ```
-Scheduling task "51092ecf44a547c39b14d2d8e56a6faf": "[local/tutorial2][1 shards] map "add_prefix" to "questions_prefixed"".
-Wrote map output to ./datasets/local/tutorial2/questions_prefixed-00000-of-00001.parquet
-[Shard 0/1] map "add_prefix" to "('questions_prefixed',)": 100%|██████████| 3/3 [00:00<00:00, 1100.19it/s]
-
-       questions.*       questions_prefixed.*
-0      [A, B]            [Q: A, Q: B]
-1         [C]                  [Q: C]
-2      [D, E]            [Q: D, Q: E]
+  questions questions_prefixed
+0    [A, B]       [Q: A, Q: B]
+1       [C]             [Q: C]
+2    [D, E]       [Q: D, Q: E]
 ```
 
-We can see that the `questions_prefixed` column is a nested list, with the same structure as the
+We can see that the `questions_prefixed` column is a nested list, with the same nestedness as the
 `questions` column.
 
 ### Structured output
+
+Often our maps will output multiple values for a given item, e.g. when calling GPT to extract
+structure from a piece of text. If the output of the `map` function is a `dict`, Lilac will
+automatically unpack the `dict` and create nested columns under the `output_column`. This is useful
+when we want to output multiple values for a single input item. For example, we can use a `map`
+function to compute the length of each question, and whether it ends with a question mark:
+
+```python
+items = [
+  {'question': 'How are you today?'},
+  {'question': 'What kind of food'},
+  {'question': 'Are you sure?'},
+]
+dataset = ll.from_dicts('local', 'questions3', items)
+
+def enrich(question):
+  return {'length': len(question), 'ends_with_?': question[-1] == '?'}
+
+dataset.map(enrich, input_path='question', output_column='metadata')
+dataset.to_pandas()
+```
+
+```
+             question  metadata.length  metadata.ends_with_?
+0  How are you today?               18                  True
+1   What kind of food               17                 False
+2       Are you sure?               13                  True
+```
+
+If we start the Lilac web server via `ll.start_server()` and open the browser, we can see the new
+column statistics in the UI and filter by their values:
+
+<video loop muted autoplay controls src="../_static/dataset/filter_metadata.mp4"></video>
+
+### Annotations
+
+Often our map will extract relevant information that we want to associate with the input text. For
+example, when detecting company names, we want to know the location where each company name was
+found. We can do this by using [](#lilac.span) annotation.
+
+```python
+import re
+
+items = [
+  {'text': 'Company name: Apple Inc.\n Apple Inc is a ...'},
+  {'text': 'Google LLC is a ... Company name: Google LLC'},
+  {'text': 'There is no company name here'},
+]
+dataset = ll.from_dicts('local', 'company', items)
+
+def extract_company(text):
+  pattern = r'Company name: (.*)?\s'
+  matches = re.finditer(pattern, text)
+  return [ll.span(m.span(1)[0], m.span(1)[1]) for m in matches]
+
+
+dataset.map(extract_company, input_path='text', output_column='company')
+dataset.to_pandas()
+```
+
+Lilac will then highlight the spans in the UI when we filter by the `company` column:
+
+<video loop muted autoplay controls src="../_static/dataset/company_name_span.mp4"></video>

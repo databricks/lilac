@@ -22,6 +22,7 @@ from .env import get_project_dir
 from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .source import Source, SourceManifest
+from .sources.dict_source import DictSource
 from .tasks import TaskStepId, progress
 from .utils import get_dataset_output_dir, log, open_file
 
@@ -51,6 +52,18 @@ def create_dataset(
   process_source(project_dir, config)
 
   return get_dataset(config.namespace, config.name, project_dir)
+
+
+def from_dicts(
+  namespace: str, name: str, items: Iterable[Item], overwrite: bool = False
+) -> Dataset:
+  """Load a dataset from an iterable of python dictionaries."""
+  config = DatasetConfig(
+    namespace=namespace,
+    name=name,
+    source=DictSource(items),
+  )
+  return create_dataset(config, overwrite=overwrite)
 
 
 def process_source(
