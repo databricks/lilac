@@ -1,7 +1,7 @@
 """Computes RAG retrieval and response results."""
 
 
-from typing import Any, Sequence, Union
+from typing import Any, Optional, Sequence, Union
 
 from pydantic import BaseModel
 
@@ -139,14 +139,32 @@ Answer: \
 """
 
 
+class RagGenerationResult(BaseModel):
+  """The result of a rag generation."""
+
+  result: str
+  prompt: str
+  num_input_tokens: Optional[int]
+  num_output_tokens: Optional[int]
+
+
 def get_rag_generation(
   query: str,
   retrieval_results: list[RagRetrievalResultItem],
   prompt_template: str = DEFAULT_PROMPT_TEMPLATE,
-) -> str:
+) -> RagGenerationResult:
   """Get the response from RAG."""
   context = '\n'.join([result.text for result in retrieval_results])
   prompt = prompt_template.replace(QUERY_TEMPLATE_VAR, query).replace(CONTEXT_TEMPLATE_VAR, context)
-  return OpenAIChatCompletionGenerator(
+
+  text_generator = OpenAIChatCompletionGenerator(
     response_description='The answer to the question, given the context and query.'
-  ).generate(prompt)
+  )
+  result = text_generator.generate(prompt)
+
+  return RagGenerationResult(
+    result=result,
+    prompt=prompt,
+    num_input_tokens=text_generator.num_tokens(prompt),
+    num_output_tokens=text_generator.num_tokens(result),
+  )

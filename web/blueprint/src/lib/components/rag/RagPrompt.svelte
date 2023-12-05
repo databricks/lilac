@@ -12,7 +12,6 @@
     ModalHeader,
     TextArea
   } from 'carbon-components-svelte';
-  import {Edit} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
 
   // The question while the user is typing. When the user presses the search button, the rag store
@@ -60,13 +59,7 @@
 </script>
 
 <div class="flex h-full w-full flex-col overflow-y-scroll">
-  <div class="rag-section-header mb-4 flex w-full flex-row justify-between">
-    <div>Prompt</div>
-    <div class="h-4">
-      <button on:click={() => (promptTemplateModalOpen = true)}><Edit /></button>
-    </div>
-  </div>
-  <div class="h-96 overflow-y-scroll whitespace-break-spaces leading-6">
+  <div class="h-96 w-full overflow-y-scroll whitespace-break-spaces font-mono leading-6">
     {pendingPrompt}
   </div>
 </div>

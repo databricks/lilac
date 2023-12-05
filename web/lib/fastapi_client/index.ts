@@ -52,6 +52,7 @@ export type { MergeConceptDraftOptions } from './models/MergeConceptDraftOptions
 export type { MetadataSearch } from './models/MetadataSearch';
 export type { OverallScore } from './models/OverallScore';
 export type { RagGenerationOptions } from './models/RagGenerationOptions';
+export type { RagGenerationResult } from './models/RagGenerationResult';
 export type { RagRetrievalOptions } from './models/RagRetrievalOptions';
 export type { RagRetrievalResultItem } from './models/RagRetrievalResultItem';
 export type { RagRetrievalSpan } from './models/RagRetrievalSpan';

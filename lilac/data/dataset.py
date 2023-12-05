@@ -120,12 +120,12 @@ class MediaResult(BaseModel):
 
 
 BinaryOp = Literal['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal']
-StringOp = Literal['length_longer', 'length_shorter', 'regex_matches', 'not_regex_matches']
+StringOp = Literal['length_longer', 'length_shorter', 'ilike', 'regex_matches', 'not_regex_matches']
 UnaryOp = Literal['exists', 'not_exists', None]
 ListOp = Literal['in', None]
 
 BINARY_OPS = set(['equals', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal'])
-STRING_OPS = set(['length_longer', 'length_shorter', 'regex_matches', 'not_regex_matches'])
+STRING_OPS = set(['length_longer', 'length_shorter', 'ilike', 'regex_matches', 'not_regex_matches'])
 UNARY_OPS = set(['exists', 'not_exists'])
 LIST_OPS = set(['in'])
 

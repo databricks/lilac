@@ -124,7 +124,7 @@ button:disabled {
 
 /** Rag components */
 .rag-section-header {
-  @apply w-full border-b border-neutral-200 pb-4 font-medium;
+  @apply w-full pb-4 font-medium;
 }
 
 .header {

@@ -7,7 +7,12 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from .db_manager import get_dataset
-from .rag.rag import RagRetrievalResultItem, get_rag_generation, get_rag_retrieval
+from .rag.rag import (
+  RagGenerationResult,
+  RagRetrievalResultItem,
+  get_rag_generation,
+  get_rag_retrieval,
+)
 from .router_dataset import Column, Filter
 from .router_utils import RouteErrorHandler
 from .schema import Path
@@ -60,7 +65,7 @@ def retrieval(options: RagRetrievalOptions) -> list[RagRetrievalResultItem]:
 
 
 @router.post('/generate')
-def generate(options: RagGenerationOptions) -> str:
+def generate(options: RagGenerationOptions) -> RagGenerationResult:
   """Get the retrieval results for a prompt."""
   return get_rag_generation(
     query=options.query,

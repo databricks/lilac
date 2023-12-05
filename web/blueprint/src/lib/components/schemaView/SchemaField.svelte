@@ -191,7 +191,7 @@
         <span class="font-mono">{'{}'}</span>
       {/if}
     </div>
-    <div class="grow" use:hoverTooltip={{text: fieldHoverDetails || ''}}>
+    <div class="mr-2 grow" use:hoverTooltip={{text: fieldHoverDetails || ''}}>
       <button
         class="ml-2 w-full cursor-pointer truncate whitespace-nowrap text-left text-gray-900"
         class:cursor-default={!isExpandable}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import DatasetFieldEmbeddingSelector from '$lib/components/concepts/DatasetFieldEmbeddingSelector.svelte';
+  import Expandable from '$lib/components/Expandable.svelte';
   import Page from '$lib/components/Page.svelte';
   import RagPrompt from '$lib/components/rag/RagPrompt.svelte';
   import RagRetrieval from '$lib/components/rag/RagRetrieval.svelte';
@@ -76,6 +77,9 @@
 
   // Get the answer.
   let answer: string | null = null;
+  let numInputTokens: number | null = null;
+  let numOutputTokens: number | null = null;
+
   $: generationResult =
     questionInputText != null && promptTemplate != null && retrievalResults != null
       ? getRagGeneration({
@@ -91,7 +95,9 @@
       !$generationResult.isFetching &&
       !$generationResult.isStale
     ) {
-      answer = $generationResult.data;
+      answer = $generationResult.data.result;
+      numInputTokens = $generationResult.data.num_input_tokens;
+      numOutputTokens = $generationResult.data.num_output_tokens;
     }
   }
 
@@ -134,12 +140,20 @@
     {/if}
   </div>
 
-  <div class="h-full w-full overflow-x-hidden overflow-y-scroll">
-    <div class="mx-4 mb-8 mt-2 flex h-full w-full flex-col items-start gap-y-24 px-4">
-      <div class="mt-6 flex w-1/2 flex-col gap-y-10">
+  <div class="flex-grow overflow-y-scroll">
+    <div class="mx-4 mb-8 mt-8 flex flex-row gap-x-8 px-4">
+      <div class="flex h-fit w-1/2 flex-col gap-y-4 rounded-xl border border-gray-300">
+        <div class="relative overflow-x-auto rounded-t-xl">
+          <div class="w-full text-left text-sm text-gray-500 rtl:text-right">
+            <div class="bg-neutral-100 text-xs uppercase text-gray-700">
+              <div>
+                <div class="px-6 py-3">Question</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- Input question -->
-        <div class="flex flex-col gap-y-4">
-          <div class="font-medium">Question</div>
+        <div class="mx-6 mt-2 flex flex-col gap-y-4">
           <div class="question-input flex w-full flex-row items-end">
             <button
               class="z-10 -mr-10 mb-2"
@@ -160,10 +174,8 @@
             />
           </div>
         </div>
-        <div class="flex flex-col gap-y-4">
-          <div class="font-medium">Answer</div>
-
-          <div class="pt-4">
+        <div class="mx-6 mb-4 mt-4 flex flex-col gap-y-4">
+          <div>
             {#if $generationResult?.isFetching || retrievalIsFetching}
               <SkeletonText />
             {:else if answer != null}
@@ -172,25 +184,78 @@
               </div>
             {:else}
               <div class="whitespace-break-spaces font-light italic leading-5">
-                Press the search button to answer the question.
+                Press enter to answer the question.
               </div>
             {/if}
           </div>
         </div>
       </div>
-
-      <div class="flex w-full flex-row gap-x-8">
-        <div class="w-1/2">
-          <RagRetrieval bind:retrievalResults bind:isFetching={retrievalIsFetching} />
+      <div class="flex w-1/2 flex-col gap-y-4 rounded-xl border border-gray-300">
+        <div>
+          <div class="relative overflow-x-auto rounded-t-xl">
+            <div class="w-full text-left text-sm text-gray-500 rtl:text-right">
+              <div class="bg-gray-100 text-xs uppercase text-gray-700">
+                <div>
+                  <div class="px-6 py-3">Editor</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative w-full overflow-x-auto rounded-xl">
+            <div class="mt-4 flex flex-col gap-y-2 text-left text-sm text-gray-500 rtl:text-right">
+              <div class="flex flex-row bg-white">
+                <div class="w-48 px-6 text-gray-900 backdrop:whitespace-nowrap">Input tokens</div>
+                {#if $generationResult?.isFetching || retrievalIsFetching}
+                  <div class="w-8"><SkeletonText /></div>
+                {:else if numInputTokens != null}
+                  <div class="text-right">
+                    {numInputTokens.toLocaleString()}
+                  </div>
+                {:else}
+                  <div class="text-right italic">None</div>
+                {/if}
+              </div>
+              <div class="flex flex-row bg-white">
+                <div class="w-48 whitespace-nowrap px-6 text-gray-900">Output tokens</div>
+                {#if $generationResult?.isFetching || retrievalIsFetching}
+                  <div class="w-8"><SkeletonText /></div>
+                {:else if numOutputTokens != null}
+                  <div class="text-right">
+                    {numOutputTokens.toLocaleString()}
+                  </div>
+                {:else}
+                  <div class="text-right italic">None</div>
+                {/if}
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="w-1/2">
-          <RagPrompt
-            {questionInputText}
-            {retrievalResults}
-            on:promptTemplate={e => {
-              promptTemplate = e.detail;
-            }}
-          />
+        <div class="mx-4 mb-4 flex flex-col gap-y-4">
+          <Expandable expanded on:results>
+            <div slot="above" class="flex flex-row gap-x-12">
+              <div class="font-medium">Retrieval</div>
+            </div>
+            <div slot="below">
+              <RagRetrieval
+                on:results={e => (retrievalResults = e.detail)}
+                bind:isFetching={retrievalIsFetching}
+              />
+            </div>
+          </Expandable>
+          <Expandable>
+            <div slot="above" class="flex flex-row gap-x-12">
+              <div class="font-medium">Generation</div>
+            </div>
+            <div slot="below">
+              <RagPrompt
+                {questionInputText}
+                {retrievalResults}
+                on:promptTemplate={e => {
+                  promptTemplate = e.detail;
+                }}
+              />
+            </div>
+          </Expandable>
         </div>
       </div>
     </div>
