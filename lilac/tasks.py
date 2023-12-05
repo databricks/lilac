@@ -155,6 +155,9 @@ class TaskManager:
     adapter = TypeAdapter(list[TaskStepInfo])
     for task_id, task in list(self._tasks.items()):
       if task.status == TaskStatus.COMPLETED:
+        if task_id in self._task_threadpools:
+          self._task_threadpools[task_id].shutdown()
+          del self._task_threadpools[task_id]
         continue
 
       try:
@@ -292,13 +295,6 @@ class TaskManager:
       self._tasks[task_id].status = TaskStatus.COMPLETED
       self._tasks[task_id].progress = 1.0
       self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
-
-    if type == 'threads':
-      # Close the threadpool.'
-      for task_future in self._thread_futures[task_id]:
-        task_future.result()
-      self._task_threadpools[task_id].shutdown(wait=False)
-      del self._task_threadpools[task_id]
 
     status = task_future.status if isinstance(task_future, DaskFuture) else 'completed'
     log(f'Task {status} "{task_id}": "{self._tasks[task_id].name}" in ' f'{elapsed_formatted}.')
@@ -504,7 +500,10 @@ def progress(
   it_idx = initial_id if initial_id else 0
   start_time = time.time()
   last_emit = time.time() - emit_every_s
-  with tqdm(it, initial=it_idx, desc=step_description, total=estimated_len) as tq:
+  print()
+  with tqdm(
+    it, initial=it_idx, desc=step_description, total=estimated_len, position=shard_id, leave=False
+  ) as tq:
     for t in tq:
       cur_time = time.time()
       if estimated_len and cur_time - last_emit > emit_every_s:
@@ -521,6 +520,7 @@ def progress(
         last_emit = cur_time
       yield t
       it_idx += 1
+      tq.reset()
 
   total_time = time.time() - start_time
   set_worker_task_progress(
