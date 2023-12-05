@@ -27,6 +27,7 @@ from typing import (
 
 import dask
 import nest_asyncio
+import psutil
 from dask import config as cfg
 from dask.distributed import Client
 from distributed import Future as DaskFuture
@@ -146,8 +147,12 @@ class TaskManager:
     except RuntimeError as e:
       asynchronous = False
 
+    self.n_workers = multiprocessing.cpu_count()
+    total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
       asynchronous=asynchronous,
+      memory_limit=f'{total_memory_gb} GB',
+      n_workers=self.n_workers,
       processes=True,
     )
 
