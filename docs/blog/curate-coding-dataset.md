@@ -1,4 +1,4 @@
-# Using Lilac to curate a coding dataset
+# Curate a coding dataset with Lilac
 
 Dec 2, 2023
 

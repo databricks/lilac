@@ -7,22 +7,19 @@ For a real world example, see the blog post on [](../blog/curate-coding-dataset.
 
 ## `Dataset.map`
 
-[`Dataset.map`](#Dataset.map) is the main vehicle of doing processing and updating the dataset. It's
-similar to [HuggingFace's Dataset.map()](https://huggingface.co/docs/datasets/process#map) with a
-few key differences:
+[`Dataset.map`](#Dataset.map) is the main vehicle for processing data in Lilac. It's similar to
+[HuggingFace's Dataset.map()](https://huggingface.co/docs/datasets/process#map) with a few key
+differences:
 
-- The output of Lilac's `Dataset.map` is a new column attached to the existing dataset. This enables
+- The output of Lilac's `Dataset.map` is written to a new column in the _same_ dataset. This enables
   tracking of lineage information for every computed column, while avoiding copying the entire
-  dataset over.
+  dataset.
 - If the map fails mid-way (e.g. with an exception, or your computer dies), you can resume
   computation without losing any intermediate results. This is important when the `map` function is
   expensive or slow (e.g. calling GPT to edit data, or calling an expensive embedding model).
-- The map must return a single item or `None`, for each input item. This allows us to track how each
-  item is transformed.
-- When the computation is done, the Lilac UI will auto-refresh and we'll see the new column
-  immediately.
+- When the computation is done, the Lilac UI will auto-refresh, and we can filter by the new column.
 
-In the following example, we will add a prefix for each `question` value in the dataset.
+Let's start with a simple example where we add a `Q: ` prefix to each `question` in the dataset.
 
 ```python
 import lilac as ll
@@ -47,7 +44,8 @@ dataset.to_pandas()
 ### `input_path`
 
 If we want to `map` over a single field, we can provide `input_path`. Let's tell Lilac to only read
-the `question` field and pass it to the `map` function:
+the `question` field. The map will no longer see the entire row, but just a single value from the
+field we care about:
 
 ```python
 def add_prefix(question):
@@ -64,8 +62,11 @@ dataset.to_pandas()
 2        C              Q: C               Q: C
 ```
 
-`input_path` is very useful when transforming an arbitrarily nested list, because Lilac can handle
-the nested input for us and mimic the same nested structure in the output column.
+`input_path` is very useful for:
+
+- keeping the `map` code reusable, by decoupling the processing logic from the input schema.
+- transforming an arbitrarily nested list, because Lilac can handle the nested input for us and
+  mimic the same nested structure in the output column.
 
 Let's make a new dataset with a nested list of questions:
 
