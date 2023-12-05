@@ -70,26 +70,18 @@ def setup_teardown() -> Iterable[None]:
   dask_client.shutdown()
 
 
-JOBS_TYPE_PARAM = [
-  (-1, 'threads'),
-  (-1, 'processes'),
-  (1, 'threads'),
-  (1, 'processes'),
-  (2, 'threads'),
-  (2, 'processes'),
-]
-
-
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
-def test_map(params: tuple[int, tasks.TaskExecutionType], make_test_data: TestDataMaker) -> None:
-  num_jobs, type = params
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+def test_map(
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
+) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   def _map_fn(item: Item) -> Item:
     return item['text'].upper()
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=type)
+  dataset.map(_map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -124,12 +116,11 @@ def test_map(params: tuple[int, tasks.TaskExecutionType], make_test_data: TestDa
   ]
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
 def test_map_signal(
-  params: tuple[int, tasks.TaskExecutionType], make_test_data: TestDataMaker
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
-  num_jobs, type = params
-
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   signal = TestFirstCharSignal()
@@ -139,7 +130,9 @@ def test_map_signal(
     return {'result': f'{item["text.test_signal.firstchar"]}_{len(item["text"])}'}
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_column='output_text', num_jobs=num_jobs, execution_type=type)
+  dataset.map(
+    _map_fn, output_column='output_text', num_jobs=num_jobs, execution_type=execution_type
+  )
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -185,7 +178,12 @@ def test_map_signal(
   ]
 
 
-def test_map_job_id(make_test_data: TestDataMaker, test_dask_logger: TestDaskLogger) -> None:
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+def test_map_job_id(
+  execution_type: tasks.TaskExecutionType,
+  make_test_data: TestDataMaker,
+  test_dask_logger: TestDaskLogger,
+) -> None:
   dataset = make_test_data(
     [
       {'text': 'a sentence'},
@@ -200,17 +198,16 @@ def test_map_job_id(make_test_data: TestDataMaker, test_dask_logger: TestDaskLog
     test_dask_logger.log_event(job_id)
     return {}
 
-  dataset.map(_map_fn, output_column='map_id', num_jobs=3)
+  dataset.map(_map_fn, output_column='map_id', num_jobs=3, execution_type=execution_type)
 
   assert set(test_dask_logger.get_logs()) == set([0, 1, 2])
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
 def test_map_input_path(
-  params: tuple[int, tasks.TaskExecutionType], make_test_data: TestDataMaker
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
-  num_jobs, type = params
-
   dataset = make_test_data(
     [
       {'id': 0, 'text': 'a'},
@@ -224,7 +221,11 @@ def test_map_input_path(
 
   # Write the output to a new column.
   dataset.map(
-    _upper, input_path='text', output_column='text_upper', num_jobs=num_jobs, execution_type=type
+    _upper,
+    input_path='text',
+    output_column='text_upper',
+    num_jobs=num_jobs,
+    execution_type=execution_type,
   )
 
   # The schema should not reflect the output of the map as it didn't finish.
@@ -258,14 +259,11 @@ def test_map_input_path(
   ]
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
 def test_map_input_path_nested(
-  params: tuple[int, tasks.TaskExecutionType],
-  make_test_data: TestDataMaker,
-  test_dask_logger: TestDaskLogger,
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
-  num_jobs, type = params
-
   dataset = make_test_data(
     [
       {'id': 0, 'texts': [{'value': 'a'}]},
@@ -282,7 +280,7 @@ def test_map_input_path_nested(
     input_path=('texts', PATH_WILDCARD, 'value'),
     output_column='texts_upper',
     num_jobs=num_jobs,
-    execution_type=type,
+    execution_type=execution_type,
   )
 
   # The schema should not reflect the output of the map as it didn't finish.
@@ -332,14 +330,14 @@ def test_map_input_path_nonleaf_throws(make_test_data: TestDataMaker) -> None:
     dataset.map(_upper, input_path='text', output_column='text_upper')
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
 def test_map_continuation(
-  params: tuple[int, tasks.TaskExecutionType],
+  num_jobs: int,
+  execution_type: tasks.TaskExecutionType,
   make_test_data: TestDataMaker,
   test_dask_logger: TestDaskLogger,
 ) -> None:
-  num_jobs, type = params
-
   dataset = make_test_data(
     [
       {'id': 0, 'text': 'a sentence'},
@@ -364,7 +362,7 @@ def test_map_continuation(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=type)
+    dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
   # The schema should not reflect the output of the map as it didn't finish.
   assert dataset.manifest() == DatasetManifest(
@@ -384,7 +382,7 @@ def test_map_continuation(
 
   test_dask_logger.clear_logs()
 
-  dataset.map(_map_fn_2, output_column='map_id', num_jobs=num_jobs, execution_type=type)
+  dataset.map(_map_fn_2, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
   # The row_id=1 should be called for the continuation.
   assert 1 in test_dask_logger.get_logs()
@@ -416,14 +414,14 @@ def test_map_continuation(
   ]
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
 def test_map_continuation_overwrite(
-  params: tuple[int, tasks.TaskExecutionType],
+  num_jobs: int,
+  execution_type: tasks.TaskExecutionType,
   make_test_data: TestDataMaker,
   test_dask_logger: TestDaskLogger,
 ) -> None:
-  num_jobs, type = params
-
   dataset = make_test_data(
     [
       {'id': 0, 'text': 'a sentence'},
@@ -448,12 +446,16 @@ def test_map_continuation_overwrite(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=type)
+    dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
   test_dask_logger.clear_logs()
 
   dataset.map(
-    _map_fn_2, output_column='map_id', overwrite=True, num_jobs=num_jobs, execution_type=type
+    _map_fn_2,
+    output_column='map_id',
+    overwrite=True,
+    num_jobs=num_jobs,
+    execution_type=execution_type,
   )
 
   # Map should be called for all ids.
@@ -486,12 +488,11 @@ def test_map_continuation_overwrite(
   ]
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
 def test_map_overwrite(
-  params: tuple[int, tasks.TaskExecutionType], make_test_data: TestDataMaker
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
-  num_jobs, type = params
-
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}])
 
   prefix = '0'
@@ -501,17 +502,19 @@ def test_map_overwrite(
     return prefix + item['text']
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_column='map_text', num_jobs=num_jobs, execution_type=type)
+  dataset.map(_map_fn, output_column='map_text', num_jobs=num_jobs, execution_type=execution_type)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [{'text': 'a', 'map_text': '0a'}, {'text': 'b', 'map_text': '0b'}]
 
   with pytest.raises(ValueError, match=' which already exists in the dataset'):
-    dataset.map(_map_fn, output_column='map_text', combine_columns=False, execution_type=type)
+    dataset.map(
+      _map_fn, output_column='map_text', combine_columns=False, execution_type=execution_type
+    )
 
   prefix = '1'
   # Overwrite the output
-  dataset.map(_map_fn, output_column='map_text', overwrite=True, execution_type=type)
+  dataset.map(_map_fn, output_column='map_text', overwrite=True, execution_type=execution_type)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -552,13 +555,17 @@ def test_map_overwrite(
   )
 
 
-def test_map_no_output_col(make_test_data: TestDataMaker) -> None:
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+def test_map_no_output_col(
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
+) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   def _map_fn(item: Item) -> Item:
     return item['text'].upper()
 
-  map_output = dataset.map(_map_fn)
+  map_output = dataset.map(_map_fn, num_jobs=num_jobs, execution_type=execution_type)
 
   assert list(map_output) == [
     'A SENTENCE',
@@ -847,12 +854,7 @@ def test_map_span(make_test_data: TestDataMaker) -> None:
   ]
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
-def test_map_ergonomics(
-  params: tuple[int, tasks.TaskExecutionType], make_test_data: TestDataMaker
-) -> None:
-  num_jobs, type = params
-
+def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   def _job_fn_kw(item: Item, job_id: int) -> Item:
@@ -870,10 +872,10 @@ def test_map_ergonomics(
     return x['text'] + ' map'
 
   # Write the output to a new column.
-  dataset.map(_job_fn_kw, output_column='_job_fn_kw', num_jobs=num_jobs, execution_type=type)
-  dataset.map(_fn_kw, output_column='_fn_kw', num_jobs=num_jobs, execution_type=type)
-  dataset.map(_job_fn, output_column='_job_fn', num_jobs=num_jobs, execution_type=type)
-  dataset.map(_fn, output_column='_fn', num_jobs=num_jobs, execution_type=type)
+  dataset.map(_job_fn_kw, output_column='_job_fn_kw')
+  dataset.map(_fn_kw, output_column='_fn_kw')
+  dataset.map(_job_fn, output_column='_job_fn')
+  dataset.map(_fn, output_column='_fn')
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -932,12 +934,7 @@ def test_map_ergonomics(
   ]
 
 
-@pytest.mark.parametrize('params', JOBS_TYPE_PARAM)
-def test_map_ergonomics_invalid_args(
-  params: tuple[int, tasks.TaskExecutionType], make_test_data: TestDataMaker
-) -> None:
-  num_jobs, type = params
-
+def test_map_ergonomics_invalid_args(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   def _map_noargs() -> None:
@@ -947,11 +944,9 @@ def test_map_ergonomics_invalid_args(
     pass
 
   with pytest.raises(ValueError, match=re.escape('Invalid map function')):
-    dataset.map(_map_noargs, output_column='_map_noargs', num_jobs=num_jobs, execution_type=type)
+    dataset.map(_map_noargs, output_column='_map_noargs')
   with pytest.raises(ValueError, match=re.escape('Invalid map function')):
-    dataset.map(
-      _map_toomany_args, output_column='_map_toomany_args', num_jobs=num_jobs, execution_type=type
-    )
+    dataset.map(_map_toomany_args, output_column='_map_toomany_args')
 
 
 def test_map_nest_under_validation(make_test_data: TestDataMaker) -> None:

@@ -269,9 +269,7 @@ class TaskManager:
     )
     return task_id
 
-  def _set_task_completed(
-    self, task_id: TaskId, task_future: Union[DaskFuture, Future], type: TaskExecutionType
-  ) -> None:
+  def _set_task_completed(self, task_id: TaskId, task_future: Union[DaskFuture, Future]) -> None:
     end_timestamp = datetime.now().isoformat()
     self._tasks[task_id].end_timestamp = end_timestamp
 
@@ -303,17 +301,13 @@ class TaskManager:
       del self._dask_futures[task_id]
 
   def _set_task_shard_completed(
-    self,
-    task_id: TaskId,
-    task_future: Union[DaskFuture, Future],
-    num_shards: int,
-    type: TaskExecutionType,
+    self, task_id: TaskId, task_future: Union[DaskFuture, Future], num_shards: int
   ) -> None:
     # Increment task_shard_competions. When the num_shards is reached, set the task as completed.
     self._task_shard_completions[task_id] = self._task_shard_completions.get(task_id, 0) + 1
 
     if self._task_shard_completions[task_id] == num_shards:
-      self._set_task_completed(task_id, task_future, type)
+      self._set_task_completed(task_id, task_future)
 
   def execute(self, task_id: str, type: TaskExecutionType, task: TaskFn, *args: Any) -> None:
     """Execute a task."""
@@ -329,7 +323,7 @@ class TaskManager:
         key=dask_task_id,
       )
       task_future.add_done_callback(
-        lambda task_future: self._set_task_completed(task_id, task_future, type)
+        lambda task_future: self._set_task_completed(task_id, task_future)
       )
       self._dask_futures[task_id] = [task_future]
     elif type == 'threads':
@@ -339,7 +333,7 @@ class TaskManager:
       task_future = self._task_threadpools[task_id].submit(task, *args)
 
       task_future.add_done_callback(
-        lambda task_future: self._set_task_completed(task_id, task_future, type)
+        lambda task_future: self._set_task_completed(task_id, task_future)
       )
 
   def execute_sharded(
@@ -371,7 +365,7 @@ class TaskManager:
         )
         task_future.add_done_callback(
           lambda task_future: self._set_task_shard_completed(
-            task_id, task_future, num_shards=len(subtasks), type=type
+            task_id, task_future, num_shards=len(subtasks)
           )
         )
         dask_futures.append(task_future)
@@ -380,7 +374,7 @@ class TaskManager:
 
         task_future.add_done_callback(
           lambda task_future: self._set_task_shard_completed(
-            task_id, task_future, num_shards=len(subtasks), type=type
+            task_id, task_future, num_shards=len(subtasks)
           )
         )
         thread_futures.append(task_future)
