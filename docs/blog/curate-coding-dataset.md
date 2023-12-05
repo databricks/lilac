@@ -96,7 +96,7 @@ def format_code(item):
  return {'answer': new_text, 'has_edit': has_edit}
 
 ds = ll.get_dataset('local', 'glaive-coder')
-ds.map(format_code, output_column='answer_formatted', num_jobs=-1)
+ds.map(format_code, output_column='answer_formatted', num_jobs=-1, execution_type='processes')
 ````
 
 ## Dataset.map
@@ -124,13 +124,13 @@ First, let's focus on the rows that have been changed by applying a filter on ou
 `answer_formatted > has_edit` column, expand the histogram, and click the `True`` bar, applying a
 filter for the edited results.
 
-<video loop muted autoplay controls src="../_static/curate_coding_dataset/filter_items.mp4"></video>
+<img src="../_static/curate_coding_dataset/filter_metadata.png">
 
 Next, let's compare the two fields and show a visual diff. To do this, we click the “compare to”
 button next to `answer` and select the `answer_formatted > answer` field. We can easily flip through
 different examples by using the left and right arrow keys.
 
-<video loop muted autoplay controls src="../_static/curate_coding_dataset/compare.mp4"></video>
+<img src="../_static/curate_coding_dataset/compare.png">
 
 The process of refining data is iterative. If the diff is not exactly what we like, we can change
 the parameters to the formatter, re-run the map with `overwrite=True`, and visualize the results.
