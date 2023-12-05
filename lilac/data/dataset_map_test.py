@@ -557,6 +557,39 @@ def test_map_overwrite(
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+def test_map_output_column_returns_iterable(
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
+) -> None:
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
+
+  def _map_fn(item: Item) -> Item:
+    return item['text'].upper()
+
+  # Write the output to a new column.
+  result_rows = dataset.map(
+    _map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type
+  )
+
+  assert list(result_rows) == [
+    'A SENTENCE',
+    'B SENTENCE',
+  ]
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'text_upper': 'A SENTENCE',
+    },
+    {
+      'text': 'b sentence',
+      'text_upper': 'B SENTENCE',
+    },
+  ]
+
+
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
 def test_map_no_output_col(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
@@ -567,6 +600,11 @@ def test_map_no_output_col(
 
   map_output = dataset.map(_map_fn, num_jobs=num_jobs, execution_type=execution_type)
 
+  assert list(map_output) == [
+    'A SENTENCE',
+    'B SENTENCE',
+  ]
+  # Make sure we can iterate again.
   assert list(map_output) == [
     'A SENTENCE',
     'B SENTENCE',
