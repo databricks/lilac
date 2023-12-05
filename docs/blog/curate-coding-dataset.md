@@ -66,6 +66,9 @@ returns a new `answer_formatted` column that has two sub-fields:
 2. `has_edit`: a bit that is true if the code formatter made any changes. We will use the bit in the
    UI to filter on the rows that got updated.
 
+To modify the dataset in Lilac, we will use [](#Dataset.map). To learn more about `Dataset.map`, see
+the guide on [](../datasets/dataset_iterate.md).
+
 ````python
 import re
 import subprocess
@@ -112,7 +115,8 @@ ds.map(format_code, output_column='answer_formatted', num_jobs=-1, execution_typ
   expensive or slow (e.g. calling GPT to edit data, or calling an expensive on-device embedding
   model).
 - The map should return an item for each input item, or `None`.
-- When `Dataset.map` has finished, the UI will auto-refresh and we'll see the new column!
+- While the computation is running, the Lilac UI will show a progress bar. When it completes, the UI
+  will auto-refresh and we can use the new column.
 
 Now that we've edited the “answer”, let's visualize the changes to get a better sense of the
 behavior of our formatter and understand any side-effects.
