@@ -303,7 +303,8 @@ class TaskManager:
     status = task_future.status if isinstance(task_future, DaskFuture) else 'completed'
     log(f'Task {status} "{task_id}": "{self._tasks[task_id].name}" in ' f'{elapsed_formatted}.')
 
-    del self._dask_futures[task_id]
+    if task_id in self._dask_futures:
+      del self._dask_futures[task_id]
 
   def _set_task_shard_completed(
     self,
@@ -340,6 +341,7 @@ class TaskManager:
         raise ValueError(f'Task {task_id} already exists.')
       self._task_threadpools[task_id] = ThreadPoolExecutor(max_workers=1)
       task_future = self._task_threadpools[task_id].submit(task, *args)
+
       task_future.add_done_callback(
         lambda task_future: self._set_task_completed(task_id, task_future, type)
       )
@@ -362,7 +364,7 @@ class TaskManager:
 
     # Create the threadpool.
     if type == 'threads':
-      self._task_threadpools[task_id] = ThreadPoolExecutor()
+      self._task_threadpools[task_id] = ThreadPoolExecutor(max_workers=len(subtasks))
 
     for i, (task, args) in enumerate(subtasks):
       if type == 'processes':
@@ -379,6 +381,7 @@ class TaskManager:
         dask_futures.append(task_future)
       elif type == 'threads':
         task_future = self._task_threadpools[task_id].submit(task, *args)
+
         task_future.add_done_callback(
           lambda task_future: self._set_task_shard_completed(
             task_id, task_future, num_shards=len(subtasks), type=type
