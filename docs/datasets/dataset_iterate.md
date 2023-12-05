@@ -11,13 +11,14 @@ For a real world example, see the blog post on [](../blog/curate-coding-dataset.
 [HuggingFace's Dataset.map()](https://huggingface.co/docs/datasets/process#map) with a few key
 differences:
 
-- The output of Lilac's `Dataset.map` is written to a new column in the _same_ dataset. This enables
+- The output of Lilac's `map` is written to a new column in the _same_ dataset. This enables
   tracking of lineage information for every computed column, while avoiding copying the entire
   dataset.
 - If the map fails mid-way (e.g. with an exception, or your computer dies), you can resume
   computation without losing any intermediate results. This is important when the `map` function is
   expensive or slow (e.g. calling GPT to edit data, or calling an expensive embedding model).
-- When the computation is done, the Lilac UI will auto-refresh, and we can filter by the new column.
+- While the computation is running, the Lilac UI will show a progress bar. When it completes, the UI
+  will auto-refresh and we can use the new column (see statistics, filter by values, etc).
 
 Let's start with a simple example where we add a `Q: ` prefix to each `question` in the dataset.
 
@@ -109,6 +110,17 @@ dataset.to_pandas()
 We can see that the `questions_prefixed` column is a nested list, with the same nestedness as the
 `questions` column.
 
+### `output_column`
+
+To test the map function while developing without writing to a new column, we can omit the
+`output_column` argument and print the result of `map`:
+
+```python
+result = dataset.map(add_prefix, input_path='question')
+print(list(result))
+> ['Q: B', 'Q: C', 'Q: A']
+```
+
 ### Structured output
 
 Often our maps will output multiple values for a given item, e.g. when calling GPT to extract
@@ -144,6 +156,28 @@ column statistics in the UI and filter by their values:
 
 <video loop muted autoplay controls src="../_static/dataset/filter_metadata.mp4"></video>
 
+### Parallelism
+
+By default Lilac will run the `map` on a single thread. To speed up computation, we can provide
+`execution_type` and `num_jobs`. Executing type can be either `threads` or `processes`. Threads are
+better for network bound tasks like making requests to an external server, while processes are
+better for CPU bound tasks, like running a local LLM.
+
+The number of jobs defaults to the number of physical cores on the machine. However, if our map
+function is making requests to an external server, we can increase the number of jobs to reach the
+desired number of requests per second.
+
+```python
+
+def compute(text):
+  # make a single request to an external server.
+
+dataset.map(add_prefix, input_path='question', execution_type='threads', num_jobs=10)
+```
+
+Assuming a latency of 100ms per request, we can expect to make 10 requests per second with a single
+job, and 100 requests per second with 10 jobs.
+
 ### Annotations
 
 Often our map will extract relevant information that we want to associate with the input text. For
@@ -173,3 +207,32 @@ dataset.to_pandas()
 Lilac will then highlight the spans in the UI when we filter by the `company` column:
 
 <video loop muted autoplay controls src="../_static/dataset/company_name_span.mp4"></video>
+
+### `nest_under`
+
+By default, Lilac will create a top level column to store the output of `map`. If we want to nest
+the output of a map under an existing column, we can use the `nest_under` argument:
+
+```python
+items = [
+  {'question': 'How are you today?'},
+  {'question': 'What kind of food'},
+  {'question': 'Are you sure?'},
+]
+dataset = ll.from_dicts('local', 'questions3', items)
+
+def enrich(question):
+  return {'length': len(question), 'ends_with_?': question[-1] == '?'}
+
+dataset.map(enrich, input_path='question', output_column='metadata', nest_under='question')
+dataset.to_pandas()
+```
+
+```
+             question  question.metadata.length  question.metadata.ends_with_?
+0  How are you today?                        18                           True
+1   What kind of food                        17                          False
+2       Are you sure?                        13                           True
+```
+
+<img width=400 src="../_static/dataset/nested_schema.png"></img>
