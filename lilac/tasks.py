@@ -167,6 +167,8 @@ class TaskManager:
         if task_id in self._task_threadpools:
           threadpool = self._task_threadpools[task_id]
           threadpool.shutdown()
+          # Clean up threaded events.
+          del THREADED_EVENTS[_progress_event_topic(task_id)]
         continue
 
       task_progress_topic = _progress_event_topic(task_id)
@@ -548,7 +550,7 @@ def report_progress(
   initial_id: Optional[int] = None,
   estimated_len: Optional[int] = None,
   step_description: Optional[str] = None,
-  emit_every_s: float = 0.1,
+  emit_every_s: float = 0.25,
 ) -> Generator[TProgress, None, None]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id or task_step_id[0] == '':
