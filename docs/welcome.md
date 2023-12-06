@@ -22,8 +22,8 @@ model" on the OpenOrca dataset!
 
 - Get a much better understanding of your data by using powerful search and filters.
 - Collaborate with your team on a single, centralized dataset.
-- Apply best practices for data curation, like removing duplicates, PII, and toxic content.
-- Bring software engineering best practices to data science by viewing changes over your data
+- Apply best practices for data curation, like removing duplicates, PII, toxicity, and more.
+- Bring software engineering to data science by viewing and labeling changes over your data
 
 ## Get started
 
