@@ -93,7 +93,7 @@
   }
   // Markdown.
   function isMarkdownRendered(field: LilacField) {
-    return newSettings.ui?.markdown_paths?.includes(field.path);
+    return newSettings.ui?.markdown_paths?.find(p => pathIsEqual(p, field.path)) != null;
   }
   function markdownToggle(e: CustomEvent<{toggled: boolean}>, field: LilacField) {
     if (e.detail.toggled) {
