@@ -17,11 +17,11 @@ from .embeddings import *  # noqa: F403
 from .env import *  # noqa: F403
 from .env import LilacEnvironment, get_project_dir, set_project_dir
 from .load import load
-from .load_dataset import create_dataset
+from .load_dataset import create_dataset, from_dicts
 from .project import init
 from .rag import *  # noqa: F403
 from .schema import *  # noqa: F403
-from .schema import Field
+from .schema import Field, span
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
 from .source import Source
@@ -46,8 +46,10 @@ __all__ = [
   'start_server',
   'stop_server',
   'create_dataset',
+  'from_dicts',
   'get_dataset',
   'init',
+  'span',
   'load',
   'set_project_dir',
   'get_project_dir',

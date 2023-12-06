@@ -275,32 +275,4 @@
     padding-top: 1.5px;
     padding-bottom: 1.5px;
   }
-  :global(.markdown pre) {
-    @apply overflow-x-auto bg-slate-200 p-2 text-sm;
-  }
-  :global(.markdown pre) {
-    @apply my-3;
-  }
-  :global(.markdown p),
-  :global(.markdown h1) {
-    background-color: inherit;
-  }
-  :global(.markdown p) {
-    @apply mt-3 text-sm;
-    font-weight: inherit;
-  }
-  :global(.markdown ul) {
-    @apply mt-3 list-inside list-disc;
-  }
-  /** Inline the last paragraph that preceeds the highlight. */
-  :global(.markdown:has(+ .highlighted) p:last-child) {
-    @apply !inline;
-  }
-  /** Inline the first paragraph that succeeds the highlight. */
-  :global(.highlighted + .markdown p:first-child) {
-    @apply !inline;
-  }
-  :global(.highlighted p) {
-    @apply !inline;
-  }
 </style>

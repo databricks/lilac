@@ -1,11 +1,11 @@
-# A better way to curate data
+# Curate a coding dataset with Lilac
 
 Dec 2, 2023
 
 Good data is the engine that drives progress in AI. Companies that have control of their data can
-add unique capabilities and differentiate their product. Beyond differentiation, companies are
-starting to recognize that fine-tuning their own model can reduce cost while improving speed,
-control and compliance.
+add unique capabilities and differentiate their product. Beyond differentiation, companies are also
+recognizing that building models on their own data reduces cost, and improves speed, control and
+compliance.
 
 Data curation is often the most effective way to control how AI models behave. This process involves
 standard procedures like de-duplication and PII scrubbing. However, focusing on the long-tail of
@@ -14,7 +14,7 @@ having more eyes on data ultimately leads to fundamental discoveries of how a mo
 giving the developer more control of their downstream AI product.
 
 In this blog post, we'll delve into the excellent
-[Glaive coding assistant](https://huggingface.co/datasets/glaiveai/glaive-code-assistant-v2) dataset
+[Glaive coding assistant](https://huggingface.co/datasets/glaiveai/glaive-code-assistant) dataset
 with the goal of fine-tuning a code assistant model. We'll modify the dataset so that code outputted
 by our AI product follows consistent formatting rules, and we'll visualize how the dataset has
 changed.
@@ -23,7 +23,7 @@ changed.
 
 Let's load the Glaive dataset into Lilac from the HuggingFace hub. In this example, we're going to
 be using a Jupyter notebook (follow along
-[here](https://github.com/lilacai/lilac/blob/main/notebooks/BetterWayToCurate.ipynb)).
+[here](https://github.com/lilacai/lilac/blob/main/notebooks/CurateCodingDataset.ipynb)).
 
 ```python
 import lilac as ll
@@ -31,7 +31,7 @@ import lilac as ll
 config = ll.DatasetConfig(
  namespace='local',
  name='glaive',
- source=ll.HuggingFaceSource(dataset_name='glaiveai/glaive-code-assistant-v2'),
+ source=ll.HuggingFaceSource(dataset_name='glaiveai/glaive-code-assistant'),
 )
 dataset = ll.create_dataset(config)
 ```
@@ -47,7 +47,7 @@ ll.start_server()
 INFO:     Uvicorn running on http://127.0.0.1:5432 (Press CTRL+C to quit)
 ```
 
-<img src="../_static/better_curate_blog/open-dataset.png"></img>
+<img src="../_static/curate_coding_dataset/open-dataset.png"></img>
 
 You can see that the dataset consists of `question` and `answer` pairs, where the answer is in
 markdown format, often containing python code blocks. Immediately we can see that the python
@@ -65,6 +65,9 @@ returns a new `answer_formatted` column that has two sub-fields:
 1. `answer`: the rewritten output with formatted python code
 2. `has_edit`: a bit that is true if the code formatter made any changes. We will use the bit in the
    UI to filter on the rows that got updated.
+
+To modify the dataset in Lilac, we will use [](#Dataset.map). To learn more about `Dataset.map`, see
+the guide on [](../datasets/dataset_edit.md).
 
 ````python
 import re
@@ -96,7 +99,7 @@ def format_code(item):
  return {'answer': new_text, 'has_edit': has_edit}
 
 ds = ll.get_dataset('local', 'glaive-coder')
-ds.map(format_code, output_column='answer_formatted', num_jobs=-1)
+ds.map(format_code, output_column='answer_formatted', num_jobs=-1, execution_type='processes')
 ````
 
 ## Dataset.map
@@ -112,7 +115,8 @@ ds.map(format_code, output_column='answer_formatted', num_jobs=-1)
   expensive or slow (e.g. calling GPT to edit data, or calling an expensive on-device embedding
   model).
 - The map should return an item for each input item, or `None`.
-- When `Dataset.map` has finished, the UI will auto-refresh and we'll see the new column!
+- While the computation is running, the Lilac UI will show a progress bar. When it completes, the UI
+  will auto-refresh and we can use the new column.
 
 Now that we've edited the “answer”, let's visualize the changes to get a better sense of the
 behavior of our formatter and understand any side-effects.
@@ -124,16 +128,23 @@ First, let's focus on the rows that have been changed by applying a filter on ou
 `answer_formatted > has_edit` column, expand the histogram, and click the `True`` bar, applying a
 filter for the edited results.
 
-<video loop muted autoplay controls src="../_static/better_curate_blog/filter_items.mp4"></video>
+<img src="../_static/curate_coding_dataset/filter_metadata.png">
 
 Next, let's compare the two fields and show a visual diff. To do this, we click the “compare to”
 button next to `answer` and select the `answer_formatted > answer` field. We can easily flip through
 different examples by using the left and right arrow keys.
 
-<video loop muted autoplay controls src="../_static/better_curate_blog/compare.mp4"></video>
+<img src="../_static/curate_coding_dataset/compare.png">
 
 The process of refining data is iterative. If the diff is not exactly what we like, we can change
-the parameters to the formatter, re-run the map with `overwrite=True`, and visualize the results.
+the parameters to the formatter, re-run the map with `overwrite=True`, and see the new results.
+
+If some of the edits are not what we want, we can manually label them as "bad" to clicking on the
+label in the top left corner of the example. Then we can apply a filter on the "bad" examples to
+make sure the new version of our map improved those examples. Conversely, we can also label good
+examples as "good" and filter on those in future versions to make sure we didn't regress.
+
+<img src="../_static/curate_coding_dataset/label.png">
 
 Once we are comfortable with how the formatter changes python code, we can export the edited dataset
 using the download dialog or the python API. See

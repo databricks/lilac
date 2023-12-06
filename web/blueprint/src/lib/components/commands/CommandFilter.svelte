@@ -96,7 +96,9 @@
   }
 
   function submit() {
-    $datasetViewStore.query.filters = stagedFilters;
+    for (const filter of stagedFilters) {
+      datasetViewStore.addFilter(filter);
+    }
     close();
   }
 </script>

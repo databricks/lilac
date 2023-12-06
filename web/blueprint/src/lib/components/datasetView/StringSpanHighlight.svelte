@@ -231,7 +231,9 @@
         on:mouseleave={() => spanMouseLeave(renderSpan)}
       >
         {#if markdown}
-          <SvelteMarkdown source={snippetSpan.snippetText} />
+          <div class="markdown">
+            <SvelteMarkdown source={snippetSpan.snippetText} />
+          </div>
         {:else}{snippetSpan.snippetText}{/if}</span
       >
     {:else}
@@ -239,8 +241,10 @@
         use:hoverTooltip={{
           text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
         }}
-        class="highlight-span text-sm leading-5">...</span
+        class="highlight-span text-sm leading-5"
       >
+        ...
+      </span>
     {/if}
   {/each}
 </div>
@@ -253,33 +257,5 @@
     /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
     padding-top: 1.5px;
     padding-bottom: 1.5px;
-  }
-  :global(.highlight-span pre) {
-    @apply overflow-x-auto bg-slate-200 p-2 text-sm;
-  }
-  :global(.highlight-span pre) {
-    @apply my-3;
-  }
-  :global(.highlight-span p),
-  :global(.highlight-span h1) {
-    background-color: inherit;
-  }
-  :global(.highlight-span p) {
-    @apply mt-3 text-sm;
-    font-weight: inherit;
-  }
-  :global(.highlight-span ul) {
-    @apply mt-3 list-inside list-disc;
-  }
-  /** Inline the last paragraph that preceeds the highlight. */
-  :global(.highlight-span:has(+ .highlighted) p:last-child) {
-    @apply !inline;
-  }
-  /** Inline the first paragraph that succeeds the highlight. */
-  :global(.highlighted + .highlight-span p:first-child) {
-    @apply !inline;
-  }
-  :global(.highlighted p) {
-    @apply !inline;
   }
 </style>

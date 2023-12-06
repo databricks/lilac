@@ -407,12 +407,12 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   )
   assert list(result) == [
     {
-      'texts.*': ['hello', 'everybody'],
+      'texts': ['hello', 'everybody'],
       'texts.*.test_signal.flen': [5.0, 9.0],
       'texts.*.length_signal': [5, 9],
     },
     {
-      'texts.*': ['a', 'bc', 'def'],
+      'texts': ['a', 'bc', 'def'],
       'texts.*.test_signal.flen': [1.0, 2.0, 3.0],
       'texts.*.length_signal': [1, 2, 3],
     },

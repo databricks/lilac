@@ -172,7 +172,7 @@
       <div class="flex w-full flex-col gap-y-6 rounded border border-gray-300 bg-white p-4">
         {#if signalInfo}
           {#key signalInfo}
-            <div>
+            <div class="markdown">
               <SvelteMarkdown source={signalInfo.json_schema.description} />
             </div>
 

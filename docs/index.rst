@@ -1,7 +1,7 @@
 🌸 Lilac
 =================
 .. meta::
-   :description: Curate better data for LLMs
+   :description: Better data, better AI
    :keywords: datasets, AI, machine learning, unstructured, lilac
 
 .. raw:: html
@@ -36,9 +36,10 @@
    datasets/dataset_load.md
    datasets/dataset_explore.md
    datasets/dataset_configure.md
+   datasets/dataset_edit.md
+   datasets/dataset_labels.md
    datasets/dataset_concepts.md
    datasets/dataset_signals.md
-   datasets/dataset_labels.md
    datasets/dataset_query.md
    datasets/dataset_export.md
 
