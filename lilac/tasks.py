@@ -267,11 +267,6 @@ class TaskManager:
             task_error = asyncio.get_event_loop().run_until_complete(task_error)
           raise task_error
 
-      tasks = asyncio.get_event_loop().run_until_complete(self.manifest()).tasks
-      for task_id in task_ids:
-        if task_id in tasks and tasks[task_id].status == TaskStatus.ERROR:
-          raise Exception(tasks[task_id].error)
-
     # Wait for all thread futures.
     if thread_futures:
       for future in thread_futures:
@@ -531,7 +526,7 @@ def show_progress(
 
         if total_it_idx and last_it_idx and (total_it_idx != last_it_idx):
           pbar.update(total_it_idx - last_it_idx)
-        last_it_idx = total_it_idx if step_info else None
+        last_it_idx = total_it_idx if step_info else 0
 
         # If the user didnt pass a total_len explicitly, update the progress bar when we get new
         # information from shards reporting their lengths.
