@@ -96,7 +96,8 @@ from ..tasks import (
   TaskType,
   get_is_dask_worker,
   get_task_manager,
-  progress,
+  report_progress,
+  show_progress,
 )
 from ..utils import (
   DebugTimer,
@@ -865,7 +866,7 @@ class DatasetDuckDB(Dataset):
       )
       estimated_len = shard_end_idx - shard_start_idx
 
-      output_items = progress(
+      output_items = report_progress(
         output_items,
         task_step_id=task_step_id,
         initial_id=start_idx,
@@ -1876,7 +1877,7 @@ class DatasetDuckDB(Dataset):
           )
           # Add progress.
           if task_step_id is not None:
-            signal_out = progress(
+            signal_out = report_progress(
               signal_out,
               task_step_id=task_step_id,
               estimated_len=len(flat_keys),
@@ -1891,7 +1892,7 @@ class DatasetDuckDB(Dataset):
           )
           # Add progress.
           if task_step_id is not None:
-            signal_out = progress(
+            signal_out = report_progress(
               signal_out,
               task_step_id=task_step_id,
               estimated_len=num_rich_data,
@@ -2635,9 +2636,13 @@ class DatasetDuckDB(Dataset):
     jsonl_cache_filepaths: list[str] = []
 
     output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
+    progress_description = (
+      f'[{self.namespace}/{self.dataset_name}][{num_jobs} shards] map '
+      f'"{map_fn.__name__}"{output_col_desc_suffix}'
+    )
+
     task_id = get_task_manager().task_id(
-      name=f'[{self.namespace}/{self.dataset_name}][{num_jobs} shards] map '
-      f'"{map_fn.__name__}"{output_col_desc_suffix}',
+      name=progress_description,
       type=TaskType.DATASET_MAP,
     )
     subtasks: list[tuple[TaskFn, list[Any]]] = []
@@ -2651,6 +2656,7 @@ class DatasetDuckDB(Dataset):
         shard_id=i,
         shard_count=num_jobs,
       )
+      entire_input = False
       subtasks.append(
         (
           self._map_worker,
@@ -2664,7 +2670,9 @@ class DatasetDuckDB(Dataset):
             overwrite,
             combine_columns,
             resolve_span,
+            entire_input,
             (task_id, 0),
+            progress_description,
           ],
         )
       )
@@ -2677,6 +2685,10 @@ class DatasetDuckDB(Dataset):
       type=execution_type,
       subtasks=subtasks,
     )
+    show_progress(
+      task_step_id=(task_id, 0), total_len=manifest.num_items, description=progress_description
+    )
+
     # Wait for the tasks to finish before reading the outputs.
     get_task_manager().wait([task_id])
 
@@ -2811,6 +2823,8 @@ class DatasetDuckDB(Dataset):
       shard_id=0,
       shard_count=1,
     )
+
+    entire_input = True
     get_task_manager().execute(
       task_id,
       'processes',
@@ -2824,8 +2838,8 @@ class DatasetDuckDB(Dataset):
       overwrite,
       combine_columns,
       resolve_span,
+      entire_input,
       (task_id, 0),
-      True,  # entire_input
     )
     task_ids.append(task_id)
     jsonl_cache_filepaths.append(jsonl_cache_filepath)
@@ -2874,8 +2888,9 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    task_step_id: Optional[TaskStepId] = None,
     entire_input: bool = False,
+    task_step_id: Optional[TaskStepId] = None,
+    task_step_description: Optional[str] = None,
   ) -> None:
     map_sig = inspect.signature(map_fn)
     if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
@@ -2910,8 +2925,7 @@ class DatasetDuckDB(Dataset):
       shard_id=job_id,
       shard_count=job_count,
       task_step_id=task_step_id,
-      task_step_description=f'[Shard {job_id}/{job_count}] map "{map_fn.__name__}" '
-      f'to "{output_path}"',
+      task_step_description=task_step_description,
     )
 
   @override

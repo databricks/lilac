@@ -36,6 +36,8 @@ from .dataset_test_utils import (
   enriched_item,
 )
 
+TEST_EXECUTION_TYPES = ['threads', 'processes']
+
 
 class TestFirstCharSignal(TextSignal):
   name: ClassVar[str] = 'test_signal'
@@ -71,7 +73,7 @@ def setup_teardown() -> Iterable[None]:
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
@@ -117,7 +119,7 @@ def test_map(
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_signal(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
@@ -178,7 +180,7 @@ def test_map_signal(
   ]
 
 
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_job_id(
   execution_type: tasks.TaskExecutionType,
   make_test_data: TestDataMaker,
@@ -204,7 +206,7 @@ def test_map_job_id(
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_input_path(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
@@ -260,7 +262,7 @@ def test_map_input_path(
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_input_path_nested(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
@@ -331,7 +333,7 @@ def test_map_input_path_nonleaf_throws(make_test_data: TestDataMaker) -> None:
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_continuation(
   num_jobs: int,
   execution_type: tasks.TaskExecutionType,
@@ -415,7 +417,7 @@ def test_map_continuation(
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_continuation_overwrite(
   num_jobs: int,
   execution_type: tasks.TaskExecutionType,
@@ -489,7 +491,7 @@ def test_map_continuation_overwrite(
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_overwrite(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
@@ -556,7 +558,7 @@ def test_map_overwrite(
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_output_column_returns_iterable(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
@@ -589,7 +591,7 @@ def test_map_output_column_returns_iterable(
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
-@pytest.mark.parametrize('execution_type', ['threads', 'processes'])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_no_output_col(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:

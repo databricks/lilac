@@ -216,7 +216,7 @@
             notificationStore != null ? notificationStore.addNotification : () => null,
           disabled: renderSpan.paths.length === 0 || embeddings.length === 0
         }}
-        class="hover:cursor-poiner highlight-span break-words text-sm leading-5"
+        class="hover:cursor-poiner highlight-span relative break-words text-sm leading-5"
         class:highlighted={renderSpan.isHighlighted}
         class:hover:cursor-pointer={spanPaths.length > 0}
         class:font-bold={renderSpan.isBlackBolded}
