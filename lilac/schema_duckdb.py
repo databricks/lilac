@@ -101,7 +101,7 @@ def _duckdb_type(dtype: Optional[DataType]) -> str:
     return 'NULL'
   elif dtype.type == 'map':
     map_dtype = cast(MapType, dtype)
-    return f'MAP({_duckdb_type(map_dtype.key_type)}, {_duckdb_type(map_dtype.value_type)})'
+    return f'MAP({_duckdb_type(map_dtype.key_type)}, {_duckdb_struct(map_dtype.value_field)})'
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to duckdb type')
 

@@ -249,7 +249,7 @@ def test_map_dtype(make_test_data: TestDataMaker) -> None:
     {'column': {'b': 2.5}},
     {'column': {'a': 3.0, 'c': 3.5}},
   ]
-  map_dtype = MapType(key_type='string', value_type='float32')
+  map_dtype = MapType(key_type='string', value_field=field('float32'))
   data_schema = schema({'column': Field(dtype=map_dtype)})
   dataset = make_test_data(items, schema=data_schema)
 

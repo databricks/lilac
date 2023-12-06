@@ -547,7 +547,7 @@ class DatasetDuckDB(Dataset):
     map_dtype = cast(MapType, field.dtype)
     field.fields = field.fields or {}
     for key in keys:
-      field.fields[key] = Field(dtype=map_dtype.value_type)
+      field.fields[key] = map_dtype.value_field
 
   @override
   def manifest(self) -> DatasetManifest:

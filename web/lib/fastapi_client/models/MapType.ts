@@ -4,6 +4,7 @@
 /* eslint-disable */
 
 import type { DataType } from './DataType';
+import type { Field } from './Field';
 
 /**
  * The map dtype parameterized by the key and value types.
@@ -11,6 +12,6 @@ import type { DataType } from './DataType';
 export type MapType = {
     type: 'map';
     key_type: DataType;
-    value_type: DataType;
+    value_field: Field;
 };
 
