@@ -3,9 +3,9 @@
 Dec 2, 2023
 
 Good data is the engine that drives progress in AI. Companies that have control of their data can
-add unique capabilities and differentiate their product. Beyond differentiation, companies are
-starting to recognize that fine-tuning their own model can reduce cost while improving speed,
-control and compliance.
+add unique capabilities and differentiate their product. Beyond differentiation, companies are also
+recognizing that building models on their own data reduces cost, and improves speed, control and
+compliance.
 
 Data curation is often the most effective way to control how AI models behave. This process involves
 standard procedures like de-duplication and PII scrubbing. However, focusing on the long-tail of
@@ -137,7 +137,14 @@ different examples by using the left and right arrow keys.
 <img src="../_static/curate_coding_dataset/compare.png">
 
 The process of refining data is iterative. If the diff is not exactly what we like, we can change
-the parameters to the formatter, re-run the map with `overwrite=True`, and visualize the results.
+the parameters to the formatter, re-run the map with `overwrite=True`, and see the new results.
+
+If some of the edits are not what we want, we can manually label them as "bad" to clicking on the
+label in the top left corner of the example. Then we can apply a filter on the "bad" examples to
+make sure the new version of our map improved those examples. Conversely, we can also label good
+examples as "good" and filter on those in future versions to make sure we didn't regress.
+
+<img src="../_static/curate_coding_dataset/label.png">
 
 Once we are comfortable with how the formatter changes python code, we can export the edited dataset
 using the download dialog or the python API. See

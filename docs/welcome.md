@@ -20,10 +20,16 @@ model" on the OpenOrca dataset!
 
 ## Why use Lilac?
 
-- Get a much better understanding of your data by using powerful search and filters.
+- Understand your data with powerful search and filtering.
 - Collaborate with your team on a single, centralized dataset.
-- Apply best practices for data curation, like removing duplicates, PII, toxicity, and more.
-- Bring software engineering to data science by viewing and labeling changes over your data
+- Apply best practices for data curation, like removing duplicates and PII to reduce dataset size
+  and lower training cost and time.
+- See how your pipeline impacts your data using our diff viewer
+
+<br/>
+<div align="center">
+  <iframe width="672" height="378" src="https://www.youtube.com/embed/RrcvVC3VYzQ?si=K-qRY2fZ_RAjFfMw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
 
 ## Get started
 
