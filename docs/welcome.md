@@ -11,7 +11,8 @@
     </a>
 </p>
 
-Lilac is an open-source tool that enables data practitioners
+Lilac is an open-source tool that enables data and AI practitioners improve their products by
+improving their data.
 
 [Try Lilac on HuggingFace Spaces](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca-100k),
 where we've preloaded popular datasets like OpenOrca. Try a semantic search for "As a language
