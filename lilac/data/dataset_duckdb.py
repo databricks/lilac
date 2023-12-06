@@ -2586,8 +2586,8 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    limit: Optional[int] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
