@@ -285,3 +285,54 @@ audio,
 video {
   border-style: solid;
 }
+
+/** Global styles for markdown rendering */
+
+.markdown pre {
+  @apply overflow-x-auto bg-slate-200 p-2 text-sm;
+}
+.markdown pre {
+  @apply my-3;
+}
+.markdown p,
+.markdown h1 {
+  background-color: inherit;
+}
+.markdown p {
+  @apply mt-3 text-sm;
+  font-weight: inherit;
+}
+.markdown ul {
+  @apply mt-3 list-inside list-disc;
+}
+/** Inline the last paragraph that preceeds the highlight. */
+.markdown:has(+ .highlighted) p:last-child {
+  @apply !inline;
+}
+/** Inline the first paragraph that succeeds the highlight. */
+:global(.highlighted + .markdown p:first-child) {
+  @apply !inline;
+}
+:global(.highlighted p) {
+  @apply !inline;
+}
+
+/** Table styles for markdown inspired by https://flowbite.com/docs/components/tables/*/
+.markdown table {
+  @apply text-left text-sm text-gray-500 rtl:text-right;
+}
+.markdown table thead {
+  @apply bg-gray-50 text-xs font-bold uppercase text-gray-700;
+}
+.markdown table thead th {
+  @apply px-6 py-3;
+}
+.markdown table tbody tr {
+  @apply border-b border-gray-200 bg-white;
+}
+.markdown table tbody th {
+  @apply whitespace-nowrap px-6 py-4 font-medium text-gray-900;
+}
+.markdown table tbody td {
+  @apply px-6 py-4;
+}

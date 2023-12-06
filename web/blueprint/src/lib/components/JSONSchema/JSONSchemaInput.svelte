@@ -63,7 +63,7 @@
 {#if !hiddenProperties?.includes(path)}
   {#if propertyType === 'object'}
     {#if property.description && showDescription}
-      <div class="description mb-4">
+      <div class="markdown description mb-4">
         <SvelteMarkdown source={property.description} />
       </div>
     {/if}

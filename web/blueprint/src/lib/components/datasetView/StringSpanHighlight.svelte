@@ -241,8 +241,10 @@
         use:hoverTooltip={{
           text: 'Some text was hidden to improve readability. \nClick "Show all" to show the entire document.'
         }}
-        class="highlight-span text-sm leading-5">...</span
+        class="highlight-span text-sm leading-5"
       >
+        ...
+      </span>
     {/if}
   {/each}
 </div>
@@ -255,53 +257,5 @@
     /** Add a tiny bit of padding so that the hover doesn't flicker between rows. */
     padding-top: 1.5px;
     padding-bottom: 1.5px;
-  }
-  :global(.highlight-span pre) {
-    @apply overflow-x-auto bg-slate-200 p-2 text-sm;
-  }
-  :global(.highlight-span pre) {
-    @apply my-3;
-  }
-  :global(.highlight-span p),
-  :global(.highlight-span h1) {
-    background-color: inherit;
-  }
-  :global(.highlight-span p) {
-    @apply mt-3 text-sm;
-    font-weight: inherit;
-  }
-  :global(.highlight-span ul) {
-    @apply mt-3 list-inside list-disc;
-  }
-  /** Inline the last paragraph that preceeds the highlight. */
-  :global(.highlight-span:has(+ .highlighted) p:last-child) {
-    @apply !inline;
-  }
-  /** Inline the first paragraph that succeeds the highlight. */
-  :global(.highlighted + .highlight-span p:first-child) {
-    @apply !inline;
-  }
-  :global(.highlighted p) {
-    @apply !inline;
-  }
-
-  /** Table styles for markdown inspired by https://flowbite.com/docs/components/tables/*/
-  :global(.markdown table) {
-    @apply w-full text-left text-sm text-gray-500 rtl:text-right;
-  }
-  :global(.markdown table thead) {
-    @apply bg-gray-50 text-xs font-bold uppercase text-gray-700;
-  }
-  :global(.markdown table thead th) {
-    @apply px-6 py-3;
-  }
-  :global(.markdown table tbody tr) {
-    @apply border-b border-gray-200 bg-white;
-  }
-  :global(.markdown table tbody th) {
-    @apply whitespace-nowrap px-6 py-4 font-medium text-gray-900;
-  }
-  :global(.markdown table tbody td) {
-    @apply px-6 py-4;
   }
 </style>
