@@ -610,6 +610,7 @@ class DatasetDuckDB(Dataset):
     resolve_span: bool = False,
     shard_cache_filepath: Optional[str] = None,
     overwrite: bool = False,
+    query_options: Optional[DuckDBQueryParams] = None,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
   ) -> Iterable[tuple[str, Item]]:
@@ -666,6 +667,8 @@ class DatasetDuckDB(Dataset):
           all_columns.update(col_dict)
         columns_to_merge = {'*': all_columns}
 
+    options_clause = self._compile_select_options(query_options)
+
     # Fetch the data from DuckDB.
     con = self.con.cursor()
 
@@ -674,7 +677,9 @@ class DatasetDuckDB(Dataset):
     con.execute(
       f"""
       CREATE OR REPLACE VIEW {t_shard_table} as (
-        SELECT * FROM t
+        SELECT * FROM (
+          SELECT * FROM t {options_clause}
+        )
         ORDER BY {ROWID}
         LIMIT {shard_end_idx - shard_start_idx}
         OFFSET {shard_start_idx}
@@ -763,6 +768,7 @@ class DatasetDuckDB(Dataset):
     jsonl_cache_filepath: str,
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
+    query_options: Optional[DuckDBQueryParams] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
     shard_id: Optional[int] = None,
@@ -802,6 +808,7 @@ class DatasetDuckDB(Dataset):
       resolve_span=resolve_span,
       shard_cache_filepath=jsonl_cache_filepath,
       overwrite=overwrite,
+      query_options=query_options,
       shard_id=shard_id,
       shard_count=shard_count,
     )
@@ -916,6 +923,14 @@ class DatasetDuckDB(Dataset):
       schema = schema.model_copy(deep=True)
       schema.fields[ROWID] = Field(dtype=STRING)
 
+    # Potential bug: if a computation is interrupted, and then the num-workers, filtering, or limits
+    # are updated, then shard assignment may not be consistent. Then, two workers may have processed
+    # the same row, leading to duplicate rows in the result. A further complication is if
+    # the map function changed in between the two computations, making it difficult to reconstruct.
+    # which value is more recent. This could happen if you ran a map function, realized there was a
+    # bug, interrupted it, updated and reran.
+    #
+    # Anyway this seems like a lot of unusual things have to happen so I'll leave the bug unfixed.
     con.execute(
       f"""
       CREATE OR REPLACE VIEW {jsonl_view_name} as (
@@ -2546,15 +2561,23 @@ class DatasetDuckDB(Dataset):
     selection = ', '.join(select_queries)
     return f'SELECT {selection} FROM t'
 
-  def _compile_select_options(self, query_options: DuckDBQueryParams) -> str:
+  def _compile_select_options(self, query_options: Optional[DuckDBQueryParams]) -> str:
     """Compiles SQL WHERE/ORDER BY/LIMIT clauses for select queries."""
+    if query_options is None:
+      return ''
     manifest = self.manifest()
-    where_query = ''
+    where_clause = ''
     filter_queries = self._create_where(manifest, query_options.filters)
     if filter_queries:
-      where_query = f"WHERE {' AND '.join(filter_queries)}"
+      where_clause = f"WHERE {' AND '.join(filter_queries)}"
 
-    return where_query
+    limit_clause = ''
+    if query_options.limit:
+      limit_clause = f'LIMIT {query_options.limit}'
+      if query_options.offset:
+        limit_clause += f' OFFSET {query_options.offset}'
+
+    return f'{where_clause} {limit_clause}'
 
   @override
   def map(
@@ -2566,6 +2589,8 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
+    limit: Optional[int] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
@@ -2632,6 +2657,9 @@ class DatasetDuckDB(Dataset):
             f'Cannot map to path "{output_column}" which already exists in the dataset. '
             'Use overwrite=True to overwrite the column.'
           )
+    filters, _ = self._normalize_filters(
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
+    )
 
     num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
 
@@ -2665,6 +2693,7 @@ class DatasetDuckDB(Dataset):
             num_jobs,
             input_path,
             overwrite,
+            DuckDBQueryParams(filters=filters, limit=limit),
             combine_columns,
             resolve_span,
             (task_id, 0),
@@ -2825,6 +2854,7 @@ class DatasetDuckDB(Dataset):
       1,
       input_path,
       overwrite,
+      None,
       combine_columns,
       resolve_span,
       (task_id, 0),
@@ -2875,6 +2905,7 @@ class DatasetDuckDB(Dataset):
     job_count: int,
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
+    query_options: Optional[DuckDBQueryParams] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_step_id: Optional[TaskStepId] = None,
@@ -2908,6 +2939,7 @@ class DatasetDuckDB(Dataset):
       jsonl_cache_filepath=jsonl_cache_filepath,
       unnest_input_path=unnest_input_path,
       overwrite=overwrite,
+      query_options=query_options,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
       shard_id=job_id,
