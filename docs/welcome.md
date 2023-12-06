@@ -25,14 +25,6 @@ model" on the OpenOrca dataset!
 - Apply best practices for data curation, like removing duplicates, PII, and toxic content.
 - Bring software engineering best practices to data science by viewing changes over your data
 
-Annotate fields with structured metadata using [Signals](signals/signals.md), for instance
-near-duplicate and personal information (PII) detection.
-
-- Use exact and semantic searches to find and tag specific slices of data.
-- Create and refine [Concepts](concepts/concepts.md) to precisely target a type or style of text.
-- Detect and remove duplicate or near-duplicate data.
-- Filter and export your curated dataset for downstream applications.
-
 ## Get started
 
 To get started, follow the [installation](./getting_started/installation.md) steps. To familiarize
