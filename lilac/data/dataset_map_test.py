@@ -558,6 +558,52 @@ def test_map_filter(
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
+@pytest.mark.parametrize('batch_size', [-1, 2, 3])
+def test_map_batch(
+  num_jobs: int,
+  execution_type: tasks.TaskExecutionType,
+  batch_size: Optional[int],
+  make_test_data: TestDataMaker,
+) -> None:
+  dataset = make_test_data([{'text': letter} for letter in 'abcd'])
+
+  def _map_fn(items: list[Item]) -> list[Item]:
+    return [item['text'].upper() for item in items]
+
+  # Write the output to a new column.
+  dataset.map(
+    _map_fn,
+    output_column='text_upper',
+    batch_size=batch_size,
+    num_jobs=num_jobs,
+    execution_type=execution_type,
+  )
+
+  rows = list(
+    dataset.select_rows([PATH_WILDCARD], filters=[Filter(path=('text_upper',), op='exists')])
+  )
+  assert rows == [
+    {
+      'text': 'a',
+      'text_upper': 'A',
+    },
+    {
+      'text': 'b',
+      'text_upper': 'B',
+    },
+    {
+      'text': 'c',
+      'text_upper': 'C',
+    },
+    {
+      'text': 'd',
+      'text_upper': 'D',
+    },
+  ]
+
+
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_overwrite(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
