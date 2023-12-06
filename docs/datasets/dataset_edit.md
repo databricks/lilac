@@ -1,15 +1,26 @@
 # Edit a dataset
 
 ```{note}
-This page goes into the technical details of iterating on a dataset in Lilac.
+This page goes into the technical details of editing a dataset in Lilac.
 For a real world example, see the blog post on [](../blog/curate-coding-dataset.md).
 ```
 
+Once you bring the data into Lilac, you can start editing it. The main edit operation is creating a
+new column via [`Dataset.map`](#Dataset.map), which is similar to
+[HuggingFace's Dataset.map()](https://huggingface.co/docs/datasets/process#map). The code provided
+in `map` runs against every row in a table, enhancing that data with new information. For example,
+we can call GPT to extract structure from a piece of text, or rewrite a piece of text in a different
+style or language.
+
+The benefits of using Lilac's `map` include the ability to track lineage information for every
+computed column, and the ability to resume computation if the processing fails mid-way. We are also
+working on the ability to write to an existing column, undo and redo edits, and see a history of all
+the edits made.
+
 ## `Dataset.map`
 
-[`Dataset.map`](#Dataset.map) is the main vehicle for processing data in Lilac. It's similar to
-[HuggingFace's Dataset.map()](https://huggingface.co/docs/datasets/process#map) with a few key
-differences:
+[`Dataset.map`](#Dataset.map) is the main vehicle for processing data in Lilac. It's similar to with
+a few key differences:
 
 - The output of Lilac's `map` is written to a new column in the _same_ dataset. This enables
   tracking of lineage information for every computed column, while avoiding copying the entire
