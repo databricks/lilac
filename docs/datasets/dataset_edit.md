@@ -211,7 +211,7 @@ desired number of requests per second.
 def compute(text_batch: list[str])-> list[str]:
   # make a single request to an external server.
 
-dataset.map(add_prefix, batch_size=32, input_path='question', execution_type='threads', num_jobs=10)
+dataset.map(compute, batch_size=32, input_path='question', execution_type='threads', num_jobs=10)
 ```
 
 Assuming a latency of 100ms per request, we can expect to make 10 requests per second with a single
