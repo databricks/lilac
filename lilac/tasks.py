@@ -4,6 +4,7 @@ import asyncio
 import builtins
 import functools
 import multiprocessing
+import random
 import time
 import traceback
 import uuid
@@ -163,15 +164,16 @@ class TaskManager:
   async def _update_tasks(self) -> None:
     adapter = TypeAdapter(list[TaskStepInfo])
     for task_id, task in list(self._tasks.items()):
+      task_progress_topic = _progress_event_topic(task_id)
       if task.status == TaskStatus.COMPLETED:
         if task_id in self._task_threadpools:
           threadpool = self._task_threadpools[task_id]
           threadpool.shutdown()
           # Clean up threaded events.
-          del THREADED_EVENTS[_progress_event_topic(task_id)]
+          if task_progress_topic in THREADED_EVENTS:
+            del THREADED_EVENTS[task_progress_topic]
         continue
 
-      task_progress_topic = _progress_event_topic(task_id)
       if task_id in self._dask_futures:
         try:
           step_events = cast(Any, self._dask_client.get_events(task_progress_topic))
@@ -593,10 +595,12 @@ def report_progress(
   start_time = time.time()
   # Reduce the emit frequency if there are multiple shards to reduce the size of the event stream.
   emit_every_sec = EMIT_EVERY_SEC if not shard_count else EMIT_EVERY_SEC * shard_count
-  last_emit = time.time() - EMIT_EVERY_SEC
+  # Add jitter to the emit frequency to avoid all workers emitting at the same time.
+  jitter_sec = random.uniform(0, emit_every_sec)
+  last_emit = time.time() - EMIT_EVERY_SEC - jitter_sec
 
   for t in it:
-    cur_time = time.time()
+    cur_time = time.time() + jitter_sec
     if estimated_len and cur_time - last_emit > emit_every_sec:
       elapsed_sec = cur_time - start_time
       it_per_sec = ((it_idx or 0) - (initial_id or 0.0)) / elapsed_sec
