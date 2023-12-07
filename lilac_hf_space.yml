@@ -11,6 +11,23 @@ datasets:
       source_name: huggingface
       dataset_name: imdb
 
+  - namespace: lilac
+    name: glaive
+    source:
+      dataset_name: glaiveai/glaive-code-assistant
+      source_name: huggingface
+    settings:
+      tags: [machine-learning]
+      ui:
+        view_type: 'single_item'
+      ui:
+        media_paths:
+          - question
+          - answer
+          - - answer_formatted
+            - answer
+        markdown_paths: []
+
   - name: open-asssistant-conversations
     namespace: lilac
     settings:

@@ -322,6 +322,12 @@ class TaskManager:
     if task_id in self._dask_futures:
       del self._dask_futures[task_id]
 
+  def _restart_client_if_no_tasks(self) -> None:
+    # Check if any tasks are not completed. If not, we restart t he dask client to free up memory.
+    tasks_pending = any(task.status == TaskStatus.PENDING for task in self._tasks.values())
+    if not tasks_pending:
+      self._dask_client.restart()
+
   def _set_task_shard_completed(
     self, task_id: TaskId, task_future: Union[DaskFuture, Future], num_shards: int
   ) -> None:
@@ -336,6 +342,9 @@ class TaskManager:
     task_info = self._tasks[task_id]
 
     if type == 'processes':
+      # Restart the workers to avoid GC slowing down the workers.
+      self._restart_client_if_no_tasks()
+
       dask_task_id = _dask_task_id(task_id, None)
       task_future = self._dask_client.submit(
         functools.partial(_execute_task, task, task_info, dask_task_id),
@@ -376,8 +385,10 @@ class TaskManager:
 
     for i, (task, args) in enumerate(subtasks):
       if type == 'processes':
-        dask_task_id = _dask_task_id(task_id, i)
+        # Restart the workers to avoid GC slowing down the workers.
+        self._restart_client_if_no_tasks()
 
+        dask_task_id = _dask_task_id(task_id, i)
         task_future = self._dask_client.submit(
           functools.partial(_execute_task, task, task_info, dask_task_id), *args, key=dask_task_id
         )
@@ -543,14 +554,18 @@ def show_progress(
         pbar.update(total_len - pbar.n)
 
 
+# The interval to emit progress events.
+EMIT_EVERY_SEC = 0.5
+
+
 def report_progress(
   it: Union[Iterator[TProgress], Iterable[TProgress]],
   task_step_id: Optional[TaskStepId],
   shard_id: Optional[int] = None,
+  shard_count: Optional[int] = None,
   initial_id: Optional[int] = None,
   estimated_len: Optional[int] = None,
   step_description: Optional[str] = None,
-  emit_every_s: float = 0.25,
 ) -> Generator[TProgress, None, None]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id or task_step_id[0] == '':
@@ -576,11 +591,13 @@ def report_progress(
 
   it_idx = initial_id if initial_id else 0
   start_time = time.time()
-  last_emit = time.time() - emit_every_s
+  # Reduce the emit frequency if there are multiple shards to reduce the size of the event stream.
+  emit_every_sec = EMIT_EVERY_SEC if not shard_count else EMIT_EVERY_SEC * shard_count
+  last_emit = time.time() - EMIT_EVERY_SEC
 
   for t in it:
     cur_time = time.time()
-    if estimated_len and cur_time - last_emit > emit_every_s:
+    if estimated_len and cur_time - last_emit > emit_every_sec:
       elapsed_sec = cur_time - start_time
       it_per_sec = ((it_idx or 0) - (initial_id or 0.0)) / elapsed_sec
       set_worker_task_progress(
@@ -693,7 +710,12 @@ def set_worker_task_progress(
 
   steps[step_id].it_idx = it_idx
   steps[step_id].estimated_len = estimated_len
-  steps[step_id].estimated_total_sec = estimated_total_sec
+  current_estimated_total_sec = steps[step_id].estimated_total_sec
+  steps[step_id].estimated_total_sec = (
+    max(current_estimated_total_sec, estimated_total_sec)
+    if current_estimated_total_sec
+    else estimated_total_sec
+  )
   steps[step_id].elapsed_sec = elapsed_sec
   steps[step_id].it_per_sec = it_per_sec
 
