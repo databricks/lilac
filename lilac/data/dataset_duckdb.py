@@ -879,6 +879,7 @@ class DatasetDuckDB(Dataset):
         task_step_id=task_step_id,
         initial_id=start_idx,
         shard_id=shard_id,
+        shard_count=shard_count,
         estimated_len=estimated_len,
         step_description=task_step_description,
       )
