@@ -325,7 +325,7 @@ class TaskManager:
       del self._dask_futures[task_id]
 
   def _restart_client_if_no_tasks(self) -> None:
-    # Check if any tasks are not completed. If not, we restart t he dask client to free up memory.
+    # Check if any tasks are not completed. If not, we restart the dask client to free up memory.
     tasks_pending = any(task.status == TaskStatus.PENDING for task in self._tasks.values())
     if not tasks_pending:
       self._dask_client.restart()

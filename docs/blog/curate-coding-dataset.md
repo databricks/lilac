@@ -142,10 +142,10 @@ different examples by using the left and right arrow keys.
 The process of refining data is iterative. If the diff is not exactly what we like, we can change
 the parameters to the formatter, re-run the map with `overwrite=True`, and see the new results.
 
-If some of the edits are not what we want, we can manually label them as "bad" to clicking on the
-label in the top left corner of the example. Then we can apply a filter on the "bad" examples to
-make sure the new version of our map improved those examples. Conversely, we can also label good
-examples as "good" and filter on those in future versions to make sure we didn't regress.
+If some of the edits are not ideal, we can click on the label in the top left corner of the example
+and tag it as "bad". Then we can apply a filter for "bad" examples and make sure that new versions
+of our map improved on those examples. Conversely, we can tag "good" examples and see if we regress
+as we iterate on the dataset.
 
 <img src="../_static/curate_coding_dataset/label.png">
 
@@ -155,7 +155,7 @@ using the download dialog or the python API. See
 
 ## Going forward
 
-We believe that text is a becoming new programming language. It is the source code of LLMs.
+We believe that text is becoming new programming language. It is the source code of LLMs.
 
 At Lilac, we are building the tooling to work with this new programming language, bringing the
 tooling, rigor, and best practices from software engineering to the development of the data behind
