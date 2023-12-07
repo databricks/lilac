@@ -23,7 +23,7 @@ from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
-from .tasks import TaskStepId, progress
+from .tasks import TaskStepId, report_progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
@@ -114,7 +114,7 @@ def slow_process(
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
-  items = progress(
+  items = report_progress(
     items,
     task_step_id=task_step_id,
     estimated_len=source_schema.num_items,

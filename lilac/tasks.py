@@ -27,6 +27,7 @@ from typing import (
 
 import dask
 import nest_asyncio
+import psutil
 from dask import config as cfg
 from dask.distributed import Client
 from distributed import Future as DaskFuture
@@ -34,6 +35,7 @@ from distributed import get_client, get_worker, wait
 from pydantic import BaseModel, TypeAdapter
 from tqdm import tqdm
 
+from .env import env
 from .utils import log, pretty_timedelta
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
@@ -75,9 +77,12 @@ class TaskStepInfo(BaseModel):
 
   it_idx: Optional[int] = None
   estimated_len: Optional[int] = None
+  estimated_total_sec: Optional[float] = None
   elapsed_sec: Optional[float] = None
   it_per_sec: Optional[float] = None
 
+  # The start time of the task step, from time.time().
+  start_time: Optional[float] = None
   # Maps a shard id to the (current, total) progress of the shard. We cannot use a dict here because
   # dask serializes with msgpack which does not support dicts.
   shard_progresses: list[tuple[int, tuple[int, int]]] = []
@@ -146,8 +151,12 @@ class TaskManager:
     except RuntimeError as e:
       asynchronous = False
 
+    self.n_workers = multiprocessing.cpu_count()
+    total_memory_gb = psutil.virtual_memory().total / (1024**3)
     self._dask_client = dask_client or Client(
       asynchronous=asynchronous,
+      memory_limit=f'{total_memory_gb} GB',
+      n_workers=self.n_workers,
       processes=True,
     )
 
@@ -156,18 +165,23 @@ class TaskManager:
     for task_id, task in list(self._tasks.items()):
       if task.status == TaskStatus.COMPLETED:
         if task_id in self._task_threadpools:
-          self._task_threadpools[task_id].shutdown()
-          del self._task_threadpools[task_id]
+          threadpool = self._task_threadpools[task_id]
+          threadpool.shutdown()
+          # Clean up threaded events.
+          del THREADED_EVENTS[_progress_event_topic(task_id)]
         continue
 
-      try:
-        step_events = cast(Any, self._dask_client.get_events(_progress_event_topic(task_id)))
-      except Exception as e:
-        return None
-
-      # This allows us to work with both sync and async clients.
-      if not isinstance(step_events, tuple):
-        step_events = await step_events
+      task_progress_topic = _progress_event_topic(task_id)
+      if task_id in self._dask_futures:
+        try:
+          step_events = cast(Any, self._dask_client.get_events(task_progress_topic))
+        except Exception as e:
+          return None
+        # This allows us to work with both sync and async clients.
+        if not isinstance(step_events, tuple):
+          step_events = await step_events
+      else:
+        step_events = cast(Any, get_worker_events(task_progress_topic))
 
       if step_events:
         _, log_message = step_events[-1]
@@ -181,11 +195,19 @@ class TaskManager:
           if cur_step.shard_progresses:
             it_idx = sum([shard_it_idx for _, (shard_it_idx, _) in cur_step.shard_progresses])
             estimated_len = sum([shard_len for _, (_, shard_len) in cur_step.shard_progresses])
+
+          # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
+          elapsed = ''
+          if cur_step.elapsed_sec:
+            elapsed = f'{pretty_timedelta(timedelta(seconds=cur_step.elapsed_sec))}'
+            if cur_step.estimated_total_sec:
+              # Only show estimated when in progress.
+              elapsed = (
+                f'{elapsed} < {pretty_timedelta(timedelta(seconds=cur_step.estimated_total_sec))}'
+              )
+
           task.details = (
-            (
-              f'{it_idx:,}/{estimated_len:,} '
-              f'[{int(cur_step.elapsed_sec)}, {cur_step.it_per_sec:,.2f} ex/s]'
-            )
+            f'{it_idx:,}/{estimated_len:,} [{elapsed} {cur_step.it_per_sec:,.2f} ex/s]'
             if it_idx is not None
             and estimated_len is not None
             and cur_step.it_per_sec
@@ -239,17 +261,18 @@ class TaskManager:
       wait_result = wait(dask_futures)
       if asyncio.iscoroutine(wait_result):
         asyncio.get_event_loop().run_until_complete(wait_result)
+
+      for future in dask_futures:
+        if future.status == 'error':
+          task_error = future.exception()
+          if asyncio.iscoroutine(task_error):
+            task_error = asyncio.get_event_loop().run_until_complete(task_error)
+          raise task_error
+
     # Wait for all thread futures.
     if thread_futures:
       for future in thread_futures:
         future.result()
-
-    for future in dask_futures:
-      if isinstance(future, DaskFuture) and future.status == 'error':
-        task_error = future.exception()
-        if asyncio.iscoroutine(task_error):
-          task_error = asyncio.get_event_loop().run_until_complete(task_error)
-        raise task_error
 
   def task_id(
     self,
@@ -295,7 +318,6 @@ class TaskManager:
       self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
 
     status = task_future.status if isinstance(task_future, DaskFuture) else 'completed'
-    log(f'Task {status} "{task_id}": "{self._tasks[task_id].name}" in ' f'{elapsed_formatted}.')
 
     if task_id in self._dask_futures:
       del self._dask_futures[task_id]
@@ -311,8 +333,6 @@ class TaskManager:
 
   def execute(self, task_id: str, type: TaskExecutionType, task: TaskFn, *args: Any) -> None:
     """Execute a task."""
-    log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}" with type {type}.')
-
     task_info = self._tasks[task_id]
 
     if type == 'processes':
@@ -343,8 +363,6 @@ class TaskManager:
     subtasks: list[tuple[TaskFn, list[Any]]],
   ) -> None:
     """Execute a task in multiple shards."""
-    log(f'Scheduling task "{task_id}": "{self._tasks[task_id].name}".')
-
     if task_id in self._task_threadpools:
       raise ValueError(f'Task {task_id} already exists.')
 
@@ -460,18 +478,83 @@ def get_current_step_id(steps: list[TaskStepInfo]) -> int:
   return cur_step
 
 
-def progress(
+def _get_task_step_info(task_step_id: TaskStepId) -> tuple[Optional[TaskStepInfo], bool]:
+  """Gets the step info, step info, and whether it is complete."""
+  task_id, step_id = task_step_id
+  task_manifest = asyncio.get_event_loop().run_until_complete(get_task_manager().manifest())
+  task_info = task_manifest.tasks[task_id]
+  task_is_complete = task_info.status != TaskStatus.PENDING
+  steps = task_manifest.tasks[task_id].steps
+  if steps is None:
+    return None, task_is_complete
+
+  cur_step_id = get_current_step_id(steps)
+
+  step = steps[step_id]
+  return (
+    step,
+    step.progress == 1.0 or task_is_complete or cur_step_id > step_id,
+  )
+
+
+def show_progress(
+  task_step_id: TaskStepId, total_len: Optional[int] = None, description: Optional[str] = None
+) -> None:
+  """Show a tqdm progress bar.
+
+  Args:
+    task_step_id: The task step ID.
+    total_len: The total length of the progress. This is optional, but nice to avoid jumping of
+      progress bars.
+    description: The description of the progress bar.
+  """
+  # Don't show progress bars in unit test to reduce output spam.
+  if env('LILAC_TEST', False):
+    return
+
+  # Use the task_manager state and tqdm to report progress.
+  step_info, is_complete = _get_task_step_info(task_step_id)
+  estimated_len = None
+
+  last_it_idx = 0
+  with tqdm(total=total_len, desc=description) as pbar:
+    while not is_complete:
+      step_info, is_complete = _get_task_step_info(task_step_id)
+
+      if step_info:
+        shard_progresses_dict = dict(step_info.shard_progresses)
+        total_it_idx = sum([shard_it_idx for shard_it_idx, _ in shard_progresses_dict.values()])
+        total_shard_len = sum([shard_len for _, shard_len in shard_progresses_dict.values()])
+
+        if total_it_idx and last_it_idx and (total_it_idx != last_it_idx):
+          pbar.update(total_it_idx - last_it_idx)
+        last_it_idx = total_it_idx if step_info else 0
+
+        # If the user didnt pass a total_len explicitly, update the progress bar when we get new
+        # information from shards reporting their lengths.
+        if not total_len and total_shard_len != estimated_len:
+          estimated_len = total_shard_len
+          pbar.total = total_shard_len
+          pbar.refresh()
+
+    if is_complete:
+      total_len = total_len or estimated_len
+      if total_len and pbar.n:
+        pbar.update(total_len - pbar.n)
+
+
+def report_progress(
   it: Union[Iterator[TProgress], Iterable[TProgress]],
   task_step_id: Optional[TaskStepId],
   shard_id: Optional[int] = None,
   initial_id: Optional[int] = None,
   estimated_len: Optional[int] = None,
   step_description: Optional[str] = None,
-  emit_every_s: float = 1.0,
+  emit_every_s: float = 0.25,
 ) -> Generator[TProgress, None, None]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   if not task_step_id or task_step_id[0] == '':
-    yield from tqdm(it, initial=initial_id or 0, desc=step_description, total=estimated_len)
+    yield from it
     return
 
   task_id, step_id = task_step_id
@@ -494,25 +577,24 @@ def progress(
   it_idx = initial_id if initial_id else 0
   start_time = time.time()
   last_emit = time.time() - emit_every_s
-  with tqdm(
-    it, initial=it_idx, desc=step_description, total=estimated_len, position=shard_id, leave=True
-  ) as tq:
-    for t in tq:
-      cur_time = time.time()
-      if estimated_len and cur_time - last_emit > emit_every_s:
-        it_per_sec = tq.format_dict['rate'] or 0.0
-        set_worker_task_progress(
-          task_step_id=task_step_id,
-          shard_id=shard_id,
-          it_idx=it_idx,
-          elapsed_sec=tq.format_dict['elapsed'] or 0.0,
-          it_per_sec=it_per_sec or 0.0,
-          estimated_total_sec=((estimated_len) / it_per_sec if it_per_sec else 0),
-          estimated_len=estimated_len,
-        )
-        last_emit = cur_time
-      yield t
-      it_idx += 1
+
+  for t in it:
+    cur_time = time.time()
+    if estimated_len and cur_time - last_emit > emit_every_s:
+      elapsed_sec = cur_time - start_time
+      it_per_sec = ((it_idx or 0) - (initial_id or 0.0)) / elapsed_sec
+      set_worker_task_progress(
+        task_step_id=task_step_id,
+        shard_id=shard_id,
+        it_idx=it_idx,
+        elapsed_sec=elapsed_sec,
+        it_per_sec=it_per_sec or 0.0,
+        estimated_total_sec=estimated_len / it_per_sec if it_per_sec else 0,
+        estimated_len=estimated_len,
+      )
+      last_emit = cur_time
+    yield t
+    it_idx += 1
 
   total_time = time.time() - start_time
   set_worker_task_progress(
@@ -539,12 +621,20 @@ def log_event(topic: str, message: dict[str, Any]) -> None:
     THREADED_EVENTS.setdefault(topic, []).append((datetime.now(), message))
 
 
-def get_events(topic: str) -> list[Any]:
-  """Gets the events for a topic."""
+def get_events(topic: str) -> tuple[Any, ...]:
+  """Gets the events for a topic from the scheduler."""
   if get_is_dask_worker():
     return cast(Any, get_client().get_events(topic))
   else:
-    return THREADED_EVENTS.get(topic, [])
+    return tuple(THREADED_EVENTS.get(topic, []))
+
+
+def get_worker_events(topic: str) -> tuple[Any, ...]:
+  """Gets the events for a topic from inside a worker."""
+  if get_is_dask_worker():
+    return cast(Any, get_client().get_events(topic))
+  else:
+    return tuple(THREADED_EVENTS.get(topic, []))
 
 
 def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
@@ -554,7 +644,7 @@ def set_worker_steps(task_id: TaskId, steps: list[TaskStepInfo]) -> None:
 
 def get_worker_steps(task_id: TaskId) -> list[TaskStepInfo]:
   """Gets the last worker steps."""
-  events = get_events(_progress_event_topic(task_id))
+  events = get_worker_events(_progress_event_topic(task_id))
   if not events or not events[-1]:
     return []
 
@@ -601,13 +691,9 @@ def set_worker_task_progress(
 
   steps[step_id].progress = float(total_it_idx) / total_len
 
-  # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
-  elapsed = f'{pretty_timedelta(timedelta(seconds=elapsed_sec))}'
-  if it_idx != estimated_len:
-    # Only show estimated when in progress.
-    elapsed = f'{elapsed} < {pretty_timedelta(timedelta(seconds=estimated_total_sec))}'
   steps[step_id].it_idx = it_idx
   steps[step_id].estimated_len = estimated_len
+  steps[step_id].estimated_total_sec = estimated_total_sec
   steps[step_id].elapsed_sec = elapsed_sec
   steps[step_id].it_per_sec = it_per_sec
 

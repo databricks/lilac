@@ -20,6 +20,7 @@ from .schema import (
   VALUE_KEY,
   Field,
   Item,
+  MapType,
   arrow_schema_to_schema,
   column_paths_match,
   field,
@@ -183,6 +184,7 @@ def test_arrow_schema_to_schema() -> None:
       'spans': pa.struct(
         {SPAN_KEY: pa.struct({'start': pa.int32(), 'end': pa.int32()}), 'metadata': pa.string()}
       ),
+      'map': pa.map_(pa.string(), pa.list_(pa.int32())),
     }
   )
   expected_schema = schema(
@@ -198,6 +200,9 @@ def test_arrow_schema_to_schema() -> None:
       ],
       'blob': 'binary',
       'spans': field('string_span', fields={'metadata': 'string'}),
+      'map': field(
+        dtype=MapType(key_type=STRING, value_field=Field(repeated_field=Field(dtype=INT32)))
+      ),
     }
   )
   assert arrow_schema_to_schema(arrow_schema) == expected_schema

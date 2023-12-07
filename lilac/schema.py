@@ -116,23 +116,6 @@ def change_const_to_enum(prop_name: str, value: str) -> Callable[[dict[str, Any]
   return _schema_extra
 
 
-class MapType(DataType):
-  """The map dtype parameterized by the key and value types."""
-
-  def __init__(self, **kwargs: Any) -> None:
-    kwargs.pop('type', None)
-    super().__init__(type='map', **kwargs)
-
-  type: Literal['map'] = 'map'
-  key_type: DataType
-  value_type: DataType
-
-  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'map'))
-
-  def __str__(self) -> str:
-    return f'map<{self.key_type}, {self.value_type}>'
-
-
 STRING = DataType('string')
 # Contains {start, end} offset integers with a reference_column.
 STRING_SPAN = DataType('string_span')
@@ -221,6 +204,23 @@ class MapInfo(BaseModel):
   input_path: Optional[PathTuple] = None
   fn_source: str
   date_created: datetime
+
+
+class MapType(DataType):
+  """The map dtype parameterized by the key and value types."""
+
+  def __init__(self, **kwargs: Any) -> None:
+    kwargs.pop('type', None)
+    super().__init__(type='map', **kwargs)
+
+  type: Literal['map'] = 'map'
+  key_type: DataType
+  value_field: 'Field'
+
+  model_config = ConfigDict(json_schema_extra=change_const_to_enum('type', 'map'))
+
+  def __str__(self) -> str:
+    return f'map<{self.key_type}, {self.value_field}>'
 
 
 class Field(BaseModel):
@@ -379,7 +379,7 @@ class Schema(BaseModel):
           return False
         f = f.repeated_field
       elif f.dtype and isinstance(f.dtype, MapType) and f.dtype.key_type == STRING:
-        f = Field(dtype=f.dtype.value_type)
+        f = f.dtype.value_field
       else:
         return False
     return True
@@ -399,7 +399,7 @@ class Schema(BaseModel):
           raise ValueError(f'Invalid path for a schema field: {path}')
         f = f.repeated_field
       elif f.dtype and isinstance(f.dtype, MapType) and f.dtype.key_type == STRING:
-        f = Field(dtype=f.dtype.value_type)
+        f = f.dtype.value_field
       else:
         raise ValueError(f'Invalid path for a schema field: {path}')
     return f
@@ -608,7 +608,7 @@ def dtype_to_arrow_schema(dtype: Optional[DataType]) -> Union[pa.Schema, pa.Data
   elif dtype.type == 'map':
     map_dtype = cast(MapType, dtype)
     return pa.map_(
-      dtype_to_arrow_schema(map_dtype.key_type), dtype_to_arrow_schema(map_dtype.value_type)
+      dtype_to_arrow_schema(map_dtype.key_type), _schema_to_arrow_schema_impl(map_dtype.value_field)
     )
   else:
     raise ValueError(f'Can not convert dtype "{dtype}" to arrow dtype')
@@ -700,7 +700,7 @@ def arrow_dtype_to_dtype(arrow_dtype: pa.DataType) -> DataType:
     return MapType(
       type='map',
       key_type=arrow_dtype_to_dtype(arrow_dtype.key_type),
-      value_type=arrow_dtype_to_dtype(arrow_dtype.item_type),
+      value_field=_arrow_schema_to_schema_impl(arrow_dtype.item_type),
     )
   else:
     raise ValueError(f'Can not convert arrow dtype "{arrow_dtype}" to our dtype')
