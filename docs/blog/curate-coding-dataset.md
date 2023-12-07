@@ -23,7 +23,8 @@ changed.
 
 Let's load the Glaive dataset into Lilac from the HuggingFace hub. In this example, we're going to
 be using a Jupyter notebook (follow along
-[here](https://github.com/lilacai/lilac/blob/main/notebooks/CurateCodingDataset.ipynb)).
+[here](https://github.com/lilacai/lilac/blob/main/notebooks/CurateCodingDataset.ipynb)) or
+[view the live demo on HuggingFace](https://lilacai-lilac.hf.space/datasets#lilac/glaive&expandedStats=%7B%22answer_formatted.has_edit%22%3Atrue%7D&query=%7B%22filters%22%3A%5B%7B%22path%22%3A%5B%22answer_formatted%22%2C%22has_edit%22%5D%2C%22op%22%3A%22equals%22%2C%22value%22%3A1%7D%5D%7D&compareColumns=%5B%7B%22column%22%3A%5B%22answer%22%5D%2C%22compareToColumn%22%3A%5B%22answer_formatted%22%2C%22answer%22%5D%2C%22swapDirection%22%3Afalse%7D%5D&rowId=%22fffc265c-845e-4a2b-b3ce-2caa61fed0f4%22).
 
 ```python
 import lilac as ll
