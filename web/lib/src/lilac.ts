@@ -111,7 +111,7 @@ export function deserializeSchema(rawSchema: Schema): LilacSchema {
 
 export function deserializeRow(
   rawRow: FieldValue,
-  schema: LilacSchema | LilacField
+  schema: LilacSchema | LilacField | undefined
 ): LilacValueNode {
   const fields = childFields(schema);
   const rootNode = lilacValueNodeFromRawValue(rawRow, fields, []);

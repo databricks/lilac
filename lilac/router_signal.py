@@ -103,7 +103,7 @@ class SignalSchemaOptions(BaseModel):
 class SignalSchemaResponse(BaseModel):
   """The response for the signal schema endpoint."""
 
-  fields: Field
+  fields: Optional[Field]
 
 
 @router.post('/schema', response_model_exclude_none=True)
