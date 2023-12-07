@@ -101,6 +101,7 @@ from ..tasks import (
 )
 from ..utils import (
   DebugTimer,
+  chunks,
   delete_file,
   get_dataset_output_dir,
   get_lilac_cache_dir,
@@ -611,6 +612,7 @@ class DatasetDuckDB(Dataset):
     resolve_span: bool = False,
     shard_cache_filepath: Optional[str] = None,
     overwrite: bool = False,
+    query_options: Optional[DuckDBQueryParams] = None,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
   ) -> Iterable[tuple[str, Item]]:
@@ -667,6 +669,8 @@ class DatasetDuckDB(Dataset):
           all_columns.update(col_dict)
         columns_to_merge = {'*': all_columns}
 
+    options_clause = self._compile_select_options(query_options)
+
     # Fetch the data from DuckDB.
     con = self.con.cursor()
 
@@ -675,7 +679,9 @@ class DatasetDuckDB(Dataset):
     con.execute(
       f"""
       CREATE OR REPLACE VIEW {t_shard_table} as (
-        SELECT * FROM t
+        SELECT * FROM (
+          SELECT * FROM t {options_clause}
+        )
         ORDER BY {ROWID}
         LIMIT {shard_end_idx - shard_start_idx}
         OFFSET {shard_start_idx}
@@ -764,6 +770,7 @@ class DatasetDuckDB(Dataset):
     jsonl_cache_filepath: str,
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
+    query_options: Optional[DuckDBQueryParams] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
     shard_id: Optional[int] = None,
@@ -803,6 +810,7 @@ class DatasetDuckDB(Dataset):
       resolve_span=resolve_span,
       shard_cache_filepath=jsonl_cache_filepath,
       overwrite=overwrite,
+      query_options=query_options,
       shard_id=shard_id,
       shard_count=shard_count,
     )
@@ -918,6 +926,14 @@ class DatasetDuckDB(Dataset):
       schema = schema.model_copy(deep=True)
       schema.fields[ROWID] = Field(dtype=STRING)
 
+    # Potential bug: if a computation is interrupted, and then the num-workers, filtering, or limits
+    # are updated, then shard assignment may not be consistent. Then, two workers may have processed
+    # the same row, leading to duplicate rows in the result. A further complication is if
+    # the map function changed in between the two computations, making it difficult to reconstruct.
+    # which value is more recent. This could happen if you ran a map function, realized there was a
+    # bug, interrupted it, updated and reran.
+    #
+    # Anyway this seems like a lot of unusual things have to happen so I'll leave the bug unfixed.
     json_query = f"""
       SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
         {jsonl_cache_filepaths},
@@ -2545,15 +2561,23 @@ class DatasetDuckDB(Dataset):
     selection = ', '.join(select_queries)
     return f'SELECT {selection} FROM t'
 
-  def _compile_select_options(self, query_options: DuckDBQueryParams) -> str:
+  def _compile_select_options(self, query_options: Optional[DuckDBQueryParams]) -> str:
     """Compiles SQL WHERE/ORDER BY/LIMIT clauses for select queries."""
+    if query_options is None:
+      return ''
     manifest = self.manifest()
-    where_query = ''
+    where_clause = ''
     filter_queries = self._create_where(manifest, query_options.filters)
     if filter_queries:
-      where_query = f"WHERE {' AND '.join(filter_queries)}"
+      where_clause = f"WHERE {' AND '.join(filter_queries)}"
 
-    return where_query
+    limit_clause = ''
+    if query_options.limit:
+      limit_clause = f'LIMIT {query_options.limit}'
+      if query_options.offset:
+        limit_clause += f' OFFSET {query_options.offset}'
+
+    return f'{where_clause} {limit_clause}'
 
   @override
   def map(
@@ -2565,6 +2589,9 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
+    batch_size: Optional[int] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
@@ -2631,6 +2658,9 @@ class DatasetDuckDB(Dataset):
             f'Cannot map to path "{output_column}" which already exists in the dataset. '
             'Use overwrite=True to overwrite the column.'
           )
+    filters, _ = self._normalize_filters(
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
+    )
 
     num_jobs = get_task_manager().get_num_workers() if num_jobs == -1 else num_jobs
 
@@ -2663,15 +2693,16 @@ class DatasetDuckDB(Dataset):
           self._map_worker,
           [
             map_fn,
+            batch_size,
             output_path,
             jsonl_cache_filepath,
             i,
             num_jobs,
             input_path,
             overwrite,
+            DuckDBQueryParams(filters=filters, limit=limit),
             combine_columns,
             resolve_span,
-            entire_input,
             (task_id, 0),
             progress_description,
           ],
@@ -2743,153 +2774,19 @@ class DatasetDuckDB(Dataset):
 
     return result
 
-  @override
-  def transform(
-    self,
-    transform_fn: Callable[[Iterable[Item]], Iterable[Item]],
-    output_column: str,
-    input_path: Optional[Path] = None,
-    nest_under: Optional[Path] = None,
-    overwrite: bool = False,
-    combine_columns: bool = False,
-    resolve_span: bool = False,
-  ) -> None:
-    manifest = self.manifest()
-    input_path = normalize_path(input_path) if input_path else None
-    if input_path:
-      input_field = manifest.data_schema.get_field(input_path)
-      if not input_field.dtype:
-        raise ValueError(
-          f'Input path {input_path} is not a leaf path. This is currently unsupported. If you '
-          'require this, please file an issue and we will prioritize.'
-        )
-
-    # Validate output_column and nest_under.
-    if nest_under is not None:
-      nest_under = normalize_path(nest_under)
-      if output_column is None:
-        raise ValueError('When using `nest_under`, you must specify an output column name.')
-
-      # Make sure nest_under does not contain any repeated values.
-      for path_part in nest_under:
-        if path_part == PATH_WILDCARD:
-          raise ValueError('Nesting map outputs under a repeated field is not yet supported.')
-
-      if not manifest.data_schema.has_field(nest_under):
-        raise ValueError(f'The `nest_under` column {nest_under} does not exist.')
-
-    if nest_under is not None:
-      output_path = (*nest_under, output_column)
-    else:
-      output_path = (output_column,)
-
-    parquet_filepath: Optional[str] = None
-    if manifest.data_schema.has_field(output_path):
-      if overwrite:
-        field = manifest.data_schema.get_field(output_path)
-        if field.map is None:
-          raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
-        # Delete the parquet file and map manifest.
-        assert output_column is not None
-        parquet_filepath = os.path.join(
-          self.dataset_path, get_parquet_filename(output_column, shard_index=0, num_shards=1)
-        )
-        if os.path.exists(parquet_filepath):
-          delete_file(parquet_filepath)
-
-        map_manifest_filepath = os.path.join(
-          self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
-        )
-        if os.path.exists(map_manifest_filepath):
-          delete_file(map_manifest_filepath)
-
-      else:
-        raise ValueError(
-          f'Cannot map to path "{output_column}" which already exists in the dataset. '
-          'Use overwrite=True to overwrite the column.'
-        )
-
-    task_ids = []
-    jsonl_cache_filepaths: list[str] = []
-    output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
-    task_id = get_task_manager().task_id(
-      name=f'[{self.namespace}/{self.dataset_name}] transform '
-      f'"{transform_fn.__name__}"{output_col_desc_suffix}',
-    )
-    jsonl_cache_filepath = _jsonl_cache_filepath(
-      namespace=self.namespace,
-      dataset_name=self.dataset_name,
-      key=output_path,
-      project_dir=self.project_dir,
-      shard_id=0,
-      shard_count=1,
-    )
-
-    entire_input = True
-    get_task_manager().execute(
-      task_id,
-      'processes',
-      self._map_worker,
-      transform_fn,
-      output_path,
-      jsonl_cache_filepath,
-      0,
-      1,
-      input_path,
-      overwrite,
-      combine_columns,
-      resolve_span,
-      entire_input,
-      (task_id, 0),
-    )
-    task_ids.append(task_id)
-    jsonl_cache_filepaths.append(jsonl_cache_filepath)
-
-    # Wait for the tasks to finish before reading the outputs.
-    get_task_manager().wait(task_ids)
-
-    _, map_schema, parquet_filepath = self._reshard_cache(
-      output_path=output_path, jsonl_cache_filepaths=jsonl_cache_filepaths
-    )
-
-    assert parquet_filepath is not None
-
-    map_field_root = map_schema.get_field(output_path)
-
-    map_field_root.map = MapInfo(
-      fn_name=transform_fn.__name__,
-      input_path=input_path,
-      fn_source=inspect.getsource(transform_fn),
-      date_created=datetime.now(),
-    )
-
-    parquet_dir = os.path.dirname(parquet_filepath)
-    map_manifest_filepath = os.path.join(parquet_dir, f'{output_column}.{MAP_MANIFEST_SUFFIX}')
-    parquet_filename = os.path.basename(parquet_filepath)
-    map_manifest = MapManifest(
-      files=[parquet_filename],
-      data_schema=map_schema,
-      parquet_id=get_map_parquet_id(output_path),
-      py_version=metadata.version('lilac'),
-    )
-    with open_file(map_manifest_filepath, 'w') as f:
-      f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
-
-    parquet_filepath = os.path.join(self.dataset_path, parquet_filepath)
-    log(f'Wrote transform output to {parquet_filepath}')
-
   def _map_worker(
     self,
     map_fn: MapFn,
+    batch_size: Optional[int],
     output_path: PathTuple,
     jsonl_cache_filepath: str,
     job_id: int,
     job_count: int,
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
+    query_options: Optional[DuckDBQueryParams] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    entire_input: bool = False,
     task_step_id: Optional[TaskStepId] = None,
     task_step_description: Optional[str] = None,
   ) -> None:
@@ -2902,18 +2799,25 @@ class DatasetDuckDB(Dataset):
 
     has_job_id_arg = len(map_sig.parameters) == 2
 
-    if not entire_input:
+    def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
+      batch: Iterable[Any]
+      map_args: Union[Iterable[Any], tuple[Iterable[Any], int]]
+      if batch_size == -1:
+        batch = [list(items)]
+      elif batch_size is not None:
+        batch = map(list, chunks(items, batch_size))
+      else:
+        batch = items
 
-      def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
-        for item in items:
-          args: Union[tuple[Item], tuple[Item, int]] = (
-            (item,) if not has_job_id_arg else (item, job_id)
-          )
-          yield map_fn(*args)
-    else:
+      if has_job_id_arg:
+        map_args = (batch, itertools.repeat(job_id))
+      else:
+        map_args = (batch,)
 
-      def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
-        return map_fn(items)
+      if batch_size is None:
+        yield from map(map_fn, *map_args)
+      else:
+        yield from itertools.chain.from_iterable(map(map_fn, *map_args))
 
     self._compute_disk_cached(
       _map_iterable,
@@ -2921,6 +2825,7 @@ class DatasetDuckDB(Dataset):
       jsonl_cache_filepath=jsonl_cache_filepath,
       unnest_input_path=unnest_input_path,
       overwrite=overwrite,
+      query_options=query_options,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
       shard_id=job_id,

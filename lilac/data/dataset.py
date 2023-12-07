@@ -624,6 +624,9 @@ class Dataset(abc.ABC):
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
+    batch_size: Optional[int] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
@@ -647,6 +650,14 @@ class Dataset(abc.ABC):
         reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
         fields.
       resolve_span: Whether to resolve the spans into text before calling the map function.
+      batch_size: If provided, the map function will be called with a list of rows. Useful for
+        batching API requests or other expensive operations. If unspecified, the map will receive
+        one item at a time.
+      filters: Filters limiting the set of rows to map over. At the moment, we do not support
+        incremental computations; the output column will be null for rows that do not match the
+        filter, and there is no way to fill in those nulls without recomputing the entire map with
+        a less restrictive filter and overwrite=True.
+      limit: How many rows to map over. If not specified, all rows will be mapped over.
       num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
         jobs will correspond to the number of processors. If `num_jobs` is greater than the number
         of processors, it split the work into `num_jobs` and distribute amongst processors.
@@ -660,17 +671,18 @@ class Dataset(abc.ABC):
     """
     pass
 
-  @abc.abstractmethod
   def transform(
     self,
     transform_fn: Callable[[Iterable[Item]], Iterable[Item]],
-    output_column: str,
     input_path: Optional[Path] = None,
+    output_column: Optional[str] = None,
     nest_under: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
-  ) -> None:
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
+  ) -> Iterable[Item]:
     """Transforms the entire dataset (or a column) and writes the result to a new column.
 
     Args:
@@ -691,8 +703,26 @@ class Dataset(abc.ABC):
         reflecting the hierarchy of the data. When false, all columns will be flattened as top-level
         fields.
       resolve_span: Whether to resolve the spans into text before calling the map function.
+      filters: Filters limiting the set of rows to map over. At the moment, we do not support
+        incremental computations; the output column will be null for rows that do not match the
+        filter, and there is no way to fill in those nulls without recomputing the entire map with
+        a less restrictive filter and overwrite=True.
+      limit: How many rows to map over. If not specified, all rows will be mapped over.
     """
-    pass
+    return self.map(
+      map_fn=transform_fn,
+      input_path=input_path,
+      output_column=output_column,
+      nest_under=nest_under,
+      overwrite=overwrite,
+      combine_columns=combine_columns,
+      resolve_span=resolve_span,
+      batch_size=-1,
+      filters=filters,
+      limit=limit,
+      num_jobs=1,
+      execution_type='threads',
+    )
 
   @abc.abstractmethod
   def to_json(

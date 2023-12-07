@@ -704,7 +704,7 @@ def set_worker_task_progress(
 
   # Compute the total progress for all shards.
   total_it_idx = sum([shard_it_idx for shard_it_idx, _ in shard_progresses_dict.values()])
-  total_len = sum([shard_len for _, shard_len in shard_progresses_dict.values()])
+  total_len = sum([shard_len for _, shard_len in shard_progresses_dict.values()]) or 1
 
   steps[step_id].progress = float(total_it_idx) / total_len
 
