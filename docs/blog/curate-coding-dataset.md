@@ -1,23 +1,25 @@
 # Curate a coding dataset with Lilac
 
-Dec 2, 2023
+_Dec 7, 2023_
 
 Good data is the engine that drives progress in AI. Companies that have control of their data can
-add unique capabilities and differentiate their product. Beyond differentiation, companies are also
-recognizing that building models on their own data reduces cost, and improves speed, control and
-compliance.
+add unique capabilities and differentiate their product. Companies are also recognizing that
+building models with their own data reduces cost, and improves speed, control and compliance.
 
 Data curation is often the most effective way to control how AI models behave. This process involves
-standard procedures like de-duplication and PII scrubbing. However, focusing on the long-tail of
-product specific requirements can deliver an amazing user experience. At Lilac, we also believe that
-having more eyes on data ultimately leads to fundamental discoveries of how a model will behave,
-giving the developer more control of their downstream AI product.
+standard procedures like de-duplication and PII scrubbing, but also the long-tail of product
+specific requirements that can deliver an amazing user experience.
+
+At Lilac, we also believe that having more eyes on data ultimately leads to fundamental discoveries
+of how a model will behave, giving the developer more control of their downstream AI product.
 
 In this blog post, we'll delve into the excellent
 [Glaive coding assistant](https://huggingface.co/datasets/glaiveai/glaive-code-assistant) dataset
 with the goal of fine-tuning a code assistant model. We'll modify the dataset so that code outputted
 by our AI product follows consistent formatting rules, and we'll visualize how the dataset has
 changed.
+
+<img src="../_static/curate_coding_dataset/glaive_preview.png">
 
 ## A First Look at the Glaive Dataset
 
@@ -52,7 +54,7 @@ INFO:     Uvicorn running on http://127.0.0.1:5432 (Press CTRL+C to quit)
 
 You can see that the dataset consists of `question` and `answer` pairs, where the answer is in
 markdown format, often containing python code blocks. Immediately we can see that the python
-formatting is not consistent with our style, which will result in an AI product producing
+formatting is not consistent with our desired style, which will result in an AI product producing
 inconsistent code.
 
 Let's standardize the model's code output by running the excellent
@@ -64,8 +66,8 @@ In our Jupyter notebook, we'll define a simple function that takes one row from 
 returns a new `answer_formatted` column that has two sub-fields:
 
 1. `answer`: the rewritten output with formatted python code
-2. `has_edit`: a bit that is true if the code formatter made any changes. We will use the bit in the
-   UI to filter on the rows that got updated.
+2. `has_edit`: true when the code formatter made a change. We will use the bit in the UI to filter
+   on the rows that got updated.
 
 To modify the dataset in Lilac, we will use [](#Dataset.map). To learn more about `Dataset.map`, see
 the guide on [](../datasets/dataset_edit.md).
@@ -105,7 +107,7 @@ ds.map(format_code, output_column='answer_formatted', num_jobs=-1, execution_typ
 
 ## Dataset.map
 
-`Dataset.map` is the main vehicle of making edits to the data. It's similar to HuggingFace's
+`Dataset.map` is the main vehicle for making edits to data. It's similar to HuggingFace's
 [`Dataset.map()`](https://huggingface.co/docs/datasets/process#map) with a few key differences:
 
 - The output of Lilac's `Dataset.map` is always stored in a separate column. This enables tracking
@@ -153,13 +155,13 @@ using the download dialog or the python API. See
 
 ## Going forward
 
-In this blog post, we've shown how to use Lilac to curate a dataset for a code assistant model. We
-used a formatter to standardize the python code outputted by our AI product. We then visualized the
-changes to the dataset to understand the behavior of the formatter and any side-effects.
+We believe that text is a becoming new programming language. It is the source code of LLMs.
 
-Looking ahead, the landscape of programming is undergoing a paradigm shift with the emergence of
-text as a new programming language. Lilac plays a big part in this transformation as the traditional
-boundaries between code and data dissolve.
+At Lilac, we are building the tooling to work with this new programming language, bringing the
+tooling, rigor, and best practices from software engineering to the development of the data behind
+AI systems.
 
-We hope you enjoyed this blog post. If you have any questions or feedback, please reach out to us on
+There is much more to come!
+
+If you have any questions or feedback, please reach out to us on
 [Discord](https://discord.gg/jNzw9mC8pp) or [Github](https://github.com/lilacai/lilac).
