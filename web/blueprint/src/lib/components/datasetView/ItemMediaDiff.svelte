@@ -81,9 +81,6 @@
         verticalScrollbarSize: 8,
         alwaysConsumeMouseWheel: false
       },
-      stickyScroll: {
-        enabled: true
-      },
       minimap: {
         enabled: true,
         side: 'right'
