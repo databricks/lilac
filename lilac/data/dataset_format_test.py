@@ -5,7 +5,7 @@ from .dataset_format import SHARE_GPT_FORMAT
 from .dataset_test_utils import TestDataMaker
 
 
-def test_infer_sharegpt(make_test_data: TestDataMaker):
+def test_infer_sharegpt(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [
       {
@@ -21,7 +21,7 @@ def test_infer_sharegpt(make_test_data: TestDataMaker):
   assert dataset.manifest().dataset_format == SHARE_GPT_FORMAT
 
 
-def test_infer_sharegpt_extra(make_test_data: TestDataMaker):
+def test_infer_sharegpt_extra(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [
       {
@@ -38,7 +38,7 @@ def test_infer_sharegpt_extra(make_test_data: TestDataMaker):
   assert dataset.manifest().dataset_format == SHARE_GPT_FORMAT
 
 
-def test_other_format(make_test_data: TestDataMaker):
+def test_other_format(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [
       {'extra': 2, 'question': 'hello?'},
