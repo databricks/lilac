@@ -90,6 +90,9 @@
           // For primitive values, just show the value directly.
           primitiveValue = item as unknown as DataTypeCasted;
         }
+        const spanValuePaths = getSpanValuePaths(resultSchema);
+        spanPaths = spanValuePaths.spanPaths;
+        valuePaths = spanValuePaths.valuePaths;
         // Find the non-span fields to render as a table.
         metadataFields = children.filter(f => {
           // Remove any children that are the child of a span.
@@ -97,9 +100,6 @@
             return pathIncludes(f.path, p);
           });
         });
-        const spanValuePaths = getSpanValuePaths(resultSchema);
-        spanPaths = spanValuePaths.spanPaths;
-        valuePaths = spanValuePaths.valuePaths;
       } else {
         spanPaths = [];
         valuePaths = [];
