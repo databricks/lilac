@@ -78,30 +78,34 @@
   // For primitives.
   let primitiveValue: DataTypeCasted;
   $: {
-    if ($compute?.data != null && $signalSchema.data?.fields != null) {
+    if ($compute?.data != null) {
       primitiveValue = null;
       const item = $compute.data.items[0];
-      const resultSchema = deserializeField($signalSchema.data.fields);
-      previewResultItem = deserializeRow(item, resultSchema);
+      let resultSchema: LilacField | undefined = undefined;
+      if ($signalSchema.data?.fields != null) {
+        resultSchema = deserializeField($signalSchema.data.fields);
+        const children = petals(resultSchema);
 
-      const spanValuePaths = getSpanValuePaths(resultSchema);
-      spanPaths = spanValuePaths.spanPaths;
-      valuePaths = spanValuePaths.valuePaths;
-
-      const children = petals(resultSchema);
-
-      // Find the non-span fields to render as a table.
-      metadataFields = children.filter(f => {
-        // Remove any children that are the child of a span.
-        return !spanPaths.some(p => {
-          return pathIncludes(f.path, p);
+        if (children.length === 0) {
+          // For primitive values, just show the value directly.
+          primitiveValue = item as unknown as DataTypeCasted;
+        }
+        const spanValuePaths = getSpanValuePaths(resultSchema);
+        spanPaths = spanValuePaths.spanPaths;
+        valuePaths = spanValuePaths.valuePaths;
+        // Find the non-span fields to render as a table.
+        metadataFields = children.filter(f => {
+          // Remove any children that are the child of a span.
+          return !spanPaths.some(p => {
+            return pathIncludes(f.path, p);
+          });
         });
-      });
-
-      if (children.length === 0) {
-        // For primitive values, just show the value directly.
-        primitiveValue = item as unknown as DataTypeCasted;
+      } else {
+        spanPaths = [];
+        valuePaths = [];
+        metadataFields = [];
       }
+      previewResultItem = deserializeRow(item, resultSchema);
     }
   }
   let errors: JSONError[] = [];
@@ -149,7 +153,8 @@
         {#if $compute?.isFetching}
           <SkeletonText />
         {:else if previewResultItem != null && previewText != null && $compute?.data != null}
-          <Tabs>
+          <!-- Show the raw json response (2nd tab) if the signal doesn't have an explicit schema -->
+          <Tabs selected={$signalSchema.data?.fields ? 0 : 1}>
             <Tab label="Preview" />
             <Tab label="JSON response" />
             <svelte:fragment slot="content">

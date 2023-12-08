@@ -21,6 +21,10 @@ changed.
 
 <img src="../_static/curate_coding_dataset/glaive_preview.png">
 
+If you prefer a video walkthrough, check out the video below:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/bw8JUpAOSZQ?si=acoTBsseNg5nku40" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
 ## A First Look at the Glaive Dataset
 
 Let's load the Glaive dataset into Lilac from the HuggingFace hub. In this example, we're going to

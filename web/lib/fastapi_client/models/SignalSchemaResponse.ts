@@ -9,6 +9,6 @@ import type { Field } from './Field';
  * The response for the signal schema endpoint.
  */
 export type SignalSchemaResponse = {
-    fields: Field;
+    fields: (Field | null);
 };
 
