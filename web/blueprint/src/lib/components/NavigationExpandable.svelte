@@ -1,14 +1,15 @@
 <script context="module" lang="ts">
   export interface NavigationLinkItem {
     name: string;
-    link: string;
+    page: AppPage;
+    identifier: string;
     isSelected: boolean;
   }
 </script>
 
 <script lang="ts">
-  import {goto} from '$app/navigation';
   import {getNavigationContext} from '$lib/stores/navigationStore';
+  import {getUrlHashContext, type AppPage} from '$lib/stores/urlHashStore';
 
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
 
@@ -28,6 +29,7 @@
     return indentLevel * INDENT_LEVEL_PADDING_REM + INDENT_LEVEL_PADDING_OFFSET_REM;
   }
   const navigationStore = getNavigationContext();
+  const urlHashContext = getUrlHashContext();
 
   let expanded = true;
   $: expanded = $navigationStore.expanded[key] != null ? $navigationStore.expanded[key] : true;
@@ -68,8 +70,11 @@
               class:bg-neutral-100={linkItem.isSelected}
             >
               <a
-                href={linkItem.link}
-                on:click={() => goto(linkItem.link)}
+                href={urlHashContext.getPageIdentifierLink(
+                  linkItem.page,
+                  linkItem.identifier,
+                  $navigationStore
+                )}
                 class:text-black={linkItem.isSelected}
                 class:font-semibold={linkItem.isSelected}
                 class="w-full truncate px-1 py-1 text-xs text-black"

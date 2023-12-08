@@ -14,6 +14,7 @@
     getValueNodes,
     pathIsEqual,
     pathIsMatching,
+    petals,
     type DataTypeCasted,
     type LilacField,
     type LilacValueNode,
@@ -78,12 +79,23 @@
   $: valueNode = valueNodes[0];
   $: value = L.value(valueNode);
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
+
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   // Compare media paths should contain media paths with resolved path wildcards as sometimes the
   // user wants to compare items in an array.
-  $: mediaPaths = row != null ? $settings.data?.ui?.media_paths || [] : [];
-  $: compareMediaPaths = mediaPaths
+  // NOTE: We do not use media paths here to allow the user to compare to a field they didn't
+  // necessarily add to the media fields.
+  $: stringPetals =
+    $schema.data != null ? petals($schema.data).filter(p => p.dtype?.type === 'string') : [];
+
+  $: compareMediaPaths = stringPetals
+    .map(f => f.path)
     .map(p => (Array.isArray(p) ? p : [p]))
     .flatMap(p => {
+      if (row == null) {
+        return [];
+      }
+      // Get the value nodes for this path, which expand PATH_WILDCARDs.
       return getValueNodes(row!, p)
         .map(v => L.path(v))
         .filter(p => !pathIsMatching(p, rootPath));
@@ -96,8 +108,6 @@
   function selectCompareColumn(event: CustomEvent<{id: Path}>) {
     datasetViewStore.addCompareColumn([rootPath!, event.detail.id]);
   }
-
-  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: computedEmbeddings = getComputedEmbeddings($schema.data, mediaPath);
   $: noEmbeddings = computedEmbeddings.length === 0;

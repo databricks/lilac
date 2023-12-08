@@ -130,6 +130,7 @@ STRING_OPS = set(['length_longer', 'length_shorter', 'ilike', 'regex_matches', '
 UNARY_OPS = set(['exists', 'not_exists'])
 LIST_OPS = set(['in'])
 RAW_SQL_OPS = set(['raw_sql'])
+ALL_OPS = sorted(BINARY_OPS | STRING_OPS | UNARY_OPS | LIST_OPS | RAW_SQL_OPS)
 
 
 class SortOrder(str, enum.Enum):
@@ -267,7 +268,7 @@ class Filter(BaseModel):
   """A filter on a column."""
 
   path: PathTuple
-  op: FilterOp
+  op: FilterOp = PydanticField(description=f'The type of filter. Available filters are {ALL_OPS}')
   value: Optional[Union[FeatureValue, FeatureListValue]] = None
 
 

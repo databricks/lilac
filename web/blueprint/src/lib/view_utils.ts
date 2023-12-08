@@ -42,7 +42,7 @@ import type {NavigationGroupItem, NavigationTagGroup} from './components/Navigat
 import type {SpanValueInfo} from './components/datasetView/spanHighlight';
 import type {DatasetViewState} from './stores/datasetViewStore';
 import type {SettingsState} from './stores/settingsStore';
-import {conceptLink, datasetLink} from './utils';
+import {conceptIdentifier, datasetIdentifier} from './utils';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export const DTYPE_TO_ICON: Record<Exclude<DataType['type'], 'map'>, typeof CarbonIcon> = {
@@ -241,7 +241,8 @@ export function getTaggedDatasets(
           )
           .map(d => ({
             name: d.dataset_name,
-            link: datasetLink(d.namespace, d.dataset_name),
+            page: 'datasets',
+            identifier: datasetIdentifier(d.namespace, d.dataset_name),
             isSelected:
               selectedDataset?.namespace === d.namespace &&
               selectedDataset?.datasetName === d.dataset_name,
@@ -295,7 +296,8 @@ export function getTaggedConcepts(
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(c => ({
             name: c.name,
-            link: conceptLink(c.namespace, c.name),
+            page: 'concepts',
+            identifier: conceptIdentifier(c.namespace, c.name),
             isSelected:
               selectedConcept?.namespace === c.namespace && selectedConcept?.name === c.name,
             item: c

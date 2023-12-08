@@ -9,7 +9,8 @@
   }
   export interface NavigationItem<T = unknown> {
     name: string;
-    link: string;
+    page: AppPage;
+    identifier: string;
     isSelected: boolean;
     item: T;
   }
@@ -19,6 +20,7 @@
   import {SkeletonText} from 'carbon-components-svelte';
 
   import {getNavigationContext} from '$lib/stores/navigationStore';
+  import type {AppPage} from '$lib/stores/urlHashStore';
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import NavigationExpandable from './NavigationExpandable.svelte';

@@ -6,10 +6,10 @@ For a real world example, see the blog post on [](../blog/curate-coding-dataset.
 ```
 
 Once you bring the data into Lilac, you can start editing it. The main edit operation is creating a
-new column via [`Dataset.map`](#Dataset.map), which is similar to
-[HuggingFace's Dataset.map()](https://huggingface.co/docs/datasets/process#map). The code provided
-in `map` runs against every row in a table, enhancing that data with new information. For example,
-we can call GPT to extract structure from a piece of text, or rewrite a piece of text in a different
+new column via [`Dataset.map`](#Dataset.map), which takes API inspiration from
+[HuggingFace's Dataset.map()](https://huggingface.co/docs/datasets/process#map). The function being
+mapped runs against every row in a table, enhancing that data with new information. For example, we
+can call GPT to extract structure from a piece of text, or rewrite a piece of text in a different
 style or language.
 
 The benefits of using Lilac's `map` include the ability to track lineage information for every
@@ -19,19 +19,27 @@ the edits made.
 
 ## `Dataset.map`
 
-[`Dataset.map`](#Dataset.map) is the main vehicle for processing data in Lilac. It's similar to with
-a few key differences:
+[`Dataset.map`](#Dataset.map) is the main vehicle for processing data in Lilac.
 
-- The output of Lilac's `map` is written to a new column in the _same_ dataset. This enables
-  tracking of lineage information for every computed column, while avoiding copying the entire
-  dataset.
-- If the map fails mid-way (e.g. with an exception, or your computer dies), you can resume
-  computation without losing any intermediate results. This is important when the `map` function is
-  expensive or slow (e.g. calling GPT to edit data, or calling an expensive embedding model).
+- It is fundamentally a row-oriented operation. As a text-oriented tool, Lilac assumes that text
+  processing (via LLMs, etc.) is more expensive than memory access. It is not like pandas, which
+  optimizes for vectorized numerical computation over rows, columns, or entire dataframes.
+- Lilac will save your map progress: if the map fails mid-way (e.g. with an exception, or your
+  computer dies), you can resume computation without losing any intermediate results. This is
+  important when the `map` function is expensive or slow (e.g. calling GPT to edit data, or calling
+  an expensive embedding model).
+- `map` operates seamlessly over repeated subfields: your map only ever sees a flattened stream of
+  items and Lilac keeps track of the association between each item and its source row.
+- The output of Lilac's `map` is always written to a new column in the same dataset. We're working
+  on versioned columns, which will allow you to overwrite the same column while being able to
+  compare/undo the change.
 - While the computation is running, the Lilac UI will show a progress bar. When it completes, the UI
   will auto-refresh and we can use the new column (see statistics, filter by values, etc).
 
-Let's start with a simple example where we add a `Q: ` prefix to each `question` in the dataset.
+### Example usage
+
+Let's start with a simple example where we add a `Q: ` prefix to each `question` in the dataset. By
+default, Lilac reads the entire row and your map function will receive the row as a dictionary.
 
 ```python
 import lilac as ll
@@ -77,8 +85,8 @@ dataset.to_pandas()
 `input_path` is very useful for:
 
 - keeping the `map` code reusable, by decoupling the processing logic from the input schema.
-- transforming an arbitrarily nested list, because Lilac can handle the nested input for us and
-  mimic the same nested structure in the output column.
+- transforming repeated fields, by allowing Lilac to handle flattening and unflattening. Your map
+  code will only ever see the flattened stream of fields.
 
 Let's make a new dataset with a nested list of questions:
 
@@ -167,6 +175,43 @@ column statistics in the UI and filter by their values:
 
 <video loop muted autoplay controls src="../_static/dataset/filter_metadata.mp4"></video>
 
+### Batching
+
+When setting the `batch_size` kwarg, map will provide your function with a list of `batch_size`
+items at once. You may receive a partial batch at the end of the map, so your function should handle
+receiving a batch smaller than `batch_size`.
+
+You may also set `batch_size=-1` in order to receive the entire dataset as a single batch. This may
+be useful if some computation requires seeing all rows at once - for example, a duplicate text
+detector. This mode will load your entire dataset (or a column of your dataset if `input_column` is
+specified) into memory, so please ensure that you have sufficient memory on your machine.
+
+### Filtering and limiting
+
+To run a preview computation on a few rows and sanity-check your function, run `map` with `limit=5`.
+
+To run a computation on a subset of rows, you can pass a set of [`Filter`](#Filter)s. For example,
+to limit your map to longer strings, you could run
+`map(fn, filters=[Filter(path='column', op='length_greater', 20)])`. Multiple filters are combined
+with `AND` - only rows matching all provided filters will be mapped.
+
+```
+items = [
+    {'question': 'A', 'source': 'foo'},
+    {'question': 'B', 'source': 'bar'},
+    {'question': 'C', 'source': 'bar'}
+]
+dataset = ll.from_dicts('local', 'questions', items, overwrite=True)
+
+result = dataset.map(
+  lambda x: x['question'].lower(),
+  filters=[ll.Filter(path=('source',), op='equals', value='bar')],
+  limit=1)
+
+print(list(result))
+> ['b']
+```
+
 ### Parallelism
 
 By default Lilac will run the `map` on a single thread. To speed up computation, we can provide
@@ -180,10 +225,10 @@ desired number of requests per second.
 
 ```python
 
-def compute(text):
+def compute(text_batch: list[str])-> list[str]:
   # make a single request to an external server.
 
-dataset.map(add_prefix, input_path='question', execution_type='threads', num_jobs=10)
+dataset.map(compute, batch_size=32, input_path='question', execution_type='threads', num_jobs=10)
 ```
 
 Assuming a latency of 100ms per request, we can expect to make 10 requests per second with a single

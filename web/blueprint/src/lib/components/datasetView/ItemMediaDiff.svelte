@@ -9,7 +9,8 @@
   import {PropertyRelationship} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
-  const MAX_MONACO_HEIGHT = 350;
+  const MAX_MONACO_HEIGHT_COLLAPSED = 360;
+  const MAX_MONACO_HEIGHT_EXPANDED = 720;
 
   const datasetViewStore = getDatasetViewContext();
 
@@ -33,10 +34,11 @@
   let editor: Monaco.editor.IStandaloneDiffEditor;
 
   $: {
-    if (isExpanded != null) {
+    if (isExpanded != null || row != null) {
       relayout();
     }
   }
+
   function relayout() {
     if (
       editor != null &&
@@ -47,16 +49,17 @@
         editor.getOriginalEditor().getContentHeight(),
         editor.getModifiedEditor().getContentHeight()
       );
-      textIsOverBudget = contentHeight > MAX_MONACO_HEIGHT;
+      textIsOverBudget = contentHeight > MAX_MONACO_HEIGHT_COLLAPSED;
 
       if (isExpanded || !textIsOverBudget) {
-        editorContainer.style.height = `${contentHeight}px`;
+        editorContainer.style.height = `${Math.min(contentHeight, MAX_MONACO_HEIGHT_EXPANDED)}px`;
       } else {
-        editorContainer.style.height = MAX_MONACO_HEIGHT + 'px';
+        editorContainer.style.height = MAX_MONACO_HEIGHT_COLLAPSED + 'px';
       }
       editor.layout();
     }
   }
+
   onMount(async () => {
     monaco = await getMonaco();
 
@@ -75,7 +78,8 @@
       wrappingStrategy: 'advanced',
       readOnlyMessage: {value: ''},
       scrollbar: {
-        verticalScrollbarSize: 8
+        verticalScrollbarSize: 8,
+        alwaysConsumeMouseWheel: false
       },
       minimap: {
         enabled: true,
