@@ -249,11 +249,11 @@ def test_udf_with_nested_embedding(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows([('text', '*'), signal_col])
   expected_result = [
     {
-      'text.*': ['hello.', 'hello world.'],
+      'text': ['hello.', 'hello world.'],
       'text.test_embedding_sum(embedding=test_embedding)': [1.0, 3.0],
     },
     {
-      'text.*': ['hello world2.', 'hello2.'],
+      'text': ['hello world2.', 'hello2.'],
       'text.test_embedding_sum(embedding=test_embedding)': [4.0, 2.0],
     },
   ]

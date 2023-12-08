@@ -1,4 +1,4 @@
-# Labeling a dataset
+# Label a dataset
 
 Lilac allows you to tag individual rows with custom labels that can be later used to prune your
 dataset.

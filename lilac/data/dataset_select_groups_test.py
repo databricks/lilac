@@ -252,7 +252,9 @@ def test_map_dtype(make_test_data: TestDataMaker) -> None:
     {'column': {'b': 2.5}},
     {'column': {'a': 3.0, 'c': 3.5}},
   ]
-  data_schema = schema({'column': Field(dtype=MapType(key_type='string', value_type='float32'))})
+  data_schema = schema(
+    {'column': Field(dtype=MapType(key_type='string', value_field=field('float32')))}
+  )
   dataset = make_test_data(items, schema=data_schema)
   assert dataset.select_groups('column.a', bins=[0, 2]) == SelectGroupsResult(
     too_many_distinct=False,

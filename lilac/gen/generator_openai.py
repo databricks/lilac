@@ -4,11 +4,10 @@
 from typing import Optional
 
 import instructor
+import tiktoken
 from instructor import OpenAISchema
 from pydantic import Field
 from typing_extensions import override
-
-import tiktoken
 
 from ..env import env
 from ..text_gen import TextGenerator

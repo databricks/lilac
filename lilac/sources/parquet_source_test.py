@@ -3,12 +3,17 @@
 import os
 import pathlib
 
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from pydantic import ValidationError
 
-from ..schema import FLOAT32, STRING, MapType, field, schema
+from lilac.config import DatasetConfig
+from lilac.project import create_project_and_set_env
+
+from ..load_dataset import create_dataset
+from ..schema import STRING, Field, MapType, field, schema
 from ..source import SourceSchema
 from ..test_utils import retrieve_parquet_rows
 from ..utils import chunks
@@ -53,7 +58,7 @@ def test_map_dtype(tmp_path: pathlib.Path) -> None:
   source.setup()
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({'column': field(MapType(key_type=STRING, value_type=FLOAT32))}).fields,
+    fields=schema({'column': field(MapType(key_type=STRING, value_field=field('float32')))}).fields,
     num_items=3,
   )
   manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
@@ -219,3 +224,46 @@ def test_validation() -> None:
 
   with pytest.raises(ValidationError, match='sample_size must be greater than 0'):
     ParquetSource(filepaths=['gs://lilac/test.parquet'], sample_size=0)
+
+
+def test_parquet_with_map_of_string_to_array_of_ints(tmp_path: pathlib.Path) -> None:
+  create_project_and_set_env(str(tmp_path))
+  arrow_schema = pa.schema(
+    {
+      'name': pa.map_(pa.string(), pa.list_(pa.int32())),
+    }
+  )
+  table = pa.Table.from_pylist(
+    [
+      {'name': {'key1': [1, 2, 3]}},
+      {'name': {'key2': [2, 3]}},
+      {'name': {'key1': [3, 4], 'key2': [5, 6]}},
+    ],
+    schema=arrow_schema,
+  )
+  out_file = os.path.join(tmp_path, 'test.parquet')
+  pq.write_table(table, out_file)
+  config = DatasetConfig(
+    namespace='local', name='parquet_with_map', source=ParquetSource(filepaths=[out_file])
+  )
+  dataset = create_dataset(config)
+
+  expected_map_dtype = MapType(key_type=STRING, value_field=Field(repeated_field=field('int32')))
+  assert dataset.manifest().data_schema == schema(
+    {
+      'name': field(
+        dtype=expected_map_dtype,
+        # All the unique keys of the map got extracted as sub-fields in the Lilac schema.
+        fields={'key1': ['int32'], 'key2': ['int32']},
+      )
+    }
+  )
+  df = dataset.to_pandas()
+  expected_df = pd.DataFrame(
+    [
+      {'name': {'key': ['key1'], 'value': [[1, 2, 3]]}},
+      {'name': {'key': ['key2'], 'value': [[2, 3]]}},
+      {'name': {'key': ['key1', 'key2'], 'value': [[3, 4], [5, 6]]}},
+    ]
+  )
+  pd.testing.assert_frame_equal(df, expected_df)

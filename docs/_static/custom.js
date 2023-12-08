@@ -1,1 +1,1 @@
-document.querySelectorAll('video').forEach(v => (v.playbackRate = 1.5));
+document.querySelectorAll('video').forEach(v => (v.playbackRate = 1.0));

@@ -70,7 +70,9 @@ def compute_signal(
     name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}',
   )
-  get_task_manager().execute(task_id, _task_compute_signal, namespace, dataset_name, task_id)
+  get_task_manager().execute(
+    task_id, 'processes', _task_compute_signal, namespace, dataset_name, task_id
+  )
 
   return ComputeSignalResponse(task_id=task_id)
 

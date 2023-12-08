@@ -8,7 +8,7 @@
  */
 export type StringFilter = {
     path: (Array<string> | string);
-    op: 'length_longer' | 'length_shorter' | 'regex_matches' | 'not_regex_matches';
+    op: 'length_longer' | 'length_shorter' | 'ilike' | 'regex_matches' | 'not_regex_matches';
     value: string;
 };
 

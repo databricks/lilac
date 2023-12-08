@@ -105,7 +105,7 @@
               </button>
             </div>
             {#if selectedConceptInfo.metadata.description}
-              <div>
+              <div class="markdown">
                 <SvelteMarkdown source={selectedConceptInfo.metadata.description} />
               </div>
             {/if}

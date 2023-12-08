@@ -123,7 +123,7 @@
       {signalInfo.json_schema.title}
     </div>
     {#if signalInfo.json_schema.description}
-      <div class="text text-base text-gray-600">
+      <div class="markdown text text-base text-gray-600">
         <SvelteMarkdown source={signalInfo.json_schema.description} />
       </div>
     {/if}

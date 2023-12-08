@@ -26,7 +26,7 @@
   import type {JSONError} from 'json-schema-library';
   import type {SvelteComponent} from 'svelte';
 
-  const IGNORE_SOURCES = ['pandas', 'llama_index_docs'];
+  const IGNORE_SOURCES = ['pandas', 'llama_index_docs', 'gmail'];
 
   const sourcesQuery = querySources();
   $: sources = $sourcesQuery.data?.sources.filter(s => !IGNORE_SOURCES.includes(s));
@@ -37,7 +37,7 @@
 
   let namespace = 'local';
   let name = '';
-  let selectedSource = 'huggingface';
+  let selectedSource = 'parquet';
   let jsonValidationErrors: JSONError[] = [];
 
   let namespaceError: string | undefined = undefined;
@@ -132,7 +132,7 @@
               <RadioButtonSkeleton />
             {:else if sources != null}
               <div>
-                <RadioButtonGroup bind:selected={selectedSource}>
+                <RadioButtonGroup bind:selected={selectedSource} class="source-radio-buttons">
                   {#each sources as source}
                     <RadioButton labelText={source} value={source} />
                   {/each}
@@ -206,5 +206,8 @@
 
   :global(legend.bx--label) {
     @apply px-2 text-lg;
+  }
+  :global(.source-radio-buttons fieldset) {
+    @apply flex-wrap gap-y-2;
   }
 </style>

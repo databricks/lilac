@@ -27,7 +27,7 @@
 <div class="flex w-full flex-col items-center gap-y-6 px-8">
   <div class="mt-8 w-full text-center">
     <h2>Welcome to Lilac</h2>
-    <div class="mt-2 text-base text-gray-700">Curate better data for LLMs</div>
+    <div class="mt-2 text-base text-gray-700">Better data, better AI</div>
     <div class="mt-2 text-sm text-gray-700">
       <a target="_blank" href="https://lilacml.com">visit our website</a>
     </div>

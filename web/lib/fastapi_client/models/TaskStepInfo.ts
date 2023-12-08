@@ -11,8 +11,10 @@ export type TaskStepInfo = {
     description?: (string | null);
     it_idx?: (number | null);
     estimated_len?: (number | null);
+    estimated_total_sec?: (number | null);
     elapsed_sec?: (number | null);
     it_per_sec?: (number | null);
+    start_time?: (number | null);
     shard_progresses?: Array<any[]>;
 };
 

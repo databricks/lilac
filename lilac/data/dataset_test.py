@@ -407,12 +407,12 @@ def test_merge_array_values(make_test_data: TestDataMaker) -> None:
   )
   assert list(result) == [
     {
-      'texts.*': ['hello', 'everybody'],
+      'texts': ['hello', 'everybody'],
       'texts.*.test_signal.flen': [5.0, 9.0],
       'texts.*.length_signal': [5, 9],
     },
     {
-      'texts.*': ['a', 'bc', 'def'],
+      'texts': ['a', 'bc', 'def'],
       'texts.*.test_signal.flen': [1.0, 2.0, 3.0],
       'texts.*.length_signal': [1, 2, 3],
     },
@@ -626,7 +626,7 @@ def test_map_dtype(make_test_data: TestDataMaker) -> None:
     {'column': {'b': 2.5}},
     {'column': {'a': 3.0, 'c': 3.5}},
   ]
-  map_dtype = MapType(key_type='string', value_type='float32')
+  map_dtype = MapType(key_type='string', value_field=field('float32'))
   data_schema = schema({'column': Field(dtype=map_dtype)})
   dataset = make_test_data(items, schema=data_schema)
   assert dataset.manifest() == DatasetManifest(

@@ -6,7 +6,7 @@ from typing import Any, cast
 import pytest
 from pytest_mock import MockerFixture
 
-from ..schema import Field, Item, MapType, schema
+from ..schema import Field, Item, MapType, field, schema
 from . import dataset as dataset_module
 from .dataset import StatsResult
 from .dataset_test_utils import TestDataMaker
@@ -96,7 +96,9 @@ def test_map_dtype(make_test_data: TestDataMaker) -> None:
     {'column': {'b': 2.5}},
     {'column': {'a': 3.0, 'c': 3.5}},
   ]
-  data_schema = schema({'column': Field(dtype=MapType(key_type='string', value_type='float32'))})
+  data_schema = schema(
+    {'column': Field(dtype=MapType(key_type='string', value_field=field('float32')))}
+  )
   dataset = make_test_data(items, schema=data_schema)
   assert dataset.stats('column.a') == StatsResult(
     path=('column', 'a'), total_count=2, approx_count_distinct=2, min_val=1.0, max_val=3.0

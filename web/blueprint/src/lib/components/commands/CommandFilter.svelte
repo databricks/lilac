@@ -86,6 +86,7 @@
     ['not_exists', 'not exists'],
     ['length_longer', 'String length longer than'],
     ['length_shorter', 'String length shorter than'],
+    ['ilike', 'String contains'],
     ['regex_matches', 'String matches regex'],
     ['not_regex_matches', 'String does not match regex']
   ];
@@ -95,7 +96,9 @@
   }
 
   function submit() {
-    $datasetViewStore.query.filters = stagedFilters;
+    for (const filter of stagedFilters) {
+      datasetViewStore.addFilter(filter);
+    }
     close();
   }
 </script>
