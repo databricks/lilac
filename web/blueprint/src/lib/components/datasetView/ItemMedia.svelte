@@ -112,7 +112,6 @@
     titlePath != null && row != null
       ? L.value(getValueNodes(row, resolveRepeatedIndices(titlePath))[0])
       : null;
-  $: console.log('title val:', titleValue);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   // Compare media paths should contain media paths with resolved path wildcards as sometimes the
