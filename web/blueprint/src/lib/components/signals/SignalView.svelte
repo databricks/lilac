@@ -153,6 +153,7 @@
         {#if $compute?.isFetching}
           <SkeletonText />
         {:else if previewResultItem != null && previewText != null && $compute?.data != null}
+          <!-- Show the raw json response (2nd tab) if the signal doesn't have an explicit schema -->
           <Tabs selected={$signalSchema.data?.fields ? 0 : 1}>
             <Tab label="Preview" />
             <Tab label="JSON response" />

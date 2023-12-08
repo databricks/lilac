@@ -103,6 +103,7 @@ all = [
   "google-auth-oauthlib",
   "textacy",
   "detect-secrets",
+  "presidio_analyzer",
   "langdetect",
   "langsmith",
   "llama-index",
