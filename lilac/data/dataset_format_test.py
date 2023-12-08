@@ -1,7 +1,7 @@
 """Tests for the dataset_format module."""
 
 
-from .dataset_format import SHARE_GPT_FORMAT, infer_formats
+from .dataset_format import SHARE_GPT_FORMAT
 from .dataset_test_utils import TestDataMaker
 
 
@@ -18,7 +18,7 @@ def test_infer_sharegpt(make_test_data: TestDataMaker):
     ]
   )
 
-  assert infer_formats(dataset.manifest().data_schema) == [SHARE_GPT_FORMAT]
+  assert dataset.manifest().dataset_format == SHARE_GPT_FORMAT
 
 
 def test_infer_sharegpt_extra(make_test_data: TestDataMaker):
@@ -35,4 +35,15 @@ def test_infer_sharegpt_extra(make_test_data: TestDataMaker):
     ]
   )
 
-  assert infer_formats(dataset.manifest().data_schema) == [SHARE_GPT_FORMAT]
+  assert dataset.manifest().dataset_format == SHARE_GPT_FORMAT
+
+
+def test_other_format(make_test_data: TestDataMaker):
+  dataset = make_test_data(
+    [
+      {'extra': 2, 'question': 'hello?'},
+      {'extra': 1, 'question': 'anybody?'},
+    ]
+  )
+
+  assert dataset.manifest().dataset_format is None
