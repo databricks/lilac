@@ -94,6 +94,7 @@ from ..tasks import (
   TaskFn,
   TaskStepId,
   TaskType,
+  check_worker_tries_to_write_to_db,
   get_is_dask_worker,
   get_task_manager,
   report_progress,
@@ -982,6 +983,7 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
+    check_worker_tries_to_write_to_db('Dataset.compute_signal')
     if isinstance(signal, TextEmbeddingSignal):
       return self.compute_embedding(
         signal.name, path, overwrite=overwrite, task_step_id=task_step_id
@@ -1072,6 +1074,7 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
+    check_worker_tries_to_write_to_db('Dataset.compute_embedding')
     input_path = normalize_path(path)
     add_project_embedding_config(
       self.namespace,
@@ -2596,7 +2599,7 @@ class DatasetDuckDB(Dataset):
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
     is_tmp_output = output_column is None
-
+    check_worker_tries_to_write_to_db('Dataset.map')
     manifest = self.manifest()
 
     input_path = normalize_path(input_path) if input_path else None

@@ -4,6 +4,7 @@ import asyncio
 import builtins
 import functools
 import multiprocessing
+import os
 import random
 import time
 import traceback
@@ -137,6 +138,8 @@ class TaskManager:
 
   _task_threadpools: dict[str, ThreadPoolExecutor] = {}
 
+  _dask_client_instance: Optional[Client]
+
   def __init__(self, dask_client: Optional[Client] = None) -> None:
     """By default, use a dask multi-processing client.
 
@@ -145,6 +148,12 @@ class TaskManager:
     # Set dasks workers to be non-daemonic so they can spawn child processes if they need to. This
     # is particularly useful for signals that use libraries with multiprocessing support.
     dask.config.set({'distributed.worker.daemon': False})
+    self._dask_client_instance = dask_client
+
+  @property
+  def _dask_client(self) -> Client:
+    if self._dask_client_instance:
+      return self._dask_client_instance
 
     asynchronous = True
     try:
@@ -154,12 +163,13 @@ class TaskManager:
 
     self.n_workers = multiprocessing.cpu_count()
     total_memory_gb = psutil.virtual_memory().total / (1024**3)
-    self._dask_client = dask_client or Client(
+    self._dask_client_instance = Client(
       asynchronous=asynchronous,
       memory_limit=f'{total_memory_gb} GB',
       n_workers=self.n_workers,
       processes=True,
     )
+    return self._dask_client_instance
 
   async def _update_tasks(self) -> None:
     adapter = TypeAdapter(list[TaskStepInfo])
@@ -434,11 +444,7 @@ class TaskManager:
 
 def get_is_dask_worker() -> bool:
   """Returns True if the current process is a dask worker."""
-  try:
-    get_worker()
-    return True
-  except Exception:
-    return False
+  return 'DASK_PARENT' in os.environ
 
 
 _TASK_MANAGER: Optional[TaskManager] = None
@@ -724,3 +730,17 @@ def set_worker_task_progress(
   steps[step_id].it_per_sec = it_per_sec
 
   set_worker_steps(task_id, steps)
+
+
+def check_worker_tries_to_write_to_db(func_name: str) -> None:
+  """Raises an error when a worker tries to write to the database."""
+  if get_is_dask_worker():
+    raise RuntimeError(
+      f"""
+      Your `map` function or its surrounding code is calling {func_name}(...).
+      Avoid individual map workers calling this method by wrapping it in a main if statement:
+
+          if __name__ == '__main__':
+            {func_name}(...)
+    """
+    )
