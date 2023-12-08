@@ -20,7 +20,7 @@
   import {SkeletonText} from 'carbon-components-svelte';
 
   import {getNavigationContext} from '$lib/stores/navigationStore';
-  import {type AppPage} from '$lib/stores/urlHashStore';
+  import type {AppPage} from '$lib/stores/urlHashStore';
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
   import NavigationExpandable from './NavigationExpandable.svelte';

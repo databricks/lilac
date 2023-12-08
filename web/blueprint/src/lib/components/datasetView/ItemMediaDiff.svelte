@@ -96,7 +96,6 @@
 
   $: {
     if (editor != null && leftValue != null && rightValue != null) {
-      console.log('setting model.');
       editor.setModel({
         original: monaco.editor.createModel(leftValue, 'text/plain'),
         modified: monaco.editor.createModel(rightValue, 'text/plain')
