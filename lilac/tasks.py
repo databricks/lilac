@@ -736,11 +736,8 @@ def check_worker_tries_to_write_to_db(func_name: str) -> None:
   """Raises an error when a worker tries to write to the database."""
   if get_is_dask_worker():
     raise RuntimeError(
-      f"""
-      Your `map` function or its surrounding code is calling {func_name}(...).
-      Avoid individual map workers calling this method by wrapping it in a main if statement:
-
-          if __name__ == '__main__':
-            {func_name}(...)
-    """
+      f'Your `map` function or its surrounding code is calling {func_name}(...). \n'
+      'Avoid individual map workers calling this method by wrapping it in a main if statement:\n\n'
+      "if __name__ == '__main__':\n"
+      f'  {func_name}(...)\n\n'
     )
