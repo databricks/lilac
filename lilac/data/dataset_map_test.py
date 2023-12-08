@@ -26,7 +26,7 @@ from ..test_utils import (
   TEST_TIME,
   allow_any_datetime,
 )
-from .dataset import DatasetManifest, Filter, SelectGroupsResult, StatsResult
+from .dataset import DELETED_LABEL_NAME, DatasetManifest, Filter, SelectGroupsResult, StatsResult
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -599,6 +599,48 @@ def test_map_batch(
       'text': 'd',
       'text_upper': 'D',
     },
+  ]
+
+
+@pytest.mark.parametrize('num_jobs', [-1, 1, 2])
+@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
+def test_map_include_deleted(
+  num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
+) -> None:
+  dataset = make_test_data([{'text': letter} for letter in 'abcde'])
+
+  def _map_fn(item: Item) -> Item:
+    return item['text'].upper()
+
+  dataset.add_labels(DELETED_LABEL_NAME, row_ids=['1', '2', '3'])
+
+  dataset.map(_map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type)
+
+  rows = list(dataset.select_rows(['text_upper'], include_deleted=True))
+  assert rows == [
+    {'text_upper': 'D'},
+    {'text_upper': 'E'},
+    {'text_upper': None},
+    {'text_upper': None},
+    {'text_upper': None},
+  ]
+
+  dataset.map(
+    _map_fn,
+    output_column='text_upper',
+    num_jobs=num_jobs,
+    execution_type=execution_type,
+    overwrite=True,
+    include_deleted=True,
+  )
+
+  rows = list(dataset.select_rows(['text_upper'], include_deleted=True))
+  assert rows == [
+    {'text_upper': 'A'},
+    {'text_upper': 'B'},
+    {'text_upper': 'C'},
+    {'text_upper': 'D'},
+    {'text_upper': 'E'},
   ]
 
 

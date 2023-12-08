@@ -27,6 +27,8 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
+from lilac.data.dataset import DELETED_LABEL_NAME
+
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
 from ..config import (
@@ -164,7 +166,6 @@ SOURCE_VIEW_NAME = 'source'
 
 SQLITE_LABEL_COLNAME = 'label'
 SQLITE_CREATED_COLNAME = 'created'
-
 NUM_AUTO_BINS = 15
 
 BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
@@ -292,13 +293,14 @@ class DuckDBQueryParams(BaseModel):
   """
 
   # Filters encompass anything that goes into a WHERE clause.
-  filters: Sequence[Filter] = []
+  filters: list[Filter] = []
   # A column name to sort by.
   sort_by: Optional[str] = None
   sort_order: Optional[SortOrder] = SortOrder.ASC
   # If offset is specified, a sort must also be specified for stable results.
   offset: Optional[int] = None
   limit: Optional[int] = None
+  include_deleted: bool = False
 
 
 class DatasetDuckDB(Dataset):
@@ -394,7 +396,7 @@ class DatasetDuckDB(Dataset):
 
   # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
   # the results are invalidated.
-  @functools.cache
+  @functools.lru_cache(maxsize=1)
   def _recompute_joint_table(self, latest_mtime_micro_sec: int) -> DatasetManifest:
     del latest_mtime_micro_sec  # This is used as the cache key.
     merged_schema = self._source_manifest.data_schema.model_copy(deep=True)
@@ -979,6 +981,9 @@ class DatasetDuckDB(Dataset):
     self,
     signal: Signal,
     path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
+    include_deleted: bool = False,
     overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
@@ -990,6 +995,7 @@ class DatasetDuckDB(Dataset):
     input_path = normalize_path(path)
 
     manifest = self.manifest()
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
 
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
@@ -1027,6 +1033,9 @@ class DatasetDuckDB(Dataset):
       jsonl_cache_filepath=jsonl_cache_filepath,
       unnest_input_path=input_path,
       overwrite=overwrite,
+      query_options=DuckDBQueryParams(
+        filters=filters, limit=limit, include_deleted=include_deleted
+      ),
       task_step_id=task_step_id,
       task_step_description=f'Computing signal {signal} over {input_path}',
     )
@@ -1069,6 +1078,9 @@ class DatasetDuckDB(Dataset):
     self,
     embedding: str,
     path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
+    include_deleted: bool = False,
     overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
@@ -1085,6 +1097,7 @@ class DatasetDuckDB(Dataset):
     if field.dtype != STRING:
       raise ValueError('Cannot compute embedding over a non-string field.')
 
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     if task_step_id is None:
       # Make a dummy task step so we report progress via tqdm.
       task_step_id = ('', 0)
@@ -1109,6 +1122,9 @@ class DatasetDuckDB(Dataset):
       jsonl_cache_filepath=jsonl_cache_filepath,
       unnest_input_path=input_path,
       overwrite=overwrite,
+      query_options=DuckDBQueryParams(
+        filters=filters, limit=limit, include_deleted=include_deleted
+      ),
       task_step_id=task_step_id,
       task_step_description=f'Computing embedding {signal} over {input_path}',
     )
@@ -1431,6 +1447,7 @@ class DatasetDuckDB(Dataset):
     sort_order: Optional[SortOrder] = SortOrder.DESC,
     limit: Optional[int] = None,
     bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None,
+    include_deleted: bool = False,
   ) -> SelectGroupsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
@@ -1505,6 +1522,8 @@ class DatasetDuckDB(Dataset):
     )
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+    if not include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
+      filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
     filter_queries = self._create_where(manifest, filters)
 
     where_query = ''
@@ -1630,6 +1649,7 @@ class DatasetDuckDB(Dataset):
     task_step_id: Optional[TaskStepId] = None,
     resolve_span: bool = False,
     combine_columns: bool = False,
+    include_deleted: bool = False,
     user: Optional[UserInfo] = None,
   ) -> SelectRowsResult:
     manifest = self.manifest()
@@ -1709,6 +1729,9 @@ class DatasetDuckDB(Dataset):
         filters.append(filter)
       else:
         raise ValueError(f'Unknown search operator {search.type}.')
+
+    if not include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
+      filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
 
     filter_queries = self._create_where(manifest, filters)
     if filter_queries:
@@ -2049,6 +2072,28 @@ class DatasetDuckDB(Dataset):
       data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None
     )
 
+  def _ensure_label_file_exists(self, label_name: str) -> str:
+    labels_filepath = get_labels_sqlite_filename(self.dataset_path, label_name)
+
+    if labels_filepath not in self._label_file_lock:
+      self._label_file_lock[labels_filepath] = threading.Lock()
+
+    with self._label_file_lock[labels_filepath]:
+      # We don't cache sqlite connections as they cannot be shared across threads.
+      sqlite_con = sqlite3.connect(labels_filepath)
+      sqlite_cur = sqlite_con.cursor()
+
+      # Create the table if it doesn't exist.
+      sqlite_cur.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS "{label_name}" (
+          {ROWID} VARCHAR NOT NULL PRIMARY KEY,
+          label VARCHAR NOT NULL,
+          created DATETIME)
+      """
+      )
+    return labels_filepath
+
   @override
   def add_labels(
     self,
@@ -2073,26 +2118,12 @@ class DatasetDuckDB(Dataset):
         row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters)
       )
 
-    # Check if the label file exists.
-    labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
-
-    if labels_filepath not in self._label_file_lock:
-      self._label_file_lock[labels_filepath] = threading.Lock()
+    labels_filepath = self._ensure_label_file_exists(name)
 
     with self._label_file_lock[labels_filepath]:
       # We don't cache sqlite connections as they cannot be shared across threads.
       sqlite_con = sqlite3.connect(labels_filepath)
       sqlite_cur = sqlite_con.cursor()
-
-      # Create the table if it doesn't exist.
-      sqlite_cur.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS "{name}" (
-          {ROWID} VARCHAR NOT NULL PRIMARY KEY,
-          label VARCHAR NOT NULL,
-          created DATETIME)
-      """
-      )
 
       num_labels = 0
       for row_id in insert_row_ids:
@@ -2567,6 +2598,9 @@ class DatasetDuckDB(Dataset):
       return ''
     manifest = self.manifest()
     where_clause = ''
+    filters = query_options.filters
+    if not query_options.include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
+      filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
     filter_queries = self._create_where(manifest, query_options.filters)
     if filter_queries:
       where_clause = f"WHERE {' AND '.join(filter_queries)}"
@@ -2592,6 +2626,7 @@ class DatasetDuckDB(Dataset):
     batch_size: Optional[int] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
+    include_deleted: bool = False,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
@@ -2700,7 +2735,7 @@ class DatasetDuckDB(Dataset):
             num_jobs,
             input_path,
             overwrite,
-            DuckDBQueryParams(filters=filters, limit=limit),
+            DuckDBQueryParams(filters=filters, limit=limit, include_deleted=include_deleted),
             combine_columns,
             resolve_span,
             (task_id, 0),
@@ -2843,13 +2878,16 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
+    options_clauses = self._compile_select_options(
+      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+    )
     filepath = os.path.expanduser(filepath)
     self._execute(
       f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' "
@@ -2864,13 +2902,16 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> pd.DataFrame:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
+    options_clauses = self._compile_select_options(
+      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+    )
     return self._query_df(f'{select_from_clause} {options_clauses}')
 
   @override
@@ -2881,13 +2922,16 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
+    options_clauses = self._compile_select_options(
+      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+    )
     filepath = os.path.expanduser(filepath)
     self._execute(
       f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT CSV, HEADER)"
@@ -2902,13 +2946,16 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(DuckDBQueryParams(filters=filters))
+    options_clauses = self._compile_select_options(
+      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+    )
     filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')

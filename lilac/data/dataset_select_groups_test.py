@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 
 from ..schema import Field, Item, MapType, field, schema
 from . import dataset as dataset_module
-from .dataset import GroupsSortBy, SelectGroupsResult, SortOrder
+from .dataset import DELETED_LABEL_NAME, GroupsSortBy, SelectGroupsResult, SortOrder
 from .dataset_test_utils import TestDataMaker
 
 
@@ -35,6 +35,23 @@ def test_flat_data(make_test_data: TestDataMaker) -> None:
     (False, 1),
     (None, 1),  # Missing "active".
   ]
+
+
+def test_flat_data_deleted(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [
+    {'name': 'Name1', 'age': 34, 'active': False},
+    {'name': 'Name2', 'age': 45, 'active': True},
+    {'age': 17, 'active': True},  # Missing "name".
+  ]
+  dataset = make_test_data(items)
+
+  result = dataset.select_groups(leaf_path='name')
+
+  assert result.counts == [('Name1', 1), ('Name2', 1), (None, 1)]
+  dataset.add_labels(DELETED_LABEL_NAME, filters=[('name', 'equals', 'Name1')])
+
+  result = dataset.select_groups(leaf_path='name')
+  assert result.counts == [('Name2', 1), (None, 1)]
 
 
 def test_result_counts(make_test_data: TestDataMaker) -> None:
