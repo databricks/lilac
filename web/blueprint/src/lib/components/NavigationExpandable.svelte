@@ -70,7 +70,11 @@
               class:bg-neutral-100={linkItem.isSelected}
             >
               <a
-                href={urlHashContext.getPageIdentifierLink(linkItem.page, linkItem.identifier)}
+                href={urlHashContext.getPageIdentifierLink(
+                  linkItem.page,
+                  linkItem.identifier,
+                  $navigationStore
+                )}
                 class:text-black={linkItem.isSelected}
                 class:font-semibold={linkItem.isSelected}
                 class="w-full truncate px-1 py-1 text-xs text-black"

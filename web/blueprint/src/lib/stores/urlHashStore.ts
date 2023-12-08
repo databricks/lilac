@@ -56,21 +56,11 @@ export function createUrlHashStore(navStore: Writable<NavigationState>) {
 
   return {
     subscribe,
-    getPageIdentifierLink(page: AppPage, identifier: string) {
+    getPageIdentifierLink(page: AppPage, identifier: string, navState: NavigationState) {
       // Remove any page-specific state when getting a link to a page + identifier.
       const pageHashState = null;
-      return getStateHash(identifier, navState, pageHashState);
-    },
-    gotoPageIdentifier(page: AppPage, identifier: string) {
-      update(state => {
-        state.page = page;
-        state.identifier = identifier;
-        state.hashState = null;
-        lastStoreIdentifier = identifier;
-
-        pushCombinedState();
-        return state;
-      });
+      const hash = getStateHash(identifier, navState, pageHashState);
+      return `/${page}${hash}`;
     },
     setHash(page: AppPage, hash: string) {
       update(state => {
@@ -145,7 +135,7 @@ export function pushState(
   navState: NavigationState,
   pageHashState: string | null
 ) {
-  const hash = getHash(identifier, navState, pageHashState);
+  const hash = getStateHash(identifier, navState, pageHashState);
   // Sometimes state can be double rendered, so to avoid that at all costs we check the existing
   // hash before pushing a new one.
   if (hash != location.hash) {
