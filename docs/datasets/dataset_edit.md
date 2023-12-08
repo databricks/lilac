@@ -195,6 +195,23 @@ to limit your map to longer strings, you could run
 `map(fn, filters=[Filter(path='column', op='length_greater', 20)])`. Multiple filters are combined
 with `AND` - only rows matching all provided filters will be mapped.
 
+```
+items = [
+    {'question': 'A', 'source': 'foo'},
+    {'question': 'B', 'source': 'bar'},
+    {'question': 'C', 'source': 'bar'}
+]
+dataset = ll.from_dicts('local', 'questions', items, overwrite=True)
+
+result = dataset.map(
+  lambda x: x['question'].lower(),
+  filters=[ll.Filter(path=('source',), op='equals', value='bar')],
+  limit=1)
+
+print(list(result))
+> ['b']
+```
+
 ### Parallelism
 
 By default Lilac will run the `map` on a single thread. To speed up computation, we can provide
