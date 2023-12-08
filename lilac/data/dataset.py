@@ -59,6 +59,7 @@ from ..signal import (
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
 from ..tasks import TaskExecutionType, TaskStepId
+from .dataset_format import DatasetFormat
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 TOO_MANY_DISTINCT = 1_000_000
@@ -231,6 +232,9 @@ class DatasetManifest(BaseModel):
   source: SerializeAsAny[Source]
   # Number of items in the dataset.
   num_items: int
+
+  # The format of the dataset, automatically inferred.
+  dataset_format: Optional[DatasetFormat] = None
 
   @field_validator('source', mode='before')
   @classmethod

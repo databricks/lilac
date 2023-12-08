@@ -144,6 +144,7 @@ from .dataset import (
   get_map_parquet_id,
   make_signal_parquet_id,
 )
+from .dataset_format import infer_formats
 from .dataset_utils import (
   count_primitives,
   create_signal_schema,
@@ -525,12 +526,17 @@ class DatasetDuckDB(Dataset):
           # Find all the keys for this map and add them to the schema.
           self._add_map_keys_to_schema(path, field, merged_schema)
 
+    dataset_formats = infer_formats(merged_schema)
+    # Choose the first dataset format as the format.
+    dataset_format = dataset_formats[0] if dataset_formats else None
+
     return DatasetManifest(
       namespace=self.namespace,
       dataset_name=self.dataset_name,
       data_schema=merged_schema,
       num_items=num_items,
       source=self._source_manifest.source,
+      dataset_format=dataset_format,
     )
 
   def _add_map_keys_to_schema(self, path: PathTuple, field: Field, merged_schema: Schema) -> None:
