@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 
-from ..schema import Schema, schema
+from ..schema import PATH_WILDCARD, PathTuple, Schema, schema
 
 
 class DatasetFormat(BaseModel):
@@ -11,9 +11,16 @@ class DatasetFormat(BaseModel):
   name: str
   data_schema: Schema
 
+  # Title slots are a mapping of a media path to a path that represents the title to be displayed
+  # for that media path. This allows us to put a title over certain media fields in the UI.
+  title_slots: list[tuple[PathTuple, PathTuple]] = []
+
 
 SHARE_GPT_FORMAT = DatasetFormat(
   name='sharegpt',
+  title_slots=[
+    (('conversations', PATH_WILDCARD, 'value'), ('conversations', PATH_WILDCARD, 'from'))
+  ],
   data_schema=schema(
     {
       'conversations': [

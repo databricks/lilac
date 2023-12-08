@@ -1,5 +1,9 @@
 <script lang="ts">
-  import {queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
+  import {
+    queryDatasetManifest,
+    queryDatasetSchema,
+    querySettings
+  } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, type ColumnComparisonState} from '$lib/stores/datasetViewStore';
   /**
    * Component that renders a single value from a row in the dataset row view
@@ -80,6 +84,36 @@
   $: value = L.value(valueNode);
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
+  // Get slots for the view. These are custom UI renderings that are a function of dataset formats.
+  $: datasetManifest = queryDatasetManifest(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName
+  );
+  $: titleSlots = $datasetManifest.data?.dataset_manifest.dataset_format?.title_slots as [
+    Path,
+    Path
+  ][];
+  // Resolve repeated indices from a path by mapping it to the root path.
+  function resolveRepeatedIndices(path: Path): Path {
+    return path.map((p, i) => {
+      if (p === PATH_WILDCARD) {
+        return rootPath![i];
+      }
+      return p;
+    });
+  }
+
+  // Get the title path for this root path. This returns undefined.
+  $: titlePath = (titleSlots || []).find(slot => {
+    const [mediaPath] = slot;
+    return pathIsEqual(mediaPath, rootPath);
+  })?.[1]; // The second value in the tuple is the title path.
+  $: titleValue =
+    titlePath != null && row != null
+      ? L.value(getValueNodes(row, resolveRepeatedIndices(titlePath))[0])
+      : null;
+  $: console.log('title val:', titleValue);
+
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   // Compare media paths should contain media paths with resolved path wildcards as sometimes the
   // user wants to compare items in an array.
@@ -154,11 +188,11 @@
   $: markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null;
 </script>
 
-<div class="flex w-full gap-x-4">
+<div class="flex w-full gap-x-4 p-2">
   {#if isLeaf}
     <div class="relative mr-4 flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
       <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
-        {#if displayPath != ''}
+        {#if displayPath != '' && titleValue == null}
           <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
             {displayPath}
           </div>
@@ -203,28 +237,42 @@
         </div>
       </div>
     </div>
-    <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
-      {#if row != null}
-        {#if colCompareState == null}
-          <StringSpanHighlight
-            text={formatValue(value)}
-            {row}
-            path={rootPath}
-            {field}
-            {markdown}
-            isExpanded={userExpanded}
-            spanPaths={spanValuePaths.spanPaths}
-            valuePaths={spanValuePaths.valuePaths}
-            {datasetViewStore}
-            embeddings={computedEmbeddings}
-            bind:textIsOverBudget
-          />
-        {:else}
-          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
-        {/if}
-      {:else}
-        <SkeletonText lines={3} paragraph class="w-full" />
+    <div class="w-full grow-0 font-normal">
+      {#if titleValue != null}
+        <div
+          class="-m-2 mb-1 rounded bg-gray-100 p-1 px-2 text-xs font-bold uppercase text-gray-700"
+        >
+          {titleValue}
+        </div>
       {/if}
+      <div class="overflow-x-auto pt-1">
+        {#if row != null}
+          {#if colCompareState == null}
+            <StringSpanHighlight
+              text={formatValue(value)}
+              {row}
+              path={rootPath}
+              {field}
+              {markdown}
+              isExpanded={userExpanded}
+              spanPaths={spanValuePaths.spanPaths}
+              valuePaths={spanValuePaths.valuePaths}
+              {datasetViewStore}
+              embeddings={computedEmbeddings}
+              bind:textIsOverBudget
+            />
+          {:else}
+            <ItemMediaDiff
+              {row}
+              {colCompareState}
+              bind:textIsOverBudget
+              isExpanded={userExpanded}
+            />
+          {/if}
+        {:else}
+          <SkeletonText lines={3} paragraph class="w-full" />
+        {/if}
+      </div>
     </div>
   {:else}
     <!-- Repeated values will render <ItemMedia> again. -->
@@ -234,7 +282,7 @@
           {displayPath}
         </div>
         {#each nextRootPaths as nextRootPath}
-          <div class="m-2 rounded border border-neutral-100 p-2">
+          <div class="m-2 rounded border border-neutral-100">
             <svelte:self
               rootPath={nextRootPath.rootPath}
               showPath={nextRootPath.showPath}
