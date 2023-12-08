@@ -56,6 +56,11 @@ export function createUrlHashStore(navStore: Writable<NavigationState>) {
 
   return {
     subscribe,
+    getPageIdentifierLink(page: AppPage, identifier: string) {
+      // Remove any page-specific state when getting a link to a page + identifier.
+      const pageHashState = null;
+      return getStateHash(identifier, navState, pageHashState);
+    },
     gotoPageIdentifier(page: AppPage, identifier: string) {
       update(state => {
         state.page = page;
@@ -111,8 +116,7 @@ export function createUrlHashStore(navStore: Writable<NavigationState>) {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function pushState(
+export function getStateHash(
   identifier: string | null,
   navState: NavigationState,
   pageHashState: string | null
@@ -129,10 +133,19 @@ export function pushState(
     hashStateComponents.push(pageHashState);
   }
 
-  const hash =
+  return (
     '#' +
     (identifier != null ? identifier : '') +
-    (hashStateComponents.length > 0 ? `&${hashStateComponents.join('&')}` : '');
+    (hashStateComponents.length > 0 ? `&${hashStateComponents.join('&')}` : '')
+  );
+}
+
+export function pushState(
+  identifier: string | null,
+  navState: NavigationState,
+  pageHashState: string | null
+) {
+  const hash = getHash(identifier, navState, pageHashState);
   // Sometimes state can be double rendered, so to avoid that at all costs we check the existing
   // hash before pushing a new one.
   if (hash != location.hash) {
