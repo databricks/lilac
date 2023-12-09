@@ -81,6 +81,11 @@
         verticalScrollbarSize: 8,
         alwaysConsumeMouseWheel: false
       },
+      minimap: {
+        enabled: true,
+        side: 'right'
+      },
+
       automaticLayout: true
     });
 

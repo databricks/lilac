@@ -11,8 +11,6 @@
    */
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {getComputedEmbeddings, getDisplayPath, getSpanValuePaths} from '$lib/view_utils';
-  import SvelteMarkdown from 'svelte-markdown';
-
   import {
     L,
     PATH_WILDCARD,
@@ -31,7 +29,7 @@
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ItemMediaDiff from './ItemMediaDiff.svelte';
-  import ItemMediaSpans from './ItemMediaSpans.svelte';
+  import StringSpanHighlight from './StringSpanHighlight.svelte';
 
   export let mediaPath: Path;
   export let row: LilacValueNode | undefined | null = undefined;
@@ -189,9 +187,9 @@
   $: markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null;
 </script>
 
-<div class="flex w-full flex-row gap-x-4 p-2">
+<div class="flex w-full gap-x-4 p-2">
   {#if isLeaf}
-    <div class="relative mr-4 flex flex-row font-mono font-medium text-neutral-500 md:w-44">
+    <div class="relative mr-4 flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
       <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
           <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
@@ -238,7 +236,7 @@
         </div>
       </div>
     </div>
-    <div class="flex grow flex-col font-normal">
+    <div class="w-full grow-0 font-normal">
       {#if titleValue != null}
         <div
           class="-m-2 mb-1 rounded bg-gray-100 p-1 px-2 text-xs font-bold uppercase text-gray-700"
@@ -246,33 +244,22 @@
           {titleValue}
         </div>
       {/if}
-
-      <div class="w-full overflow-x-auto pt-1">
+      <div class="overflow-x-auto pt-1">
         {#if row != null}
           {#if colCompareState == null}
-            <div class="flex w-full flex-row items-start">
-              {#if !markdown}
-                <div class="w-full">
-                  <ItemMediaSpans
-                    text={formatValue(value)}
-                    {row}
-                    path={rootPath}
-                    {field}
-                    {markdown}
-                    isExpanded={userExpanded}
-                    spanPaths={spanValuePaths.spanPaths}
-                    valuePaths={spanValuePaths.valuePaths}
-                    {datasetViewStore}
-                    embeddings={computedEmbeddings}
-                    bind:textIsOverBudget
-                  />
-                </div>
-              {:else}
-                <div class="markdown w-full text-ellipsis whitespace-break-spaces">
-                  <SvelteMarkdown source={formatValue(value)} />
-                </div>
-              {/if}
-            </div>
+            <StringSpanHighlight
+              text={formatValue(value)}
+              {row}
+              path={rootPath}
+              {field}
+              {markdown}
+              isExpanded={userExpanded}
+              spanPaths={spanValuePaths.spanPaths}
+              valuePaths={spanValuePaths.valuePaths}
+              {datasetViewStore}
+              embeddings={computedEmbeddings}
+              bind:textIsOverBudget
+            />
           {:else}
             <ItemMediaDiff
               {row}
