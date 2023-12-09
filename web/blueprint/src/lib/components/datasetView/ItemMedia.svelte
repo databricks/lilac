@@ -269,23 +269,22 @@
         </div>
       {/if}
 
-      <div class="w-full pt-1">
+      <div class="grow pt-1">
         {#if row != null}
           {#if colCompareState == null}
-            <div class="w-full" class:hidden={markdown}>
-              <ItemMediaTextContent
-                text={formatValue(value)}
-                {row}
-                path={rootPath}
-                {field}
-                isExpanded={userExpanded}
-                spanPaths={spanValuePaths.spanPaths}
-                spanValueInfos={spanValuePaths.spanValueInfos}
-                {datasetViewStore}
-                embeddings={computedEmbeddings}
-                bind:textIsOverBudget
-              />
-            </div>
+            <ItemMediaTextContent
+              hidden={markdown}
+              text={formatValue(value)}
+              {row}
+              path={rootPath}
+              {field}
+              isExpanded={userExpanded}
+              spanPaths={spanValuePaths.spanPaths}
+              spanValueInfos={spanValuePaths.spanValueInfos}
+              {datasetViewStore}
+              embeddings={computedEmbeddings}
+              bind:textIsOverBudget
+            />
             <div class="markdown w-full" class:hidden={!markdown}>
               <div class="markdown w-fit">
                 <SvelteMarkdown source={formatValue(value)} />

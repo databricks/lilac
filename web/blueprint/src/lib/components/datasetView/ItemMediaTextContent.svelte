@@ -41,7 +41,7 @@
   export let spanPaths: Path[];
   // Path has resolved wildcards.
   export let path: Path | undefined = undefined;
-
+  export let hidden: boolean;
   // Information about each value under span paths to render.
   export let spanValueInfos: SpanValueInfo[];
   export let embeddings: string[];
@@ -387,7 +387,10 @@
   });
 </script>
 
-<div class="h-64" bind:this={editorContainer} />
+<!-- For reasons unknown to me, the -ml-6 is required to make the autolayout of monaco react. -->
+<div class="relative -ml-6 flex h-fit w-full flex-col gap-x-4">
+  <div class="ml-6 h-64" class:hidden bind:this={editorContainer} />
+</div>
 
 <style lang="postcss">
   :global(.keyword-search-decoration) {

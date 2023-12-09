@@ -11,6 +11,5 @@ import type { Schema } from './Schema';
 export type DatasetFormat = {
     name: string;
     data_schema: Schema;
-    title_slots?: Array<any[]>;
 };
 
