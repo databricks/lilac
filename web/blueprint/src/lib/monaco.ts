@@ -2,8 +2,35 @@ import loader from '@monaco-editor/loader';
 import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
 
 export const MONACO_LANGUAGE = 'lilac_text';
-
+export const MAX_MONACO_HEIGHT_COLLAPSED = 360;
+export const MAX_MONACO_HEIGHT_EXPANDED = 720;
 let monacoInstance: Promise<typeof Monaco>;
+
+export const MONACO_OPTIONS: Monaco.editor.IStandaloneEditorConstructionOptions = {
+  fontFamily: 'Inconsolata',
+  fontSize: 14,
+  readOnly: true,
+  lineNumbers: 'off',
+  renderFinalNewline: 'dimmed',
+  lineDecorationsWidth: 0,
+  // glyphMargin: true,
+  folding: false,
+  // lineNumbersMinChars: 3,
+  roundedSelection: true,
+  domReadOnly: true,
+  scrollBeyondLastLine: false,
+  wordWrap: 'on',
+  wrappingStrategy: 'advanced',
+  readOnlyMessage: {value: ''},
+  scrollbar: {
+    verticalScrollbarSize: 8,
+    alwaysConsumeMouseWheel: false
+  },
+  // Allows the hovers to be hoisted out of the editor and not get cut off.
+  fixedOverflowWidgets: true,
+  language: MONACO_LANGUAGE,
+  automaticLayout: true
+};
 
 export async function getMonaco(): Promise<typeof Monaco> {
   if (monacoInstance != null) {

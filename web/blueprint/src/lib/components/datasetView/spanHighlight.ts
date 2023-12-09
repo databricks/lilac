@@ -49,7 +49,7 @@ export interface RenderSpan {
   isFirstHover: boolean;
 }
 
-export interface RenderSpan2 {
+export interface MonacoRenderSpan {
   path: Path;
   span: LilacValueNodeCasted<'string_span'>;
 
@@ -57,7 +57,6 @@ export interface RenderSpan2 {
   isConceptSearch: boolean;
   isSemanticSearch: boolean;
 
-  backgroundColor: string;
   isBlackBolded: boolean;
   isHighlightBolded: boolean;
 
@@ -69,14 +68,17 @@ export interface RenderSpan2 {
   namedValue: SpanHoverNamedValue;
 }
 
+/**
+ * Gets the renders spans for the monaco editor.
+ */
 export function getMonacoRenderSpans(
   text: string,
   pathToSpans: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]},
   spanPathToValueInfos: Record<string, SpanValueInfo[]>
-): RenderSpan2[] {
+): MonacoRenderSpan[] {
   const textChars = getChars(text);
 
-  const renderSpans: RenderSpan2[] = [];
+  const renderSpans: MonacoRenderSpan[] = [];
   for (const [path, originalSpans] of Object.entries(pathToSpans)) {
     const spanPathStr = serializePath(path);
 
@@ -85,31 +87,15 @@ export function getMonacoRenderSpans(
     if (valueInfos == null || valueInfos.length === 0) continue;
 
     for (const originalSpan of originalSpans) {
-      console.log('OG SPAN:', originalSpan);
       const span = L.span(originalSpan);
       for (const valueInfo of valueInfos) {
         const valueSubPath = valueInfo.path.slice(spanPath.length);
         const valueNode = valueAtPath(originalSpan as LilacValueNode, valueSubPath);
-        console.log('SPAN PATH:', spanPath);
-        console.log('value node:', valueNode, spanPath);
         if (valueNode == null) continue;
 
         const value = L.value(valueNode);
         const path = L.path(valueNode);
-        console.log('vsp', value, span, path);
         if (span == null || path == null) continue;
-
-        // if (valueInfo.dtype.type === 'float32') {
-        //   const floatValue = L.value<'float32'>(valueNode);
-        //   if (floatValue != null) {
-        //     maxScore = Math.max(maxScore, floatValue);
-        //   }
-        // }
-        console.log('got to here');
-
-        // Add extra metadata. If this is a path that we've already seen before, ignore it as
-        // the value will be rendered alongside the first path.
-        const originalPath = serializePath(L.path(originalSpan as LilacValueNode)!);
 
         const namedValue = {value, info: valueInfo, specificPath: L.path(valueNode)!};
 
@@ -128,11 +114,9 @@ export function getMonacoRenderSpans(
         }
 
         const text = textChars.slice(span.start, span.end).join('');
-        console.log('adding text...', span, span.start, span.end, text);
 
         renderSpans.push({
           span: originalSpan,
-          backgroundColor: '', //colorFromScore(maxScore),
           isKeywordSearch,
           isConceptSearch: valueInfo.type === 'concept_score',
           isSemanticSearch: valueInfo.type === 'semantic_similarity',
