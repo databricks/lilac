@@ -4,7 +4,6 @@ import asyncio
 import builtins
 import functools
 import multiprocessing
-import os
 import random
 import time
 import traceback
@@ -444,7 +443,11 @@ class TaskManager:
 
 def get_is_dask_worker() -> bool:
   """Returns True if the current process is a dask worker."""
-  return 'DASK_PARENT' in os.environ
+  try:
+    get_worker()
+    return True
+  except Exception:
+    return False
 
 
 _TASK_MANAGER: Optional[TaskManager] = None

@@ -78,7 +78,7 @@ def load(
   if not task_manager:
     # Explicitly create a dask client in sync mode.
     total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
-    task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=False))
+    task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=True))
 
   if overwrite:
     shutil.rmtree(get_datasets_dir(project_dir), ignore_errors=True)

@@ -5,7 +5,6 @@ import re
 from typing import ClassVar, Iterable, Optional
 
 import pytest
-from distributed import Client, LocalCluster
 from typing_extensions import override
 
 from .. import tasks
@@ -53,9 +52,6 @@ class TestFirstCharSignal(TextSignal):
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
-  dask_client = Client(LocalCluster(n_workers=2, threads_per_worker=2, processes=False))
-  tasks._TASK_MANAGER = tasks.TaskManager(dask_client=dask_client)
-
   allow_any_datetime(DatasetManifest)
 
   # Setup.
@@ -68,8 +64,6 @@ def setup_teardown() -> Iterable[None]:
   # Teardown.
   clear_source_registry()
   clear_signal_registry()
-
-  dask_client.shutdown()
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])

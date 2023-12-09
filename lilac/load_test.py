@@ -6,7 +6,6 @@ from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
-from distributed import Client
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
@@ -20,7 +19,7 @@ from .project import PROJECT_CONFIG_FILENAME, init
 from .schema import EMBEDDING_KEY, Field, Item, RichData, field, lilac_embedding, schema
 from .signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .source import Source, SourceSchema, clear_source_registry, register_source
-from .tasks import TaskManager
+from .tasks import TaskManager, get_task_manager
 from .utils import to_yaml
 
 SIMPLE_ITEMS: list[Item] = [
@@ -40,7 +39,7 @@ STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in
 
 @pytest.fixture(scope='session')
 def task_manager() -> TaskManager:
-  return TaskManager(Client(processes=False))
+  return get_task_manager()
 
 
 class TestSource(Source):
