@@ -87,3 +87,7 @@ export function registerHoverProvider(
 ) {
   MONACO_HOVER_CALLBACKS.set(model.id, callback);
 }
+
+export function removeHoverProvider(model: Monaco.editor.ITextModel) {
+  MONACO_HOVER_CALLBACKS.delete(model.id);
+}

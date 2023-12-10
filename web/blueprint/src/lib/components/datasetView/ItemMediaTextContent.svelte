@@ -12,7 +12,8 @@
     MONACO_LANGUAGE,
     MONACO_OPTIONS,
     getMonaco,
-    registerHoverProvider
+    registerHoverProvider,
+    removeHoverProvider
   } from '$lib/monaco';
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
@@ -382,7 +383,12 @@
   }
 
   onDestroy(() => {
-    model?.dispose();
+    if (model != null) {
+      // Clean up the hover provider to avoid memory leaks.
+      removeHoverProvider(model);
+      model.dispose();
+    }
+
     editor?.dispose();
   });
 </script>
