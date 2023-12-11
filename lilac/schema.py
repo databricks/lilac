@@ -1,6 +1,7 @@
 """Item: an individual entry in the dataset."""
 
 import csv
+import functools
 import io
 from collections import deque
 from datetime import datetime
@@ -311,37 +312,17 @@ class Schema(BaseModel):
   _all_fields: Optional[list[tuple[PathTuple, Field]]] = None
   model_config = ConfigDict(arbitrary_types_allowed=True)
 
-  @property
+  @functools.cached_property
   def leafs(self) -> dict[PathTuple, Field]:
     """Return all the leaf fields in the schema. A leaf is defined as a node that contains a value.
 
     NOTE: Leafs may contain children. Leafs can be found as any node that has a dtype defined.
     """
-    if self._leafs:
-      return self._leafs
-    result: dict[PathTuple, Field] = {}
-    q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=self.fields))])
-    while q:
-      path, field = q.popleft()
-      if field.dtype:
-        # Nodes with dtypes act as leafs. They also may have children.
-        result[path] = field
-      if field.fields:
-        for name, child_field in field.fields.items():
-          child_path = (*path, name)
-          q.append((child_path, child_field))
-      elif field.repeated_field:
-        child_path = (*path, PATH_WILDCARD)
-        q.append((child_path, field.repeated_field))
+    return dict((path, field) for path, field in self.all_fields if field.dtype)
 
-    self._leafs = result
-    return result
-
-  @property
+  @functools.cached_property
   def all_fields(self) -> list[tuple[PathTuple, Field]]:
     """Return all the fields in the schema as a flat list."""
-    if self._all_fields:
-      return self._all_fields
     result: list[tuple[PathTuple, Field]] = []
     q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=self.fields))])
     while q:
@@ -356,7 +337,6 @@ class Schema(BaseModel):
         child_path = (*path, PATH_WILDCARD)
         q.append((child_path, field.repeated_field))
 
-    self._all_fields = result
     return result
 
   def __eq__(self, other: Any) -> bool:
@@ -366,23 +346,11 @@ class Schema(BaseModel):
 
   def has_field(self, path: PathTuple) -> bool:
     """Returns if the field is found at the given path."""
-    if path == (ROWID,):
+    try:
+      self.get_field(path)
       return True
-    f = cast(Field, self)
-    for path_part in path:
-      if f.fields:
-        f = cast(Field, f.fields.get(path_part))
-        if not f:
-          return False
-      elif f.repeated_field:
-        if path_part != PATH_WILDCARD:
-          return False
-        f = f.repeated_field
-      elif f.dtype and isinstance(f.dtype, MapType) and f.dtype.key_type == STRING:
-        f = f.dtype.value_field
-      else:
-        return False
-    return True
+    except ValueError:
+      return False
 
   def get_field(self, path: PathTuple) -> Field:
     """Returns the field at the given path."""
