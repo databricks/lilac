@@ -57,9 +57,6 @@ export interface MonacoRenderSpan {
   isConceptSearch: boolean;
   isSemanticSearch: boolean;
 
-  isBlackBolded: boolean;
-  isHighlightBolded: boolean;
-
   // Whether this span is highlighted and needs to always be shown.
   isHighlighted: boolean;
   // The text for this render span.
@@ -99,11 +96,8 @@ export function getMonacoRenderSpans(
 
         const namedValue = {value, info: valueInfo, specificPath: L.path(valueNode)!};
 
-        const isLabeled = namedValue.info.type === 'label';
-        const isLeafSpan = namedValue.info.type === 'leaf_span';
         const isKeywordSearch = namedValue.info.type === 'keyword';
-        const hasNonNumericMetadata =
-          namedValue.info.type === 'metadata' && !isNumeric(namedValue.info.dtype);
+
         let isHighlighted = false;
         if (valueInfo.type === 'concept_score' || valueInfo.type === 'semantic_similarity') {
           if ((value as number) > 0.5) {
@@ -112,7 +106,7 @@ export function getMonacoRenderSpans(
         } else {
           isHighlighted = true;
         }
-        // TODO: filter by isHighlighted.
+        if (!isHighlighted) continue;
 
         const text = textChars.slice(span.start, span.end).join('');
 
@@ -121,9 +115,6 @@ export function getMonacoRenderSpans(
           isKeywordSearch,
           isConceptSearch: valueInfo.type === 'concept_score',
           isSemanticSearch: valueInfo.type === 'semantic_similarity',
-          // TODO: delete
-          isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
-          isHighlightBolded: isLabeled,
           isHighlighted,
           namedValue,
           path,

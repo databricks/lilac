@@ -169,8 +169,6 @@
     if (model != null && editor != null) {
       let minPosition: Monaco.Position | null = null;
       for (const renderSpan of monacoSpans) {
-        if (!renderSpan.isHighlighted) continue;
-
         const span = L.span(renderSpan.span)!;
         const position = model.getPositionAt(span.start);
 
@@ -197,7 +195,7 @@
   // Returns the hover content for the given position in the editor by searching through the render
   // spans for the relevant span.
   function getHoverCard(renderSpan: MonacoRenderSpan): Monaco.IMarkdownString[] {
-    if (!renderSpan.isHighlighted || model == null) {
+    if (model == null) {
       return [];
     }
     const namedValue = renderSpan.namedValue;
@@ -404,7 +402,7 @@
   $: {
     if (editor != null && model != null) {
       spanDecorations = monacoSpans.flatMap(renderSpan => {
-        if (!renderSpan.isHighlighted || model == null) {
+        if (model == null) {
           return [];
         }
         const span = L.span(renderSpan.span)!;
