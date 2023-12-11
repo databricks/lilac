@@ -582,6 +582,7 @@ class Dataset(abc.ABC):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    include_deleted: bool = False,
     value: Optional[str] = 'true',
   ) -> int:
     """Adds a label to a row, or a set of rows defined by searches and filters.
@@ -602,6 +603,7 @@ class Dataset(abc.ABC):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    include_deleted: bool = False,
   ) -> int:
     """Removes labels from a row, or a set of rows defined by searches and filters.
 
@@ -621,7 +623,7 @@ class Dataset(abc.ABC):
     """
     return self.add_labels(DELETED_LABEL_NAME, row_ids, searches, filters)
 
-  def undelete_rows(
+  def restore_rows(
     self,
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
@@ -631,14 +633,15 @@ class Dataset(abc.ABC):
 
     Returns the number of restored rows.
     """
-    return self.remove_labels(DELETED_LABEL_NAME, row_ids, searches, filters)
+    return self.remove_labels(DELETED_LABEL_NAME, row_ids, searches, filters, include_deleted=True)
 
   @abc.abstractmethod
-  def stats(self, leaf_path: Path) -> StatsResult:
+  def stats(self, leaf_path: Path, include_deleted: bool = False) -> StatsResult:
     """Compute stats for a leaf path.
 
     Args:
       leaf_path: The leaf path to compute stats for.
+      include_deleted: Whether to include deleted rows in the stats.
 
     Returns:
       A StatsResult.

@@ -604,7 +604,7 @@ def test_map_batch(
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
-def test_map_include_deleted(
+def test_map_deleted_interaction(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
   dataset = make_test_data([{'text': letter} for letter in 'abcde'])

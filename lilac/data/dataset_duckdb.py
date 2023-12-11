@@ -1356,7 +1356,7 @@ class DatasetDuckDB(Dataset):
 
   @override
   @functools.cache  # Cache stats for leaf paths since we ask on every dataset page refresh.
-  def stats(self, leaf_path: Path) -> StatsResult:
+  def stats(self, leaf_path: Path, include_deleted: bool = False) -> StatsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
     path = normalize_path(leaf_path)
@@ -1386,18 +1386,26 @@ class DatasetDuckDB(Dataset):
       span_from=self._resolve_span(path, manifest),
     )
 
+    if manifest.data_schema.has_field((DELETED_LABEL_NAME,)) and not include_deleted:
+      where_clause = f'WHERE {DELETED_LABEL_NAME} IS NULL'
+    else:
+      where_clause = ''
+
     # Compute the average length of text fields.
     avg_text_length: Optional[int] = None
     if leaf.dtype in (STRING, STRING_SPAN):
       avg_length_query = f"""
         SELECT avg(length(val))
-        FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
+        FROM (SELECT {inner_select} AS val FROM t {where_clause})
+        USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
       """
       row = self._query(avg_length_query)[0]
       if row[0] is not None:
         avg_text_length = int(row[0])
 
-    total_count_query = f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t)'
+    total_count_query = (
+      f'SELECT count(val) FROM (SELECT {inner_select} as val FROM t {where_clause})'
+    )
     total_count = int(self._query(total_count_query)[0][0])
 
     # Compute approximate count by sampling the data to avoid OOM.
@@ -1410,7 +1418,7 @@ class DatasetDuckDB(Dataset):
       sample_size = TOO_MANY_DISTINCT
       approx_count_query = f"""
         SELECT approx_count_distinct(val) as approxCountDistinct
-        FROM (SELECT {inner_select} AS val FROM t) USING SAMPLE {sample_size};
+        FROM (SELECT {inner_select} AS val FROM t {where_clause}) USING SAMPLE {sample_size};
       """
       row = self._query(approx_count_query)[0]
       approx_count_distinct = int(row[0])
@@ -1430,7 +1438,7 @@ class DatasetDuckDB(Dataset):
     if is_ordinal(leaf.dtype):
       min_max_query = f"""
         SELECT MIN(val) AS minVal, MAX(val) AS maxVal
-        FROM (SELECT {inner_select} as val FROM t)
+        FROM (SELECT {inner_select} as val FROM t {where_clause})
         {'WHERE NOT isnan(val)' if is_float(leaf.dtype) else ''}
       """
       row = self._query(min_max_query)[0]
@@ -1474,7 +1482,7 @@ class DatasetDuckDB(Dataset):
     outer_select = inner_val
     # Normalize the bins to be `list[Bin]`.
     named_bins = _normalize_bins(bins or leaf.bins)
-    stats = self.stats(leaf_path)
+    stats = self.stats(leaf_path, include_deleted=include_deleted)
 
     leaf_is_float = is_float(leaf.dtype)
     leaf_is_integer = is_integer(leaf.dtype)
@@ -2101,12 +2109,13 @@ class DatasetDuckDB(Dataset):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    include_deleted: bool = False,
     value: Optional[str] = 'true',
   ) -> int:
     created = datetime.now()
 
     # If filters and searches are defined with row_ids, add this as a filter.
-    if row_ids and (searches or filters):
+    if row_ids:
       filters = list(filters) if filters else []
       filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
 
@@ -2115,7 +2124,10 @@ class DatasetDuckDB(Dataset):
       insert_row_ids = row_ids
     else:
       insert_row_ids = (
-        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters)
+        row[ROWID]
+        for row in self.select_rows(
+          columns=[ROWID], searches=searches, filters=filters, include_deleted=include_deleted
+        )
       )
 
     labels_filepath = self._ensure_label_file_exists(name)
@@ -2140,6 +2152,9 @@ class DatasetDuckDB(Dataset):
       sqlite_con.commit()
       sqlite_con.close()
 
+    if num_labels > 0 and name == DELETED_LABEL_NAME:
+      self.stats.cache_clear()
+
     return num_labels
 
   @override
@@ -2154,6 +2169,7 @@ class DatasetDuckDB(Dataset):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    include_deleted: bool = False,
   ) -> int:
     # Check if the label file exists.
     labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
@@ -2162,17 +2178,16 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'Label with name "{name}" does not exist.')
 
     # If filters and searches are defined with row_ids, add this as a filter.
-    if row_ids and (searches or filters):
+    if row_ids:
       filters = list(filters) if filters else []
       filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
 
-    remove_row_ids: Sequence[str]
-    if row_ids and not searches and not filters:
-      remove_row_ids = row_ids
-    else:
-      remove_row_ids = [
-        row[ROWID] for row in self.select_rows(columns=[ROWID], searches=searches, filters=filters)
-      ]
+    remove_row_ids = [
+      row[ROWID]
+      for row in self.select_rows(
+        columns=[ROWID], searches=searches, filters=filters, include_deleted=include_deleted
+      )
+    ]
 
     if labels_filepath not in self._label_file_lock:
       self._label_file_lock[labels_filepath] = threading.Lock()
@@ -2190,6 +2205,9 @@ class DatasetDuckDB(Dataset):
         count = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
         if count == 0:
           delete_file(labels_filepath)
+
+    if remove_row_ids and name == DELETED_LABEL_NAME:
+      self.stats.cache_clear()
 
     return len(remove_row_ids)
 
@@ -2803,7 +2821,7 @@ class DatasetDuckDB(Dataset):
     # Promote any new string columns as media fields if the length is above a threshold.
     for path, field in map_schema.leafs.items():
       if field.dtype in (STRING, STRING_SPAN):
-        stats = self.stats(path)
+        stats = self.stats(path, include_deleted=include_deleted)
         if stats.avg_text_length and stats.avg_text_length >= MEDIA_AVG_TEXT_LEN:
           self.add_media_field(path)
 
