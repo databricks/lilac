@@ -16,6 +16,7 @@
   import {createNavigationStore, setNavigationContext} from '$lib/stores/navigationStore';
   import {createNotificationsStore, setNotificationsContext} from '$lib/stores/notificationsStore';
   import {createSettingsStore, setSettingsContext} from '$lib/stores/settingsStore';
+  import '@fontsource-variable/inconsolata';
   import 'carbon-components-svelte/css/all.css';
   import {slide} from 'svelte/transition';
 

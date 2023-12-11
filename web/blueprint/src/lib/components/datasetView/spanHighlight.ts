@@ -112,6 +112,7 @@ export function getMonacoRenderSpans(
         } else {
           isHighlighted = true;
         }
+        // TODO: filter by isHighlighted.
 
         const text = textChars.slice(span.start, span.end).join('');
 
@@ -120,6 +121,7 @@ export function getMonacoRenderSpans(
           isKeywordSearch,
           isConceptSearch: valueInfo.type === 'concept_score',
           isSemanticSearch: valueInfo.type === 'semantic_similarity',
+          // TODO: delete
           isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
           isHighlightBolded: isLabeled,
           isHighlighted,
