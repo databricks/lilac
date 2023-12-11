@@ -14,6 +14,7 @@ import sqlite3
 import tempfile
 import threading
 import urllib.parse
+from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
 from importlib import metadata
@@ -330,7 +331,7 @@ class DatasetDuckDB(Dataset):
     self._manifest_lock = threading.Lock()
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
-    self._label_file_lock: dict[str, threading.Lock] = {}
+    self._label_file_lock: dict[str, threading.Lock] = defaultdict(threading.Lock)
 
     # Create a join table from all the parquet files.
     manifest = self.manifest()
@@ -2086,28 +2087,6 @@ class DatasetDuckDB(Dataset):
       data_schema=new_schema, udfs=udfs, search_results=search_results, sorts=sort_results or None
     )
 
-  def _ensure_label_file_exists(self, label_name: str) -> str:
-    labels_filepath = get_labels_sqlite_filename(self.dataset_path, label_name)
-
-    if labels_filepath not in self._label_file_lock:
-      self._label_file_lock[labels_filepath] = threading.Lock()
-
-    with self._label_file_lock[labels_filepath]:
-      # We don't cache sqlite connections as they cannot be shared across threads.
-      sqlite_con = sqlite3.connect(labels_filepath)
-      sqlite_cur = sqlite_con.cursor()
-
-      # Create the table if it doesn't exist.
-      sqlite_cur.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS "{label_name}" (
-          {ROWID} VARCHAR NOT NULL PRIMARY KEY,
-          label VARCHAR NOT NULL,
-          created DATETIME)
-      """
-      )
-    return labels_filepath
-
   @override
   def add_labels(
     self,
@@ -2125,23 +2104,29 @@ class DatasetDuckDB(Dataset):
       filters = list(filters) if filters else []
       filters.append(Filter(path=(ROWID,), op='in', value=list(row_ids)))
 
-    insert_row_ids: Iterable[str]
-    if row_ids and not searches and not filters:
-      insert_row_ids = row_ids
-    else:
-      insert_row_ids = (
-        row[ROWID]
-        for row in self.select_rows(
-          columns=[ROWID], searches=searches, filters=filters, include_deleted=include_deleted
-        )
+    insert_row_ids = (
+      row[ROWID]
+      for row in self.select_rows(
+        columns=[ROWID], searches=searches, filters=filters, include_deleted=include_deleted
       )
+    )
 
-    labels_filepath = self._ensure_label_file_exists(name)
+    labels_filepath = get_labels_sqlite_filename(self.dataset_path, name)
 
     with self._label_file_lock[labels_filepath]:
       # We don't cache sqlite connections as they cannot be shared across threads.
       sqlite_con = sqlite3.connect(labels_filepath)
       sqlite_cur = sqlite_con.cursor()
+
+      # Create the table if it doesn't exist.
+      sqlite_cur.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS "{name}" (
+          {ROWID} VARCHAR NOT NULL PRIMARY KEY,
+          label VARCHAR NOT NULL,
+          created DATETIME)
+      """
+      )
 
       num_labels = 0
       for row_id in insert_row_ids:
@@ -2158,6 +2143,7 @@ class DatasetDuckDB(Dataset):
       sqlite_con.commit()
       sqlite_con.close()
 
+    # Any deleted rows will cause statistics to be out of date.
     if num_labels > 0 and name == DELETED_LABEL_NAME:
       self.stats.cache_clear()
 
@@ -2194,9 +2180,6 @@ class DatasetDuckDB(Dataset):
         columns=[ROWID], searches=searches, filters=filters, include_deleted=include_deleted
       )
     ]
-
-    if labels_filepath not in self._label_file_lock:
-      self._label_file_lock[labels_filepath] = threading.Lock()
 
     with self._label_file_lock[labels_filepath]:
       with closing(sqlite3.connect(labels_filepath)) as conn:
