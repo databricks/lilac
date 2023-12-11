@@ -2,14 +2,15 @@
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   import {onDestroy, onMount} from 'svelte';
 
-  import {getMonaco} from '$lib/monaco';
+  import {getMonaco, MONACO_OPTIONS} from '$lib/monaco';
   import {getDatasetViewContext, type ColumnComparisonState} from '$lib/stores/datasetViewStore';
   import {getDisplayPath} from '$lib/view_utils';
-  import {L, getValueNodes, type LilacValueNode} from '$lilac';
+  import {getValueNodes, L, type LilacValueNode} from '$lilac';
   import {PropertyRelationship} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
-  const MAX_MONACO_HEIGHT = 350;
+  const MAX_MONACO_HEIGHT_COLLAPSED = 360;
+  const MAX_MONACO_HEIGHT_EXPANDED = 720;
 
   const datasetViewStore = getDatasetViewContext();
 
@@ -33,10 +34,11 @@
   let editor: Monaco.editor.IStandaloneDiffEditor;
 
   $: {
-    if (isExpanded != null) {
+    if (isExpanded != null || row != null) {
       relayout();
     }
   }
+
   function relayout() {
     if (
       editor != null &&
@@ -47,42 +49,26 @@
         editor.getOriginalEditor().getContentHeight(),
         editor.getModifiedEditor().getContentHeight()
       );
-      textIsOverBudget = contentHeight > MAX_MONACO_HEIGHT;
+      textIsOverBudget = contentHeight > MAX_MONACO_HEIGHT_COLLAPSED;
 
       if (isExpanded || !textIsOverBudget) {
-        editorContainer.style.height = `${contentHeight}px`;
+        editorContainer.style.height = `${Math.min(contentHeight, MAX_MONACO_HEIGHT_EXPANDED)}px`;
       } else {
-        editorContainer.style.height = MAX_MONACO_HEIGHT + 'px';
+        editorContainer.style.height = MAX_MONACO_HEIGHT_COLLAPSED + 'px';
       }
       editor.layout();
     }
   }
+
   onMount(async () => {
     monaco = await getMonaco();
 
     editor = monaco.editor.createDiffEditor(editorContainer, {
-      readOnly: true,
-      lineNumbers: 'on',
-      renderFinalNewline: 'dimmed',
-      lineDecorationsWidth: 0,
+      ...MONACO_OPTIONS,
+      // Turn on line numbers and margins for the diff editor.
       glyphMargin: true,
-      folding: false,
       lineNumbersMinChars: 3,
-      roundedSelection: true,
-      domReadOnly: true,
-      scrollBeyondLastLine: false,
-      wordWrap: 'on',
-      wrappingStrategy: 'advanced',
-      readOnlyMessage: {value: ''},
-      scrollbar: {
-        verticalScrollbarSize: 8
-      },
-      minimap: {
-        enabled: true,
-        side: 'right'
-      },
-
-      automaticLayout: true
+      lineNumbers: 'on'
     });
 
     editor.onDidChangeModel(() => {
@@ -101,7 +87,8 @@
   }
 
   onDestroy(() => {
-    monaco?.editor.getModels().forEach(model => model.dispose());
+    editor.getModel()?.modified.dispose();
+    editor.getModel()?.original.dispose();
     editor?.dispose();
   });
 </script>
@@ -122,7 +109,7 @@
 </div>
 
 <style lang="postcss">
-  :global(.editor-container) {
+  .editor-container {
     width: 100%;
   }
   :global(.editor-container .monaco-editor .lines-content.monaco-editor-background) {

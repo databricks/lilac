@@ -42,7 +42,7 @@ import type {NavigationGroupItem, NavigationTagGroup} from './components/Navigat
 import type {SpanValueInfo} from './components/datasetView/spanHighlight';
 import type {DatasetViewState} from './stores/datasetViewStore';
 import type {SettingsState} from './stores/settingsStore';
-import {conceptLink, datasetLink} from './utils';
+import {conceptIdentifier, datasetIdentifier} from './utils';
 export const ITEM_SCROLL_CONTAINER_CTX_KEY = 'itemScrollContainer';
 
 export const DTYPE_TO_ICON: Record<Exclude<DataType['type'], 'map'>, typeof CarbonIcon> = {
@@ -241,7 +241,8 @@ export function getTaggedDatasets(
           )
           .map(d => ({
             name: d.dataset_name,
-            link: datasetLink(d.namespace, d.dataset_name),
+            page: 'datasets',
+            identifier: datasetIdentifier(d.namespace, d.dataset_name),
             isSelected:
               selectedDataset?.namespace === d.namespace &&
               selectedDataset?.datasetName === d.dataset_name,
@@ -295,7 +296,8 @@ export function getTaggedConcepts(
           .sort((a, b) => a.name.localeCompare(b.name))
           .map(c => ({
             name: c.name,
-            link: conceptLink(c.namespace, c.name),
+            page: 'concepts',
+            identifier: conceptIdentifier(c.namespace, c.name),
             isSelected:
               selectedConcept?.namespace === c.namespace && selectedConcept?.name === c.name,
             item: c
@@ -351,7 +353,7 @@ function getMapInputPath(field: LilacField): Path | undefined {
 export function getSpanValuePaths(
   field: LilacField,
   highlightedFields?: LilacField[]
-): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
+): {spanPaths: Path[]; spanValueInfos: SpanValueInfo[]} {
   // Include the field.
   const children = childFields(field);
   // Find the non-keyword span fields under this field.
@@ -388,7 +390,7 @@ export function getSpanValuePaths(
 
   const spanPaths = spanFields.map(f => f.path);
 
-  const valuePaths: SpanValueInfo[] = [];
+  const spanValueInfos: SpanValueInfo[] = [];
   for (const spanField of spanFields) {
     const spanChildren = childFields(spanField)
       .filter(f => f.dtype?.type != 'string_span')
@@ -406,7 +408,7 @@ export function getSpanValuePaths(
     if (keywordSearch != null) {
       const signal = keywordSearch.signal as SubstringSignal;
 
-      valuePaths.push({
+      spanValueInfos.push({
         path: spanField.path,
         spanPath,
         type: 'keyword',
@@ -416,7 +418,7 @@ export function getSpanValuePaths(
       });
     } else if (spanPetalChildren.length === 0) {
       // If the span is a leaf, we still show it highlighted.
-      valuePaths.push({
+      spanValueInfos.push({
         path: spanField.path,
         spanPath,
         type: 'leaf_span',
@@ -434,7 +436,7 @@ export function getSpanValuePaths(
       );
       if (concept != null) {
         const signal = concept.signal as ConceptSignal;
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'concept_score',
@@ -444,7 +446,7 @@ export function getSpanValuePaths(
         });
       } else if (conceptLabel != null) {
         const signal = conceptLabel.signal as ConceptLabelsSignal;
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'label',
@@ -454,7 +456,7 @@ export function getSpanValuePaths(
         });
       } else if (semanticSimilarity != null) {
         const signal = semanticSimilarity.signal as SemanticSimilaritySignal;
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'semantic_similarity',
@@ -463,7 +465,7 @@ export function getSpanValuePaths(
           signal
         });
       } else {
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'metadata',
@@ -473,7 +475,7 @@ export function getSpanValuePaths(
       }
     }
   }
-  return {spanPaths, valuePaths};
+  return {spanPaths, spanValueInfos: spanValueInfos};
 }
 
 export interface MergedSpan {

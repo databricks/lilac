@@ -66,7 +66,7 @@
   }
 
   let previewResultItem: LilacValueNode | undefined = undefined;
-  let valuePaths: SpanValueInfo[];
+  let spanValueInfos: SpanValueInfo[];
   let spanPaths: Path[];
   $: {
     if (
@@ -80,7 +80,7 @@
       previewResultItem = deserializeRow($conceptScore.data[0], resultSchema);
       const spanValuePaths = getSpanValuePaths(resultSchema);
       spanPaths = spanValuePaths.spanPaths;
-      valuePaths = spanValuePaths.valuePaths;
+      spanValueInfos = spanValuePaths.spanValueInfos;
     }
   }
   let maxConceptScore: number;
@@ -131,7 +131,7 @@
         text={previewText}
         row={previewResultItem}
         {spanPaths}
-        {valuePaths}
+        {spanValueInfos}
         embeddings={previewEmbedding ? [previewEmbedding] : []}
       />
     {/if}

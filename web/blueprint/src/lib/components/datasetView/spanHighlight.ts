@@ -1,4 +1,4 @@
-import type {MergedSpan} from '$lib/view_utils';
+import {getChars, type MergedSpan} from '$lib/view_utils';
 import {
   L,
   deserializePath,
@@ -47,6 +47,90 @@ export interface RenderSpan {
   // Whether this render span is the first matching span for the hovered span. This is used for
   // showing the tooltip only on the first matching path.
   isFirstHover: boolean;
+}
+
+export interface MonacoRenderSpan {
+  path: Path;
+  span: LilacValueNodeCasted<'string_span'>;
+
+  isKeywordSearch: boolean;
+  isConceptSearch: boolean;
+  isSemanticSearch: boolean;
+
+  isBlackBolded: boolean;
+  isHighlightBolded: boolean;
+
+  // Whether this span is highlighted and needs to always be shown.
+  isHighlighted: boolean;
+  // The text for this render span.
+  text: string;
+
+  namedValue: SpanHoverNamedValue;
+}
+
+/**
+ * Gets the renders spans for the monaco editor.
+ */
+export function getMonacoRenderSpans(
+  text: string,
+  pathToSpans: {[spanSet: string]: LilacValueNodeCasted<'string_span'>[]},
+  spanPathToValueInfos: Record<string, SpanValueInfo[]>
+): MonacoRenderSpan[] {
+  const textChars = getChars(text);
+
+  const renderSpans: MonacoRenderSpan[] = [];
+  for (const [path, originalSpans] of Object.entries(pathToSpans)) {
+    const spanPathStr = serializePath(path);
+
+    const valueInfos = spanPathToValueInfos[spanPathStr];
+    const spanPath = deserializePath(spanPathStr);
+    if (valueInfos == null || valueInfos.length === 0) continue;
+
+    for (const originalSpan of originalSpans) {
+      const span = L.span(originalSpan);
+      for (const valueInfo of valueInfos) {
+        const valueSubPath = valueInfo.path.slice(spanPath.length);
+        const valueNode = valueAtPath(originalSpan as LilacValueNode, valueSubPath);
+        if (valueNode == null) continue;
+
+        const value = L.value(valueNode);
+        const path = L.path(valueNode);
+        if (span == null || path == null) continue;
+
+        const namedValue = {value, info: valueInfo, specificPath: L.path(valueNode)!};
+
+        const isLabeled = namedValue.info.type === 'label';
+        const isLeafSpan = namedValue.info.type === 'leaf_span';
+        const isKeywordSearch = namedValue.info.type === 'keyword';
+        const hasNonNumericMetadata =
+          namedValue.info.type === 'metadata' && !isNumeric(namedValue.info.dtype);
+        let isHighlighted = false;
+        if (valueInfo.type === 'concept_score' || valueInfo.type === 'semantic_similarity') {
+          if ((value as number) > 0.5) {
+            isHighlighted = true;
+          }
+        } else {
+          isHighlighted = true;
+        }
+
+        const text = textChars.slice(span.start, span.end).join('');
+
+        renderSpans.push({
+          span: originalSpan,
+          isKeywordSearch,
+          isConceptSearch: valueInfo.type === 'concept_score',
+          isSemanticSearch: valueInfo.type === 'semantic_similarity',
+          isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
+          isHighlightBolded: isLabeled,
+          isHighlighted,
+          namedValue,
+          path,
+          text
+        });
+      }
+    }
+  }
+  return renderSpans;
 }
 
 export function getRenderSpans(

@@ -47,7 +47,7 @@
   export let path: Path | undefined = undefined;
 
   // Information about each value under span paths to render.
-  export let valuePaths: SpanValueInfo[];
+  export let spanValueInfos: SpanValueInfo[];
   export let markdown = false;
   export let embeddings: string[];
 
@@ -81,12 +81,12 @@
   let spanPathToValueInfos: Record<string, SpanValueInfo[]> = {};
   $: {
     spanPathToValueInfos = {};
-    for (const valuePath of valuePaths) {
-      const spanPathStr = serializePath(valuePath.spanPath);
+    for (const valueInfo of spanValueInfos) {
+      const spanPathStr = serializePath(valueInfo.spanPath);
       if (spanPathToValueInfos[spanPathStr] == null) {
         spanPathToValueInfos[spanPathStr] = [];
       }
-      spanPathToValueInfos[spanPathStr].push(valuePath);
+      spanPathToValueInfos[spanPathStr].push(valueInfo);
     }
   }
 

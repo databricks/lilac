@@ -26,6 +26,7 @@ export type { ConceptType } from './models/ConceptType';
 export type { ConceptUpdate } from './models/ConceptUpdate';
 export type { ConceptUserAccess } from './models/ConceptUserAccess';
 export type { CreateConceptOptions } from './models/CreateConceptOptions';
+export type { DatasetFormat } from './models/DatasetFormat';
 export type { DatasetInfo } from './models/DatasetInfo';
 export type { DatasetManifest } from './models/DatasetManifest';
 export type { DatasetSettings } from './models/DatasetSettings';
