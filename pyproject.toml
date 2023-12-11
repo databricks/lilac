@@ -89,6 +89,7 @@ tiktoken = "^0.5.1"
 # notebook.
 # https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
 nest-asyncio = "^1.5.8"
+multiprocess = "^0.70.15"
 
 [tool.poetry.extras]
 all = [
