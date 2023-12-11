@@ -26,7 +26,7 @@ from ..test_utils import (
   TEST_TIME,
   allow_any_datetime,
 )
-from .dataset import DELETED_LABEL_NAME, DatasetManifest, Filter, SelectGroupsResult, StatsResult
+from .dataset import DatasetManifest, Filter, SelectGroupsResult, StatsResult
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -612,7 +612,7 @@ def test_map_include_deleted(
   def _map_fn(item: Item) -> Item:
     return item['text'].upper()
 
-  dataset.add_labels(DELETED_LABEL_NAME, row_ids=['1', '2', '3'])
+  dataset.delete_rows(row_ids=['1', '2', '3'])
 
   dataset.map(_map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type)
 

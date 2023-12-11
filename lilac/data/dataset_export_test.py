@@ -169,7 +169,7 @@ def test_label_and_export_by_excluding(
   make_test_data: TestDataMaker, tmp_path: pathlib.Path
 ) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
-  dataset.add_labels(DELETED_LABEL_NAME, ['2', '3'])
+  dataset.delete_rows(['2', '3'])
 
   # Download all, except the 'deleted' label.
   filepath = tmp_path / 'dataset.json'
@@ -191,12 +191,12 @@ def test_label_and_export_by_excluding(
 
   assert parsed_items == [
     {
-      'f{DELETED_LABEL_NAME}.created': str(TEST_TIME),
+      f'{DELETED_LABEL_NAME}.created': str(TEST_TIME),
       f'{DELETED_LABEL_NAME}.label': 'true',
       'text': 'b',
     },
     {
-      'f{DELETED_LABEL_NAME}.created': str(TEST_TIME),
+      f'{DELETED_LABEL_NAME}.created': str(TEST_TIME),
       f'{DELETED_LABEL_NAME}.label': 'true',
       'text': 'c',
     },

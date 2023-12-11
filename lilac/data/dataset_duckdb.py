@@ -2878,7 +2878,6 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
-    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
@@ -2886,7 +2885,7 @@ class DatasetDuckDB(Dataset):
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
     options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+      DuckDBQueryParams(filters=filters, include_deleted=True)
     )
     filepath = os.path.expanduser(filepath)
     self._execute(
@@ -2902,7 +2901,6 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
-    include_deleted: bool = False,
   ) -> pd.DataFrame:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
@@ -2910,7 +2908,7 @@ class DatasetDuckDB(Dataset):
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
     options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+      DuckDBQueryParams(filters=filters, include_deleted=True)
     )
     return self._query_df(f'{select_from_clause} {options_clauses}')
 
@@ -2922,7 +2920,6 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
-    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
@@ -2930,7 +2927,7 @@ class DatasetDuckDB(Dataset):
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
     options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+      DuckDBQueryParams(filters=filters, include_deleted=True)
     )
     filepath = os.path.expanduser(filepath)
     self._execute(
@@ -2946,7 +2943,6 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
-    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
@@ -2954,7 +2950,7 @@ class DatasetDuckDB(Dataset):
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_from_clause = self._get_selection(columns)
     options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=include_deleted)
+      DuckDBQueryParams(filters=filters, include_deleted=True)
     )
     filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT PARQUET)")
