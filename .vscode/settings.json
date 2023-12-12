@@ -48,14 +48,14 @@
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll": false,
-      "source.fixAll.ruff": true
+      "source.fixAll": "never",
+      "source.fixAll.ruff": "explicit"
     }
   },
   "[svelte]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": "explicit"
     }
   },
   "eslint.workingDirectories": ["auto"],
