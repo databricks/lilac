@@ -109,12 +109,33 @@ export function getMonacoRenderSpans(
           isSemanticSearch ||
           isLeafSpan;
         if (isConceptSearch || isSemanticSearch) {
+          console.log('is concept or semantic search', value);
           if ((value as number) > 0.5) {
             isHighlighted = true;
+          } else {
+            isHighlighted = false;
           }
+          console.log('setting is highlighted', isHighlighted);
         } else {
           isHighlighted = true;
         }
+        console.log(
+          'value=',
+          value,
+          'isHighlighted=',
+          isHighlighted,
+          isConceptSearch || isSemanticSearch,
+          {
+            span: originalSpan,
+            isKeywordSearch,
+            isConceptSearch,
+            isSemanticSearch,
+            isLeafSpan,
+            hasNonNumericMetadata,
+            namedValue,
+            path
+          }
+        );
         if (!isHighlighted) continue;
 
         const text = textChars.slice(span.start, span.end).join('');

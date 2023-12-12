@@ -213,7 +213,7 @@
         },
         {
           value: `<span>${renderSpan.text}</span>`,
-          supportHtml: true,
+          supportHtml: false,
           isTrusted: false
         }
       ];
@@ -235,7 +235,7 @@
         {
           value: `<span>${renderSpan.text}</span>`,
           supportHtml: false,
-          isTrusted: true
+          isTrusted: false
         }
       ];
     } else if (renderSpan.isKeywordSearch) {
@@ -250,7 +250,7 @@
         {
           value: `<span>${renderSpan.text}</span>`,
           supportHtml: false,
-          isTrusted: true
+          isTrusted: false
         }
       ];
     } else if (renderSpan.isLeafSpan) {
@@ -264,15 +264,15 @@
           ? [
               {
                 value: `value: *${namedValue.value}*`,
-                supportHtml: true,
-                isTrusted: true
+                supportHtml: false,
+                isTrusted: false
               }
             ]
           : []),
         {
           value: `<span>${renderSpan.text}</span>`,
-          supportHtml: true,
-          isTrusted: true
+          supportHtml: false,
+          isTrusted: false
         }
       ];
     }
