@@ -108,7 +108,7 @@ def make_vector_index(
   return vector_index
 
 
-class TestJSONLLogger:
+class TestProcessLogger:
   """A simple utility for unit tests that need logging between processes and main process."""
 
   def __init__(self, tmp_dir: pathlib.Path):

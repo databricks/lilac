@@ -300,11 +300,8 @@ def test_load_twice_no_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureF
   # Load the project again, make sure signals and embeddings are not computed again.
   load(config=project_config, use_threads=True)
 
-  # assert test_jsonl_logger.get_logs() == ['compute embedding called', 'compute signal called']
-
   second_manifest = get_dataset('namespace', 'test').manifest()
   assert first_manifest == second_manifest
-
   assert (
     'Signal  TestSignal({"signal_name":"test_signal"}) already exists' in capsys.readouterr().out
   )
