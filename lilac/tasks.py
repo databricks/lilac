@@ -152,11 +152,10 @@ class TaskManager:
           total_len += shard_info.estimated_len
 
     elapsed_sec = (datetime.now() - datetime.fromisoformat(task.start_timestamp)).total_seconds()
+    ex_per_sec = total_progress / elapsed_sec if elapsed_sec else 0
     # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
-    elapsed = ''
-    elapsed = f'{pretty_timedelta(timedelta(seconds=elapsed_sec))}'
-    task.details = f'{total_progress:,}/{total_len:,} [{elapsed}]'
-
+    elapsed = pretty_timedelta(timedelta(seconds=elapsed_sec))
+    task.details = f'{total_progress:,}/{total_len:,} [{elapsed} {ex_per_sec:,.2f} ex/s]'
     task.total_len = total_len
     task.total_progress = total_progress
 
@@ -403,7 +402,6 @@ EMIT_EVERY_SEC = 0.5
 def report_progress(
   it: Union[Iterator[TProgress], Iterable[TProgress]],
   task_shard_id: Optional[TaskShardId],
-  shard_count: Optional[int] = None,
   initial_index: Optional[int] = None,
   estimated_len: Optional[int] = None,
 ) -> Generator[TProgress, None, None]:
@@ -414,14 +412,14 @@ def report_progress(
 
   it_idx = initial_index if initial_index else 0
   shard_info = TaskShardInfo(current_index=it_idx, estimated_len=estimated_len)
-  # Reduce the emit frequency if there are multiple shards to reduce the size of the event stream.
-  emit_every_sec = EMIT_EVERY_SEC if not shard_count else EMIT_EVERY_SEC * shard_count
+  emit_every_sec = EMIT_EVERY_SEC
   # Add jitter to the emit frequency to avoid all workers emitting at the same time.
-  jitter_sec = random.uniform(0, emit_every_sec)
-  last_emit = time.time() - EMIT_EVERY_SEC - jitter_sec
+  jitter = random.uniform(0.8, 1.2)
+  emit_every_sec *= jitter
+  last_emit = 0
 
   for t in it:
-    cur_time = time.time() + jitter_sec
+    cur_time = time.time()
     if estimated_len and cur_time - last_emit > emit_every_sec:
       shard_info.current_index = it_idx
       update_shard_info(task_shard_id, shard_info)

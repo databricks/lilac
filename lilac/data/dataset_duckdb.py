@@ -880,7 +880,6 @@ class DatasetDuckDB(Dataset):
       output_items = report_progress(
         output_items,
         task_shard_id=task_shard_id,
-        shard_count=shard_count,
         initial_index=start_idx,
         estimated_len=estimated_len,
       )
