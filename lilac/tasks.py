@@ -8,7 +8,6 @@ import random
 import time
 import traceback
 import uuid
-import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -36,10 +35,6 @@ from tqdm import tqdm
 
 from .env import env
 from .utils import log, pretty_timedelta
-
-warnings.filterwarnings(
-  'ignore', message='`fork` start method should not be used with', category=UserWarning
-)
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jupyter notebook.
