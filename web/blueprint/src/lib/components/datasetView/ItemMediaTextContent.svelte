@@ -212,7 +212,7 @@
           isTrusted: true
         },
         {
-          value: `<span>${renderSpan.text}</span>`,
+          value: renderSpan.text,
           supportHtml: false,
           isTrusted: false
         }
@@ -233,7 +233,7 @@
           isTrusted: true
         },
         {
-          value: `<span>${renderSpan.text}</span>`,
+          value: renderSpan.text,
           supportHtml: false,
           isTrusted: false
         }
@@ -248,7 +248,7 @@
           isTrusted: true
         },
         {
-          value: `<span>${renderSpan.text}</span>`,
+          value: renderSpan.text,
           supportHtml: false,
           isTrusted: false
         }
@@ -270,7 +270,7 @@
             ]
           : []),
         {
-          value: `<span>${renderSpan.text}</span>`,
+          value: renderSpan.text,
           supportHtml: false,
           isTrusted: false
         }

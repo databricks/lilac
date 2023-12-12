@@ -102,12 +102,7 @@ export function getMonacoRenderSpans(
         const hasNonNumericMetadata = valueInfo.type === 'metadata' && !isNumeric(valueInfo.dtype);
         const isLeafSpan = valueInfo.type === 'leaf_span';
 
-        let isHighlighted =
-          isKeywordSearch ||
-          hasNonNumericMetadata ||
-          isConceptSearch ||
-          isSemanticSearch ||
-          isLeafSpan;
+        let isHighlighted = false;
         if (isConceptSearch || isSemanticSearch) {
           if ((value as number) > 0.5) {
             isHighlighted = true;
