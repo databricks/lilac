@@ -30,7 +30,7 @@ from ..schema import (
   arrow_dtype_to_dtype,
 )
 from ..source import Source, SourceManifest, SourceSchema
-from ..tasks import TaskStepId
+from ..tasks import TaskShardId
 from ..utils import log
 
 HF_SPLIT_COLUMN = '__hfsplit__'
@@ -193,8 +193,10 @@ class HuggingFaceSource(Source):
     return SourceSchema(fields=self._schema_info.fields, num_items=self._schema_info.num_items)
 
   @override
-  def load_to_parquet(self, output_dir: str, task_step_id: Optional[TaskStepId]) -> SourceManifest:
-    del task_step_id
+  def load_to_parquet(
+    self, output_dir: str, task_shard_id: Optional[TaskShardId]
+  ) -> SourceManifest:
+    del task_shard_id
     if not self._schema_info or not self._dataset_dict:
       raise ValueError('`setup()` must be called before `process`.')
 

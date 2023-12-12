@@ -12,7 +12,7 @@ from ..data import dataset_utils
 from ..schema import PARQUET_FILENAME_PREFIX, ROWID, Schema, arrow_schema_to_schema
 from ..source import Source, SourceManifest, SourceSchema
 from ..sources.duckdb_utils import convert_path_to_duckdb, duckdb_setup
-from ..tasks import TaskStepId
+from ..tasks import TaskShardId
 from ..utils import download_http_files
 
 # Number of rows to read per batch.
@@ -136,9 +136,9 @@ class ParquetSource(Source):
 
   @override
   def load_to_parquet(
-    self, output_dir: str, task_step_id: Optional[TaskStepId] = None
+    self, output_dir: str, task_shard_id: Optional[TaskShardId] = None
   ) -> SourceManifest:
-    del task_step_id
+    del task_shard_id
 
     assert self._con, 'setup() must be called first.'
 

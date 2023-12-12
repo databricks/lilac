@@ -13,9 +13,6 @@ import pathlib
 import shutil
 from typing import Optional, Union
 
-import psutil
-from distributed import Client
-
 from .concepts.db_concept import DiskConceptDB, DiskConceptModelDB
 from .config import Config, EmbeddingConfig, SignalConfig, read_config
 from .data.dataset_duckdb import DatasetDuckDB
@@ -26,11 +23,9 @@ from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
 from .tasks import (
   TaskManager,
-  TaskStepId,
-  TaskStepInfo,
+  TaskShardId,
   TaskType,
-  set_worker_next_step,
-  set_worker_steps,
+  get_task_manager,
 )
 from .utils import DebugTimer, get_datasets_dir, log
 
@@ -76,9 +71,7 @@ def load(
 
   # Use threads instead of processes to avoid running out of RAM.
   if not task_manager:
-    # Explicitly create a dask client in sync mode.
-    total_memory_gb = psutil.virtual_memory().total / (1024**3) * 2 / 3
-    task_manager = TaskManager(Client(memory_limit=f'{total_memory_gb} GB', processes=True))
+    task_manager = get_task_manager()
 
   if overwrite:
     shutil.rmtree(get_datasets_dir(project_dir), ignore_errors=True)
@@ -117,7 +110,9 @@ def load(
       task_id = task_manager.task_id(
         f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD
       )
-      task_manager.execute(task_id, 'processes', process_source, project_dir, d, (task_id, 0))
+      task_manager.execute_sharded(
+        task_id, 'processes', [(process_source, [project_dir, d, (task_id, 0)])]
+      )
       dataset_task_ids.append(task_id)
     task_manager.wait(dataset_task_ids)
 
@@ -269,7 +264,7 @@ def _compute_signal(
   name: str,
   signal_config: SignalConfig,
   project_dir: Union[str, pathlib.Path],
-  task_step_id: TaskStepId,
+  task_shard_id: TaskShardId,
   overwrite: bool = False,
 ) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
@@ -283,7 +278,7 @@ def _compute_signal(
     signal=signal_config.signal,
     path=signal_config.path,
     overwrite=overwrite,
-    task_step_id=task_step_id,
+    task_shard_id=task_shard_id,
   )
 
   # Free up RAM.
@@ -297,7 +292,7 @@ def _compute_embedding(
   name: str,
   embedding_config: EmbeddingConfig,
   project_dir: str,
-  task_step_id: TaskStepId,
+  task_shard_id: TaskShardId,
 ) -> None:
   os.environ['DUCKDB_USE_VIEWS'] = '1'
 
@@ -310,7 +305,7 @@ def _compute_embedding(
     embedding=embedding_config.embedding,
     path=embedding_config.path,
     overwrite=True,
-    task_step_id=task_step_id,
+    task_shard_id=task_shard_id,
   )
   remove_dataset_from_cache(namespace, name)
   del dataset

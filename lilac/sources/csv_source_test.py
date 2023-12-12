@@ -36,7 +36,7 @@ def test_csv(tmp_path: pathlib.Path) -> None:
     fields=schema({LINE_NUMBER_COLUMN: 'int64', 'x': 'int64', 'y': 'string'}).fields, num_items=3
   )
 
-  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
@@ -67,7 +67,7 @@ def test_csv_multifile(tmp_path: pathlib.Path) -> None:
     fields=schema({LINE_NUMBER_COLUMN: 'int64', 'x': 'int64', 'y': 'string'}).fields, num_items=9
   )
 
-  manifest = source.load_to_parquet(str(tmp_path), task_step_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert len(items) == 9

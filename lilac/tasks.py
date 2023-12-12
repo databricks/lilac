@@ -314,12 +314,12 @@ TProgress = TypeVar('TProgress')
 
 
 # def show_progress(
-#   task_step_id: TaskStepId, total_len: Optional[int] = None, description: Optional[str] = None
+#   task_shard_id: TaskShardId, total_len: Optional[int] = None, description: Optional[str] = None
 # ) -> None:
 #   """Show a tqdm progress bar.
 
 #   Args:
-#     task_step_id: The task step ID.
+#     task_shard_id: The task step ID.
 #     total_len: The total length of the progress. This is optional, but nice to avoid jumping of
 #       progress bars.
 #     description: The description of the progress bar.
@@ -329,13 +329,13 @@ TProgress = TypeVar('TProgress')
 #     return
 
 #   # Use the task_manager state and tqdm to report progress.
-#   step_info, is_complete = _get_task_step_info(task_step_id)
+#   step_info, is_complete = _get_task_step_info(task_shard_id)
 #   estimated_len = None
 
 #   last_it_idx = 0
 #   with tqdm(total=total_len, desc=description) as pbar:
 #     while not is_complete:
-#       step_info, is_complete = _get_task_step_info(task_step_id)
+#       step_info, is_complete = _get_task_step_info(task_shard_id)
 
 #       if step_info:
 #         shard_progresses_dict = dict(step_info.shard_progresses)
@@ -366,7 +366,7 @@ EMIT_EVERY_SEC = 0.5
 def report_progress(
   it: Union[Iterator[TProgress], Iterable[TProgress]],
   task_shard_id: Optional[TaskShardId],
-  shard_count: Optional[int] = None,
+  shard_count: Optional[int],
   initial_index: Optional[int] = None,
   estimated_len: Optional[int] = None,
 ) -> Generator[TProgress, None, None]:

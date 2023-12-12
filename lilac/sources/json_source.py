@@ -10,7 +10,7 @@ from typing_extensions import override
 from ..data import dataset_utils
 from ..schema import PARQUET_FILENAME_PREFIX, ROWID, Schema, arrow_schema_to_schema
 from ..source import Source, SourceManifest, SourceSchema
-from ..tasks import TaskStepId
+from ..tasks import TaskShardId
 from ..utils import download_http_files
 from .duckdb_utils import convert_path_to_duckdb, duckdb_setup
 
@@ -81,8 +81,10 @@ class JSONSource(Source):
     return self._source_schema
 
   @override
-  def load_to_parquet(self, output_dir: str, task_step_id: Optional[TaskStepId]) -> SourceManifest:
-    del task_step_id
+  def load_to_parquet(
+    self, output_dir: str, task_shard_id: Optional[TaskShardId]
+  ) -> SourceManifest:
+    del task_shard_id
 
     assert self._con, 'setup() must be called first.'
 
