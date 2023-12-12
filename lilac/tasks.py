@@ -2,13 +2,16 @@
 
 import builtins
 import functools
+import multiprocessing
 import random
 import time
 import traceback
 import uuid
-from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
+from multiprocessing.managers import SyncManager
 from typing import (
   Any,
   Awaitable,
@@ -20,10 +23,11 @@ from typing import (
   Optional,
   TypeVar,
   Union,
+  cast,
 )
 
-import multiprocess
 import nest_asyncio
+from loky import get_reusable_executor
 from pydantic import BaseModel
 
 from .utils import log, pretty_timedelta
@@ -56,7 +60,8 @@ class TaskType(str, Enum):
   DATASET_MAP = 'dataset_map'
 
 
-class TaskShardInfo(BaseModel):
+@dataclass
+class TaskShardInfo:
   """Information about a shard of a task."""
 
   current_index: int
@@ -66,22 +71,22 @@ class TaskShardInfo(BaseModel):
 TaskExecutionType = Literal['processes', 'threads']
 
 
-class TaskInfo(BaseModel):
+@dataclass
+class TaskInfo:
   """Metadata about a task."""
 
   name: str
+  start_timestamp: str
+  end_timestamp: Optional[str] = None
   type: Optional[TaskType] = None
-  status: TaskStatus
+  status: TaskStatus = TaskStatus.PENDING
   progress: Optional[float] = None
   message: Optional[str] = None
   details: Optional[str] = None
 
-  shards: dict[int, TaskShardInfo] = {}
+  shards: dict[int, TaskShardInfo] = field(default_factory=dict)
 
   description: Optional[str] = None
-  start_timestamp: str
-  end_timestamp: Optional[str] = None
-
   error: Optional[str] = None
 
 
@@ -95,23 +100,26 @@ class TaskManifest(BaseModel):
 class TaskManager:
   """Manage FastAPI background tasks."""
 
-  _manager: multiprocess.Manager
+  _manager: SyncManager
   _shards_proxy: dict[TaskShardId, TaskShardInfo]
   _tasks: dict[str, TaskInfo]
 
   # Maps a task_id to their futures.
-  _futures: dict[str, list[Future]] = {}
+  _futures: dict[str, list[Future]]
 
   # Maps a task_id to the count of shard completions.
-  _task_shard_completions: dict[str, int] = {}
+  _task_shard_completions: dict[str, int]
 
-  thread_pools: dict[str, ThreadPoolExecutor] = {}
-  process_pools: dict[str, ProcessPoolExecutor] = {}
+  thread_pools: dict[str, ThreadPoolExecutor]
 
   def __init__(self) -> None:
     # Maps a task id to the current progress of that task. Shared across all processes.
-    self._manager = multiprocess.Manager()
-    self._shards_proxy = self._manager.dict()
+    self._manager = multiprocessing.Manager()
+    self._shards_proxy = cast(dict[TaskShardId, TaskShardInfo], self._manager.dict())
+    self._tasks = {}
+    self._futures = {}
+    self._task_shard_completions = {}
+    self.thread_pools = {}
 
   def _update_tasks(self) -> None:
     for task_id, task in list(self._tasks.items()):
@@ -120,10 +128,6 @@ class TaskManager:
           thread_pool = self.thread_pools[task_id]
           thread_pool.shutdown()
           del self.thread_pools[task_id]
-        if task_id in self.process_pools:
-          process_pool = self.process_pools[task_id]
-          process_pool.shutdown()
-          del self.process_pools[task_id]
         continue
       total_progress = 0
       total_count = 0
@@ -234,23 +238,22 @@ class TaskManager:
     subtasks: list[tuple[TaskFn, list[Any]]],
   ) -> None:
     """Execute a task in multiple shards."""
-    if task_id in self.thread_pools or task_id in self.process_pools:
+    if task_id in self.thread_pools:
       raise ValueError(f'Task {task_id} already exists.')
 
     futures: list[Future] = []
     # Create the pool of workers.
     if type == 'threads':
       self.thread_pools[task_id] = ThreadPoolExecutor(max_workers=len(subtasks))
-    elif type == 'processes':
-      self.process_pools[task_id] = ProcessPoolExecutor(mp_context=multiprocess.get_context('fork'))
-    else:
-      raise ValueError(f'Invalid task execution type: {type}')
 
     for shard_id, (task_fn, args) in enumerate(subtasks):
-      step_id = 0
-      task_shard_id = (task_id, step_id, shard_id)
+      task_shard_id = (task_id, shard_id)
       worker_fn = functools.partial(_execute_task, task_fn, self._shards_proxy, task_shard_id)
-      pool = self.process_pools[task_id] if type == 'processes' else self.thread_pools[task_id]
+      pool = (
+        get_reusable_executor(max_workers=len(subtasks))
+        if type == 'processes'
+        else self.thread_pools[task_id]
+      )
       future = pool.submit(worker_fn, *args)
       future.add_done_callback(
         lambda future: self._set_task_shard_completed(task_id, future, num_shards=len(subtasks))
@@ -277,14 +280,14 @@ def init_worker(proxy: dict[TaskShardId, TaskShardInfo]) -> None:
 def update_shard_info(task_shard_id: TaskShardId, shard_info: TaskShardInfo) -> None:
   """Updates the current task info."""
   global TASK_SHARD_PROXY
-  if not TASK_SHARD_PROXY:
+  if TASK_SHARD_PROXY is None:
     raise ValueError('No proxy dict was set.')
   TASK_SHARD_PROXY[task_shard_id] = shard_info
 
 
 def get_shard_info(task_shard_id: TaskShardId) -> TaskShardInfo:
   """Gets the current task info."""
-  if not TASK_SHARD_PROXY:
+  if TASK_SHARD_PROXY is None:
     raise ValueError('No proxy dict was set.')
   return TASK_SHARD_PROXY[task_shard_id]
 

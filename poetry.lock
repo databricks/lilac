@@ -3410,6 +3410,20 @@ files = [
 ]
 
 [[package]]
+name = "loky"
+version = "3.4.1"
+description = "A robust implementation of concurrent.futures.ProcessPoolExecutor"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "loky-3.4.1-py3-none-any.whl", hash = "sha256:7132da80d1a057b5917ff32c7867b65ed164aae84c259a1dbc44375791280c87"},
+    {file = "loky-3.4.1.tar.gz", hash = "sha256:66db350de68c301299c882ace3b8f06ba5c4cb2c45f8fcffd498160ce8280753"},
+]
+
+[package.dependencies]
+cloudpickle = "*"
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -7834,4 +7848,4 @@ text-stats = ["textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "2387de79604eb8a33d38f4b74e94e956f263fd710c4c12e632c32de2a53c0e41"
+content-hash = "bc6f3cd1ec0d75ae673ee5c1b8b62812734ee6c9e1f7f1a74d6d2b3eea7848ee"

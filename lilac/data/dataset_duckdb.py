@@ -2698,7 +2698,6 @@ class DatasetDuckDB(Dataset):
         shard_id=i,
         shard_count=num_jobs,
       )
-      entire_input = False
       subtasks.append(
         (
           self._map_worker,
@@ -2715,7 +2714,6 @@ class DatasetDuckDB(Dataset):
             combine_columns,
             resolve_span,
             (task_id, 0),
-            progress_description,
           ],
         )
       )
