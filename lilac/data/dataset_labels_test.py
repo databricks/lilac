@@ -10,7 +10,7 @@ from pytest_mock import MockerFixture
 
 from ..schema import PATH_WILDCARD, ROWID, Item, field, schema
 from ..source import clear_source_registry, register_source
-from .dataset import DatasetManifest, SelectGroupsResult, SortOrder
+from .dataset import DELETED_LABEL_NAME, DatasetManifest, SelectGroupsResult, SortOrder
 from .dataset_test_utils import TestDataMaker, TestSource
 
 TEST_ITEMS: list[Item] = [{'str': 'a', 'int': 1}, {'str': 'b', 'int': 2}, {'str': 'c', 'int': 3}]
@@ -113,6 +113,98 @@ def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) ->
     },
   ]
   assert dataset.get_label_names() == ['test_label']
+
+
+@freeze_time(TEST_TIME)
+def test_label_deleted_interaction(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  dataset = make_test_data(TEST_ITEMS)
+
+  # Expected semantics:
+  # Adding/removing labels on deleted rows will fail unless include_deleted=True.
+  # That's true even if the row was manually specified in row_ids!
+  dataset.add_labels('test_label', row_ids=['1', '2'])
+  dataset.delete_rows(['1'])
+  dataset.remove_labels('test_label', row_ids=['1', '2'])
+  assert list(dataset.select_rows([PATH_WILDCARD], include_deleted=True)) == [
+    {
+      'str': 'a',
+      'int': 1,
+      f'{DELETED_LABEL_NAME}.label': 'true',
+      f'{DELETED_LABEL_NAME}.created': Timestamp(TEST_TIME),
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      f'{DELETED_LABEL_NAME}.label': None,
+      f'{DELETED_LABEL_NAME}.created': None,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      f'{DELETED_LABEL_NAME}.label': None,
+      f'{DELETED_LABEL_NAME}.created': None,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+  ]
+
+  dataset.remove_labels('test_label', row_ids=['1'], include_deleted=True)
+  assert sorted(
+    dataset.select_rows([PATH_WILDCARD], include_deleted=True), key=lambda x: x['int']
+  ) == [
+    {
+      'str': 'a',
+      'int': 1,
+      f'{DELETED_LABEL_NAME}.label': 'true',
+      f'{DELETED_LABEL_NAME}.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      f'{DELETED_LABEL_NAME}.label': None,
+      f'{DELETED_LABEL_NAME}.created': None,
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      f'{DELETED_LABEL_NAME}.label': None,
+      f'{DELETED_LABEL_NAME}.created': None,
+    },
+  ]
+
+  dataset.add_labels('test_label', row_ids=['1', '3'])
+  assert sorted(
+    dataset.select_rows([PATH_WILDCARD], include_deleted=True), key=lambda x: x['int']
+  ) == [
+    {
+      'str': 'a',
+      'int': 1,
+      f'{DELETED_LABEL_NAME}.label': 'true',
+      f'{DELETED_LABEL_NAME}.created': Timestamp(TEST_TIME),
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      f'{DELETED_LABEL_NAME}.label': None,
+      f'{DELETED_LABEL_NAME}.created': None,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      f'{DELETED_LABEL_NAME}.label': None,
+      f'{DELETED_LABEL_NAME}.created': None,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+  ]
 
 
 @freeze_time(TEST_TIME)

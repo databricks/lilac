@@ -1,5 +1,9 @@
 <script lang="ts">
-  import {queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
+  import {
+    queryDatasetManifest,
+    queryDatasetSchema,
+    querySettings
+  } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, type ColumnComparisonState} from '$lib/stores/datasetViewStore';
   /**
    * Component that renders a single value from a row in the dataset row view
@@ -7,6 +11,8 @@
    */
   import {getSettingsContext} from '$lib/stores/settingsStore';
   import {getComputedEmbeddings, getDisplayPath, getSpanValuePaths} from '$lib/view_utils';
+  import SvelteMarkdown from 'svelte-markdown';
+
   import {
     L,
     PATH_WILDCARD,
@@ -21,11 +27,19 @@
     type Path
   } from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
-  import {ChevronDown, ChevronUp, DirectionFork, Search, Undo} from 'carbon-icons-svelte';
+  import {
+    CatalogPublish,
+    ChevronDown,
+    ChevronUp,
+    DataViewAlt,
+    DirectionFork,
+    Search,
+    Undo
+  } from 'carbon-icons-svelte';
   import ButtonDropdown from '../ButtonDropdown.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ItemMediaDiff from './ItemMediaDiff.svelte';
-  import StringSpanHighlight from './StringSpanHighlight.svelte';
+  import ItemMediaTextContent from './ItemMediaTextContent.svelte';
 
   export let mediaPath: Path;
   export let row: LilacValueNode | undefined | null = undefined;
@@ -68,6 +82,8 @@
   // The child component will communicate this back upwards to this component.
   let textIsOverBudget = false;
   let userExpanded = false;
+  // True when the user has switched to preview mode (markdown rendering).
+  let userPreview: boolean | undefined = undefined;
 
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
@@ -79,6 +95,35 @@
   $: valueNode = valueNodes[0];
   $: value = L.value(valueNode);
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
+
+  // Get slots for the view. These are custom UI renderings that are a function of dataset formats.
+  $: datasetManifest = queryDatasetManifest(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName
+  );
+  $: titleSlots = $datasetManifest.data?.dataset_manifest.dataset_format?.title_slots as [
+    Path,
+    Path
+  ][];
+  // Resolve repeated indices from a path by mapping it to the root path.
+  function resolveRepeatedIndices(path: Path): Path {
+    return path.map((p, i) => {
+      if (p === PATH_WILDCARD) {
+        return rootPath![i];
+      }
+      return p;
+    });
+  }
+
+  // Get the title path for this root path. This returns undefined.
+  $: titlePath = (titleSlots || []).find(slot => {
+    const [mediaPath] = slot;
+    return pathIsEqual(mediaPath, rootPath);
+  })?.[1]; // The second value in the tuple is the title path.
+  $: titleValue =
+    titlePath != null && row != null
+      ? L.value(getValueNodes(row, resolveRepeatedIndices(titlePath))[0])
+      : null;
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   // Compare media paths should contain media paths with resolved path wildcards as sometimes the
@@ -151,19 +196,23 @@
   function removeComparison() {
     datasetViewStore.removeCompareColumn(mediaPath);
   }
-  $: markdown = $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null;
+  $: datasetSettingsMarkdown =
+    $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null;
+  $: markdown = userPreview !== undefined ? userPreview : datasetSettingsMarkdown;
 </script>
 
-<div class="flex w-full gap-x-4">
+<div class="flex w-full flex-row gap-x-4 p-2">
   {#if isLeaf}
-    <div class="relative mr-4 flex w-28 flex-none font-mono font-medium text-neutral-500 md:w-44">
+    <div
+      class="relative mr-4 flex w-32 shrink-0 flex-row font-mono font-medium text-neutral-500 md:w-44"
+    >
       <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
-        {#if displayPath != ''}
+        {#if displayPath != '' && titleValue == null}
           <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
             {displayPath}
           </div>
         {/if}
-        <div class="flex flex-row">
+        <div class="flex flex-row gap-x-1">
           <div
             use:hoverTooltip={{
               text: noEmbeddings ? '"More like this" requires an embedding index' : undefined
@@ -177,6 +226,13 @@
               ><Search size={16} />
             </button>
           </div>
+          <button
+            disabled={colCompareState != null}
+            class:opacity-50={colCompareState != null}
+            on:click={() => (userPreview = !markdown)}
+            use:hoverTooltip={{text: !markdown ? 'Preview markdown' : 'Back to text'}}
+            >{#if markdown}<CatalogPublish size={16} />{:else}<DataViewAlt size={16} />{/if}
+          </button>
           {#if !colCompareState}
             <ButtonDropdown
               disabled={compareItems.length === 0}
@@ -193,6 +249,7 @@
               ><Undo size={16} />
             </button>
           {/if}
+
           <button
             disabled={!textIsOverBudget}
             class:opacity-50={!textIsOverBudget}
@@ -203,28 +260,48 @@
         </div>
       </div>
     </div>
-    <div class="w-full grow-0 overflow-x-auto pt-1 font-normal">
-      {#if row != null}
-        {#if colCompareState == null}
-          <StringSpanHighlight
-            text={formatValue(value)}
-            {row}
-            path={rootPath}
-            {field}
-            {markdown}
-            isExpanded={userExpanded}
-            spanPaths={spanValuePaths.spanPaths}
-            valuePaths={spanValuePaths.valuePaths}
-            {datasetViewStore}
-            embeddings={computedEmbeddings}
-            bind:textIsOverBudget
-          />
-        {:else}
-          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
-        {/if}
-      {:else}
-        <SkeletonText lines={3} paragraph class="w-full" />
+    <div class="flex grow flex-col font-normal">
+      {#if titleValue != null}
+        <div
+          class="-m-2 mb-1 rounded bg-gray-100 p-1 px-2 text-xs font-bold uppercase text-gray-700"
+        >
+          {titleValue}
+        </div>
       {/if}
+
+      <div class="grow pt-1">
+        {#if row != null}
+          {#if colCompareState == null}
+            <ItemMediaTextContent
+              hidden={markdown}
+              text={formatValue(value)}
+              {row}
+              path={rootPath}
+              {field}
+              isExpanded={userExpanded}
+              spanPaths={spanValuePaths.spanPaths}
+              spanValueInfos={spanValuePaths.spanValueInfos}
+              {datasetViewStore}
+              embeddings={computedEmbeddings}
+              bind:textIsOverBudget
+            />
+            <div class="markdown w-full" class:hidden={!markdown}>
+              <div class="markdown w-fit">
+                <SvelteMarkdown source={formatValue(value)} />
+              </div>
+            </div>
+          {:else}
+            <ItemMediaDiff
+              {row}
+              {colCompareState}
+              bind:textIsOverBudget
+              isExpanded={userExpanded}
+            />
+          {/if}
+        {:else}
+          <SkeletonText lines={3} paragraph class="w-full" />
+        {/if}
+      </div>
     </div>
   {:else}
     <!-- Repeated values will render <ItemMedia> again. -->
@@ -234,7 +311,7 @@
           {displayPath}
         </div>
         {#each nextRootPaths as nextRootPath}
-          <div class="m-2 rounded border border-neutral-100 p-2">
+          <div class="m-2 rounded border border-neutral-100">
             <svelte:self
               rootPath={nextRootPath.rootPath}
               showPath={nextRootPath.showPath}

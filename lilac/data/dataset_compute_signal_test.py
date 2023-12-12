@@ -376,6 +376,58 @@ def test_signal_overwrite(make_test_data: TestDataMaker) -> None:
   assert list(dataset.select_rows(['str'], combine_columns=True)) == expected_items
 
 
+def test_signal_ignores_deleted(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(SIMPLE_ITEMS)
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({'str': 'string', 'int': 'int32', 'bool': 'boolean', 'float': 'float32'}),
+    num_items=3,
+    source=TestSource(),
+  )
+
+  dataset.delete_rows(['1'])
+  test_signal = TestSignal()
+  dataset.compute_signal(test_signal, 'str')
+
+  # Check the enriched dataset manifest has 'text' enriched.
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'str': field(
+          'string',
+          fields={
+            'test_signal': field(
+              signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
+            )
+          },
+        ),
+        'int': 'int32',
+        'bool': 'boolean',
+        'float': 'float32',
+        '__deleted__': field(
+          label='__deleted__',
+          fields={
+            'label': 'string',
+            'created': 'timestamp',
+          },
+        ),
+      },
+    ),
+    num_items=3,
+    source=TestSource(),
+  )
+
+  result = dataset.select_rows(['str'], combine_columns=True, include_deleted=True)
+  assert list(result) == [
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
+    {'str': 'a'},
+  ]
+
+
 def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(SIMPLE_ITEMS)
   assert dataset.manifest() == DatasetManifest(

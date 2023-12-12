@@ -123,9 +123,9 @@
   }
 </script>
 
-<div class="flex flex-col rounded border border-neutral-300 md:flex-row">
+<div class="flex w-full flex-col rounded border border-neutral-300 md:flex-row">
   <div
-    class={`flex flex-col gap-y-1 p-4 ${!$datasetViewStore.showMetadataPanel ? 'grow' : 'w-full'}`}
+    class={`flex flex-col gap-y-1 p-4 ${!$datasetViewStore.showMetadataPanel ? 'grow ' : 'w-2/3'}`}
     bind:clientHeight={mediaHeight}
   >
     <div class="flex flex-wrap items-center gap-x-2 gap-y-2" class:opacity-50={disableLabels}>

@@ -2,10 +2,10 @@
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   import {onDestroy, onMount} from 'svelte';
 
-  import {getMonaco} from '$lib/monaco';
+  import {getMonaco, MONACO_OPTIONS} from '$lib/monaco';
   import {getDatasetViewContext, type ColumnComparisonState} from '$lib/stores/datasetViewStore';
   import {getDisplayPath} from '$lib/view_utils';
-  import {L, getValueNodes, type LilacValueNode} from '$lilac';
+  import {getValueNodes, L, type LilacValueNode} from '$lilac';
   import {PropertyRelationship} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
@@ -64,29 +64,11 @@
     monaco = await getMonaco();
 
     editor = monaco.editor.createDiffEditor(editorContainer, {
-      readOnly: true,
-      lineNumbers: 'on',
-      renderFinalNewline: 'dimmed',
-      lineDecorationsWidth: 0,
+      ...MONACO_OPTIONS,
+      // Turn on line numbers and margins for the diff editor.
       glyphMargin: true,
-      folding: false,
       lineNumbersMinChars: 3,
-      roundedSelection: true,
-      domReadOnly: true,
-      scrollBeyondLastLine: false,
-      wordWrap: 'on',
-      wrappingStrategy: 'advanced',
-      readOnlyMessage: {value: ''},
-      scrollbar: {
-        verticalScrollbarSize: 8,
-        alwaysConsumeMouseWheel: false
-      },
-      minimap: {
-        enabled: true,
-        side: 'right'
-      },
-
-      automaticLayout: true
+      lineNumbers: 'on'
     });
 
     editor.onDidChangeModel(() => {
@@ -105,7 +87,8 @@
   }
 
   onDestroy(() => {
-    monaco?.editor.getModels().forEach(model => model.dispose());
+    editor.getModel()?.modified.dispose();
+    editor.getModel()?.original.dispose();
     editor?.dispose();
   });
 </script>
@@ -126,7 +109,7 @@
 </div>
 
 <style lang="postcss">
-  :global(.editor-container) {
+  .editor-container {
     width: 100%;
   }
   :global(.editor-container .monaco-editor .lines-content.monaco-editor-background) {

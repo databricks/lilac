@@ -127,7 +127,7 @@
 {/each}
 
 {#if rowId != null}
-  <div class="flex h-full w-full flex-col overflow-y-scroll px-5 pb-32">
+  <div class="flex h-full w-full flex-col overflow-y-scroll pb-32 pl-5 pr-2">
     <RowItem {rowId} {mediaFields} {highlightedFields} />
   </div>
 {/if}

@@ -353,7 +353,7 @@ function getMapInputPath(field: LilacField): Path | undefined {
 export function getSpanValuePaths(
   field: LilacField,
   highlightedFields?: LilacField[]
-): {spanPaths: Path[]; valuePaths: SpanValueInfo[]} {
+): {spanPaths: Path[]; spanValueInfos: SpanValueInfo[]} {
   // Include the field.
   const children = childFields(field);
   // Find the non-keyword span fields under this field.
@@ -390,7 +390,7 @@ export function getSpanValuePaths(
 
   const spanPaths = spanFields.map(f => f.path);
 
-  const valuePaths: SpanValueInfo[] = [];
+  const spanValueInfos: SpanValueInfo[] = [];
   for (const spanField of spanFields) {
     const spanChildren = childFields(spanField)
       .filter(f => f.dtype?.type != 'string_span')
@@ -408,7 +408,7 @@ export function getSpanValuePaths(
     if (keywordSearch != null) {
       const signal = keywordSearch.signal as SubstringSignal;
 
-      valuePaths.push({
+      spanValueInfos.push({
         path: spanField.path,
         spanPath,
         type: 'keyword',
@@ -418,7 +418,7 @@ export function getSpanValuePaths(
       });
     } else if (spanPetalChildren.length === 0) {
       // If the span is a leaf, we still show it highlighted.
-      valuePaths.push({
+      spanValueInfos.push({
         path: spanField.path,
         spanPath,
         type: 'leaf_span',
@@ -436,7 +436,7 @@ export function getSpanValuePaths(
       );
       if (concept != null) {
         const signal = concept.signal as ConceptSignal;
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'concept_score',
@@ -446,7 +446,7 @@ export function getSpanValuePaths(
         });
       } else if (conceptLabel != null) {
         const signal = conceptLabel.signal as ConceptLabelsSignal;
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'label',
@@ -456,7 +456,7 @@ export function getSpanValuePaths(
         });
       } else if (semanticSimilarity != null) {
         const signal = semanticSimilarity.signal as SemanticSimilaritySignal;
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'semantic_similarity',
@@ -465,7 +465,7 @@ export function getSpanValuePaths(
           signal
         });
       } else {
-        valuePaths.push({
+        spanValueInfos.push({
           path: spanPetalChild.path,
           spanPath,
           type: 'metadata',
@@ -475,7 +475,7 @@ export function getSpanValuePaths(
       }
     }
   }
-  return {spanPaths, valuePaths};
+  return {spanPaths, spanValueInfos: spanValueInfos};
 }
 
 export interface MergedSpan {

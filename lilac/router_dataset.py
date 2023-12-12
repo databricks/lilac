@@ -274,6 +274,11 @@ class ExportOptions(BaseModel):
   columns: Sequence[Path] = []
   include_labels: Sequence[str] = []
   exclude_labels: Sequence[str] = []
+  # Note: "__deleted__" is "just" another label, and the UI
+  # will default to adding the "__deleted__" label to the exclude_labels list. If the user wants
+  # to include deleted items, they can remove the "__deleted__" label from the exclude_labels list.
+  # This is in contrast to just about every other API endpoint, which does explicitly include a
+  # flag for include_deleted.
 
 
 @router.get('/serve_dataset')

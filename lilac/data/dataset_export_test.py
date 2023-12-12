@@ -14,6 +14,7 @@ from typing_extensions import override
 
 from ..schema import ROWID, Field, Item, RichData, field
 from ..signal import TextSignal, clear_signal_registry, register_signal
+from .dataset import DELETED_LABEL_NAME
 from .dataset_test_utils import TestDataMaker
 
 
@@ -168,27 +169,37 @@ def test_label_and_export_by_excluding(
   make_test_data: TestDataMaker, tmp_path: pathlib.Path
 ) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
-  dataset.add_labels('delete', ['2', '3'])
+  dataset.delete_rows(['2', '3'])
 
   # Download all, except the 'deleted' label.
   filepath = tmp_path / 'dataset.json'
-  dataset.to_json(filepath, exclude_labels=['delete'])
-
-  with open(filepath) as f:
-    parsed_items = [json.loads(line) for line in f.readlines()]
-
-  assert parsed_items == [{'delete.created': None, 'delete.label': None, 'text': 'a'}]
-
-  # Download only the 'deleted' label.
-  filepath = tmp_path / 'dataset.json'
-  dataset.to_json(filepath, include_labels=['delete'])
+  dataset.to_json(filepath, exclude_labels=[DELETED_LABEL_NAME])
 
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
-    {'delete.created': str(TEST_TIME), 'delete.label': 'true', 'text': 'b'},
-    {'delete.created': str(TEST_TIME), 'delete.label': 'true', 'text': 'c'},
+    {f'{DELETED_LABEL_NAME}.created': None, f'{DELETED_LABEL_NAME}.label': None, 'text': 'a'}
+  ]
+
+  # Download only the 'deleted' label.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, include_labels=[DELETED_LABEL_NAME])
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [
+    {
+      f'{DELETED_LABEL_NAME}.created': str(TEST_TIME),
+      f'{DELETED_LABEL_NAME}.label': 'true',
+      'text': 'b',
+    },
+    {
+      f'{DELETED_LABEL_NAME}.created': str(TEST_TIME),
+      f'{DELETED_LABEL_NAME}.label': 'true',
+      'text': 'c',
+    },
   ]
 
 

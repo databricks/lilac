@@ -71,7 +71,7 @@
 
   let previewResultItem: LilacValueNode | undefined = undefined;
   // For spans.
-  let valuePaths: SpanValueInfo[];
+  let valueInfos: SpanValueInfo[];
   let spanPaths: Path[];
   // For regular metadata.
   let metadataFields: LilacField[];
@@ -92,7 +92,7 @@
         }
         const spanValuePaths = getSpanValuePaths(resultSchema);
         spanPaths = spanValuePaths.spanPaths;
-        valuePaths = spanValuePaths.valuePaths;
+        valueInfos = spanValuePaths.spanValueInfos;
         // Find the non-span fields to render as a table.
         metadataFields = children.filter(f => {
           // Remove any children that are the child of a span.
@@ -102,7 +102,7 @@
         });
       } else {
         spanPaths = [];
-        valuePaths = [];
+        valueInfos = [];
         metadataFields = [];
       }
       previewResultItem = deserializeRow(item, resultSchema);
@@ -160,12 +160,12 @@
             <svelte:fragment slot="content">
               <TabContent>
                 <div class="mt-2">
-                  {#if valuePaths.length > 0}
+                  {#if valueInfos.length > 0}
                     <StringSpanHighlight
                       text={previewText}
                       row={previewResultItem}
                       {spanPaths}
-                      {valuePaths}
+                      spanValueInfos={valueInfos}
                       embeddings={[]}
                     />
                   {/if}

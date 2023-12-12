@@ -88,7 +88,7 @@
             {text}
             {row}
             spanPaths={spanValuePaths.spanPaths}
-            valuePaths={spanValuePaths.valuePaths}
+            spanValueInfos={spanValuePaths.spanValueInfos}
             embeddings={[]}
           />
         </div>
