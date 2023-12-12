@@ -41,6 +41,29 @@ def test_simple_stats(make_test_data: TestDataMaker) -> None:
   )
 
 
+def test_stats_with_deletions(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(SIMPLE_ITEMS)
+
+  result = dataset.stats(leaf_path='float')
+  assert result == StatsResult(
+    path=('float',), total_count=4, approx_count_distinct=4, min_val=1.0, max_val=3.0
+  )
+
+  dataset.delete_rows(filters=[('float', 'equals', 3.0)])
+
+  result = dataset.stats(leaf_path='float')
+  assert result == StatsResult(
+    path=('float',), total_count=3, approx_count_distinct=3, min_val=1.0, max_val=2.0
+  )
+
+  dataset.restore_rows(filters=[('float', 'equals', 3.0)])
+
+  result = dataset.stats(leaf_path='float')
+  assert result == StatsResult(
+    path=('float',), total_count=4, approx_count_distinct=4, min_val=1.0, max_val=3.0
+  )
+
+
 def test_nested_stats(make_test_data: TestDataMaker) -> None:
   nested_items: list[Item] = [
     {'name': 'Name1', 'addresses': [{'zips': [5, 8]}]},

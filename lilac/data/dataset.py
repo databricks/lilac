@@ -68,6 +68,9 @@ MAX_TEXT_LEN_DISTINCT_COUNT = 250
 # Threshold for promoting a column to a media field.
 MEDIA_AVG_TEXT_LEN = 150
 
+# Special name for the deleted label.
+DELETED_LABEL_NAME = '__deleted__'
+
 
 class SelectRowsResult:
   """The result of a select rows query."""
@@ -429,6 +432,9 @@ class Dataset(abc.ABC):
     self,
     signal: Signal,
     path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
+    include_deleted: bool = False,
     overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
@@ -437,6 +443,9 @@ class Dataset(abc.ABC):
     Args:
       signal: The signal to compute over the given columns.
       path: The leaf path to compute the signal on.
+      filters: Filters to apply to the row; only matching rows will have the signal computed.
+      limit: Limit the number of rows to compute the signal on.
+      include_deleted: Whether to include deleted rows in the computation.
       overwrite: Whether to overwrite an existing signal computed at this path.
       task_step_id: The TaskManager `task_step_id` for this process run. This is used to update the
         progress of the task.
@@ -447,12 +456,15 @@ class Dataset(abc.ABC):
     self,
     embedding: str,
     path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
+    include_deleted: bool = False,
     overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute an embedding for a given field path."""
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
-    self.compute_signal(signal, path, overwrite, task_step_id)
+    self.compute_signal(signal, path, filters, limit, include_deleted, overwrite, task_step_id)
 
   def compute_concept(
     self,
@@ -460,12 +472,17 @@ class Dataset(abc.ABC):
     concept_name: str,
     embedding: str,
     path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
+    include_deleted: bool = False,
     overwrite: bool = False,
     task_step_id: Optional[TaskStepId] = None,
   ) -> None:
     """Compute concept scores for a given field path."""
     signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
-    self.compute_signal(signal, path, overwrite=overwrite, task_step_id=task_step_id)
+    self.compute_signal(
+      signal, path, filters, limit, include_deleted, overwrite=overwrite, task_step_id=task_step_id
+    )
 
   @abc.abstractmethod
   def delete_signal(self, signal_path: Path) -> None:
@@ -515,6 +532,7 @@ class Dataset(abc.ABC):
     task_step_id: Optional[TaskStepId] = None,
     resolve_span: bool = False,
     combine_columns: bool = False,
+    include_deleted: bool = False,
     user: Optional[UserInfo] = None,
   ) -> SelectRowsResult:
     """Select a set of rows that match the provided filters, analogous to SQL SELECT.
@@ -540,6 +558,7 @@ class Dataset(abc.ABC):
       resolve_span: Whether to resolve the span of the row.
       combine_columns: Whether to combine columns into a single object. The object will be pruned
         to only include sub-fields that correspond to the requested columns.
+      include_deleted: Whether to include deleted rows in the query.
       user: The authenticated user, if auth is enabled and the user is logged in. This is used to
         apply ACL to the query, especially for concepts.
 
@@ -567,6 +586,7 @@ class Dataset(abc.ABC):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    include_deleted: bool = False,
     value: Optional[str] = 'true',
   ) -> int:
     """Adds a label to a row, or a set of rows defined by searches and filters.
@@ -587,6 +607,7 @@ class Dataset(abc.ABC):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    include_deleted: bool = False,
   ) -> int:
     """Removes labels from a row, or a set of rows defined by searches and filters.
 
@@ -594,12 +615,37 @@ class Dataset(abc.ABC):
     """
     pass
 
+  def delete_rows(
+    self,
+    row_ids: Optional[Sequence[str]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+  ) -> int:
+    """Deletes rows from the dataset.
+
+    Returns the number of deleted rows.
+    """
+    return self.add_labels(DELETED_LABEL_NAME, row_ids, searches, filters)
+
+  def restore_rows(
+    self,
+    row_ids: Optional[Sequence[str]] = None,
+    searches: Optional[Sequence[Search]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+  ) -> int:
+    """Undeletes rows from the dataset.
+
+    Returns the number of restored rows.
+    """
+    return self.remove_labels(DELETED_LABEL_NAME, row_ids, searches, filters, include_deleted=True)
+
   @abc.abstractmethod
-  def stats(self, leaf_path: Path) -> StatsResult:
+  def stats(self, leaf_path: Path, include_deleted: bool = False) -> StatsResult:
     """Compute stats for a leaf path.
 
     Args:
       leaf_path: The leaf path to compute stats for.
+      include_deleted: Whether to include deleted rows in the stats.
 
     Returns:
       A StatsResult.
@@ -632,6 +678,7 @@ class Dataset(abc.ABC):
     batch_size: Optional[int] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
+    include_deleted: bool = False,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
@@ -663,6 +710,7 @@ class Dataset(abc.ABC):
         filter, and there is no way to fill in those nulls without recomputing the entire map with
         a less restrictive filter and overwrite=True.
       limit: How many rows to map over. If not specified, all rows will be mapped over.
+      include_deleted: Whether to include deleted rows in the query.
       num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
         jobs will correspond to the number of processors. If `num_jobs` is greater than the number
         of processors, it split the work into `num_jobs` and distribute amongst processors.

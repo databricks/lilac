@@ -41,6 +41,20 @@ def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
   assert list(result) == []
 
 
+def test_filter_deleted_interaction(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(TEST_DATA)
+
+  id_filter: BinaryFilterTuple = (ROWID, 'equals', '1')
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == [{'str': 'a', 'int': 1, 'bool': False, 'float': 3.0}]
+
+  dataset.delete_rows(filters=[id_filter])
+  result = dataset.select_rows(filters=[id_filter])
+
+  assert list(result) == []
+
+
 def test_filter_greater(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
