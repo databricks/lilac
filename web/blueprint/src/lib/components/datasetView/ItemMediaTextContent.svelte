@@ -253,6 +253,28 @@
           isTrusted: true
         }
       ];
+    } else if (renderSpan.isLeafSpan) {
+      return [
+        {
+          value: `**span** *${serializePath(namedValue.info.path)}*`,
+          supportHtml: true,
+          isTrusted: true
+        },
+        ...(namedValue.value != null
+          ? [
+              {
+                value: `value: *${namedValue.value}*`,
+                supportHtml: true,
+                isTrusted: true
+              }
+            ]
+          : []),
+        {
+          value: `<span>${renderSpan.text}</span>`,
+          supportHtml: true,
+          isTrusted: true
+        }
+      ];
     }
     return [];
   }
@@ -271,29 +293,27 @@
     return `add-to-concept-${conceptNamespace}-${conceptName}`;
   }
 
-  let contextKeys: Monaco.editor.IContextKey[] = [];
-
-  // Create conditions for concepts from searches. Always set all the values to false. They will get
-  // reset below when searches are defined so we don't keep growing the actions.
+  // Remember all of the context key conditions so we don't keep re-creating them.
+  let contextKeys: {[key: string]: Monaco.editor.IContextKey} = {};
   $: {
-    if (editor != null && searches != null) {
-      // Reset all context keys.
-      for (const contextKey of contextKeys) {
+    if (editor != null) {
+      // Create conditions for concepts from searches. Always set all the values to false. They will get
+      // reset below when searches are defined so we don't keep growing the actions.
+      for (const contextKey of Object.values(contextKeys)) {
         contextKey.set(false);
       }
-    }
-  }
 
-  // Set the conditions for each concept to true if they exist in the searches.
-  $: {
-    if (editor != null && searches != null) {
-      for (const search of searches) {
+      // Set the conditions for each concept to true if they exist in the searches.
+      for (const search of searches || []) {
         if (search.type != 'concept') continue;
-        const contextKey = editor.createContextKey(
-          conceptActionKeyId(search.concept_namespace, search.concept_name),
-          true
-        );
-        contextKeys.push(contextKey);
+        const actionKeyId = conceptActionKeyId(search.concept_namespace, search.concept_name);
+        // Don't recreate the key if it exists.
+        if (contextKeys[actionKeyId] == null) {
+          const contextKey = editor.createContextKey(actionKeyId, true);
+          contextKeys[actionKeyId] = contextKey;
+        } else {
+          contextKeys[actionKeyId].set(true);
+        }
       }
     }
   }
@@ -471,6 +491,22 @@
               }
             }
           });
+        } else if (renderSpan.isLeafSpan) {
+          spanDecorations.push({
+            range,
+            options: {
+              className: 'leaf-bg',
+              inlineClassName: 'leaf-text',
+              hoverMessage: hoverCard,
+              glyphMarginClassName: 'leaf-glyph',
+              glyphMarginHoverMessage: hoverCard,
+              isWholeLine: false,
+              minimap: {
+                position: monaco.editor.MinimapPosition.Inline,
+                color: '#888888'
+              }
+            }
+          });
         }
         return spanDecorations;
       });
@@ -612,6 +648,17 @@
   }
   :global(.concept-search-text, .semantic-search-text) {
     @apply text-black;
+  }
+
+  /** Spans from users (leaf spans) */
+  :global(.leaf-bg) {
+    @apply bg-orange-700 opacity-20;
+  }
+  :global(.leaf-glyph) {
+    @apply border-r-8 border-orange-700 opacity-20;
+  }
+  :global(.leaf-text) {
+    @apply font-extrabold text-violet-500 underline;
   }
 
   /** Deep-linked selection */
