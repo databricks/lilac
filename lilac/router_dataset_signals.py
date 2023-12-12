@@ -48,7 +48,7 @@ def compute_signal(
     raise HTTPException(401, 'User does not have access to compute signals over this dataset.')
 
   # Resolve the signal outside the task so we don't look up the signal in the registry. This gets
-  # implicitly pickled by the dask serializer when _task_compute_signal is pickled.
+  # implicitly pickled by the serializer when _task_compute_signal is pickled.
   # NOTE: This unfortunately does not work in Jupyter because a module is not picklable. In this
   # case, we recommend defining and registering the signal outside a Jupyter notebook.
   signal = options.signal

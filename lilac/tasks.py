@@ -4,9 +4,11 @@ import builtins
 import functools
 import multiprocessing
 import random
+import sys
 import time
 import traceback
 import uuid
+import warnings
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -28,9 +30,18 @@ from typing import (
 
 import nest_asyncio
 from loky import get_reusable_executor
+from loky.backend.context import set_start_method
 from pydantic import BaseModel
 
 from .utils import log, pretty_timedelta
+
+warnings.filterwarnings(
+  'ignore', message='`fork` start method should not be used with', category=UserWarning
+)
+
+if sys.platform != 'win32':
+  # Set the start method to fork for faster process creation.
+  set_start_method('fork')
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jupyter notebook.
@@ -121,32 +132,31 @@ class TaskManager:
     self._task_shard_completions = {}
     self.thread_pools = {}
 
-  def _update_tasks(self) -> None:
-    for task_id, task in list(self._tasks.items()):
-      if task.status == TaskStatus.COMPLETED:
-        if task_id in self.thread_pools:
-          thread_pool = self.thread_pools[task_id]
-          thread_pool.shutdown()
-          del self.thread_pools[task_id]
-        continue
-      total_progress = 0
-      total_count = 0
-      for shard_index in task.shards.keys():
-        task_shard_id = (task_id, shard_index)
-        shard_info = self._shards_proxy.get(task_shard_id)
-        if shard_info:
-          task.shards[shard_index] = shard_info
-          total_progress += shard_info.current_index
-          if shard_info.estimated_len:
-            total_count += shard_info.estimated_len
+  def _update_task(self, task_id: TaskId) -> None:
+    task = self._tasks[task_id]
+    total_progress = 0
+    total_count = 0
+    for shard_index in task.shards.keys():
+      task_shard_id = (task_id, shard_index)
+      shard_info = self._shards_proxy.get(task_shard_id)
+      if shard_info:
+        task.shards[shard_index] = shard_info
+        total_progress += shard_info.current_index
+        if shard_info.estimated_len:
+          total_count += shard_info.estimated_len
 
-      elapsed_sec = (datetime.now() - datetime.fromisoformat(task.start_timestamp)).total_seconds()
-      # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
-      elapsed = ''
-      elapsed = f'{pretty_timedelta(timedelta(seconds=elapsed_sec))}'
-      task.details = f'{total_progress:,}/{total_count:,} [{elapsed}]'
+    elapsed_sec = (datetime.now() - datetime.fromisoformat(task.start_timestamp)).total_seconds()
+    # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
+    elapsed = ''
+    elapsed = f'{pretty_timedelta(timedelta(seconds=elapsed_sec))}'
+    task.details = f'{total_progress:,}/{total_count:,} [{elapsed}]'
 
+    if total_count:
       task.progress = total_progress / total_count
+
+  def _update_tasks(self) -> None:
+    for task_id in list(self._tasks.keys()):
+      self._update_task(task_id)
 
   def manifest(self) -> TaskManifest:
     """Get all tasks."""
@@ -183,7 +193,7 @@ class TaskManager:
   ) -> TaskId:
     """Create a unique ID for a task."""
     task_id = uuid.uuid4().hex
-    self._tasks[task_id] = TaskInfo(
+    new_task = TaskInfo(
       name=name,
       type=type,
       status=TaskStatus.PENDING,
@@ -191,32 +201,41 @@ class TaskManager:
       description=description,
       start_timestamp=datetime.now().isoformat(),
     )
+    self._tasks[task_id] = new_task
     return task_id
 
   def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:
     end_timestamp = datetime.now().isoformat()
-    self._tasks[task_id].end_timestamp = end_timestamp
+    task = self._tasks[task_id]
+    task.end_timestamp = end_timestamp
 
-    elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(
-      self._tasks[task_id].start_timestamp
-    )
+    elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(task.start_timestamp)
     elapsed_formatted = pretty_timedelta(elapsed)
 
     if not task_future.done():
       raise ValueError(f'Task {task_id} should be done by now since all sub-tasks have completed.')
     exc = task_future.exception()
     if exc:
-      self._tasks[task_id].status = TaskStatus.ERROR
+      task.status = TaskStatus.ERROR
       tb = traceback.format_tb(exc.__traceback__)
-      self._tasks[task_id].error = f'{exc}: \n{tb}'
+      task.error = f'{exc}: \n{tb}'
     else:
-      self._update_tasks()
-      self._tasks[task_id].status = TaskStatus.COMPLETED
-      self._tasks[task_id].progress = 1.0
-      self._tasks[task_id].message = f'Completed in {elapsed_formatted}'
+      task.status = TaskStatus.COMPLETED
+      task.progress = 1.0
+      task.message = f'Completed in {elapsed_formatted}'
+      for shard_info in task.shards.values():
+        if shard_info.estimated_len:
+          shard_info.current_index = shard_info.estimated_len
+      self._update_task(task_id)
 
     if task_id in self._futures:
       del self._futures[task_id]
+    if task_id in self._task_shard_completions:
+      del self._task_shard_completions[task_id]
+    if task_id in self.thread_pools:
+      thread_pool = self.thread_pools[task_id]
+      thread_pool.shutdown()
+      del self.thread_pools[task_id]
 
   def _set_task_shard_completed(
     self, task_id: TaskId, task_future: Future, num_shards: int
@@ -238,9 +257,16 @@ class TaskManager:
     subtasks: list[tuple[TaskFn, list[Any]]],
   ) -> None:
     """Execute a task in multiple shards."""
+    if task_id not in self._tasks:
+      raise ValueError(f'Task {task_id} does not exist. Create it with task_id() first')
+
     if task_id in self.thread_pools:
       raise ValueError(f'Task {task_id} already exists.')
 
+    task = self._tasks[task_id]
+    task.shards = {
+      i: TaskShardInfo(current_index=0, estimated_len=None) for i in range(len(subtasks))
+    }
     futures: list[Future] = []
     # Create the pool of workers.
     if type == 'threads':
@@ -263,8 +289,15 @@ class TaskManager:
     self._futures[task_id] = futures
 
   def stop(self) -> None:
-    """Stop the task manager and close the dask client."""
+    """Stop the task manager."""
+    for pool in self.thread_pools.values():
+      pool.shutdown()
     self._manager.shutdown()
+    del self._manager
+    del self._futures
+    del self._tasks
+    del self._task_shard_completions
+    del self.thread_pools
 
 
 _TASK_MANAGER: Optional[TaskManager] = None

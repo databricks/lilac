@@ -108,8 +108,8 @@ def make_vector_index(
   return vector_index
 
 
-class TestDaskLogger:
-  """A simple utility for unit tests that need logging between dask workers and the scheduler."""
+class TestJSONLLogger:
+  """A simple utility for unit tests that need logging between processes and main process."""
 
   def __init__(self, tmp_dir: pathlib.Path):
     self.tmp_dir = tmp_dir
@@ -117,7 +117,7 @@ class TestDaskLogger:
   def log_event(self, value: Any) -> None:
     """Logs an event to the log file for communicate between worker & test."""
     with open(os.path.join(self.tmp_dir, 'log.jsonl'), 'a') as f:
-      f.write(f'{value}\n')
+      f.write(f'{json.dumps(value)}\n')
 
   def clear_logs(self) -> None:
     """Clears the logs."""

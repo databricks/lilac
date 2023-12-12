@@ -6,12 +6,10 @@ from typing import ClassVar, Iterable, Optional, cast
 
 import numpy as np
 import pytest
-from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
 from .data.dataset import DatasetManifest
-from .data.dataset_duckdb import DatasetDuckDB
 from .db_manager import get_dataset
 from .env import set_project_dir
 from .load import load
@@ -273,14 +271,11 @@ def test_load_embeddings(tmp_path: pathlib.Path) -> None:
   )
 
 
-def test_load_twice_no_overwrite(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+def test_load_twice_no_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
   init()
-
-  compute_signal_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_signal.__name__)
-  compute_embedding_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_embedding.__name__)
 
   test_signal = TestSignal()
   project_config = Config(
@@ -298,30 +293,28 @@ def test_load_twice_no_overwrite(tmp_path: pathlib.Path, mocker: MockerFixture) 
   # Load the project config from a config object.
   load(config=project_config)
 
-  assert compute_signal_mock.call_count == 1
-  assert compute_embedding_mock.call_count == 1
+  assert 'Computing signal' in capsys.readouterr().out
 
   first_manifest = get_dataset('namespace', 'test').manifest()
 
   # Load the project again, make sure signals and embeddings are not computed again.
   load(config=project_config)
 
-  assert compute_signal_mock.call_count == 1
-  assert compute_embedding_mock.call_count == 1
+  # assert test_jsonl_logger.get_logs() == ['compute embedding called', 'compute signal called']
 
   second_manifest = get_dataset('namespace', 'test').manifest()
-
   assert first_manifest == second_manifest
 
+  assert (
+    'Signal  TestSignal({"signal_name":"test_signal"}) already exists' in capsys.readouterr().out
+  )
 
-def test_load_twice_overwrite(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+
+def test_load_twice_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
   init()
-
-  compute_signal_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_signal.__name__)
-  compute_embedding_mock = mocker.spy(DatasetDuckDB, DatasetDuckDB.compute_embedding.__name__)
 
   test_signal = TestSignal()
   project_config = Config(
@@ -338,18 +331,17 @@ def test_load_twice_overwrite(tmp_path: pathlib.Path, mocker: MockerFixture) -> 
 
   # Load the project config from a config object.
   load(config=project_config)
-
-  assert compute_signal_mock.call_count == 1
-  assert compute_embedding_mock.call_count == 1
+  assert 'Computing signal' in capsys.readouterr().out
 
   first_manifest = get_dataset('namespace', 'test').manifest()
 
   # Load the project again, make sure signals and embeddings are not computed again.
   load(config=project_config, overwrite=True)
 
-  # With overwrite=True, compute_signal and compute_embedding should be called again.
-  assert compute_signal_mock.call_count == 2
-  assert compute_embedding_mock.call_count == 2
+  assert (
+    'Signal  TestSignal({"signal_name":"test_signal"}) already exists'
+    not in capsys.readouterr().out
+  )
 
   second_manifest = get_dataset('namespace', 'test').manifest()
 

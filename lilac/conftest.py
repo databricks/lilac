@@ -8,7 +8,7 @@ from pytest_mock import MockerFixture
 
 from .data.dataset import Dataset
 from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_test_utils import TestDaskLogger, make_dataset
+from .data.dataset_test_utils import TestJSONLLogger, make_dataset
 from .db_manager import set_default_dataset_cls
 from .schema import Item, Schema
 
@@ -30,7 +30,7 @@ def make_test_data(
 
 
 @pytest.fixture(scope='function')
-def test_dask_logger(tmp_path: pathlib.Path) -> Generator:
+def test_jsonl_logger(tmp_path: pathlib.Path) -> Generator:
   """A pytest fixture for creating a logger that can be read between workers and the scheduler."""
   # Return the factory for datasets that test methods can use.
-  yield TestDaskLogger(tmp_path)
+  yield TestJSONLLogger(tmp_path)

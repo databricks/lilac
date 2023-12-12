@@ -29,8 +29,8 @@ from .dataset import DatasetManifest, Filter, SelectGroupsResult, StatsResult
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
-  TestDaskLogger,
   TestDataMaker,
+  TestJSONLLogger,
   TestSource,
   enriched_item,
 )
@@ -198,7 +198,7 @@ def test_map_signal(
 def test_map_job_id(
   execution_type: tasks.TaskExecutionType,
   make_test_data: TestDataMaker,
-  test_dask_logger: TestDaskLogger,
+  test_jsonl_logger: TestJSONLLogger,
 ) -> None:
   dataset = make_test_data(
     [
@@ -211,12 +211,12 @@ def test_map_job_id(
   )
 
   def _map_fn(item: Item, job_id: int) -> Item:
-    test_dask_logger.log_event(job_id)
+    test_jsonl_logger.log_event(job_id)
     return {}
 
   dataset.map(_map_fn, output_column='map_id', num_jobs=3, execution_type=execution_type)
 
-  assert set(test_dask_logger.get_logs()) == set([0, 1, 2])
+  assert set(test_jsonl_logger.get_logs()) == set([0, 1, 2])
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
@@ -352,7 +352,7 @@ def test_map_continuation(
   num_jobs: int,
   execution_type: tasks.TaskExecutionType,
   make_test_data: TestDataMaker,
-  test_dask_logger: TestDaskLogger,
+  test_jsonl_logger: TestJSONLLogger,
 ) -> None:
   dataset = make_test_data(
     [
@@ -363,7 +363,7 @@ def test_map_continuation(
   )
 
   def _map_fn(item: Item, first_run: bool) -> Item:
-    test_dask_logger.log_event(item['id'])
+    test_jsonl_logger.log_event(item['id'])
 
     if first_run and item['id'] == 1:
       raise ValueError('Throwing')
@@ -396,12 +396,12 @@ def test_map_continuation(
     {'text': 'c sentence', 'id': 2},
   ]
 
-  test_dask_logger.clear_logs()
+  test_jsonl_logger.clear_logs()
 
   dataset.map(_map_fn_2, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
   # The row_id=1 should be called for the continuation.
-  assert 1 in test_dask_logger.get_logs()
+  assert 1 in test_jsonl_logger.get_logs()
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -436,7 +436,7 @@ def test_map_continuation_overwrite(
   num_jobs: int,
   execution_type: tasks.TaskExecutionType,
   make_test_data: TestDataMaker,
-  test_dask_logger: TestDaskLogger,
+  test_jsonl_logger: TestJSONLLogger,
 ) -> None:
   dataset = make_test_data(
     [
@@ -447,7 +447,7 @@ def test_map_continuation_overwrite(
   )
 
   def _map_fn(item: Item, first_run: bool) -> Item:
-    test_dask_logger.log_event(item['id'])
+    test_jsonl_logger.log_event(item['id'])
 
     if first_run and item['id'] == 1:
       raise ValueError('Throwing')
@@ -464,7 +464,7 @@ def test_map_continuation_overwrite(
   with pytest.raises(Exception):
     dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
-  test_dask_logger.clear_logs()
+  test_jsonl_logger.clear_logs()
 
   dataset.map(
     _map_fn_2,
@@ -475,7 +475,7 @@ def test_map_continuation_overwrite(
   )
 
   # Map should be called for all ids.
-  assert set(sorted(test_dask_logger.get_logs())) == set([0, 1, 2])
+  assert set(sorted(test_jsonl_logger.get_logs())) == set([0, 1, 2])
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
