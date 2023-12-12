@@ -97,6 +97,7 @@ from ..tasks import (
   TaskFn,
   TaskShardId,
   TaskType,
+  block_and_show_progress,
   get_task_manager,
   report_progress,
 )
@@ -2726,13 +2727,7 @@ class DatasetDuckDB(Dataset):
       type=execution_type,
       subtasks=subtasks,
     )
-    # TODO(smilkov): Fix this.
-    # show_progress(
-    #   task_step_id=(task_id, 0), total_len=manifest.num_items, description=progress_description
-    # )
-
-    # Wait for the tasks to finish before reading the outputs.
-    get_task_manager().wait([task_id])
+    block_and_show_progress(task_id, description=progress_description)
 
     json_query, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,

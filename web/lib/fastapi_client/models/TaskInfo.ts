@@ -3,25 +3,22 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { TaskShardInfo } from './TaskShardInfo';
 import type { TaskStatus } from './TaskStatus';
-import type { TaskStepInfo } from './TaskStepInfo';
 import type { TaskType } from './TaskType';
 
-/**
- * Metadata about a task.
- */
 export type TaskInfo = {
     name: string;
-    type?: (TaskType | null);
-    status: TaskStatus;
-    progress?: (number | null);
-    message?: (string | null);
-    details?: (string | null);
-    step_progress?: (number | null);
-    steps?: (Array<TaskStepInfo> | null);
-    description?: (string | null);
     start_timestamp: string;
     end_timestamp?: (string | null);
+    type?: (TaskType | null);
+    status?: TaskStatus;
+    message?: (string | null);
+    details?: (string | null);
+    shards?: Record<string, TaskShardInfo>;
+    description?: (string | null);
     error?: (string | null);
+    total_len?: (number | null);
+    total_progress?: (number | null);
 };
 

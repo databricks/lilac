@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from multiprocessing.managers import SyncManager
+from time import sleep
 from typing import (
   Any,
   Awaitable,
@@ -33,7 +34,9 @@ import nest_asyncio
 from loky import get_reusable_executor
 from loky.backend.context import set_start_method
 from pydantic import BaseModel
+from tqdm import tqdm
 
+from .env import env
 from .utils import log, pretty_timedelta
 
 warnings.filterwarnings(
@@ -42,7 +45,7 @@ warnings.filterwarnings(
 
 if sys.platform != 'win32':
   # Set the start method to fork for faster process creation.
-  set_start_method('fork')
+  set_start_method('loky')
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jupyter notebook.
@@ -92,7 +95,6 @@ class TaskInfo:
   end_timestamp: Optional[str] = None
   type: Optional[TaskType] = None
   status: TaskStatus = TaskStatus.PENDING
-  progress: Optional[float] = None
   message: Optional[str] = None
   details: Optional[str] = None
 
@@ -100,6 +102,9 @@ class TaskInfo:
 
   description: Optional[str] = None
   error: Optional[str] = None
+
+  total_len: Optional[int] = None
+  total_progress: Optional[int] = None
 
 
 class TaskManifest(BaseModel):
@@ -136,7 +141,7 @@ class TaskManager:
   def _update_task(self, task_id: TaskId) -> None:
     task = self._tasks[task_id]
     total_progress = 0
-    total_count = 0
+    total_len = 0
     for shard_index in task.shards.keys():
       task_shard_id = (task_id, shard_index)
       shard_info = self._shards_proxy.get(task_shard_id)
@@ -144,28 +149,33 @@ class TaskManager:
         task.shards[shard_index] = shard_info
         total_progress += shard_info.current_index
         if shard_info.estimated_len:
-          total_count += shard_info.estimated_len
+          total_len += shard_info.estimated_len
 
     elapsed_sec = (datetime.now() - datetime.fromisoformat(task.start_timestamp)).total_seconds()
     # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
     elapsed = ''
     elapsed = f'{pretty_timedelta(timedelta(seconds=elapsed_sec))}'
-    task.details = f'{total_progress:,}/{total_count:,} [{elapsed}]'
+    task.details = f'{total_progress:,}/{total_len:,} [{elapsed}]'
 
-    if total_count:
-      task.progress = total_progress / total_count
+    task.total_len = total_len
+    task.total_progress = total_progress
 
   def _update_tasks(self) -> None:
     for task_id in list(self._tasks.keys()):
       self._update_task(task_id)
 
+  def get_task_info(self, task_id: TaskId) -> TaskInfo:
+    """Get the task info for a task."""
+    self._update_task(task_id)
+    return self._tasks[task_id]
+
   def manifest(self) -> TaskManifest:
     """Get all tasks."""
     self._update_tasks()
     tasks_with_progress = [
-      task.progress
+      (task.total_progress / task.total_len)
       for task in self._tasks.values()
-      if task.progress and task.status != TaskStatus.COMPLETED
+      if task.total_progress and task.total_len and task.status != TaskStatus.COMPLETED
     ]
     return TaskManifest(
       tasks=self._tasks,
@@ -198,7 +208,6 @@ class TaskManager:
       name=name,
       type=type,
       status=TaskStatus.PENDING,
-      progress=None,
       description=description,
       start_timestamp=datetime.now().isoformat(),
     )
@@ -222,7 +231,6 @@ class TaskManager:
       task.error = f'{exc}: \n{tb}'
     else:
       task.status = TaskStatus.COMPLETED
-      task.progress = 1.0
       task.message = f'Completed in {elapsed_formatted}'
       for shard_info in task.shards.values():
         if shard_info.estimated_len:
@@ -358,50 +366,34 @@ def _execute_task(
 TProgress = TypeVar('TProgress')
 
 
-# def show_progress(
-#   task_shard_id: TaskShardId, total_len: Optional[int] = None, description: Optional[str] = None
-# ) -> None:
-#   """Show a tqdm progress bar.
+def block_and_show_progress(task_id: TaskId, description: Optional[str] = None) -> None:
+  """Show a tqdm progress bar of a task.
 
-#   Args:
-#     task_shard_id: The task step ID.
-#     total_len: The total length of the progress. This is optional, but nice to avoid jumping of
-#       progress bars.
-#     description: The description of the progress bar.
-#   """
-#   # Don't show progress bars in unit test to reduce output spam.
-#   if env('LILAC_TEST', False):
-#     return
+  Args:
+    task_id: The task ID.
+    description: The description of the progress bar.
+  """
+  # Don't show progress bars in unit test to reduce output spam.
+  task_manager = get_task_manager()
+  if env('LILAC_TEST', False):
+    task_manager.wait([task_id])
+    return
 
-#   # Use the task_manager state and tqdm to report progress.
-#   step_info, is_complete = _get_task_step_info(task_shard_id)
-#   estimated_len = None
-
-#   last_it_idx = 0
-#   with tqdm(total=total_len, desc=description) as pbar:
-#     while not is_complete:
-#       step_info, is_complete = _get_task_step_info(task_shard_id)
-
-#       if step_info:
-#         shard_progresses_dict = dict(step_info.shard_progresses)
-#         total_it_idx = sum([shard_it_idx for shard_it_idx, _ in shard_progresses_dict.values()])
-#         total_shard_len = sum([shard_len for _, shard_len in shard_progresses_dict.values()])
-
-#         if total_it_idx and last_it_idx and (total_it_idx != last_it_idx):
-#           pbar.update(total_it_idx - last_it_idx)
-#         last_it_idx = total_it_idx if step_info else 0
-
-#         # If the user didnt pass a total_len explicitly, update the progress bar when we get new
-#         # information from shards reporting their lengths.
-#         if not total_len and total_shard_len != estimated_len:
-#           estimated_len = total_shard_len
-#           pbar.total = total_shard_len
-#           pbar.refresh()
-
-#     if is_complete:
-#       total_len = total_len or estimated_len
-#       if total_len and pbar.n:
-#         pbar.update(total_len - pbar.n)
+  task_info = task_manager.get_task_info(task_id)
+  total_len = task_info.total_len
+  with tqdm(total=total_len, desc=description) as pbar:
+    while True:
+      task_info = task_manager.get_task_info(task_id)
+      if task_info.total_len and total_len is None:
+        total_len = task_info.total_len
+        pbar.total = total_len
+        pbar.refresh()
+      if task_info.total_progress:
+        pbar.update(task_info.total_progress - pbar.n)
+      if task_info.status == TaskStatus.COMPLETED:
+        pbar.update(total_len - pbar.n)
+        break
+      sleep(0.1)
 
 
 # The interval to emit progress events.
