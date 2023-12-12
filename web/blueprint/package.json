@@ -43,6 +43,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@fontsource-variable/inconsolata": "~5.0.16",
     "@monaco-editor/loader": "~1.4.0",
     "@tanstack/svelte-query": "^4.36.1",
     "@yornaath/batshit": "^0.8.0",

@@ -198,6 +198,8 @@
   }
   $: datasetSettingsMarkdown =
     $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null;
+  $: viewType = $settings.data?.ui?.view_type || 'single_item';
+
   $: markdown = userPreview !== undefined ? userPreview : datasetSettingsMarkdown;
 </script>
 
@@ -283,10 +285,11 @@
               spanValueInfos={spanValuePaths.spanValueInfos}
               {datasetViewStore}
               embeddings={computedEmbeddings}
+              {viewType}
               bind:textIsOverBudget
             />
             <div class="markdown w-full" class:hidden={!markdown}>
-              <div class="markdown w-fit">
+              <div class="markdown -ml-0.5 w-fit pl-14">
                 <SvelteMarkdown source={formatValue(value)} />
               </div>
             </div>
