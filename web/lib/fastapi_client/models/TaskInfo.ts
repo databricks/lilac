@@ -10,9 +10,9 @@ import type { TaskType } from './TaskType';
 export type TaskInfo = {
     name: string;
     start_timestamp: string;
+    status: TaskStatus;
     end_timestamp?: (string | null);
     type?: (TaskType | null);
-    status?: TaskStatus;
     message?: (string | null);
     details?: (string | null);
     shards?: Record<string, TaskShardInfo>;

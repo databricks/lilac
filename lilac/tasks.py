@@ -81,9 +81,9 @@ class TaskInfo:
 
   name: str
   start_timestamp: str
+  status: TaskStatus
   end_timestamp: Optional[str] = None
   type: Optional[TaskType] = None
-  status: TaskStatus = TaskStatus.PENDING
   message: Optional[str] = None
   details: Optional[str] = None
 

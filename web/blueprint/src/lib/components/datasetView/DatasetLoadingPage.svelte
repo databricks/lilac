@@ -74,7 +74,10 @@
   const tasks = queryTaskManifest();
 
   $: task = loadingTaskId != null && $tasks.data != null ? $tasks.data.tasks[loadingTaskId] : null;
-  $: progressValue = task?.step_progress == null ? undefined : task.step_progress;
+  $: progressValue =
+    task?.total_progress != null && task?.total_len != null
+      ? task.total_progress / task.total_len
+      : undefined;
 
   const taskToProgressStatus: {[taskStatus: string]: ProgressBarProps['status']} = {
     pending: 'active',

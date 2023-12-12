@@ -74,7 +74,10 @@
       >
         <div class="flex flex-col">
           {#each tasksList as [id, task] (id)}
-            {@const progressValue = task.step_progress == null ? undefined : task.step_progress}
+            {@const progressValue =
+              task.total_progress != null && task.total_len != null
+                ? task.total_progress / task.total_len
+                : undefined}
             <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
               <div class="text-s flex flex-row">
                 <div class="mr-2">{task.name}</div>
