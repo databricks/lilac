@@ -370,7 +370,7 @@ EMIT_EVERY_SEC = 0.5
 def report_progress(
   it: Union[Iterator[TProgress], Iterable[TProgress]],
   task_shard_id: Optional[TaskShardId],
-  shard_count: Optional[int],
+  shard_count: Optional[int] = None,
   initial_index: Optional[int] = None,
   estimated_len: Optional[int] = None,
 ) -> Generator[TProgress, None, None]:

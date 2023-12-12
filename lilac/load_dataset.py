@@ -23,7 +23,7 @@ from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
-from .tasks import TaskShardId, check_worker_tries_to_write_to_db, report_progress
+from .tasks import TaskShardId, report_progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
@@ -46,7 +46,6 @@ def create_dataset(
       '`project_dir` must be defined. Please pass a `project_dir` or set it '
       'globally with `set_project_dir(path)`'
     )
-  check_worker_tries_to_write_to_db('lilac.create_dataset')
   add_project_dataset_config(config, project_dir, overwrite)
 
   process_source(project_dir, config)
@@ -118,7 +117,6 @@ def slow_process(
     items,
     task_shard_id=task_shard_id,
     estimated_len=source_schema.num_items,
-    step_description=f'Reading from source {source.name}...',
   )
 
   # Filter out the `None`s after progress.

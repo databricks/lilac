@@ -9,6 +9,6 @@ router = APIRouter(route_class=RouteErrorHandler)
 
 
 @router.get('/')
-async def get_task_manifest() -> TaskManifest:
+def get_task_manifest() -> TaskManifest:
   """Get the tasks, both completed and pending."""
-  return await get_task_manager().manifest()
+  return get_task_manager().manifest()

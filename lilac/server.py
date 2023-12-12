@@ -9,7 +9,6 @@ from importlib import metadata
 from typing import Annotated, Any, AsyncGenerator, Optional
 
 import uvicorn
-from distributed import get_client
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
 from fastapi.routing import APIRoute
@@ -40,7 +39,7 @@ from .load import load
 from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
 from .source import registered_sources
-from .tasks import TaskManager, get_task_manager
+from .tasks import get_task_manager
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
@@ -57,26 +56,11 @@ def custom_generate_unique_id(route: APIRoute) -> str:
   return route.name
 
 
-def _load(load_task_id: str) -> None:
-  load(
-    project_dir=get_project_dir(),
-    overwrite=False,
-    task_manager=TaskManager(dask_client=get_client()),
-    load_task_id=load_task_id,
-  )
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
   """Context manager for the lifespan of the application."""
   if env('LILAC_LOAD_ON_START_SERVER', False):
-    task_manager = get_task_manager()
-    task_id = task_manager.task_id(
-      'Loading from project config... ',
-      description='This can be disabled by setting the environment variable '
-      'LILAC_LOAD_ON_START_SERVER=false',
-    )
-    task_manager.execute(task_id, 'processes', _load, task_id)
+    load(project_dir=get_project_dir(), overwrite=False)
 
   yield
 
@@ -161,11 +145,7 @@ def status() -> ServerStatus:
 @app.post('/load_config')
 def load_config(background_tasks: BackgroundTasks) -> dict:
   """Loads from the lilac.yml."""
-
-  async def _load() -> None:
-    load(project_dir=get_project_dir(), overwrite=False, task_manager=get_task_manager())
-
-  background_tasks.add_task(_load)
+  background_tasks.add_task(load, project_dir=get_project_dir(), overwrite=False)
   return {}
 
 

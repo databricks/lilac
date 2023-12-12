@@ -19,7 +19,6 @@ from .project import PROJECT_CONFIG_FILENAME, init
 from .schema import EMBEDDING_KEY, Field, Item, RichData, field, lilac_embedding, schema
 from .signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .source import Source, SourceSchema, clear_source_registry, register_source
-from .tasks import TaskManager, get_task_manager
 from .utils import to_yaml
 
 SIMPLE_ITEMS: list[Item] = [
@@ -35,11 +34,6 @@ EMBEDDINGS: list[tuple[str, list[float]]] = [
 ]
 
 STR_EMBEDDINGS: dict[str, list[float]] = {text: embedding for text, embedding in EMBEDDINGS}
-
-
-@pytest.fixture(scope='session')
-def task_manager() -> TaskManager:
-  return get_task_manager()
 
 
 class TestSource(Source):
@@ -107,7 +101,7 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()
 
 
-def test_load_config_obj(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
+def test_load_config_obj(tmp_path: pathlib.Path) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -118,7 +112,7 @@ def test_load_config_obj(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   )
 
   # Load the project config from a config object.
-  load(config=project_config, task_manager=task_manager)
+  load(config=project_config)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -131,7 +125,7 @@ def test_load_config_obj(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   )
 
 
-def test_load_project_config_yml(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
+def test_load_project_config_yml(tmp_path: pathlib.Path) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -148,7 +142,7 @@ def test_load_project_config_yml(tmp_path: pathlib.Path, task_manager: TaskManag
   with open(config_path, 'w') as f:
     f.write(project_config_yml)
 
-  load(config=config_path, task_manager=task_manager)
+  load(config=config_path)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -161,7 +155,7 @@ def test_load_project_config_yml(tmp_path: pathlib.Path, task_manager: TaskManag
   )
 
 
-def test_load_config_yml_outside_project(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
+def test_load_config_yml_outside_project(tmp_path: pathlib.Path) -> None:
   # This test makes sure that we can load a yml file from outside the project directory.
 
   config_path = os.path.join(tmp_path, PROJECT_CONFIG_FILENAME)
@@ -179,7 +173,7 @@ def test_load_config_yml_outside_project(tmp_path: pathlib.Path, task_manager: T
   with open(config_path, 'w') as f:
     f.write(project_config_yml)
 
-  load(config=config_path, task_manager=task_manager)
+  load(config=config_path)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -192,7 +186,7 @@ def test_load_config_yml_outside_project(tmp_path: pathlib.Path, task_manager: T
   )
 
 
-def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
+def test_load_signals(tmp_path: pathlib.Path) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -211,7 +205,7 @@ def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None
   )
 
   # Load the project config from a config object.
-  load(config=project_config, task_manager=task_manager)
+  load(config=project_config)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -233,7 +227,7 @@ def test_load_signals(tmp_path: pathlib.Path, task_manager: TaskManager) -> None
   )
 
 
-def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> None:
+def test_load_embeddings(tmp_path: pathlib.Path) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -251,7 +245,7 @@ def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   )
 
   # Load the project config from a config object.
-  load(config=project_config, task_manager=task_manager)
+  load(config=project_config)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -279,9 +273,7 @@ def test_load_embeddings(tmp_path: pathlib.Path, task_manager: TaskManager) -> N
   )
 
 
-def test_load_twice_no_overwrite(
-  tmp_path: pathlib.Path, task_manager: TaskManager, mocker: MockerFixture
-) -> None:
+def test_load_twice_no_overwrite(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -304,7 +296,7 @@ def test_load_twice_no_overwrite(
   )
 
   # Load the project config from a config object.
-  load(config=project_config, task_manager=task_manager)
+  load(config=project_config)
 
   assert compute_signal_mock.call_count == 1
   assert compute_embedding_mock.call_count == 1
@@ -312,7 +304,7 @@ def test_load_twice_no_overwrite(
   first_manifest = get_dataset('namespace', 'test').manifest()
 
   # Load the project again, make sure signals and embeddings are not computed again.
-  load(config=project_config, task_manager=task_manager)
+  load(config=project_config)
 
   assert compute_signal_mock.call_count == 1
   assert compute_embedding_mock.call_count == 1
@@ -322,9 +314,7 @@ def test_load_twice_no_overwrite(
   assert first_manifest == second_manifest
 
 
-def test_load_twice_overwrite(
-  tmp_path: pathlib.Path, task_manager: TaskManager, mocker: MockerFixture
-) -> None:
+def test_load_twice_overwrite(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -347,7 +337,7 @@ def test_load_twice_overwrite(
   )
 
   # Load the project config from a config object.
-  load(config=project_config, task_manager=task_manager)
+  load(config=project_config)
 
   assert compute_signal_mock.call_count == 1
   assert compute_embedding_mock.call_count == 1
@@ -355,7 +345,7 @@ def test_load_twice_overwrite(
   first_manifest = get_dataset('namespace', 'test').manifest()
 
   # Load the project again, make sure signals and embeddings are not computed again.
-  load(config=project_config, task_manager=task_manager, overwrite=True)
+  load(config=project_config, overwrite=True)
 
   # With overwrite=True, compute_signal and compute_embedding should be called again.
   assert compute_signal_mock.call_count == 2

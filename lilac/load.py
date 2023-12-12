@@ -22,7 +22,6 @@ from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
 from .tasks import (
-  TaskManager,
   TaskShardId,
   TaskType,
   get_task_manager,
@@ -34,7 +33,6 @@ def load(
   project_dir: Optional[Union[str, pathlib.Path]] = None,
   config: Optional[Union[str, pathlib.Path, Config]] = None,
   overwrite: bool = False,
-  task_manager: Optional[TaskManager] = None,
 ) -> None:
   """Load a project from a project configuration.
 
@@ -68,9 +66,7 @@ def load(
     config_path = config or os.path.join(project_dir, PROJECT_CONFIG_FILENAME)
     config = read_config(config_path)
 
-  # Use threads instead of processes to avoid running out of RAM.
-  if not task_manager:
-    task_manager = get_task_manager()
+  task_manager = get_task_manager()
 
   if overwrite:
     shutil.rmtree(get_datasets_dir(project_dir), ignore_errors=True)
