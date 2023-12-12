@@ -115,17 +115,12 @@ class ParquetSource(Source):
 
     # DuckDB expects s3 protocol: https://duckdb.org/docs/guides/import/s3_import.html.
     duckdb_paths = [convert_path_to_duckdb(path) for path in filepaths]
-    res = self._con.execute(f'SELECT COUNT(*) FROM read_parquet({duckdb_paths})').fetchone()
-    num_items = cast(tuple[int], res)[0]
-    if self.sample_size:
-      self.sample_size = min(self.sample_size, num_items)
-      num_items = self.sample_size
     schema = arrow_schema_to_schema(
       self._con.execute(f"""SELECT * FROM read_parquet('{duckdb_paths[0]}')""")
       .fetch_record_batch(1)
       .schema
     )
-    self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
+    self._source_schema = SourceSchema(fields=schema.fields, num_items=None)
     self._setup_sampling(duckdb_paths)
 
   @override
@@ -147,5 +142,14 @@ class ParquetSource(Source):
     os.makedirs(output_dir, exist_ok=True)
 
     self._con.sql(self._process_query).write_parquet(filepath, compression='zstd')
+
+    # Ensure that self.sample_size reflects the actual number of rows processed.
+    processed_count = self._con.execute(
+      f'SELECT COUNT(*) FROM read_parquet({filepath!r})'
+    ).fetchone()
+    num_items = cast(tuple[int], processed_count)[0]
+    if self.sample_size:
+      self.sample_size = min(self.sample_size, num_items)
+
     schema = Schema(fields=self.source_schema().fields.copy())
     return SourceManifest(files=[out_filename], data_schema=schema, source=self)

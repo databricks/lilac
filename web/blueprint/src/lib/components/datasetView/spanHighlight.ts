@@ -56,12 +56,9 @@ export interface MonacoRenderSpan {
   isKeywordSearch: boolean;
   isConceptSearch: boolean;
   isSemanticSearch: boolean;
+  isLeafSpan: boolean;
+  hasNonNumericMetadata: boolean;
 
-  isBlackBolded: boolean;
-  isHighlightBolded: boolean;
-
-  // Whether this span is highlighted and needs to always be shown.
-  isHighlighted: boolean;
   // The text for this render span.
   text: string;
 
@@ -99,30 +96,33 @@ export function getMonacoRenderSpans(
 
         const namedValue = {value, info: valueInfo, specificPath: L.path(valueNode)!};
 
-        const isLabeled = namedValue.info.type === 'label';
-        const isLeafSpan = namedValue.info.type === 'leaf_span';
         const isKeywordSearch = namedValue.info.type === 'keyword';
-        const hasNonNumericMetadata =
-          namedValue.info.type === 'metadata' && !isNumeric(namedValue.info.dtype);
+        const isConceptSearch = valueInfo.type === 'concept_score';
+        const isSemanticSearch = valueInfo.type === 'semantic_similarity';
+        const hasNonNumericMetadata = valueInfo.type === 'metadata' && !isNumeric(valueInfo.dtype);
+        const isLeafSpan = valueInfo.type === 'leaf_span';
+
         let isHighlighted = false;
-        if (valueInfo.type === 'concept_score' || valueInfo.type === 'semantic_similarity') {
+        if (isConceptSearch || isSemanticSearch) {
           if ((value as number) > 0.5) {
             isHighlighted = true;
+          } else {
+            isHighlighted = false;
           }
         } else {
           isHighlighted = true;
         }
+        if (!isHighlighted) continue;
 
         const text = textChars.slice(span.start, span.end).join('');
 
         renderSpans.push({
           span: originalSpan,
           isKeywordSearch,
-          isConceptSearch: valueInfo.type === 'concept_score',
-          isSemanticSearch: valueInfo.type === 'semantic_similarity',
-          isBlackBolded: isKeywordSearch || hasNonNumericMetadata || isLeafSpan,
-          isHighlightBolded: isLabeled,
-          isHighlighted,
+          isConceptSearch,
+          isSemanticSearch,
+          isLeafSpan,
+          hasNonNumericMetadata,
           namedValue,
           path,
           text

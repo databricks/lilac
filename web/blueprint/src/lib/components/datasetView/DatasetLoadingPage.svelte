@@ -6,6 +6,7 @@
     queryDatasetSchema,
     querySelectRows,
     querySelectRowsSchema,
+    querySettings,
     updateDatasetSettingsMutation
   } from '$lib/queries/datasetQueries';
   import {queryTaskManifest} from '$lib/queries/taskQueries';
@@ -32,6 +33,15 @@
 
   const datasetViewStore = createDatasetViewStore(namespace, datasetName);
   setDatasetViewContext(datasetViewStore);
+
+  $: settingsQuery = loadTaskComplete ? querySettings(namespace, datasetName) : null;
+
+  $: newSettings =
+    $settingsQuery?.isFetching || $settingsQuery?.data == null
+      ? null
+      : newSettings == null
+      ? JSON.parse(JSON.stringify($settingsQuery?.data))
+      : newSettings;
 
   $: schema = loadTaskComplete ? queryDatasetSchema(namespace, datasetName) : null;
   $: selectRowsSchema = loadTaskComplete

@@ -32,7 +32,7 @@ def test_simple_rows(tmp_path: pathlib.Path) -> None:
   source.setup()
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
-    fields=schema({'name': 'string', 'age': 'int64'}).fields, num_items=3
+    fields=schema({'name': 'string', 'age': 'int64'}).fields, num_items=None
   )
   manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
@@ -59,7 +59,7 @@ def test_map_dtype(tmp_path: pathlib.Path) -> None:
   source_schema = source.source_schema()
   assert source_schema == SourceSchema(
     fields=schema({'column': field(MapType(key_type=STRING, value_field=field('float32')))}).fields,
-    num_items=3,
+    num_items=None,
   )
   manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)

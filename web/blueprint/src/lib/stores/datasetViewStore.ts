@@ -33,6 +33,13 @@ export interface ColumnComparisonState {
   swapDirection: boolean;
 }
 
+export interface TextSelection {
+  startLine: number;
+  endLine: number;
+  startCol: number;
+  endCol: number;
+}
+
 export interface DatasetViewState {
   namespace: string;
   datasetName: string;
@@ -51,6 +58,9 @@ export interface DatasetViewState {
   // Currently selected rowid. null is a temp state of loading the next page of row ids to find
   // the next row id.
   rowId?: string | null;
+  // The currently selected line number and column selection for a given path. Only a single path
+  // can be selected at a time.
+  selection?: [Path, TextSelection];
 
   compareColumns: ColumnComparisonState[];
   // TODO: make this better
@@ -150,6 +160,7 @@ export function createDatasetViewStore(
 
         state.query.searches.push(search);
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     removeSearch: (search: Search, selectRowsSchema?: LilacSelectRowsSchema | null) =>
@@ -175,6 +186,7 @@ export function createDatasetViewStore(
           state.query.sort_by = [column];
         }
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     setGroupBy(path: Path | null, value: LeafValue) {
@@ -185,6 +197,7 @@ export function createDatasetViewStore(
           state.groupBy = {path, value};
         }
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       });
     },
@@ -192,12 +205,14 @@ export function createDatasetViewStore(
       update(state => {
         state.query.sort_by = [...(state.query.sort_by || []), column];
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     removeSortBy: (column: Path) =>
       update(state => {
         state.query.sort_by = state.query.sort_by?.filter(c => !pathIsEqual(c, column));
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     clearSorts: () =>
@@ -211,6 +226,7 @@ export function createDatasetViewStore(
       update(state => {
         state.query.sort_order = sortOrder || undefined;
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     removeFilter: (removedFilter: Filter) =>
@@ -220,6 +236,7 @@ export function createDatasetViewStore(
           state.query.filters = undefined;
         }
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     addFilter: (filter: Filter) =>
@@ -228,6 +245,7 @@ export function createDatasetViewStore(
         if (filterExists) return state;
         state.query.filters = [...(state.query.filters || []), filter];
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     deleteSignal: (signalPath: Path) =>
@@ -235,6 +253,7 @@ export function createDatasetViewStore(
         state.query.filters = state.query.filters?.filter(f => !pathIncludes(signalPath, f.path));
         state.query.sort_by = state.query.sort_by?.filter(p => !pathIncludes(signalPath, p));
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       }),
     deleteConcept(
@@ -268,6 +287,7 @@ export function createDatasetViewStore(
           f => !resultPathsToRemove.some(r => pathIsEqual(r, f.path))
         );
         state.rowId = undefined;
+        state.selection = undefined;
         return state;
       });
     },
@@ -280,6 +300,14 @@ export function createDatasetViewStore(
     setRowId(rowId: string | undefined | null) {
       update(state => {
         state.rowId = rowId;
+        state.selection = undefined;
+        return state;
+      });
+    },
+    setTextSelection(path: Path, selection: TextSelection) {
+      update(state => {
+        state.selection = [path, selection];
+
         return state;
       });
     },

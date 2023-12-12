@@ -57,10 +57,6 @@
   function parseSettings(settings: DatasetSettings | undefined): DatasetSettings | null {
     if (settings == null) return null;
     const result = JSON.parse(JSON.stringify(settings)) as DatasetSettings;
-    if (result.ui != null) {
-      result.ui.media_paths = result.ui.media_paths?.map(p => (Array.isArray(p) ? p : [p]));
-      result.ui.markdown_paths = result.ui.markdown_paths?.map(p => (Array.isArray(p) ? p : [p]));
-    }
     return result;
   }
   let newSettings: DatasetSettings | null = parseSettings($settingsQuery?.data);

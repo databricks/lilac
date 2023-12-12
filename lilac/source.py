@@ -119,6 +119,12 @@ class Source(BaseModel):
     The output parquet files should have a {schema.ROWID} column defined. This ROWID should not be
     part of source_schema, however.
 
+    Finally, self.source_schema().num_items is usually computed in setup(), but can be left as None
+    for sources implementing load_to_parquet, since this count is only used to display a progress
+    bar. load_to_parquet doesn't have progress bar support so the count is unnecessary. However, you
+    must still keep track of how many items were processed in total, because fields like
+    self.sample_size should reflect the actual size of the dataset if len(dataset) < sample_size.
+
     Args:
       output_dir: The directory to write the parquet files to.
       task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
