@@ -232,7 +232,15 @@ export const infiniteQuerySelectRows = (
   });
 
 export const queryConfig = createApiQuery(DatasetsService.getConfig, DATASETS_CONFIG_TAG);
-export const querySettings = createApiQuery(DatasetsService.getSettings, DATASETS_SETTINGS_TAG);
+export const querySettings = createApiQuery(DatasetsService.getSettings, DATASETS_SETTINGS_TAG, {
+  select: result => {
+    if (result.ui != null) {
+      result.ui.media_paths = result.ui.media_paths?.map(p => (Array.isArray(p) ? p : [p]));
+      result.ui.markdown_paths = result.ui.markdown_paths?.map(p => (Array.isArray(p) ? p : [p]));
+    }
+    return result;
+  }
+});
 export const updateDatasetSettingsMutation = createApiMutation(DatasetsService.updateSettings, {
   onSuccess: () => {
     queryClient.invalidateQueries([DATASETS_SETTINGS_TAG]);

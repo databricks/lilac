@@ -35,6 +35,7 @@
   setDatasetViewContext(datasetViewStore);
 
   $: settingsQuery = loadTaskComplete ? querySettings(namespace, datasetName) : null;
+
   $: newSettings =
     $settingsQuery?.isFetching || $settingsQuery?.data == null
       ? null
