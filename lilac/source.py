@@ -101,8 +101,8 @@ class Source(BaseModel):
     override source_schema.
 
     Args:
-      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update the
-        progress of the task.
+      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
+        the progress of the task.
     """
     raise NotImplementedError
 
@@ -121,8 +121,8 @@ class Source(BaseModel):
 
     Args:
       output_dir: The directory to write the parquet files to.
-      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update the
-        progress of the task.
+      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
+        the progress of the task.
 
     Returns:
       A SourceManifest that describes schema and parquet file locations.

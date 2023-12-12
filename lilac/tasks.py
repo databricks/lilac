@@ -223,6 +223,10 @@ class TaskManager:
     if self._task_shard_completions[task_id] == num_shards:
       self._set_task_completed(task_id, task_future)
 
+  def execute(self, task_id: str, type: TaskExecutionType, task_fn: TaskFn, *args: Any) -> None:
+    """Execute a task."""
+    return self.execute_sharded(task_id, type, [(task_fn, list(args))])
+
   def execute_sharded(
     self,
     task_id: str,

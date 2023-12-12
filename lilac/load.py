@@ -35,7 +35,6 @@ def load(
   config: Optional[Union[str, pathlib.Path, Config]] = None,
   overwrite: bool = False,
   task_manager: Optional[TaskManager] = None,
-  load_task_id: Optional[str] = None,
 ) -> None:
   """Load a project from a project configuration.
 
@@ -78,18 +77,6 @@ def load(
 
   existing_datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)]
 
-  if load_task_id:
-    set_worker_steps(
-      load_task_id,
-      [
-        TaskStepInfo(description='Loading datasets...'),
-        TaskStepInfo(description='Updating dataset settings...'),
-        TaskStepInfo(description='Computing embeddings...'),
-        TaskStepInfo(description='Computing signals...'),
-        TaskStepInfo(description='Computing model caches...'),
-      ],
-    )
-
   log()
   log('*** Load datasets ***')
   if overwrite:
@@ -110,9 +97,7 @@ def load(
       task_id = task_manager.task_id(
         f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD
       )
-      task_manager.execute_sharded(
-        task_id, 'processes', [(process_source, [project_dir, d, (task_id, 0)])]
-      )
+      task_manager.execute(task_id, 'processes', process_source, project_dir, d, (task_id, 0))
       dataset_task_ids.append(task_id)
     task_manager.wait(dataset_task_ids)
 
@@ -129,8 +114,6 @@ def load(
     total_num_rows += num_rows
 
   log(f'Done loading {len(datasets_to_load)} datasets with {total_num_rows:,} rows.')
-  if load_task_id:
-    set_worker_next_step(load_task_id)
 
   log('*** Dataset settings ***')
   for d in config.datasets:
@@ -138,9 +121,6 @@ def load(
       dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
       dataset.update_settings(d.settings)
       del dataset
-
-  if load_task_id:
-    set_worker_next_step(load_task_id)
 
   log()
   log('*** Compute embeddings ***')
@@ -185,9 +165,6 @@ def load(
 
       # Wait for all embeddings for each dataset to reduce the memory pressure.
       task_manager.wait(embedding_task_ids)
-
-  if load_task_id:
-    set_worker_next_step(load_task_id)
 
   log()
   log('*** Compute signals ***')
@@ -236,9 +213,6 @@ def load(
       del dataset
       gc.collect()
 
-  if load_task_id:
-    set_worker_next_step(load_task_id)
-
   log()
   log('*** Compute model caches ***')
   with DebugTimer('Computing model caches'):
@@ -251,9 +225,6 @@ def load(
           concept_model_db.sync(
             concept_info.namespace, concept_info.name, embedding_name=embedding, create=True
           )
-
-  if load_task_id:
-    set_worker_next_step(load_task_id)
 
   log()
   log('Done!')

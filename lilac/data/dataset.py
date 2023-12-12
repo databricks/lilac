@@ -434,8 +434,8 @@ class Dataset(abc.ABC):
       signal: The signal to compute over the given columns.
       path: The leaf path to compute the signal on.
       overwrite: Whether to overwrite an existing signal computed at this path.
-      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update the
-        progress of the task.
+      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
+        the progress of the task.
     """
     pass
 
@@ -531,8 +531,8 @@ class Dataset(abc.ABC):
       sort_order: The sort order.
       limit: The maximum number of rows to return.
       offset: The offset to start returning rows from.
-      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update the
-        progress.
+      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
+        the progress.
       resolve_span: Whether to resolve the span of the row.
       combine_columns: Whether to combine columns into a single object. The object will be pruned
         to only include sub-fields that correspond to the requested columns.
