@@ -5,7 +5,6 @@ import functools
 import multiprocessing
 import os
 import random
-import sys
 import time
 import traceback
 import uuid
@@ -32,7 +31,6 @@ from typing import (
 
 import nest_asyncio
 from loky import get_reusable_executor
-from loky.backend.context import set_start_method
 from pydantic import BaseModel
 from tqdm import tqdm
 
@@ -42,10 +40,6 @@ from .utils import log, pretty_timedelta
 warnings.filterwarnings(
   'ignore', message='`fork` start method should not be used with', category=UserWarning
 )
-
-if sys.platform != 'win32':
-  # Set the start method to fork for faster process creation.
-  set_start_method('loky')
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jupyter notebook.
@@ -413,10 +407,11 @@ def report_progress(
   it_idx = initial_index if initial_index else 0
   shard_info = TaskShardInfo(current_index=it_idx, estimated_len=estimated_len)
   emit_every_sec = EMIT_EVERY_SEC
-  # Add jitter to the emit frequency to avoid all workers emitting at the same time.
-  jitter = random.uniform(0.8, 1.2)
+  # Add +/- 20% jitter to the emit frequency to avoid all workers emitting at the same time.
+  jitter_frac = 0.2
+  jitter = random.uniform(1 - jitter_frac, 1 + jitter_frac)
   emit_every_sec *= jitter
-  last_emit = 0
+  last_emit = 0.0
 
   for t in it:
     cur_time = time.time()
