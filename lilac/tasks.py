@@ -3,6 +3,7 @@
 import builtins
 import functools
 import multiprocessing
+import os
 import random
 import sys
 import time
@@ -275,8 +276,12 @@ class TaskManager:
     for shard_id, (task_fn, args) in enumerate(subtasks):
       task_shard_id = (task_id, shard_id)
       worker_fn = functools.partial(_execute_task, task_fn, self._shards_proxy, task_shard_id)
+      max_workers = len(subtasks)
+      cpu_count = os.cpu_count()
+      if cpu_count:
+        max_workers = max(max_workers, cpu_count)
       pool = (
-        get_reusable_executor(max_workers=len(subtasks))
+        get_reusable_executor(max_workers=max_workers)
         if type == 'processes'
         else self.thread_pools[task_id]
       )
