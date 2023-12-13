@@ -2064,7 +2064,6 @@ class DatasetDuckDB(Dataset):
     value: Optional[str] = 'true',
   ) -> int:
     created = datetime.now()
-    print('hello world')
     # If filters and searches are defined with row_ids, add this as a filter.
     if row_ids:
       filters = list(filters) if filters else []

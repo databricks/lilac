@@ -116,6 +116,7 @@ class TaskManager:
   # Maps a task_id to the count of shard completions.
   _task_shard_completions: dict[str, int]
 
+  # Map a task_id to a thread pool. Each task gets its own thread pool when exec_type is 'threads'.
   thread_pools: dict[str, ThreadPoolExecutor]
 
   def __init__(self) -> None:
@@ -211,8 +212,6 @@ class TaskManager:
     elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(task.start_timestamp)
     elapsed_formatted = pretty_timedelta(elapsed)
 
-    if not task_future.done():
-      raise ValueError(f'Task {task_id} should be done by now since all sub-tasks have completed.')
     exc = task_future.exception()
     if exc:
       task.status = TaskStatus.ERROR
@@ -316,8 +315,8 @@ def init_worker(proxy: dict[TaskShardId, TaskShardInfo]) -> None:
   os.environ['TOKENIZERS_PARALLELISM'] = 'true'
 
 
-def update_shard_info(task_shard_id: TaskShardId, shard_info: TaskShardInfo) -> None:
-  """Updates the current task info."""
+def report_shard_info(task_shard_id: TaskShardId, shard_info: TaskShardInfo) -> None:
+  """Reporting the current task shard progress to the central manager."""
   global TASK_SHARD_PROXY
   if TASK_SHARD_PROXY is None:
     raise ValueError('No proxy dict was set.')
@@ -381,7 +380,7 @@ def show_progress_and_block(task_id: TaskId, description: Optional[str] = None) 
         pbar.refresh()
       if task_info.total_progress:
         pbar.update(task_info.total_progress - pbar.n)
-      if task_info.status == TaskStatus.COMPLETED:
+      if task_info.status in (TaskStatus.COMPLETED, TaskStatus.ERROR):
         pbar.update(pbar.total - pbar.n)
         break
       sleep(0.1)
@@ -415,7 +414,7 @@ def report_progress(
     cur_time = time.time()
     if estimated_len and cur_time - last_emit > emit_every_sec:
       shard_info.current_index = it_idx
-      update_shard_info(task_shard_id, shard_info)
+      report_shard_info(task_shard_id, shard_info)
       last_emit = cur_time
     yield t
     it_idx += 1
