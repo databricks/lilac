@@ -82,9 +82,9 @@ def from_hf(
 
   Args:
     dataset_name: The name of the dataset to load from HuggingFace.
-    namespace: The namespace to create the dataset in. If not defined, uses the namespace from
-      HF `dataset_name`, or `local` if `dataset_name` is not namespaced.
-    name: The name of the dataset to create. If not defined, uses the name from HF `dataset_name`.
+    namespace: The Lilac namespace for the loaded dataset. If not defined, infers from
+    `dataset_name`, or `local` if `dataset_name` is not namespaced.
+    name: The Lilac name of the dataset to create. If not defined, infers from `dataset_name`.
     overwrite: Whether to overwrite the dataset if it already exists.
     config_name: The name of the dataset configuration to load from HuggingFace.
     split: The split to load from the dataset.
