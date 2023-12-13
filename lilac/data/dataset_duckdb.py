@@ -892,6 +892,7 @@ class DatasetDuckDB(Dataset):
           for item in output_items:
             json.dump(item, file)
             file.write('\n')
+            file.flush()
     except RuntimeError as e:
       # NOTE: A RuntimeError exception is thrown when the output_items iterator, which is a zip of
       # input and output items, yields a StopIterator exception.

@@ -145,7 +145,8 @@ class TaskManager:
     # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
     elapsed = pretty_timedelta(timedelta(seconds=elapsed_sec))
     task.details = f'{total_progress:,}/{total_len:,} [{elapsed} {ex_per_sec:,.2f} ex/s]'
-    task.total_len = total_len
+    if total_len:
+      task.total_len = total_len
     task.total_progress = total_progress
 
   def _update_tasks(self) -> None:
@@ -311,6 +312,8 @@ def init_worker(proxy: dict[TaskShardId, TaskShardInfo]) -> None:
   """Initializes the worker."""
   global TASK_SHARD_PROXY
   TASK_SHARD_PROXY = proxy
+  # Disable the warning about tokenizer library being forked in another process.
+  os.environ['TOKENIZERS_PARALLELISM'] = 'true'
 
 
 def update_shard_info(task_shard_id: TaskShardId, shard_info: TaskShardInfo) -> None:
