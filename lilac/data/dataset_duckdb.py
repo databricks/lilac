@@ -503,13 +503,8 @@ class DatasetDuckDB(Dataset):
       [SOURCE_VIEW_NAME]
       + [f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
     )
-    view_or_table = 'TABLE'
-    use_views = bool(env('DUCKDB_USE_VIEWS', 0) or 0)
-
-    if use_views:
-      view_or_table = 'VIEW'
     sql_cmd = f"""
-      CREATE OR REPLACE {view_or_table} t AS (SELECT {select_sql} FROM {join_sql})
+      CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})
     """
     self.con.execute(sql_cmd)
     # Get the total size of the table.
@@ -2069,7 +2064,7 @@ class DatasetDuckDB(Dataset):
     value: Optional[str] = 'true',
   ) -> int:
     created = datetime.now()
-
+    print('hello world')
     # If filters and searches are defined with row_ids, add this as a filter.
     if row_ids:
       filters = list(filters) if filters else []

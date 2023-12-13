@@ -120,9 +120,6 @@ The modal also contains options for environment variables.
 - `LILAC_AUTH_ENABLED`: Whether to enable Google authentication on your duplicated server. Set this
   to `false`, or delete it, to disable Google authentication. If your HuggingFace space is private,
   you can set this to `false` and rely on HuggingFace space authentication.
-- `DUCKDB_USE_VIEWS`: Whether DuckDB uses views (1), or DuckDB tables (0). Views allow for much less
-  RAM consumption, with a runtime query penalty. When using DuckDB tables (0), demos will take more
-  RAM but be much faster.
 - `HF_HOME`: This should be kept `/data/.huggingface` if you plan on using Persistent Storage. This
   allows the HuggingFace cache to be persistent. If you are not, you should remove this variable
   entirely.

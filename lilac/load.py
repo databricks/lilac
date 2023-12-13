@@ -59,8 +59,6 @@ def load(
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
     del os.environ['DEBUG']
-  # Use views to avoid loading duckdb tables into RAM since we aren't query heavy.
-  os.environ['DUCKDB_USE_VIEWS'] = '1'
 
   if not isinstance(config, Config):
     config_path = config or os.path.join(project_dir, PROJECT_CONFIG_FILENAME)
@@ -234,8 +232,6 @@ def _compute_signal(
   task_shard_id: TaskShardId,
   overwrite: bool = False,
 ) -> None:
-  os.environ['DUCKDB_USE_VIEWS'] = '1'
-
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
     del os.environ['DEBUG']
@@ -261,8 +257,6 @@ def _compute_embedding(
   project_dir: str,
   task_shard_id: TaskShardId,
 ) -> None:
-  os.environ['DUCKDB_USE_VIEWS'] = '1'
-
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
     del os.environ['DEBUG']

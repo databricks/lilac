@@ -56,13 +56,6 @@ class LilacEnvironment(BaseModel):
     'private dataset. This is also required if the HuggingFace space is private.'
   )
 
-  # DuckDB.
-  DUCKDB_USE_VIEWS: str = PydanticField(
-    description='Whether DuckDB uses views (1), or DuckDB tables (0). Views allow for much less '
-    'RAM consumption, with a runtime query penalty. When using DuckDB tables (0), demos will '
-    'take more RAM but be much faster during query time.'
-  )
-
   # Authentication.
   LILAC_AUTH_ENABLED: str = PydanticField(
     description='Set to true to enable read-only mode, disabling the ability to add datasets & '
