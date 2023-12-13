@@ -212,21 +212,16 @@ class TaskManager:
     elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(task.start_timestamp)
     elapsed_formatted = pretty_timedelta(elapsed)
 
-    exc = task_future.exception()
-    if exc:
-      task.status = TaskStatus.ERROR
-      tb = traceback.format_tb(exc.__traceback__)
-      task.error = f'{exc}: \n{tb}'
-    else:
+    if task.status != TaskStatus.ERROR:
       task.status = TaskStatus.COMPLETED
       task.message = f'Completed in {elapsed_formatted}'
-      for shard_info in task.shards.values():
-        if shard_info.estimated_len:
-          shard_info.current_index = shard_info.estimated_len
-      self._update_task(task_id)
 
-    if task_id in self._futures:
-      del self._futures[task_id]
+      # Only delete the task futures if it's not an error. Otherwise, we want to keep the future
+      # so that calls to manager.wait() will raise the error.
+
+      if task_id in self._futures:
+        del self._futures[task_id]
+
     if task_id in self._task_shard_completions:
       del self._task_shard_completions[task_id]
     if task_id in self.thread_pools:
@@ -238,8 +233,14 @@ class TaskManager:
     self, task_id: TaskId, task_future: Future, num_shards: int
   ) -> None:
     # Increment task_shard_competions. When the num_shards is reached, set the task as completed.
-    self._task_shard_completions[task_id] = self._task_shard_completions.get(task_id, 0) + 1
+    task = self._tasks[task_id]
+    exc = task_future.exception()
+    if exc:
+      task.status = TaskStatus.ERROR
+      tb = '\n'.join(traceback.format_tb(exc.__traceback__))
+      task.error = f'{exc}:\n{tb}'
 
+    self._task_shard_completions[task_id] = self._task_shard_completions.get(task_id, 0) + 1
     if self._task_shard_completions[task_id] == num_shards:
       self._set_task_completed(task_id, task_future)
 
@@ -380,8 +381,10 @@ def show_progress_and_block(task_id: TaskId, description: Optional[str] = None) 
         pbar.refresh()
       if task_info.total_progress:
         pbar.update(task_info.total_progress - pbar.n)
-      if task_info.status in (TaskStatus.COMPLETED, TaskStatus.ERROR):
+      if task_info.status == TaskStatus.COMPLETED:
         pbar.update(pbar.total - pbar.n)
+        break
+      if task_info.status == TaskStatus.ERROR:
         break
       sleep(0.1)
 

@@ -2723,6 +2723,9 @@ class DatasetDuckDB(Dataset):
     )
     show_progress_and_block(task_id, description=progress_description)
 
+    # Wait for the task to finish before re-sharding the outputs.
+    get_task_manager().wait([task_id])
+
     json_query, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
       jsonl_cache_filepaths=jsonl_cache_filepaths,
