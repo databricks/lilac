@@ -26,7 +26,7 @@ def test_hf(tmp_path: pathlib.Path) -> None:
     fields=schema({HF_SPLIT_COLUMN: 'string', 'x': 'int64', 'y': 'string'}).fields, num_items=2
   )
 
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
@@ -53,7 +53,7 @@ def test_hf_splits(tmp_path: pathlib.Path) -> None:
     fields=schema({HF_SPLIT_COLUMN: 'string', 'x': 'int64', 'y': 'string'}).fields, num_items=4
   )
 
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
@@ -103,7 +103,7 @@ def test_hf_sequence(tmp_path: pathlib.Path) -> None:
     num_items=2,
   )
 
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
@@ -148,7 +148,7 @@ def test_hf_list(tmp_path: pathlib.Path) -> None:
     num_items=2,
   )
 
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [
@@ -178,7 +178,7 @@ def test_hf_class_labels(tmp_path: pathlib.Path) -> None:
     fields=schema({HF_SPLIT_COLUMN: 'string', 'x': 'string', 'y': 'string'}).fields, num_items=2
   )
 
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
 
   assert items == [

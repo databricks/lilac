@@ -23,7 +23,7 @@ from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
-from .tasks import TaskShardId, report_progress
+from .tasks import TaskId, report_progress
 from .utils import get_dataset_output_dir, log, open_file
 
 
@@ -68,16 +68,16 @@ def from_dicts(
 def process_source(
   project_dir: Union[str, pathlib.Path],
   config: DatasetConfig,
-  task_shard_id: Optional[TaskShardId] = None,
+  task_id: Optional[TaskId] = None,
 ) -> str:
   """Process a source."""
   output_dir = get_dataset_output_dir(project_dir, config.namespace, config.name)
 
   config.source.setup()
   try:
-    manifest = config.source.load_to_parquet(output_dir, task_shard_id=task_shard_id)
+    manifest = config.source.load_to_parquet(output_dir, task_id=task_id)
   except NotImplementedError:
-    manifest = slow_process(config.source, output_dir, task_shard_id=task_shard_id)
+    manifest = slow_process(config.source, output_dir, task_id=task_id)
 
   with open_file(os.path.join(output_dir, MANIFEST_FILENAME), 'w') as f:
     f.write(manifest.model_dump_json(indent=2, exclude_none=True))
@@ -93,15 +93,14 @@ def process_source(
 
 
 def slow_process(
-  source: Source, output_dir: str, task_shard_id: Optional[TaskShardId] = None
+  source: Source, output_dir: str, task_id: Optional[TaskId] = None
 ) -> SourceManifest:
   """Process the items of a source, writing to parquet.
 
   Args:
     source: The source to process.
     output_dir: The directory to write the parquet files to.
-    task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update the
-      progress of the task.
+    task_id: The TaskManager id for this process run. This is used to update the task progress.
 
   Returns:
     A SourceManifest that describes schema and parquet file locations.
@@ -113,6 +112,7 @@ def slow_process(
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
+  task_shard_id = (task_id, 0) if task_id else None
   items = report_progress(
     items,
     task_shard_id=task_shard_id,

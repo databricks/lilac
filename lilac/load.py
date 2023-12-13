@@ -11,7 +11,7 @@ import gc
 import os
 import pathlib
 import shutil
-from typing import Literal, Optional, Union
+from typing import Optional, Union
 
 from .concepts.db_concept import DiskConceptDB, DiskConceptModelDB
 from .config import Config, EmbeddingConfig, SignalConfig, read_config
@@ -22,6 +22,7 @@ from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
 from .tasks import (
+  TaskExecutionType,
   TaskShardId,
   TaskType,
   get_task_manager,
@@ -33,7 +34,7 @@ def load(
   project_dir: Optional[Union[str, pathlib.Path]] = None,
   config: Optional[Union[str, pathlib.Path, Config]] = None,
   overwrite: bool = False,
-  use_threads: bool = False,
+  execution_type: TaskExecutionType = 'processes',
 ) -> None:
   """Load a project from a project configuration.
 
@@ -46,7 +47,7 @@ def load(
       uses `LILAC_PROJECT_DIR`/lilac.yml.
     overwrite: When True, runs all data from scratch, overwriting existing data. When false, only
       load new datasets, embeddings, and signals.
-    use_threads: When True, uses threads instead of processes to load datasets. Useful for testing.
+    execution_type: The execution type for the task manager. Can be 'processes' or 'threads'.
   """
   project_dir = project_dir or get_project_dir()
   if not project_dir:
@@ -72,8 +73,6 @@ def load(
 
   existing_datasets = [f'{d.namespace}/{d.dataset_name}' for d in list_datasets(project_dir)]
 
-  execution: Literal['processes', 'threads'] = 'threads' if use_threads else 'processes'
-
   log()
   log('*** Load datasets ***')
   if overwrite:
@@ -94,7 +93,7 @@ def load(
       task_id = task_manager.task_id(
         f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD
       )
-      task_manager.execute(task_id, execution, process_source, project_dir, d, (task_id, 0))
+      task_manager.execute(task_id, execution_type, process_source, project_dir, d, (task_id, 0))
       dataset_task_ids.append(task_id)
     task_manager.wait(dataset_task_ids)
 
@@ -145,7 +144,7 @@ def load(
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           task_manager.execute(
             task_id,
-            execution,
+            execution_type,
             _compute_embedding,
             d.namespace,
             d.name,
@@ -193,7 +192,7 @@ def load(
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             task_manager.execute(
               task_id,
-              execution,
+              execution_type,
               _compute_signal,
               d.namespace,
               d.name,

@@ -17,7 +17,7 @@ from .schema import (
   arrow_schema_to_schema,
   field,
 )
-from .tasks import TaskShardId
+from .tasks import TaskId
 
 
 class SourceSchema(BaseModel):
@@ -106,9 +106,7 @@ class Source(BaseModel):
     """
     raise NotImplementedError
 
-  def load_to_parquet(
-    self, output_dir: str, task_shard_id: Optional[TaskShardId]
-  ) -> 'SourceManifest':
+  def load_to_parquet(self, output_dir: str, task_id: Optional[TaskId]) -> 'SourceManifest':
     """Process the source by directly writing a parquet file.
 
     You should only override one of `yield_items` or `load_to_parquet`.
@@ -127,7 +125,7 @@ class Source(BaseModel):
 
     Args:
       output_dir: The directory to write the parquet files to.
-      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
+      task_id: The TaskManager id for this task. This is used to update
         the progress of the task.
 
     Returns:

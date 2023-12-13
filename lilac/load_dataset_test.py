@@ -18,7 +18,7 @@ from .load_dataset import process_source
 from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, STRING, Field, Item, Schema, schema
 from .source import Source, SourceManifest, SourceSchema, clear_source_registry, register_source
-from .tasks import TaskShardId
+from .tasks import TaskId
 from .test_utils import fake_uuid, retrieve_parquet_rows
 from .utils import DATASETS_DIR_NAME
 
@@ -57,9 +57,7 @@ class TestFastSource(Source):
     return SourceSchema(fields=schema({'x': 'int64', 'y': 'string'}).fields, num_items=2)
 
   @override
-  def load_to_parquet(
-    self, output_dir: str, task_shard_id: Optional[TaskShardId] = None
-  ) -> SourceManifest:
+  def load_to_parquet(self, output_dir: str, task_id: Optional[TaskId] = None) -> SourceManifest:
     rows = [
       {ROWID: fake_uuid(b'1').hex, 'x': 1, 'y': 'ten'},
       {ROWID: fake_uuid(b'2').hex, 'x': 2, 'y': 'twenty'},

@@ -34,7 +34,7 @@ def test_simple_rows(tmp_path: pathlib.Path) -> None:
   assert source_schema == SourceSchema(
     fields=schema({'name': 'string', 'age': 'int64'}).fields, num_items=None
   )
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
   assert items == [{'name': 'a', 'age': 1}, {'name': 'b', 'age': 2}, {'name': 'c', 'age': 3}]
 
@@ -61,7 +61,7 @@ def test_map_dtype(tmp_path: pathlib.Path) -> None:
     fields=schema({'column': field(MapType(key_type=STRING, value_field=field('float32')))}).fields,
     num_items=None,
   )
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
   assert items == [
     {'column': [('a', 1.0), ('b', 2.0)]},
@@ -81,7 +81,7 @@ def test_single_shard_with_sampling(tmp_path: pathlib.Path) -> None:
   for sample_size in range(1, 5):
     source = ParquetSource(filepaths=[out_file], sample_size=sample_size)
     source.setup()
-    manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+    manifest = source.load_to_parquet(str(tmp_path), task_id=None)
     items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
@@ -97,7 +97,7 @@ def test_single_shard_pseudo_shuffle(tmp_path: pathlib.Path) -> None:
   for sample_size in range(1, 5):
     source = ParquetSource(filepaths=[out_file], sample_size=sample_size, pseudo_shuffle=True)
     source.setup()
-    manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+    manifest = source.load_to_parquet(str(tmp_path), task_id=None)
     items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
@@ -111,7 +111,7 @@ def test_multi_shard(tmp_path: pathlib.Path) -> None:
 
   source = ParquetSource(filepaths=[str(tmp_path / 'test-*.parquet')])
   source.setup()
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
   items.sort(key=lambda x: x['name'])
   assert items == source_items
@@ -128,7 +128,7 @@ def test_multi_shard_sample(tmp_path: pathlib.Path) -> None:
   for sample_size in range(1, 5):
     source = ParquetSource(filepaths=[str(tmp_path / 'test-*.parquet')], sample_size=sample_size)
     source.setup()
-    manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+    manifest = source.load_to_parquet(str(tmp_path), task_id=None)
     items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
@@ -148,7 +148,7 @@ def test_multi_shard_approx_shuffle(tmp_path: pathlib.Path) -> None:
       sample_size=sample_size,
     )
     source.setup()
-    manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+    manifest = source.load_to_parquet(str(tmp_path), task_id=None)
     items = retrieve_parquet_rows(tmp_path, manifest)
     assert len(items) == min(sample_size, len(source_items))
 
@@ -164,7 +164,7 @@ def test_uniform_shards_pseudo_shuffle(tmp_path: pathlib.Path) -> None:
     filepaths=[str(tmp_path / 'test-*.parquet')], pseudo_shuffle=True, sample_size=20
   )
   source.setup()
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 
@@ -183,7 +183,7 @@ def test_nonuniform_shards_pseudo_shuffle(tmp_path: pathlib.Path) -> None:
     filepaths=[str(tmp_path / 'test-*.parquet')], pseudo_shuffle=True, sample_size=20
   )
   source.setup()
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 
@@ -197,7 +197,7 @@ def test_sampling_with_seed(tmp_path: pathlib.Path) -> None:
 
   source = ParquetSource(filepaths=[str(tmp_path / 'test-*.parquet')], sample_size=20, seed=42)
   source.setup()
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 
@@ -213,7 +213,7 @@ def test_approx_shuffle_with_seed(tmp_path: pathlib.Path) -> None:
     filepaths=[str(tmp_path / 'test-*.parquet')], pseudo_shuffle=True, sample_size=20, seed=42
   )
   source.setup()
-  manifest = source.load_to_parquet(str(tmp_path), task_shard_id=None)
+  manifest = source.load_to_parquet(str(tmp_path), task_id=None)
   items = retrieve_parquet_rows(tmp_path, manifest)
   assert len(items) == 20
 

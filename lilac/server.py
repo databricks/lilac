@@ -60,7 +60,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
   """Context manager for the lifespan of the application."""
   if env('LILAC_LOAD_ON_START_SERVER', False):
-    load(project_dir=get_project_dir(), overwrite=False)
+    load(project_dir=get_project_dir(), overwrite=False, execution_type='processes')
 
   yield
 

@@ -97,9 +97,9 @@ from ..tasks import (
   TaskFn,
   TaskShardId,
   TaskType,
-  block_and_show_progress,
   get_task_manager,
   report_progress,
+  show_progress_and_block,
 )
 from ..utils import (
   DebugTimer,
@@ -2726,7 +2726,7 @@ class DatasetDuckDB(Dataset):
       type=execution_type,
       subtasks=subtasks,
     )
-    block_and_show_progress(task_id, description=progress_description)
+    show_progress_and_block(task_id, description=progress_description)
 
     json_query, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,

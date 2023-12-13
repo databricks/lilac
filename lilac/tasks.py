@@ -354,7 +354,7 @@ def _execute_task(
 TProgress = TypeVar('TProgress')
 
 
-def block_and_show_progress(task_id: TaskId, description: Optional[str] = None) -> None:
+def show_progress_and_block(task_id: TaskId, description: Optional[str] = None) -> None:
   """Show a tqdm progress bar of a task.
 
   Args:
