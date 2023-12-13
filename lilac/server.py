@@ -6,6 +6,7 @@ import os
 import webbrowser
 from contextlib import asynccontextmanager
 from importlib import metadata
+from threading import Thread
 from typing import Annotated, Any, AsyncGenerator, Optional
 
 import uvicorn
@@ -16,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
+from uvicorn.config import Config
 
 from . import (
   router_concept,
@@ -191,7 +193,30 @@ class GetTasksFilter(logging.Filter):
 
 logging.getLogger('uvicorn.access').addFilter(GetTasksFilter())
 
-SERVER: Optional[uvicorn.Server] = None
+
+class Server(uvicorn.Server):
+  """Server that runs in a separate thread."""
+
+  def __init__(self, config: Config) -> None:
+    super().__init__(config)
+
+    def run() -> None:
+      loop = asyncio.get_event_loop()
+      loop.run_until_complete(self.serve())
+
+    self.thread = Thread(target=run)
+
+  def start(self) -> None:
+    """Start the server in a separate thread."""
+    self.thread.start()
+
+  def stop(self) -> None:
+    """Stop the server."""
+    self.should_exit = True
+    self.thread.join()
+
+
+SERVER: Optional[Server] = None
 
 
 def start_server(
@@ -222,29 +247,21 @@ def start_server(
   if load:
     os.environ['LILAC_LOAD_ON_START_SERVER'] = 'true'
 
-  config = uvicorn.Config(app, host=host, port=port, access_log=False)
-  SERVER = uvicorn.Server(config)
-
   if open:
 
     @app.on_event('startup')
     def open_browser() -> None:
       webbrowser.open(f'http://{host}:{port}')
 
-  try:
-    loop = asyncio.get_event_loop()
-    if loop.is_running():
-      loop.create_task(SERVER.serve())
-    else:
-      SERVER.run()
-  except RuntimeError:
-    SERVER.run()
+  config = uvicorn.Config(app, host=host, port=port, access_log=False)
+  SERVER = Server(config)
+  SERVER.start()
 
 
-async def stop_server() -> None:
+def stop_server() -> None:
   """Stops the Lilac web server."""
   global SERVER
   if SERVER is None:
-    raise ValueError('Server is not running')
-  await SERVER.shutdown()
+    return
+  SERVER.stop()
   SERVER = None

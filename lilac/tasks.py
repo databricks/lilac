@@ -231,7 +231,7 @@ class TaskManager:
       del self._task_shard_completions[task_id]
     if task_id in self.thread_pools:
       thread_pool = self.thread_pools[task_id]
-      thread_pool.shutdown()
+      thread_pool.shutdown(wait=False)
       del self.thread_pools[task_id]
 
   def _set_task_shard_completed(
@@ -299,6 +299,8 @@ class TaskManager:
     del self._tasks
     del self._task_shard_completions
     del self.thread_pools
+    global _TASK_MANAGER
+    _TASK_MANAGER = None
 
 
 _TASK_MANAGER: Optional[TaskManager] = None
