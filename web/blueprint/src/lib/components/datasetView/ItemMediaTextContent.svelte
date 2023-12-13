@@ -136,6 +136,7 @@
       lineNumbers: 'on',
       glyphMargin: true,
       lineNumbersMinChars: 3,
+      renderLineHighlight: 'none',
       minimap: {
         enabled: true,
         side: 'right',

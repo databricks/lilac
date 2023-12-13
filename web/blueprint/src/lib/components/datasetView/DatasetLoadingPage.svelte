@@ -127,7 +127,7 @@
           </div>
           <div class="text-sm text-gray-700">
             {#if $firstRow?.data?.total_num_rows != null}
-              {$firstRow?.data?.total_num_rows} rows loaded
+              {$firstRow?.data?.total_num_rows.toLocaleString()} rows loaded
             {/if}
           </div>
         {/if}
