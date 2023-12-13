@@ -39,7 +39,7 @@ configuration:
 
 ```yaml
 # Lilac project config.
-# See https://lilacml.com/api_reference/index.html#lilac.Config for details.
+# See https://docs.lilacml.com/api_reference/index.html#lilac.Config for details.
 
 datasets: []
 ```
@@ -86,7 +86,7 @@ An example configuration:
 
 ```yaml
 # Lilac project config.
-# See https://lilacml.com/api_reference/index.html#lilac.Config for details.
+# See https://docs.lilacml.com/api_reference/index.html#lilac.Config for details.
 
 datasets:
   - namespace: local

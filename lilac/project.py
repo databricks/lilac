@@ -200,7 +200,7 @@ def write_project_config(project_dir: Union[str, pathlib.Path], config: Config) 
     yaml_config = to_yaml(config.model_dump(exclude_defaults=True, exclude_none=True))
     f.write(
       '# Lilac project config.\n'
-      + '# See https://lilacml.com/api_reference/index.html#lilac.Config '
+      + '# See https://docs.lilacml.com/api_reference/index.html#lilac.Config '
       'for details.\n\n' + yaml_config
     )
 

@@ -6,7 +6,7 @@
 
 .. raw:: html
 
-    <meta property="og:image" content="https://lilacml.com/_static/logo_wide.png" />
+    <meta property="og:image" content="https://docs.lilacml.com/_static/logo_wide.png" />
 
 .. include:: welcome.md
    :parser: myst_parser.sphinx_
