@@ -390,12 +390,14 @@ def show_progress_and_block(task_id: TaskId, description: Optional[str] = None) 
 
 
 # The interval to emit progress events.
-EMIT_EVERY_SEC = 0.5
+EMIT_DELAY_PER_WORKER = 0.5
+MIN_DELAY = 0.1
 
 
 def report_progress(
   it: Union[Iterator[TProgress], Iterable[TProgress]],
   task_shard_id: Optional[TaskShardId],
+  shard_count: Optional[int] = None,
   initial_index: Optional[int] = None,
   estimated_len: Optional[int] = None,
 ) -> Generator[TProgress, None, None]:
@@ -406,16 +408,14 @@ def report_progress(
 
   it_idx = initial_index if initial_index else 0
   shard_info = TaskShardInfo(current_index=it_idx, estimated_len=estimated_len)
-  emit_every_sec = EMIT_EVERY_SEC
-  # Add +/- 20% jitter to the emit frequency to avoid all workers emitting at the same time.
-  jitter_frac = 0.2
-  jitter = random.uniform(1 - jitter_frac, 1 + jitter_frac)
-  emit_every_sec *= jitter
+  shard_count = shard_count if shard_count else 1
   last_emit = 0.0
-
+  # Reduce the emit frequency if there are multiple shards to reduce IPC.
+  max_delay = EMIT_DELAY_PER_WORKER * shard_count
   for t in it:
+    emit_delay = random.uniform(MIN_DELAY, max_delay)
     cur_time = time.time()
-    if estimated_len and cur_time - last_emit > emit_every_sec:
+    if estimated_len and cur_time - last_emit > emit_delay:
       shard_info.current_index = it_idx
       report_shard_info(task_shard_id, shard_info)
       last_emit = cur_time
