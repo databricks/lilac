@@ -23,6 +23,7 @@ from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
+from .sources.huggingface_source import HuggingFaceSource
 from .tasks import TaskId, report_progress
 from .utils import get_dataset_output_dir, log, open_file
 
@@ -61,6 +62,58 @@ def from_dicts(
     namespace=namespace,
     name=name,
     source=DictSource(items),
+  )
+  return create_dataset(config, overwrite=overwrite)
+
+
+def from_hf(
+  dataset_name: str,
+  namespace: Optional[str] = None,
+  name: Optional[str] = None,
+  overwrite: bool = False,
+  config_name: Optional[str] = None,
+  split: Optional[str] = None,
+  sample_size: Optional[int] = None,
+  token: Optional[str] = None,
+  revision: Optional[str] = None,
+  load_from_disk: bool = False,
+) -> Dataset:
+  """Load a dataset from HuggingFace.
+
+  Args:
+    dataset_name: The name of the dataset to load from HuggingFace.
+    namespace: The namespace to create the dataset in. If not defined, uses the namespace from
+      HF `dataset_name`, or `local` if `dataset_name` is not namespaced.
+    name: The name of the dataset to create. If not defined, uses the name from HF `dataset_name`.
+    overwrite: Whether to overwrite the dataset if it already exists.
+    config_name: The name of the dataset configuration to load from HuggingFace.
+    split: The split to load from the dataset.
+    sample_size: The number of samples to load from the dataset.
+    token: The HuggingFace API token to use.
+    revision: The revision of the dataset to load.
+    load_from_disk: Whether to load the dataset from disk.
+  """
+  if '/' in dataset_name:
+    parts = dataset_name.split('/')
+    hf_namespace, hf_name = parts[-2], parts[-1]
+  else:
+    hf_namespace, hf_name = None, dataset_name
+  if not name:
+    name = hf_name
+  if not namespace:
+    namespace = hf_namespace or 'local'
+  config = DatasetConfig(
+    namespace=namespace,
+    name=name,
+    source=HuggingFaceSource(
+      dataset_name=dataset_name,
+      config_name=config_name,
+      split=split,
+      sample_size=sample_size,
+      token=token,
+      revision=revision,
+      load_from_disk=load_from_disk,
+    ),
   )
   return create_dataset(config, overwrite=overwrite)
 

@@ -8,13 +8,14 @@ from typing import ClassVar, Iterable, Optional, Type
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+from datasets import Dataset
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
 from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import get_parquet_filename, schema_to_arrow_schema
-from .load_dataset import process_source
+from .load_dataset import from_dicts, from_hf, process_source
 from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, STRING, Field, Item, Schema, schema
 from .source import Source, SourceManifest, SourceSchema, clear_source_registry, register_source
@@ -89,12 +90,15 @@ def setup_teardown() -> Iterable[None]:
   clear_source_registry()
 
 
+@pytest.fixture(autouse=True)
+def set_project_dir(tmp_path: pathlib.Path, mocker: MockerFixture) -> None:
+  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
+
+
 @pytest.mark.parametrize('source_cls', [TestSource, TestFastSource])
 def test_data_loader(
   source_cls: Type[Source], tmp_path: pathlib.Path, mocker: MockerFixture
 ) -> None:
-  mocker.patch.dict(os.environ, {'LILAC_PROJECT_DIR': str(tmp_path)})
-
   mock_uuid = mocker.patch.object(uuid, 'uuid4', autospec=True)
   mock_uuid.side_effect = [fake_uuid(b'1'), fake_uuid(b'2')]
 
@@ -136,3 +140,43 @@ def test_data_loader(
       )
     ]
   )
+
+
+def test_from_dicts() -> None:
+  items = [{'text': 'hello'}, {'text': 'world'}]
+  ds = from_dicts('local', 'test', items)
+  assert list(ds.select_rows()) == items
+
+
+def test_from_hf(tmp_path: pathlib.Path) -> None:
+  def gen() -> Iterable[dict[str, str]]:
+    yield {'text': 'hello'}
+    yield {'text': 'world'}
+
+  hf_ds = Dataset.from_generator(gen)
+  dataset_path = os.path.join(tmp_path, 'test.hf')
+  hf_ds.save_to_disk(dataset_path)
+  ds = from_hf(dataset_path, load_from_disk=True)
+  assert list(ds.select_rows()) == [
+    {'__hfsplit__': 'default', 'text': 'hello'},
+    {'__hfsplit__': 'default', 'text': 'world'},
+  ]
+  assert ds.namespace.startswith('test_from_hf')
+  assert ds.dataset_name == 'test.hf'
+
+
+def test_from_hf_explicit_namespace_and_name(tmp_path: pathlib.Path) -> None:
+  def gen() -> Iterable[dict[str, str]]:
+    yield {'text': 'hello'}
+    yield {'text': 'world'}
+
+  hf_ds = Dataset.from_generator(gen)
+  dataset_path = os.path.join(tmp_path, 'test.hf')
+  hf_ds.save_to_disk(dataset_path)
+  ds = from_hf(dataset_path, namespace='local', name='test', load_from_disk=True)
+  assert list(ds.select_rows()) == [
+    {'__hfsplit__': 'default', 'text': 'hello'},
+    {'__hfsplit__': 'default', 'text': 'world'},
+  ]
+  assert ds.namespace == 'local'
+  assert ds.dataset_name == 'test'
