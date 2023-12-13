@@ -2714,7 +2714,7 @@ class DatasetDuckDB(Dataset):
             DuckDBQueryParams(filters=filters, limit=limit, include_deleted=include_deleted),
             combine_columns,
             resolve_span,
-            (task_id, 0),
+            (task_id, i),
           ],
         )
       )

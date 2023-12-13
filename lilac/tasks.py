@@ -373,18 +373,16 @@ def show_progress_and_block(task_id: TaskId, description: Optional[str] = None) 
     return
 
   task_info = task_manager.get_task_info(task_id)
-  total_len = task_info.total_len
-  with tqdm(total=total_len, desc=description) as pbar:
+  with tqdm(total=task_info.total_len, desc=description) as pbar:
     while True:
       task_info = task_manager.get_task_info(task_id)
-      if task_info.total_len and total_len is None:
-        total_len = task_info.total_len
-        pbar.total = total_len
+      if task_info.total_len and pbar.total != task_info.total_len:
+        pbar.total = task_info.total_len
         pbar.refresh()
       if task_info.total_progress:
         pbar.update(task_info.total_progress - pbar.n)
       if task_info.status == TaskStatus.COMPLETED:
-        pbar.update(total_len - pbar.n)
+        pbar.update(pbar.total - pbar.n)
         break
       sleep(0.1)
 
