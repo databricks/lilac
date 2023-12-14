@@ -20,6 +20,8 @@ _SIZE_TO_MODEL: dict[str, str] = {
   'base': 'jina-embeddings-v2-base-en',
 }
 
+# Anything larger than 1 slows down the computation because a single long document will cause
+# padding to be added to all other documents in the batch.
 JINA_BATCH_SIZE = 1
 JINA_CONTEXT_SIZE = 8192
 
