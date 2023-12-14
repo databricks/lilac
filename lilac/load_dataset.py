@@ -78,7 +78,7 @@ def from_huggingface(
   """Load a dataset from HuggingFace.
 
   Args:
-    dataset: A HF dataset or the name of the dataset registered in HF hub.
+    dataset: A HuggingFace dataset or its name registered on the hub.
     namespace: The Lilac namespace for the loaded dataset. Defaults to `local`.
     name: The Lilac name of the dataset to create. Defaults to the name of the HuggingFace dataset.
     overwrite: Whether to overwrite the dataset if it already exists.
