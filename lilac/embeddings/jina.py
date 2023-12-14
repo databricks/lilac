@@ -56,7 +56,7 @@ class JinaV2Small(TextEmbeddingSignal):
       for doc, vector in zip(trimmed_docs, vectors):
         vector = np.array(vector)
         vector /= norm(vector)
-        yield lilac_embedding(0, len(doc), vector)
+        yield [lilac_embedding(0, len(doc), vector)]
 
 
 class JinaV2Base(JinaV2Small):
