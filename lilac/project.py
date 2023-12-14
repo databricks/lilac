@@ -56,7 +56,8 @@ def add_project_dataset_config(
         config.datasets.remove(existing_dataset_config)
       else:
         raise ValueError(
-          f'{dataset_config} has already been added. You can delete it with: \n\n'
+          f'Dataset {dataset_config.namespace}/{dataset_config.name} has already been added. '
+          'Provide `overwrite=True` when loading the data, or delete the old one with:\n\n'
           f'dataset = get_dataset("{dataset_config.namespace}", "{dataset_config.name}")\n'
           'dataset.delete()'
         )
