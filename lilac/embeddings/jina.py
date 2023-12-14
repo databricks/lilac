@@ -38,7 +38,11 @@ def _get_model(size: str) -> 'AutoModel':
 
 
 class JinaV2Small(TextEmbeddingSignal):
-  """Jina V2 Embeddings with 8K context."""
+  """Jina V2 Embeddings with 8K context.
+
+  Each document is truncated to 8K characters, and the embeddings are computed on the truncated
+  document.
+  """
 
   name: ClassVar[str] = 'jina-v2-small'
   display_name: ClassVar[str] = 'Jina V2 (small)'
