@@ -8,7 +8,7 @@ from typing import ClassVar, Iterable, Optional, Type
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-from datasets import Dataset
+from datasets import Dataset, DatasetDict
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
@@ -148,7 +148,7 @@ def test_from_dicts() -> None:
   assert list(ds.select_rows()) == items
 
 
-def test_from_hf() -> None:
+def test_from_hf_dataset() -> None:
   def gen() -> Iterable[dict[str, str]]:
     yield {'text': 'hello'}
     yield {'text': 'world'}
@@ -158,6 +158,23 @@ def test_from_hf() -> None:
   assert list(ds.select_rows()) == [
     {'__hfsplit__': 'default', 'text': 'hello'},
     {'__hfsplit__': 'default', 'text': 'world'},
+  ]
+  assert ds.namespace == 'local'
+  assert ds.dataset_name == 'generator'
+
+  print(type(hf_ds))
+
+
+def test_from_hf_dataset_dict() -> None:
+  def gen() -> Iterable[dict[str, str]]:
+    yield {'text': 'hello'}
+    yield {'text': 'world'}
+
+  hf_ds_dict = DatasetDict({'train': Dataset.from_generator(gen)})
+  ds = from_huggingface(hf_ds_dict)
+  assert list(ds.select_rows()) == [
+    {'__hfsplit__': 'train', 'text': 'hello'},
+    {'__hfsplit__': 'train', 'text': 'world'},
   ]
   assert ds.namespace == 'local'
   assert ds.dataset_name == 'generator'
