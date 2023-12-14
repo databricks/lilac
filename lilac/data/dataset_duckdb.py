@@ -92,6 +92,7 @@ from ..signals.filter_mask import FilterMaskSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
 from ..signals.substring_search import SubstringSignal
 from ..source import NoSource, SourceManifest
+from ..sources.duckdb_utils import duckdb_setup
 from ..tasks import (
   TaskExecutionType,
   TaskFn,
@@ -304,6 +305,11 @@ class DuckDBQueryParams(BaseModel):
   include_deleted: bool = False
 
 
+def consume_iterator(iterator: Iterator[Any]) -> None:
+  for _ in iterator:
+    pass
+
+
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
@@ -323,6 +329,7 @@ class DatasetDuckDB(Dataset):
     self._map_manifests: list[MapManifest] = []
     self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
+    duckdb_setup(self.con)
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
@@ -775,7 +782,7 @@ class DatasetDuckDB(Dataset):
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
     task_shard_id: Optional[TaskShardId] = None,
-  ) -> Iterable[Item]:
+  ) -> Iterator[Item]:
     manifest = self.manifest()
 
     os.makedirs(os.path.dirname(jsonl_cache_filepath), exist_ok=True)
@@ -880,7 +887,6 @@ class DatasetDuckDB(Dataset):
         estimated_len=estimated_len,
       )
 
-    output_items, jsonl_cache_items = itertools.tee(output_items, 2)
     # TODO(nsthorat): Support continuation of embeddings.
     try:
       if not isinstance(transform_fn, TextEmbeddingSignal):
@@ -889,6 +895,7 @@ class DatasetDuckDB(Dataset):
             json.dump(item, file)
             file.write('\n')
             file.flush()
+            yield item
     except RuntimeError as e:
       # NOTE: A RuntimeError exception is thrown when the output_items iterator, which is a zip of
       # input and output items, yields a StopIterator exception.
@@ -899,8 +906,6 @@ class DatasetDuckDB(Dataset):
       )
     except Exception as e:
       raise e
-
-    return jsonl_cache_items
 
   def _reshard_cache(
     self,
@@ -1022,16 +1027,18 @@ class DatasetDuckDB(Dataset):
       key=output_path,
       project_dir=self.project_dir,
     )
-    self._compute_disk_cached(
-      transform_fn=signal,
-      output_path=output_path,
-      jsonl_cache_filepath=jsonl_cache_filepath,
-      unnest_input_path=input_path,
-      overwrite=overwrite,
-      query_options=DuckDBQueryParams(
-        filters=filters, limit=limit, include_deleted=include_deleted
-      ),
-      task_shard_id=task_shard_id,
+    consume_iterator(
+      self._compute_disk_cached(
+        transform_fn=signal,
+        output_path=output_path,
+        jsonl_cache_filepath=jsonl_cache_filepath,
+        unnest_input_path=input_path,
+        overwrite=overwrite,
+        query_options=DuckDBQueryParams(
+          filters=filters, limit=limit, include_deleted=include_deleted
+        ),
+        task_shard_id=task_shard_id,
+      )
     )
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
@@ -2723,7 +2730,6 @@ class DatasetDuckDB(Dataset):
       subtasks=subtasks,
     )
     show_progress_and_block(task_id, description=progress_description)
-
     # Wait for the task to finish before re-sharding the outputs.
     get_task_manager().wait([task_id])
 
@@ -2821,18 +2827,20 @@ class DatasetDuckDB(Dataset):
       else:
         yield from itertools.chain.from_iterable(map(map_fn, *map_args))
 
-    self._compute_disk_cached(
-      _map_iterable,
-      output_path=output_path,
-      jsonl_cache_filepath=jsonl_cache_filepath,
-      unnest_input_path=unnest_input_path,
-      overwrite=overwrite,
-      query_options=query_options,
-      combine_columns=combine_columns,
-      resolve_span=resolve_span,
-      shard_id=job_id,
-      shard_count=job_count,
-      task_shard_id=task_shard_id,
+    consume_iterator(
+      self._compute_disk_cached(
+        _map_iterable,
+        output_path=output_path,
+        jsonl_cache_filepath=jsonl_cache_filepath,
+        unnest_input_path=unnest_input_path,
+        overwrite=overwrite,
+        query_options=query_options,
+        combine_columns=combine_columns,
+        resolve_span=resolve_span,
+        shard_id=job_id,
+        shard_count=job_count,
+        task_shard_id=task_shard_id,
+      )
     )
 
   @override
