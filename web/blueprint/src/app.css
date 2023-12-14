@@ -129,7 +129,7 @@ button:disabled {
 
 .header {
   @apply flex-shrink-0;
-  min-height: 4rem;
+  height: 4rem;
 }
 
 .lilac-container {

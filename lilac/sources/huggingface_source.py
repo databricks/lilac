@@ -1,7 +1,7 @@
 """Huggingface source."""
 import multiprocessing
 import os
-from typing import ClassVar, Optional, Union
+from typing import Any, ClassVar, Optional, Union, cast
 
 import duckdb
 from datasets import (
@@ -15,8 +15,9 @@ from datasets import (
   load_dataset,
   load_from_disk,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, GetJsonSchemaHandler
 from pydantic import Field as PydanticField
+from pydantic_core import CoreSchema
 from typing_extensions import override
 
 from ..data import dataset_utils
@@ -143,6 +144,9 @@ class HuggingFaceSource(Source):
   name: ClassVar[str] = 'huggingface'
 
   dataset_name: str = PydanticField(description='Either in the format `user/dataset` or `dataset`.')
+  dataset: Optional[Union[Dataset, DatasetDict]] = PydanticField(
+    description='The pre-loaded HuggingFace dataset', exclude=True, default=None
+  )
   config_name: Optional[str] = PydanticField(
     title='Dataset config name', description='Some datasets require this.', default=None
   )
@@ -164,26 +168,46 @@ class HuggingFaceSource(Source):
   load_from_disk: Optional[bool] = PydanticField(
     description='Load from local disk instead of the hub.', default=False
   )
-
   _dataset_dict: Optional[DatasetDict] = None
   _schema_info: Optional[SchemaInfo] = None
+  model_config = ConfigDict(arbitrary_types_allowed=True)
+
+  # We override this method to remove the `dataset_dict` from the json schema.
+  @classmethod
+  def __get_pydantic_json_schema__(
+    cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler
+  ) -> dict[str, Any]:
+    fields = cast(dict, core_schema)['schema']['fields']
+    if 'dataset' in fields:
+      del fields['dataset']
+    json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
+    json_schema = handler.resolve_ref_schema(json_schema)
+    return json_schema
 
   @override
   def setup(self) -> None:
-    if self.load_from_disk:
-      # Load from disk.
-      hf_dataset_dict = load_from_disk(self.dataset_name)
-      if isinstance(hf_dataset_dict, Dataset):
-        hf_dataset_dict = DatasetDict({DEFAULT_LOCAL_SPLIT_NAME: hf_dataset_dict})
+    if self.dataset:
+      if isinstance(self.dataset, Dataset):
+        self._dataset_dict = DatasetDict({DEFAULT_LOCAL_SPLIT_NAME: self.dataset})
+      elif isinstance(self.dataset, DatasetDict):
+        self._dataset_dict = self.dataset
+      else:
+        raise ValueError(f'Unsupported dataset type: {type(self.dataset)}')
     else:
-      hf_dataset_dict = load_dataset(
-        self.dataset_name,
-        self.config_name,
-        num_proc=multiprocessing.cpu_count(),
-        verification_mode='no_checks',
-        token=self.token,
-      )
-    self._dataset_dict = hf_dataset_dict
+      if self.load_from_disk:
+        # Load from disk.
+        hf_dataset_dict = load_from_disk(self.dataset_name)
+        if isinstance(hf_dataset_dict, Dataset):
+          hf_dataset_dict = DatasetDict({DEFAULT_LOCAL_SPLIT_NAME: hf_dataset_dict})
+      else:
+        hf_dataset_dict = load_dataset(
+          self.dataset_name,
+          self.config_name,
+          num_proc=multiprocessing.cpu_count(),
+          verification_mode='no_checks',
+          token=self.token,
+        )
+      self._dataset_dict = hf_dataset_dict
     self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split, self.sample_size)
 
   @override

@@ -295,6 +295,7 @@ class TaskManager:
     for pool in self.thread_pools.values():
       pool.shutdown()
     self._manager.shutdown()
+    get_reusable_executor().shutdown(wait=True)
     del self._manager
     del self._futures
     del self._tasks

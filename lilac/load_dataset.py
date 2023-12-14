@@ -10,9 +10,12 @@ poetry run python -m lilac.load_dataset \
 import os
 import pathlib
 import uuid
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Union, cast
 
 import pandas as pd
+from datasets import Dataset as HFDataset
+from datasets import DatasetDict as HFDatasetDict
+from datasets import load_dataset
 
 from .config import DatasetConfig
 from .data.dataset import Dataset, default_settings
@@ -23,6 +26,7 @@ from .project import add_project_dataset_config, update_project_dataset_settings
 from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, Item, Schema, is_float
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
+from .sources.huggingface_source import HuggingFaceSource
 from .tasks import TaskId, report_progress
 from .utils import get_dataset_output_dir, log, open_file
 
@@ -61,6 +65,45 @@ def from_dicts(
     namespace=namespace,
     name=name,
     source=DictSource(items),
+  )
+  return create_dataset(config, overwrite=overwrite)
+
+
+def from_huggingface(
+  dataset: Union[str, HFDataset, HFDatasetDict],
+  namespace: str = 'local',
+  name: Optional[str] = None,
+  overwrite: bool = False,
+) -> Dataset:
+  """Load a dataset from HuggingFace.
+
+  Args:
+    dataset: A HuggingFace dataset or its name registered on the hub.
+    namespace: The Lilac namespace for the loaded dataset. Defaults to `local`.
+    name: The Lilac name of the dataset to create. Defaults to the name of the HuggingFace dataset.
+    overwrite: Whether to overwrite the dataset if it already exists.
+  """
+  if isinstance(dataset, str):
+    dataset = cast(Union[HFDataset, HFDatasetDict], load_dataset(dataset))
+
+  if not namespace:
+    namespace = 'local'
+
+  if not name:
+    # Infer name from the dataset instance.
+    split: HFDataset = dataset
+    if isinstance(dataset, HFDatasetDict):
+      split = list(cast(HFDatasetDict, dataset).values())[0]
+    if split.info.dataset_name:
+      name = split.info.dataset_name
+
+  if not name:
+    raise ValueError('`name` must be defined since it could not be inferred from the dataset.')
+
+  config = DatasetConfig(
+    namespace=namespace,
+    name=name,
+    source=HuggingFaceSource(dataset_name=name, dataset=dataset),
   )
   return create_dataset(config, overwrite=overwrite)
 

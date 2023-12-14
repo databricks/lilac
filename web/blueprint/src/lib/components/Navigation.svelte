@@ -88,8 +88,10 @@
 </script>
 
 <div class="nav-container flex h-full w-56 flex-col items-center overflow-y-scroll pb-2">
-  <div class="w-full border-b border-gray-200">
-    <div class="header flex flex-row items-center justify-between px-1 pl-4">
+  <div class="w-full">
+    <div
+      class="header flex flex-row items-center justify-between border-b border-gray-200 px-1 pl-4"
+    >
       <a class="flex flex-row items-center text-xl normal-case" href="/">
         <img class="logo-img mr-2 rounded opacity-90" src={logo_50x50} alt="Logo" />
         Lilac

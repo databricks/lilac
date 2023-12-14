@@ -56,7 +56,8 @@ def add_project_dataset_config(
         config.datasets.remove(existing_dataset_config)
       else:
         raise ValueError(
-          f'{dataset_config} has already been added. You can delete it with: \n\n'
+          f'Dataset {dataset_config.namespace}/{dataset_config.name} has already been added. '
+          'Provide `overwrite=True` when loading the data, or delete the old one with:\n\n'
           f'dataset = get_dataset("{dataset_config.namespace}", "{dataset_config.name}")\n'
           'dataset.delete()'
         )
@@ -200,7 +201,7 @@ def write_project_config(project_dir: Union[str, pathlib.Path], config: Config) 
     yaml_config = to_yaml(config.model_dump(exclude_defaults=True, exclude_none=True))
     f.write(
       '# Lilac project config.\n'
-      + '# See https://lilacml.com/api_reference/index.html#lilac.Config '
+      + '# See https://docs.lilacml.com/api_reference/index.html#lilac.Config '
       'for details.\n\n' + yaml_config
     )
 
