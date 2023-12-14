@@ -60,6 +60,32 @@ VectorKey = tuple[Union[StrictStr, StrictInt], ...]
 PathKey = VectorKey
 
 
+_SUPPORTED_PRIMITIVE_DTYPES = [
+  'string',
+  'string_span',
+  'boolean',
+  'int8',
+  'int16',
+  'int32',
+  'int64',
+  'uint8',
+  'uint16',
+  'uint32',
+  'uint64',
+  'float16',
+  'float32',
+  'float64',
+  'time',
+  'date',
+  'timestamp',
+  'interval',
+  'binary',
+  'embedding',
+  'null',
+  'map',
+]
+
+
 class DataType(BaseModel):
   """The data type for a field."""
 
@@ -90,6 +116,12 @@ class DataType(BaseModel):
 
   def __init__(self, type: str, **kwargs: Any) -> None:
     super().__init__(type=type, **kwargs)
+
+  @field_validator('type')
+  @classmethod
+  def _type_must_be_supported(cls, type: str) -> str:
+    assert type in _SUPPORTED_PRIMITIVE_DTYPES, f'Unsupported type: {type}'
+    return type
 
   @model_validator(mode='wrap')  # type: ignore
   def convert_str_to_dtype(v: Any, handler: ModelWrapValidatorHandler['DataType']) -> 'DataType':
