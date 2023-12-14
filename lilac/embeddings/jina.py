@@ -64,6 +64,12 @@ class JinaV2Small(TextEmbeddingSignal):
 
 
 class JinaV2Base(JinaV2Small):
+  """Jina V2 Embeddings with 8K context.
+
+  Each document is truncated to 8K characters, and the embeddings are computed on the truncated
+  document.
+  """
+
   name: ClassVar[str] = 'jina-v2-base'
   display_name: ClassVar[str] = 'Jina V2 (base)'
 
