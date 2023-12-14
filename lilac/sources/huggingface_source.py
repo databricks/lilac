@@ -144,8 +144,8 @@ class HuggingFaceSource(Source):
   name: ClassVar[str] = 'huggingface'
 
   dataset_name: str = PydanticField(description='Either in the format `user/dataset` or `dataset`.')
-  dataset_dict: Optional[DatasetDict] = PydanticField(
-    description='The pre-loaded HF dataset dict', exclude=True, default=None
+  dataset: Optional[Union[Dataset, DatasetDict]] = PydanticField(
+    description='The pre-loaded HuggingFace dataset', exclude=True, default=None
   )
   config_name: Optional[str] = PydanticField(
     title='Dataset config name', description='Some datasets require this.', default=None
@@ -168,6 +168,7 @@ class HuggingFaceSource(Source):
   load_from_disk: Optional[bool] = PydanticField(
     description='Load from local disk instead of the hub.', default=False
   )
+  _dataset_dict: Optional[DatasetDict] = None
   _schema_info: Optional[SchemaInfo] = None
   model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -185,7 +186,14 @@ class HuggingFaceSource(Source):
 
   @override
   def setup(self) -> None:
-    if not self.dataset_dict:
+    if self.dataset:
+      if isinstance(self.dataset, Dataset):
+        self._dataset_dict = DatasetDict({DEFAULT_LOCAL_SPLIT_NAME: self.dataset})
+      elif isinstance(self.dataset, DatasetDict):
+        self._dataset_dict = self.dataset
+      else:
+        raise ValueError(f'Unsupported dataset type: {type(self.dataset)}')
+    else:
       if self.load_from_disk:
         # Load from disk.
         hf_dataset_dict = load_from_disk(self.dataset_name)
@@ -199,8 +207,8 @@ class HuggingFaceSource(Source):
           verification_mode='no_checks',
           token=self.token,
         )
-      self.dataset_dict = hf_dataset_dict
-    self._schema_info = hf_schema_to_schema(self.dataset_dict, self.split, self.sample_size)
+      self._dataset_dict = hf_dataset_dict
+    self._schema_info = hf_schema_to_schema(self._dataset_dict, self.split, self.sample_size)
 
   @override
   def source_schema(self) -> SourceSchema:
@@ -211,7 +219,7 @@ class HuggingFaceSource(Source):
   @override
   def load_to_parquet(self, output_dir: str, task_id: Optional[TaskId]) -> SourceManifest:
     del task_id
-    if not self._schema_info or not self.dataset_dict:
+    if not self._schema_info or not self._dataset_dict:
       raise ValueError('`setup()` must be called before `process`.')
 
     out_filename = dataset_utils.get_parquet_filename(PARQUET_FILENAME_PREFIX, 0, 1)
@@ -221,7 +229,7 @@ class HuggingFaceSource(Source):
     if self.split:
       split_names = [self.split]
     else:
-      split_names = list(self.dataset_dict.keys())
+      split_names = list(self._dataset_dict.keys())
 
     # DuckDB uses the locals() namespace to enable chaining SQL queries based on Python variables as
     # table names. Since we have an unknown number of splits, we dynamically create names in
@@ -230,7 +238,7 @@ class HuggingFaceSource(Source):
     for split_name in split_names:
       duckdb_handle = f'_duckdb_handle_{split_name}'
       duckdb_splits_local_vars[split_name] = duckdb_handle
-      locals()[duckdb_handle] = self.dataset_dict[split_name].data.table
+      locals()[duckdb_handle] = self._dataset_dict[split_name].data.table
     sql_query = '\nUNION ALL\n'.join(
       f"""(SELECT *, '{split_name}' AS {HF_SPLIT_COLUMN}
         FROM {duckdb_handle}

@@ -70,7 +70,7 @@ def from_dicts(
 
 def from_huggingface(
   dataset: Union[str, HFDataset, DatasetDict],
-  namespace: Optional[str] = None,
+  namespace: str = 'local',
   name: Optional[str] = None,
   overwrite: bool = False,
 ) -> Dataset:
@@ -79,8 +79,7 @@ def from_huggingface(
   Args:
     dataset: A HF dataset or the name of the dataset registered in HF hub.
     namespace: The Lilac namespace for the loaded dataset. Defaults to `local`.
-    name: The Lilac name of the dataset to create. If not defined, defaults to the name of the HF
-      dataset.
+    name: The Lilac name of the dataset to create. Defaults to the name of the HuggingFace dataset.
     overwrite: Whether to overwrite the dataset if it already exists.
   """
   dataset_dict: DatasetDict
