@@ -275,7 +275,7 @@
 
   $: searchItems = $concepts?.data
     ? [
-        ...(searchText != '' ? [keywordSearchItem] : []),
+        keywordSearchItem,
         ...(searchText != '' && selectedEmbedding && isEmbeddingComputed
           ? [semanticSearchItem]
           : []),

@@ -614,6 +614,9 @@ class Dataset(abc.ABC):
         for text, the row path would be `person.document.text`.
         - If the row has a list of strings, e.g. {documents: [{text: ...}, {text: ...}]}, then the
           row path would be `documents.0.text` and `documents.1.text` for the 1st and 2nd document.
+
+    Returns:
+      A list of `ll.SpanVector` dicts holding the span coordinates and the embedding.
     """
     pass
 

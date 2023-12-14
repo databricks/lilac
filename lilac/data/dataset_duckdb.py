@@ -983,7 +983,7 @@ class DatasetDuckDB(Dataset):
     field_path = tuple(['*' if isinstance(p, int) else p for p in row_path])
     vector_index = self._get_vector_db_index(embedding, field_path)
 
-    row_path_key = tuple([rowid, *[p for p in row_path if isinstance(p, int)]])
+    row_path_key: PathKey = tuple([rowid, *[p for p in row_path if isinstance(p, int)]])
     res = list(vector_index.get([row_path_key]))
     return res[0]
 
