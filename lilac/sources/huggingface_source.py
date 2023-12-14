@@ -178,8 +178,8 @@ class HuggingFaceSource(Source):
     cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler
   ) -> dict[str, Any]:
     fields = cast(dict, core_schema)['schema']['fields']
-    if 'dataset_dict' in fields:
-      del fields['dataset_dict']
+    if 'dataset' in fields:
+      del fields['dataset']
     json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
     json_schema = handler.resolve_ref_schema(json_schema)
     return json_schema

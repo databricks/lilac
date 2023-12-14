@@ -156,8 +156,8 @@ def test_from_hf() -> None:
   hf_ds = Dataset.from_generator(gen)
   ds = from_huggingface(hf_ds)
   assert list(ds.select_rows()) == [
-    {'__hfsplit__': 'train', 'text': 'hello'},
-    {'__hfsplit__': 'train', 'text': 'world'},
+    {'__hfsplit__': 'default', 'text': 'hello'},
+    {'__hfsplit__': 'default', 'text': 'world'},
   ]
   assert ds.namespace == 'local'
   assert ds.dataset_name == 'generator'
@@ -171,8 +171,8 @@ def test_from_hf_explicit_namespace_and_name() -> None:
   hf_ds = Dataset.from_generator(gen)
   ds = from_huggingface(hf_ds, namespace='local', name='test')
   assert list(ds.select_rows()) == [
-    {'__hfsplit__': 'train', 'text': 'hello'},
-    {'__hfsplit__': 'train', 'text': 'world'},
+    {'__hfsplit__': 'default', 'text': 'hello'},
+    {'__hfsplit__': 'default', 'text': 'world'},
   ]
   assert ds.namespace == 'local'
   assert ds.dataset_name == 'test'

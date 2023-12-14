@@ -10,11 +10,12 @@ poetry run python -m lilac.load_dataset \
 import os
 import pathlib
 import uuid
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Union, cast
 
 import pandas as pd
 from datasets import Dataset as HFDataset
-from datasets import DatasetDict, load_dataset
+from datasets import DatasetDict as HFDatasetDict
+from datasets import load_dataset
 
 from .config import DatasetConfig
 from .data.dataset import Dataset, default_settings
@@ -69,7 +70,7 @@ def from_dicts(
 
 
 def from_huggingface(
-  dataset: Union[str, HFDataset, DatasetDict],
+  dataset: Union[str, HFDataset, HFDatasetDict],
   namespace: str = 'local',
   name: Optional[str] = None,
   overwrite: bool = False,
@@ -82,23 +83,19 @@ def from_huggingface(
     name: The Lilac name of the dataset to create. Defaults to the name of the HuggingFace dataset.
     overwrite: Whether to overwrite the dataset if it already exists.
   """
-  dataset_dict: DatasetDict
   if isinstance(dataset, str):
-    dataset_dict = load_dataset(dataset)
-  elif isinstance(dataset, HFDataset):
-    dataset_dict = DatasetDict({'train': dataset})
-  else:
-    dataset_dict = dataset
+    dataset = cast(Union[HFDataset, HFDatasetDict], load_dataset(dataset))
 
   if not namespace:
     namespace = 'local'
 
   if not name:
     # Infer name from the dataset instance.
-    if dataset_dict.keys():
-      ds = list(dataset_dict.values())[0]
-      if ds.info.dataset_name:
-        name = ds.info.dataset_name
+    split: HFDataset = dataset
+    if isinstance(dataset, HFDatasetDict):
+      split = list(cast(HFDatasetDict, dataset).values())[0]
+    if split.info.dataset_name:
+      name = split.info.dataset_name
 
   if not name:
     raise ValueError('`name` must be defined since it could not be inferred from the dataset.')
@@ -106,7 +103,7 @@ def from_huggingface(
   config = DatasetConfig(
     namespace=namespace,
     name=name,
-    source=HuggingFaceSource(dataset_name=name, dataset_dict=dataset_dict),
+    source=HuggingFaceSource(dataset_name=name, dataset=dataset),
   )
   return create_dataset(config, overwrite=overwrite)
 
