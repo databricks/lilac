@@ -45,8 +45,10 @@ from ..schema import (
   Item,
   MapFn,
   Path,
+  PathKey,
   PathTuple,
   Schema,
+  SpanVector,
   change_const_to_enum,
   normalize_path,
 )
@@ -595,6 +597,23 @@ class Dataset(abc.ABC):
     """Adds a label to a row, or a set of rows defined by searches and filters.
 
     Returns the number of added labels.
+    """
+    pass
+
+  @abc.abstractmethod
+  def get_embeddings(
+    self, embedding: str, rowid: str, row_path: Union[PathKey, str]
+  ) -> list[SpanVector]:
+    """Returns the span-level embeddings associated with a specific row value.
+
+    Args:
+      embedding: The embedding name (e.g. `gte-small`, or `jina-v2-small`).
+      rowid: The row id to get embeddings for.
+      row_path: The row path to get embeddings for.
+        - If the row is a struct, e.g. {person: {document: {text: ...}}} and we want the embeddings
+        for text, the row path would be `person.document.text`.
+        - If the row has a list of strings, e.g. {documents: [{text: ...}, {text: ...}]}, then the
+          row path would be `documents.0.text` and `documents.1.text` for the 1st and 2nd document.
     """
     pass
 

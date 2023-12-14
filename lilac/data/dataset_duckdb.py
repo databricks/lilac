@@ -74,6 +74,7 @@ from ..schema import (
   PathTuple,
   RichData,
   Schema,
+  SpanVector,
   arrow_schema_to_schema,
   column_paths_match,
   is_float,
@@ -970,6 +971,21 @@ class DatasetDuckDB(Dataset):
       del output_schema.fields[ROWID]
 
     return json_query, output_schema, parquet_filepath
+
+  @override
+  def get_embeddings(
+    self, embedding: str, rowid: str, row_path: Union[PathKey, str]
+  ) -> list[SpanVector]:
+    """Returns the span-level embeddings associated with a specific row value."""
+    row_path = normalize_path(cast(PathTuple, row_path))
+    row_path = tuple([int(p) if p.isdigit() else p for p in row_path])
+
+    field_path = tuple(['*' if isinstance(p, int) else p for p in row_path])
+    vector_index = self._get_vector_db_index(embedding, field_path)
+
+    row_path_key = tuple([rowid, *[p for p in row_path if isinstance(p, int)]])
+    res = list(vector_index.get([row_path_key]))
+    return res[0]
 
   @override
   def compute_signal(

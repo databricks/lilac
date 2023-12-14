@@ -95,7 +95,7 @@ class CSVSource(Source):
     os.makedirs(output_dir, exist_ok=True)
 
     self._con.sql(
-      f"SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID}, * FROM t"
+      f"SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS {ROWID}, * FROM t"
     ).write_parquet(filepath, compression='zstd')
     schema = Schema(fields=self.source_schema().fields.copy())
     return SourceManifest(files=[out_filename], data_schema=schema, source=self)

@@ -261,7 +261,7 @@ class HuggingFaceSource(Source):
       select_clause = '*'
     duckdb.sql(
       f"""
-      SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID},
+      SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS {ROWID},
       {select_clause}
       FROM all_splits
       """
