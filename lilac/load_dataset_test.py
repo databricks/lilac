@@ -162,8 +162,6 @@ def test_from_hf_dataset() -> None:
   assert ds.namespace == 'local'
   assert ds.dataset_name == 'generator'
 
-  print(type(hf_ds))
-
 
 def test_from_hf_dataset_dict() -> None:
   def gen() -> Iterable[dict[str, str]]:
