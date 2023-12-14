@@ -1,7 +1,7 @@
 """Huggingface source."""
 import multiprocessing
 import os
-from typing import ClassVar, Optional, Union
+from typing import Any, ClassVar, Optional, Union, cast
 
 import duckdb
 from datasets import (
@@ -15,8 +15,9 @@ from datasets import (
   load_dataset,
   load_from_disk,
 )
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, GetJsonSchemaHandler
 from pydantic import Field as PydanticField
+from pydantic_core import CoreSchema
 from typing_extensions import override
 
 from ..data import dataset_utils
@@ -169,6 +170,18 @@ class HuggingFaceSource(Source):
   )
   _schema_info: Optional[SchemaInfo] = None
   model_config = ConfigDict(arbitrary_types_allowed=True)
+
+  # We override this method to remove the `dataset_dict` from the json schema.
+  @classmethod
+  def __get_pydantic_json_schema__(
+    cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler
+  ) -> dict[str, Any]:
+    fields = cast(dict, core_schema)['schema']['fields']
+    if 'dataset_dict' in fields:
+      del fields['dataset_dict']
+    json_schema = super().__get_pydantic_json_schema__(core_schema, handler)
+    json_schema = handler.resolve_ref_schema(json_schema)
+    return json_schema
 
   @override
   def setup(self) -> None:
