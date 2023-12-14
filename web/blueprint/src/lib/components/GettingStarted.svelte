@@ -29,7 +29,7 @@
           <span class="mb-2">You do not have authorization to create a dataset.</span>
           <span>
             For HuggingFace spaces, you can duplicate this space and remove authentication. See <a
-              href="https://lilacml.com/huggingface/huggingface_spaces.html"
+              href="https://docs.lilacml.com/huggingface/huggingface_spaces.html"
               >Duplicating the HuggingFace demo</a
             >.
           </span>

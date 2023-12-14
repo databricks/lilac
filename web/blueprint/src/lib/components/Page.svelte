@@ -53,7 +53,8 @@
         <slot name="header-right" />
         <div>
           <OverflowMenu flipped icon={Help}>
-            <OverflowMenuItem href="https://lilacml.com" text="Documentation" />
+            <OverflowMenuItem href="https://lilacml.com" text="Website" />
+            <OverflowMenuItem href="https://docs.lilacml.com" text="Documentation" />
             <OverflowMenuItem href="https://discord.gg/jNzw9mC8pp" text="Discord" />
             <OverflowMenuItem
               href="https://github.com/lilacai/lilac/issues/new"

@@ -11,7 +11,7 @@ Lilac is an **open-source** tool that enables AI practitioners to see and quanti
 
 For an end-to-end example, see our [Quick Start](../getting_started/quickstart.md) guide.
 
-For a detailed documentation, [visit our website](https://lilacml.com/).
+For detailed documentation, [visit our docs](https://docs.lilacml.com/).
 
 <video loop muted autoplay controls src="https://github-production-user-asset-6210df.s3.amazonaws.com/2294279/260771834-cb1378f8-92c1-4f2a-9524-ce5ddd8e0c53.mp4"></video>
 
@@ -19,10 +19,10 @@ Lilac allows users to:
 
 - Browse datasets with unstructured data.
 - Enrich unstructured fields with structured metadata using
-  [Lilac Signals](https://lilacml.com/signals/signals.html), for instance **near-duplicate** and
-  **personal information detection**. Structured metadata allows us to compute statistics, find
+  [Lilac Signals](https://docs.lilacml.com/signals/signals.html), for instance **near-duplicate**
+  and **personal information detection**. Structured metadata allows us to compute statistics, find
   problematic slices, and eventually measure _changes_ over time.
-- Create and refine **[Lilac Concepts](https://lilacml.com/concepts/concepts.html)** which are
+- Create and refine **[Lilac Concepts](https://docs.lilacml.com/concepts/concepts.html)** which are
   customizable AI models that can be used to find and score text that matches a concept you may have
   in your mind.
 - Download the results of the enrichment for downstream applications.
@@ -72,7 +72,7 @@ script, with little visibility into the side effects of that change.
 ### Concepts
 
 Since each AI application has its own requirements, we’re focused on enabling users to annotate data
-with customizable **[Concepts](https://lilacml.com/concepts/concepts.html)**. Concepts can be
+with customizable **[Concepts](https://docs.lilacml.com/concepts/concepts.html)**. Concepts can be
 created and refined through the UI, and updated in real-time with user-feedback. These AI-powered
 embedding-based classifiers can be specific to an application, e.g. **termination clauses in legal
 contracts**, or generally applicable, e.g. **toxicity**.
@@ -86,7 +86,7 @@ data privacy (e.g. using open-source datasets), you may choose to use more power
 [OpenAI](https://platform.openai.com/docs/guides/embeddings),
 [Cohere](https://docs.cohere.com/docs/embeddings), [PaLM](https://developers.generativeai.google/),
 or your own! For more information on embeddings,
-[see our documentation](https://lilacml.com/embeddings/embeddings.html).
+[see our documentation](https://docs.lilacml.com/embeddings/embeddings.html).
 
 ### HuggingFace demo
 

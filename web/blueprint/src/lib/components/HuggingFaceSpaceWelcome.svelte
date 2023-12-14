@@ -40,7 +40,7 @@
         }}
       >
         <Button
-          href={`https://huggingface.co/spaces/${huggingFaceSpaceId}?duplicate=true`}
+          href={`https://docs.huggingface.co/spaces/${huggingFaceSpaceId}?duplicate=true`}
           target="_blank"
           kind="tertiary">duplicate</Button
         >
@@ -52,7 +52,7 @@
             'See Lilac documentation on duplicating the HuggingFace space  ' +
             'so you can manage your own instance.'
         }}
-        href="https://lilacml.com/huggingface/huggingface_spaces.html"><Help /></a
+        href="https://docs.lilacml.com/huggingface/huggingface_spaces.html"><Help /></a
       >
     </div>
   </div>
@@ -75,7 +75,7 @@
 
   <WelcomeBanner
     backgroundColorClass="bg-violet-100 hover:bg-violet-200"
-    link={'https://lilacml.com/blog/introducing-lilac.html'}
+    link={'https://docs.lilacml.com/blog/introducing-lilac.html'}
     title={`Read our Announcement Blog`}
   >
     <p class="text-sm">
@@ -85,7 +85,7 @@
 
   <WelcomeBanner
     backgroundColorClass="bg-violet-100 hover:bg-violet-200"
-    link={'https://lilacml.com/'}
+    link={'https://docs.lilacml.com/'}
     title={`Documentation`}
   >
     <p class="text-sm">

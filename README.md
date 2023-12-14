@@ -49,7 +49,7 @@ pip install lilac[all]
 
 If you prefer no local installation, you can fork the
 [fork the HuggingFace Spaces demo](https://lilacai-lilac.hf.space/). Documentation
-[here](https://lilacml.com/huggingface/huggingface_spaces.html).
+[here](https://docs.lilacml.com/huggingface/huggingface_spaces.html).
 
 ### 🌐 Start a webserver
 
@@ -100,7 +100,7 @@ docker build -t lilac .
 Datasets can be loaded directly from HuggingFace, CSV, JSON,
 [LangSmith from LangChain](https://www.langchain.com/langsmith), SQLite,
 [LLamaHub](https://llamahub.ai/), Pandas, Parquet, and more. More documentation
-[here](https://lilacml.com/datasets/dataset_load.html).
+[here](https://docs.lilacml.com/datasets/dataset_load.html).
 
 ```python
 import lilac as ll
@@ -124,7 +124,7 @@ If you prefer, you can load datasets directly from the UI without writing any Py
 > [🔗 Try OpenOrca-100K before installing!](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca-100k)
 
 Once we've loaded a dataset, we can explore it from the UI and get a sense for what's in the data.
-More documentation [here](https://lilacml.com/datasets/dataset_explore.html).
+More documentation [here](https://docs.lilacml.com/datasets/dataset_explore.html).
 
 <img alt="image" src="docs/_static/dataset/dataset_explore.png">
 
@@ -251,7 +251,7 @@ dataset.add_labels(
 ```
 
 Labels can be exported for downstream tasks. Detailed documentation
-[here](https://lilacml.com/datasets/dataset_labels.html).
+[here](https://docs.lilacml.com/datasets/dataset_labels.html).
 
 ## 💬 Contact
 
