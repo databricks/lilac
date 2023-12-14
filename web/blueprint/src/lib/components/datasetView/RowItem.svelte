@@ -4,6 +4,7 @@
     queryDatasetSchema,
     queryRowMetadata,
     querySelectRowsSchema,
+    querySettings,
     removeLabelsMutation
   } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
@@ -15,6 +16,7 @@
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import {
+    formatValue,
     getRowLabels,
     getSchemaLabels,
     serializePath,
@@ -22,9 +24,9 @@
     type LilacField,
     type RemoveLabelsOptions
   } from '$lilac';
-  import {SidePanelClose, SidePanelOpen, Tag} from 'carbon-icons-svelte';
+  import {SkeletonText} from 'carbon-components-svelte';
+  import {ChevronLeft, ChevronRight, Tag} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
-  import {hoverTooltip} from '../common/HoverTooltip';
   import EditLabel from './EditLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
   import ItemMetadata from './ItemMetadata.svelte';
@@ -33,6 +35,11 @@
   export let rowId: string;
   export let mediaFields: LilacField[];
   export let highlightedFields: LilacField[];
+  // The counting index of this row item.
+  export let index: number | undefined;
+  export let totalNumRows: number | undefined;
+  export let updateSequentialRowId: ((direction: 'previous' | 'next') => void) | undefined =
+    undefined;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
@@ -80,6 +87,9 @@
     }
   }
 
+  $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: viewType = $settings.data?.ui?.view_type || 'single_item';
+
   function addLabel(label: string) {
     const addLabelsOptions: AddLabelsOptions = {
       row_ids: [rowId],
@@ -125,28 +135,87 @@
 
 <div class="flex w-full flex-col rounded border border-neutral-300 md:flex-row">
   <div
-    class={`flex flex-col gap-y-1 p-4 ${!$datasetViewStore.showMetadataPanel ? 'grow ' : 'w-2/3'}`}
+    class={`flex flex-col  ${!$datasetViewStore.showMetadataPanel ? 'grow ' : 'w-2/3'}`}
     bind:clientHeight={mediaHeight}
   >
-    <div class="flex flex-wrap items-center gap-x-2 gap-y-2" class:opacity-50={disableLabels}>
-      {#each schemaLabels || [] as label}
-        <div class:opacity-50={labelsInProgress.has(label)}>
-          <LabelPill
-            {label}
-            disabled={labelsInProgress.has(label)}
-            active={rowLabels.includes(label)}
-            on:click={() => {
-              if (rowLabels.includes(label)) {
-                removeLabel(label);
-              } else {
-                addLabel(label);
-              }
-            }}
-          />
+    <div
+      class="flex flex-row justify-between rounded-t border-b border-neutral-300 bg-violet-100 py-2"
+    >
+      <!-- Left arrow -->
+      <div class="w-1/3">
+        <!-- left 1/3 container. -->
+        {#if updateSequentialRowId != null}
+          <div class="flex-0">
+            {#if rowId != null && index != null}
+              <button
+                class:invisible={index === 0}
+                on:click={() =>
+                  updateSequentialRowId != null ? updateSequentialRowId('previous') : null}
+              >
+                <ChevronLeft title="Previous item" size={24} />
+              </button>
+            {/if}
+          </div>
+        {/if}
+      </div>
+      <div class="w-1/3 flex-col items-center justify-items-center self-center justify-self-center">
+        <div class="items-center justify-items-center truncate text-center text-lg">
+          <span class="inline-flex">
+            {#if index != null && index >= 0}
+              {index + 1}
+            {:else}
+              <SkeletonText lines={1} class="!w-10" />
+            {/if}
+          </span>
+
+          <span class="inline-flex text-gray-500 opacity-90">
+            of
+            {#if totalNumRows != null}
+              {formatValue(totalNumRows)}
+            {:else}
+              <SkeletonText lines={1} class="!w-20" />
+            {/if}
+          </span>
         </div>
-      {/each}
-      <div class="relative h-8">
-        <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
+      </div>
+      <div class="flex w-1/3 flex-row">
+        <!-- Right 1/3 -->
+        <div
+          class="flex w-full flex-row items-center justify-end gap-x-2 gap-y-2 pr-2"
+          class:opacity-50={disableLabels}
+        >
+          {#each schemaLabels || [] as label}
+            <div class:opacity-50={labelsInProgress.has(label)}>
+              <LabelPill
+                {label}
+                disabled={labelsInProgress.has(label)}
+                active={rowLabels.includes(label)}
+                on:click={() => {
+                  if (rowLabels.includes(label)) {
+                    removeLabel(label);
+                  } else {
+                    addLabel(label);
+                  }
+                }}
+              />
+            </div>
+          {/each}
+          <div class="relative mr-8 h-8">
+            <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
+          </div>
+          {#if updateSequentialRowId != null && totalNumRows != null}
+            <div class="flex-0">
+              {#if index != null && index < totalNumRows - 1}
+                <button
+                  on:click={() =>
+                    updateSequentialRowId != null ? updateSequentialRowId('next') : null}
+                >
+                  <ChevronRight title="Next item" size={24} />
+                </button>
+              {/if}
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
     {#if mediaFields.length > 0}
@@ -160,7 +229,7 @@
         </div>
       {/each}
     {/if}
-    <div class="absolute right-0 top-0">
+    <!-- <div class="absolute right-0 top-0">
       <button
         class="mr-1 mt-1 opacity-60 hover:bg-gray-200"
         use:hoverTooltip={{
@@ -175,7 +244,7 @@
           <SidePanelClose />
         {/if}</button
       >
-    </div>
+    </div> -->
   </div>
   {#if $datasetViewStore.showMetadataPanel}
     <div

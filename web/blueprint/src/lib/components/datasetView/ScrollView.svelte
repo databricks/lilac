@@ -88,8 +88,8 @@
     class="flex h-full w-full flex-col gap-y-10 overflow-y-scroll px-5 pb-32"
     bind:this={itemScrollContainer}
   >
-    {#each rowIds as rowId}
-      <RowItem {rowId} {mediaFields} {highlightedFields} />
+    {#each rowIds as rowId, i}
+      <RowItem {rowId} index={i} {totalNumRows} {mediaFields} {highlightedFields} />
     {/each}
     {#if rowIds.length > 0}
       <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />
