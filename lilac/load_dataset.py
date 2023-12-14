@@ -13,6 +13,8 @@ import uuid
 from typing import Iterable, Optional, Union
 
 import pandas as pd
+from datasets import Dataset as HFDataset
+from datasets import DatasetDict, load_dataset
 
 from .config import DatasetConfig
 from .data.dataset import Dataset, default_settings
@@ -66,54 +68,46 @@ def from_dicts(
   return create_dataset(config, overwrite=overwrite)
 
 
-def from_hf(
-  dataset_name: str,
+def from_huggingface(
+  dataset: Union[str, HFDataset, DatasetDict],
   namespace: Optional[str] = None,
   name: Optional[str] = None,
   overwrite: bool = False,
-  config_name: Optional[str] = None,
-  split: Optional[str] = None,
-  sample_size: Optional[int] = None,
-  token: Optional[str] = None,
-  revision: Optional[str] = None,
-  load_from_disk: bool = False,
 ) -> Dataset:
   """Load a dataset from HuggingFace.
 
   Args:
-    dataset_name: The name of the dataset to load from HuggingFace.
-    namespace: The Lilac namespace for the loaded dataset. If not defined, infers from
-    `dataset_name`, or `local` if `dataset_name` is not namespaced.
-    name: The Lilac name of the dataset to create. If not defined, infers from `dataset_name`.
+    dataset: A HF dataset or the name of the dataset registered in HF hub.
+    namespace: The Lilac namespace for the loaded dataset. Defaults to `local`.
+    name: The Lilac name of the dataset to create. If not defined, defaults to the name of the HF
+      dataset.
     overwrite: Whether to overwrite the dataset if it already exists.
-    config_name: The name of the dataset configuration to load from HuggingFace.
-    split: The split to load from the dataset.
-    sample_size: The number of samples to load from the dataset.
-    token: The HuggingFace API token to use.
-    revision: The revision of the dataset to load.
-    load_from_disk: Whether to load the dataset from disk.
   """
-  if '/' in dataset_name:
-    parts = dataset_name.split('/')
-    hf_namespace, hf_name = parts[-2], parts[-1]
+  dataset_dict: DatasetDict
+  if isinstance(dataset, str):
+    dataset_dict = load_dataset(dataset)
+  elif isinstance(dataset, HFDataset):
+    dataset_dict = DatasetDict({'train': dataset})
   else:
-    hf_namespace, hf_name = None, dataset_name
-  if not name:
-    name = hf_name
+    dataset_dict = dataset
+
   if not namespace:
-    namespace = hf_namespace or 'local'
+    namespace = 'local'
+
+  if not name:
+    # Infer name from the dataset instance.
+    if dataset_dict.keys():
+      ds = list(dataset_dict.values())[0]
+      if ds.info.dataset_name:
+        name = ds.info.dataset_name
+
+  if not name:
+    raise ValueError('`name` must be defined since it could not be inferred from the dataset.')
+
   config = DatasetConfig(
     namespace=namespace,
     name=name,
-    source=HuggingFaceSource(
-      dataset_name=dataset_name,
-      config_name=config_name,
-      split=split,
-      sample_size=sample_size,
-      token=token,
-      revision=revision,
-      load_from_disk=load_from_disk,
-    ),
+    source=HuggingFaceSource(dataset_name=name, dataset_dict=dataset_dict),
   )
   return create_dataset(config, overwrite=overwrite)
 

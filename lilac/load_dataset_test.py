@@ -15,7 +15,7 @@ from typing_extensions import override
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
 from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import get_parquet_filename, schema_to_arrow_schema
-from .load_dataset import from_dicts, from_hf, process_source
+from .load_dataset import from_dicts, from_huggingface, process_source
 from .project import read_project_config
 from .schema import PARQUET_FILENAME_PREFIX, ROWID, STRING, Field, Item, Schema, schema
 from .source import Source, SourceManifest, SourceSchema, clear_source_registry, register_source
@@ -148,35 +148,31 @@ def test_from_dicts() -> None:
   assert list(ds.select_rows()) == items
 
 
-def test_from_hf(tmp_path: pathlib.Path) -> None:
+def test_from_hf() -> None:
   def gen() -> Iterable[dict[str, str]]:
     yield {'text': 'hello'}
     yield {'text': 'world'}
 
   hf_ds = Dataset.from_generator(gen)
-  dataset_path = os.path.join(tmp_path, 'test.hf')
-  hf_ds.save_to_disk(dataset_path)
-  ds = from_hf(dataset_path, load_from_disk=True)
+  ds = from_huggingface(hf_ds)
   assert list(ds.select_rows()) == [
-    {'__hfsplit__': 'default', 'text': 'hello'},
-    {'__hfsplit__': 'default', 'text': 'world'},
+    {'__hfsplit__': 'train', 'text': 'hello'},
+    {'__hfsplit__': 'train', 'text': 'world'},
   ]
-  assert ds.namespace.startswith('test_from_hf')
-  assert ds.dataset_name == 'test.hf'
+  assert ds.namespace == 'local'
+  assert ds.dataset_name == 'generator'
 
 
-def test_from_hf_explicit_namespace_and_name(tmp_path: pathlib.Path) -> None:
+def test_from_hf_explicit_namespace_and_name() -> None:
   def gen() -> Iterable[dict[str, str]]:
     yield {'text': 'hello'}
     yield {'text': 'world'}
 
   hf_ds = Dataset.from_generator(gen)
-  dataset_path = os.path.join(tmp_path, 'test.hf')
-  hf_ds.save_to_disk(dataset_path)
-  ds = from_hf(dataset_path, namespace='local', name='test', load_from_disk=True)
+  ds = from_huggingface(hf_ds, namespace='local', name='test')
   assert list(ds.select_rows()) == [
-    {'__hfsplit__': 'default', 'text': 'hello'},
-    {'__hfsplit__': 'default', 'text': 'world'},
+    {'__hfsplit__': 'train', 'text': 'hello'},
+    {'__hfsplit__': 'train', 'text': 'world'},
   ]
   assert ds.namespace == 'local'
   assert ds.dataset_name == 'test'
