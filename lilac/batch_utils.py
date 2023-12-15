@@ -8,7 +8,7 @@ from .utils import chunks, is_primitive
 
 def _deep_flatten(
   input: Union[Iterator, object], is_primitive_predicate: Callable[[object], bool]
-) -> Generator:
+) -> Iterator:
   """Flattens a nested iterable."""
   if is_primitive_predicate(input):
     yield input
@@ -97,7 +97,7 @@ def flat_batched_compute(
   input: Iterable[Iterable[TFlatBatchedInput]],
   f: Callable[[list[TFlatBatchedInput]], Iterable[TFlatBatchedOutput]],
   batch_size: int,
-) -> Iterable[Iterable[TFlatBatchedOutput]]:
+) -> Iterator[Iterable[TFlatBatchedOutput]]:
   """Flatten the input, batched call f, and return the output unflattened."""
   # Tee the input so we can use it twice for the input and output shapes.
   input_1, input_2 = itertools.tee(input, 2)

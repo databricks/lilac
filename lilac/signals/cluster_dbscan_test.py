@@ -2,7 +2,7 @@
 
 import os
 import pathlib
-from typing import ClassVar, Iterable, cast
+from typing import ClassVar, Iterable, Iterator, cast
 
 import numpy as np
 import pytest
@@ -47,7 +47,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array(EMBEDDINGS[cast(str, example)]))]

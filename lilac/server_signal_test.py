@@ -1,7 +1,7 @@
 """Test the public REST API for signals."""
 import os
 from pathlib import Path
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import pytest
 from fastapi.testclient import TestClient
@@ -44,8 +44,8 @@ class TestQueryAndLengthSignal(Signal):
     return field('int32')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [f'{self.query}_{len(e)}' for e in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return (f'{self.query}_{len(e)}' for e in data)
 
 
 @pytest.fixture(scope='module', autouse=True)

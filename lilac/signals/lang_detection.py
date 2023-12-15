@@ -1,6 +1,6 @@
 """Language detection of a document."""
 import re
-from typing import Any, ClassVar, Iterable, Optional, cast
+from typing import Any, ClassVar, Iterable, Iterator, Optional, cast
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -57,7 +57,7 @@ class LangDetectionSignal(TextSignal):
     return field('string')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     import langdetect
 
     data = cast(Iterable[str], data)

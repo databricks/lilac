@@ -14,7 +14,18 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
 from datetime import timedelta
 from functools import partial, wraps
-from typing import IO, TYPE_CHECKING, Any, Awaitable, Callable, Iterable, Optional, TypeVar, Union
+from typing import (
+  IO,
+  TYPE_CHECKING,
+  Any,
+  Awaitable,
+  Callable,
+  Iterable,
+  Iterator,
+  Optional,
+  TypeVar,
+  Union,
+)
 
 import numpy as np
 import requests
@@ -187,7 +198,7 @@ def copy_files(copy_requests: Iterable[CopyRequest], input_gcs: bool, output_gcs
 Tchunk = TypeVar('Tchunk')
 
 
-def chunks(iterable: Iterable[Tchunk], size: int) -> Iterable[list[Tchunk]]:
+def chunks(iterable: Iterable[Tchunk], size: int) -> Iterator[list[Tchunk]]:
   """Split a list of items into equal-sized chunks. The last chunk might be smaller."""
   it = iter(iterable)
   chunk = list(itertools.islice(it, size))

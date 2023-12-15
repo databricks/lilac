@@ -1,5 +1,5 @@
 """Compute clusters for a dataset."""
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import numpy as np
 from pydantic import Field as PyField
@@ -46,7 +46,7 @@ class ClusterDBSCAN(VectorSignal):
     )
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     embed_fn = get_embed_fn(self.embedding, split=True)
     span_vectors = embed_fn(data)
     return self._cluster_span_vectors(span_vectors)
@@ -54,13 +54,13 @@ class ClusterDBSCAN(VectorSignal):
   @override
   def vector_compute(
     self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     span_vectors = vector_index.get(keys)
     return self._cluster_span_vectors(span_vectors)
 
   def _cluster_span_vectors(
     self, span_vectors: Iterable[list[SpanVector]]
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     all_spans: list[list[tuple[int, int]]] = []
     all_vectors: list[np.ndarray] = []
     with DebugTimer('DBSCAN: Reading from vector store'):

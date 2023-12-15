@@ -1,5 +1,5 @@
 """Compute text statistics for a document."""
-from typing import TYPE_CHECKING, ClassVar, Iterable, Optional, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, Optional, cast
 
 from typing_extensions import override
 
@@ -72,7 +72,7 @@ class TextStatisticsSignal(TextSignal):
     self._lang.max_length = SPACY_MAX_LENGTH
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     try:
       import textacy.corpus
       from textacy import text_stats

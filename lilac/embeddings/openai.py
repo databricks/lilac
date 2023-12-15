@@ -1,5 +1,5 @@
 """OpenAI embeddings."""
-from typing import Any, ClassVar, Iterable, cast
+from typing import Any, ClassVar, Iterable, Iterator, cast
 
 import numpy as np
 from openai import OpenAI
@@ -64,7 +64,7 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       )
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
     """Compute embeddings for the given documents."""
     client = OpenAI()
 

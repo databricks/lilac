@@ -37,7 +37,7 @@ def test_wrap_in_dicts_with_spec_of_double_repeated() -> None:
 def test_sparse_to_dense_compute() -> None:
   sparse_input = iter([None, 1, 7, None, None, 3, None, 5, None, None])
 
-  def func(xs: Iterable[int]) -> Iterable[int]:
+  def func(xs: Iterable[int]) -> Iterator[int]:
     for x in xs:
       yield x + 1
 
@@ -48,7 +48,7 @@ def test_sparse_to_dense_compute() -> None:
 def test_sparse_to_dense_compute_batching() -> None:
   sparse_input = iter([None, 1, 7, None, None, 3, None, 5, None, None])
 
-  def func(xs: Iterable[int]) -> Iterable[int]:
+  def func(xs: Iterable[int]) -> Iterator[int]:
     for batch in chunks(xs, 2):
       yield batch[0] + 1
       if len(batch) > 1:
@@ -61,7 +61,7 @@ def test_sparse_to_dense_compute_batching() -> None:
 def test_fully_dense() -> None:
   sparse_input = iter([1, 7, 3, 5])
 
-  def func(xs: Iterable[int]) -> Iterable[int]:
+  def func(xs: Iterable[int]) -> Iterator[int]:
     for x in xs:
       yield x + 1
 
@@ -72,7 +72,7 @@ def test_fully_dense() -> None:
 def test_sparse_to_dense_compute_fully_sparse() -> None:
   sparse_input = iter([None, None, None])
 
-  def func(xs: Iterable[int]) -> Iterable[int]:
+  def func(xs: Iterable[int]) -> Iterator[int]:
     for x in xs:
       yield x + 1
 
@@ -83,7 +83,7 @@ def test_sparse_to_dense_compute_fully_sparse() -> None:
 def test_sparse_to_dense_compute_empty() -> None:
   sparse_input: Iterator[int] = iter([])
 
-  def func(xs: Iterable[int]) -> Iterable[int]:
+  def func(xs: Iterable[int]) -> Iterator[int]:
     for x in xs:
       yield x + 1
 

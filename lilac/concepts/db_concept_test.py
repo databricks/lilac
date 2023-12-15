@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import ClassVar, Generator, Iterable, Type, cast
+from typing import ClassVar, Generator, Iterable, Iterator, Type, cast
 
 import numpy as np
 import pytest
@@ -59,7 +59,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in data:
       if example not in EMBEDDING_MAP:

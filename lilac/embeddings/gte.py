@@ -1,5 +1,5 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
-from typing import ClassVar, Iterable, cast
+from typing import ClassVar, Iterable, Iterator, cast
 
 from typing_extensions import override
 
@@ -28,7 +28,7 @@ class GTESmall(TextEmbeddingSignal):
   _model_name = GTE_SMALL
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     model = get_model(self._model_name)
     embed_fn = model.encode

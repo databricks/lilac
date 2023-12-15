@@ -1,6 +1,6 @@
 """Tests for dataset.config()."""
 
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import numpy as np
 import pytest
@@ -27,8 +27,8 @@ class TestSignal(TextSignal):
     return field(fields={'len': 'int32'})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len': len(text_content)} for text_content in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return ({'len': len(text_content)} for text_content in data)
 
 
 class TestSignal2(TextSignal):
@@ -39,8 +39,8 @@ class TestSignal2(TextSignal):
     return field(fields={'len2': 'int32'})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len2': len(text_content)} for text_content in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return ({'len2': len(text_content)} for text_content in data)
 
 
 class TestEmbedding(TextEmbeddingSignal):
@@ -49,7 +49,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array([1.0]))]
@@ -61,7 +61,7 @@ class TestEmbedding2(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding2'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array([2.0]))]

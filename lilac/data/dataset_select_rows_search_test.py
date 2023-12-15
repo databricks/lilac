@@ -1,6 +1,6 @@
 """Tests for dataset.select_rows(searches=[...])."""
 
-from typing import ClassVar, Iterable, cast
+from typing import ClassVar, Iterable, Iterator, cast
 
 import numpy as np
 import pytest
@@ -166,7 +166,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       embedding = np.array(STR_EMBEDDINGS[cast(str, example)])

@@ -1,6 +1,6 @@
 """Implementation-agnostic tests of the Dataset DB API."""
 
-from typing import ClassVar, Iterable, Optional, cast
+from typing import ClassVar, Iterable, Iterator, Optional, cast
 
 import numpy as np
 import pytest
@@ -51,7 +51,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
@@ -65,7 +65,7 @@ class LengthSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       self._call_count += 1
       yield len(text_content)
@@ -79,8 +79,8 @@ class TestSignal(TextSignal):
     return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return ({'len': len(text_content), 'flen': float(len(text_content))} for text_content in data)
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -563,7 +563,7 @@ class SignalWithQuoteInIt(TextSignal):
     return field('boolean')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for d in data:
       yield True
 
@@ -576,7 +576,7 @@ class SignalWithDoubleQuoteInIt(TextSignal):
     return field('boolean')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for d in data:
       yield True
 

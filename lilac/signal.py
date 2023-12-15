@@ -7,6 +7,7 @@ from typing import (
   Callable,
   ClassVar,
   Iterable,
+  Iterator,
   Optional,
   Sequence,
   Type,
@@ -78,7 +79,7 @@ class Signal(BaseModel):
     """
     return None
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     """Compute the signal for an iterable of documents or images.
 
     Args:
@@ -203,7 +204,7 @@ class VectorSignal(Signal, abc.ABC):
   @abc.abstractmethod
   def vector_compute(
     self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:

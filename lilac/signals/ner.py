@@ -1,5 +1,5 @@
 """Compute named entity recognition with SpaCy."""
-from typing import TYPE_CHECKING, ClassVar, Iterable, Optional
+from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, Optional
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -49,7 +49,7 @@ class SpacyNER(TextSignal):
     return field(fields=[field('string_span', fields={'label': 'string'})])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     if not self._nlp:
       raise RuntimeError('SpaCy model is not initialized.')
 
