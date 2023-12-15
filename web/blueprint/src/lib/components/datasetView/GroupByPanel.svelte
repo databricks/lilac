@@ -26,7 +26,8 @@
   $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {
     leaf_path: groupBy.path,
     sort_by: sortBy as GroupsSortBy,
-    sort_order: sortOrder as SortOrder
+    sort_order: sortOrder as SortOrder,
+    limit: null
   });
   $: allCounts = $groupsQuery.data?.counts.filter(c => c[0] != null);
   $: valueIndex = allCounts?.findIndex(c => c[0] === value);
@@ -46,10 +47,21 @@
     const newValue = next ? allCounts[valueIndex + 1][0] : allCounts[valueIndex - 1][0];
     store.setGroupBy(groupBy.path, newValue);
   }
+  function onKeyDown(key: KeyboardEvent) {
+    key.stopPropagation();
+    if (key.code === 'ArrowLeft') {
+      updateValue(false);
+    } else if (key.code === 'ArrowRight') {
+      updateValue(true);
+    }
+  }
 </script>
 
+<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <div
+  tabindex="0"
   class="mx-5 my-2 flex items-center justify-between rounded-lg border border-neutral-300 bg-neutral-100 py-2"
+  on:keydown={onKeyDown}
 >
   <div class="flex-0">
     {#if valueIndex != null && valueIndex > 0}
@@ -59,8 +71,9 @@
     {/if}
   </div>
 
-  <div class="flex-col items-center justify-items-center">
-    <div class="min-w-0 max-w-lg truncate text-center text-lg">
+  <div class="flex-col items-center justify-items-center truncate">
+    <div class="min-w-0 max-w-5xl truncate text-center text-lg">
+      <code class="text-gray-600">{shortFieldName(groupBy.path)}: </code>
       {#if value != null}
         {formatValue(value)}
       {:else}
@@ -68,7 +81,11 @@
       {/if}
     </div>
     <div class="flex-0 text-center text-gray-600">
-      <code>{shortFieldName(groupBy.path)}</code>
+      {#if allCounts != null && valueIndex != null}
+        Group {valueIndex + 1} of {allCounts.length}
+      {:else}
+        <SkeletonText class="!w-40" />
+      {/if}
     </div>
   </div>
   <div class="flex-0">
