@@ -13,7 +13,6 @@ import shutil
 import sqlite3
 import tempfile
 import threading
-import urllib.parse
 from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
@@ -3099,10 +3098,6 @@ def _get_parquet_filepath(
   subdir = os.path.join(*path_prefix) if path_prefix else ''
 
   parquet_rel_filepath = os.path.join(subdir, parquet_filename)
-  # Sanitize the filepath name by url-encoding it.
-  parquet_rel_filepath = os.path.join(
-    *[urllib.parse.quote(p, safe='') for p in parquet_rel_filepath.split(os.sep)]
-  )
   return os.path.join(dataset_path, parquet_rel_filepath)
 
 

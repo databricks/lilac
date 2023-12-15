@@ -1,4 +1,5 @@
 """A signal to compute a score along a concept."""
+import os
 from typing import ClassVar, Iterable, Optional
 
 import numpy as np
@@ -107,7 +108,5 @@ class ConceptSignal(VectorSignal):
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
-    suffix = '/preview' if not is_computed_signal else ''
-    # NOTE: The embedding is a value so already exists in the path structure. This means we do not
-    # need to provide the name as part of the key, which still guarantees uniqueness.
-    return f'{self.namespace}/{self.concept_name}/{self.embedding}{suffix}'
+    suffix = 'preview' if not is_computed_signal else ''
+    return os.path.join(self.namespace, self.concept_name, self.embedding, suffix)
