@@ -22,7 +22,7 @@ from pydantic import (
 from pydantic.functional_validators import ModelWrapValidatorHandler
 from typing_extensions import TypedDict
 
-from .utils import is_primitive, log
+from .utils import log
 
 MANIFEST_FILENAME = 'manifest.json'
 PARQUET_FILENAME_PREFIX = 'data'
@@ -60,6 +60,32 @@ VectorKey = tuple[Union[StrictStr, StrictInt], ...]
 PathKey = VectorKey
 
 
+_SUPPORTED_PRIMITIVE_DTYPES = [
+  'string',
+  'string_span',
+  'boolean',
+  'int8',
+  'int16',
+  'int32',
+  'int64',
+  'uint8',
+  'uint16',
+  'uint32',
+  'uint64',
+  'float16',
+  'float32',
+  'float64',
+  'time',
+  'date',
+  'timestamp',
+  'interval',
+  'binary',
+  'embedding',
+  'null',
+  'map',
+]
+
+
 class DataType(BaseModel):
   """The data type for a field."""
 
@@ -90,6 +116,12 @@ class DataType(BaseModel):
 
   def __init__(self, type: str, **kwargs: Any) -> None:
     super().__init__(type=type, **kwargs)
+
+  @field_validator('type')
+  @classmethod
+  def _type_must_be_supported(cls, type: str) -> str:
+    assert type in _SUPPORTED_PRIMITIVE_DTYPES, f'Unsupported type: {type}'
+    return type
 
   @model_validator(mode='wrap')  # type: ignore
   def convert_str_to_dtype(v: Any, handler: ModelWrapValidatorHandler['DataType']) -> 'DataType':
@@ -742,60 +774,6 @@ def is_temporal(dtype: DataType) -> bool:
 def is_ordinal(dtype: DataType) -> bool:
   """Check if a dtype is an ordinal dtype."""
   return is_float(dtype) or is_integer(dtype) or is_temporal(dtype)
-
-
-def _infer_dtype(value: Item) -> DataType:
-  if isinstance(value, str):
-    return STRING
-  elif isinstance(value, bool):
-    return BOOLEAN
-  elif isinstance(value, bytes):
-    return BINARY
-  elif isinstance(value, float):
-    return FLOAT32
-  elif isinstance(value, int):
-    return INT32
-  elif isinstance(value, datetime):
-    return TIMESTAMP
-  else:
-    raise ValueError(f'Cannot infer dtype of primitive value: {value}')
-
-
-def _infer_field(item: Item, diallow_pedals: bool = False) -> Field:
-  """Infer the schema from the items."""
-  if isinstance(item, dict):
-    fields: dict[str, Field] = {}
-    for k, v in item.items():
-      fields[k] = _infer_field(cast(Item, v))
-    dtype = None
-    if VALUE_KEY in fields:
-      dtype = fields[VALUE_KEY].dtype
-      del fields[VALUE_KEY]
-    elif SPAN_KEY in fields:
-      dtype = STRING_SPAN
-      del fields[SPAN_KEY]
-    if not fields:
-      # The object is an empty dict. We need a dummy child to represent this with parquet.
-      return Field(fields={'__empty__': Field(dtype=NULL)})
-    return Field(fields=fields, dtype=dtype)
-  elif is_primitive(item):
-    return Field(dtype=_infer_dtype(item))
-  elif isinstance(item, list):
-    inferred_fields = [_infer_field(subitem) for subitem in item]
-    merged_field = merge_fields(inferred_fields, diallow_pedals)
-    return Field(repeated_field=merged_field)
-  else:
-    raise ValueError(f'Cannot infer schema of item: {item}')
-
-
-def infer_schema(items: list[Item]) -> Schema:
-  """Infer the schema from a list of items."""
-  merged_field = merge_fields(
-    [_infer_field(item, diallow_pedals=True) for item in items], disallow_pedals=True
-  )
-  if not merged_field.fields:
-    raise ValueError(f'Failed to infer schema. Got {merged_field}')
-  return Schema(fields=merged_field.fields)
 
 
 def _print_fields(field: Field, destination: Field) -> None:

@@ -3,7 +3,8 @@ import json
 import os
 import pathlib
 from copy import deepcopy
-from typing import Any, ClassVar, Optional, Type
+from datetime import datetime
+from typing import Any, ClassVar, Optional, Type, cast
 
 import numpy as np
 from typing_extensions import Protocol
@@ -12,17 +13,28 @@ from ..config import DatasetConfig
 from ..embeddings.vector_store import VectorDBIndex
 from ..project import add_project_dataset_config, create_project, update_project_dataset_settings
 from ..schema import (
+  BINARY,
+  BOOLEAN,
+  FLOAT32,
+  INT32,
   MANIFEST_FILENAME,
+  NULL,
   PARQUET_FILENAME_PREFIX,
   ROWID,
+  SPAN_KEY,
+  STRING,
+  STRING_SPAN,
+  TIMESTAMP,
   VALUE_KEY,
+  DataType,
+  Field,
   Item,
   PathKey,
   Schema,
-  infer_schema,
+  merge_fields,
 )
 from ..source import Source, SourceManifest
-from ..utils import get_dataset_output_dir, open_file
+from ..utils import get_dataset_output_dir, is_primitive, open_file
 from .dataset import Dataset, default_settings
 from .dataset_utils import write_items_to_parquet
 
@@ -44,6 +56,60 @@ class TestSource(Source):
   name: ClassVar[str] = 'test_source'
 
 
+def _infer_dtype(value: Item) -> DataType:
+  if isinstance(value, str):
+    return STRING
+  elif isinstance(value, bool):
+    return BOOLEAN
+  elif isinstance(value, bytes):
+    return BINARY
+  elif isinstance(value, float):
+    return FLOAT32
+  elif isinstance(value, int):
+    return INT32
+  elif isinstance(value, datetime):
+    return TIMESTAMP
+  else:
+    raise ValueError(f'Cannot infer dtype of primitive value: {value}')
+
+
+def _infer_field(item: Item, diallow_pedals: bool = False) -> Field:
+  """Infer the schema from the items."""
+  if isinstance(item, dict):
+    fields: dict[str, Field] = {}
+    for k, v in item.items():
+      fields[k] = _infer_field(cast(Item, v))
+    dtype = None
+    if VALUE_KEY in fields:
+      dtype = fields[VALUE_KEY].dtype
+      del fields[VALUE_KEY]
+    elif SPAN_KEY in fields:
+      dtype = STRING_SPAN
+      del fields[SPAN_KEY]
+    if not fields:
+      # The object is an empty dict. We need a dummy child to represent this with parquet.
+      return Field(fields={'__empty__': Field(dtype=NULL)})
+    return Field(fields=fields, dtype=dtype)
+  elif is_primitive(item):
+    return Field(dtype=_infer_dtype(item))
+  elif isinstance(item, list):
+    inferred_fields = [_infer_field(subitem) for subitem in item]
+    merged_field = merge_fields(inferred_fields, diallow_pedals)
+    return Field(repeated_field=merged_field)
+  else:
+    raise ValueError(f'Cannot infer schema of item: {item}')
+
+
+def _infer_schema(items: list[Item]) -> Schema:
+  """Infer the schema from a list of items."""
+  merged_field = merge_fields(
+    [_infer_field(item, diallow_pedals=True) for item in items], disallow_pedals=True
+  )
+  if not merged_field.fields:
+    raise ValueError(f'Failed to infer schema. Got {merged_field}')
+  return Schema(fields=merged_field.fields)
+
+
 def make_dataset(
   dataset_cls: Type[Dataset],
   tmp_path: pathlib.Path,
@@ -51,7 +117,7 @@ def make_dataset(
   schema: Optional[Schema] = None,
 ) -> Dataset:
   """Create a test dataset."""
-  schema = schema or infer_schema(items)
+  schema = schema or _infer_schema(items)
   _write_items(tmp_path, TEST_DATASET_NAME, items, schema)
   create_project(str(tmp_path))
 

@@ -17,7 +17,7 @@ from .embeddings import *  # noqa: F403
 from .env import *  # noqa: F403
 from .env import LilacEnvironment, get_project_dir, set_project_dir
 from .load import load
-from .load_dataset import create_dataset, from_dicts
+from .load_dataset import create_dataset, from_dicts, from_huggingface
 from .project import init
 from .rag import *  # noqa: F403
 from .schema import *  # noqa: F403
@@ -47,6 +47,7 @@ __all__ = [
   'stop_server',
   'create_dataset',
   'from_dicts',
+  'from_huggingface',
   'get_dataset',
   'init',
   'span',

@@ -92,7 +92,7 @@ class JSONSource(Source):
 
     self._con.sql(
       f"""
-      SELECT replace(CAST(uuid() AS VARCHAR), ' - ', ' ') AS {ROWID}, *
+      SELECT replace(CAST(uuid() AS VARCHAR), '-', '') AS {ROWID}, *
       FROM ({self._process_sql})
       """
     ).write_parquet(filepath, compression='zstd')

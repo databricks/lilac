@@ -13,7 +13,7 @@ from pydantic import Field as PydanticField
 from typing_extensions import override
 
 from ..env import get_project_dir
-from ..schema import Item, field
+from ..schema import Item, schema
 from ..source import Source, SourceSchema
 from ..utils import log
 
@@ -99,12 +99,14 @@ class GmailSource(Source):
   @override
   def source_schema(self) -> SourceSchema:
     return SourceSchema(
-      fields={
-        'body': field('string'),
-        'snippet': field('string'),
-        'dates': field(fields=['string']),
-        'subject': field('string'),
-      }
+      fields=schema(
+        {
+          'body': 'string',
+          'snippet': 'string',
+          'dates': ['string'],
+          'subject': 'string',
+        }
+      ).fields
     )
 
   @override

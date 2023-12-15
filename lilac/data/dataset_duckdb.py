@@ -13,7 +13,6 @@ import shutil
 import sqlite3
 import tempfile
 import threading
-import urllib.parse
 from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
@@ -74,6 +73,7 @@ from ..schema import (
   PathTuple,
   RichData,
   Schema,
+  SpanVector,
   arrow_schema_to_schema,
   column_paths_match,
   is_float,
@@ -964,7 +964,8 @@ class DatasetDuckDB(Dataset):
       os.makedirs(os.path.dirname(parquet_filepath), exist_ok=True)
 
       con.execute(
-        f"""COPY (SELECT * FROM '{jsonl_view_name}') TO '{parquet_filepath}' (FORMAT PARQUET);"""
+        f"""COPY (SELECT * FROM '{jsonl_view_name}')
+          TO {escape_string_literal(parquet_filepath)} (FORMAT PARQUET);"""
       )
 
       con.close()
@@ -973,6 +974,21 @@ class DatasetDuckDB(Dataset):
       del output_schema.fields[ROWID]
 
     return json_query, output_schema, parquet_filepath
+
+  @override
+  def get_embeddings(
+    self, embedding: str, rowid: str, path: Union[PathKey, str]
+  ) -> list[SpanVector]:
+    """Returns the span-level embeddings associated with a specific row value."""
+    path = normalize_path(cast(PathTuple, path))
+    path = tuple([int(p) if p.isdigit() else p for p in path])
+
+    field_path = tuple([PATH_WILDCARD if isinstance(p, int) else p for p in path])
+    vector_index = self._get_vector_db_index(embedding, field_path)
+
+    path_key: PathKey = tuple([rowid, *[p for p in path if isinstance(p, int)]])
+    res = list(vector_index.get([path_key]))
+    return res[0]
 
   @override
   def compute_signal(
@@ -3086,10 +3102,6 @@ def _get_parquet_filepath(
   subdir = os.path.join(*path_prefix) if path_prefix else ''
 
   parquet_rel_filepath = os.path.join(subdir, parquet_filename)
-  # Sanitize the filepath name by url-encoding it.
-  parquet_rel_filepath = os.path.join(
-    *[urllib.parse.quote(p, safe='') for p in parquet_rel_filepath.split(os.sep)]
-  )
   return os.path.join(dataset_path, parquet_rel_filepath)
 
 

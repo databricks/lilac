@@ -650,3 +650,24 @@ def test_map_dtype(make_test_data: TestDataMaker) -> None:
     {'column': {'key': ['b'], 'value': [2.5]}},
     {'column': {'key': ['a', 'c'], 'value': [3.0, 3.5]}},
   ]
+
+
+def test_get_embeddings(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello world.'}])
+  dataset.compute_embedding('test_embedding', 'text')
+
+  rows = list(dataset.select_rows([ROWID]))
+
+  span_vectors = dataset.get_embeddings('test_embedding', rows[0][ROWID], 'text')
+  assert len(span_vectors) == 1
+  assert span_vectors[0]['span'] == (0, 6)
+  np.testing.assert_array_equal(
+    span_vectors[0]['vector'], np.array([1.0, 0.0, 0.0], dtype=np.float32)
+  )
+
+  span_vectors = dataset.get_embeddings('test_embedding', rows[1][ROWID], 'text')
+  assert len(span_vectors) == 1
+  assert span_vectors[0]['span'] == (0, 12)
+  np.testing.assert_array_equal(
+    span_vectors[0]['vector'], np.array([1.0, 1.0, 1.0], dtype=np.float32)
+  )
