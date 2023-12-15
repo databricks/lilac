@@ -33,6 +33,21 @@ SHARE_GPT_FORMAT = DatasetFormat(
   ),
 )
 
+SHARE_GPT_ROLE_CONTENT_FORMAT = DatasetFormat(
+  name='sharegpt_role_content',
+  title_slots=[(('items', PATH_WILDCARD, 'content'), ('items', PATH_WILDCARD, 'role'))],
+  data_schema=schema(
+    {
+      'conversations': [
+        {
+          'role': 'string',
+          'content': 'string',
+        }
+      ]
+    }
+  ),
+)
+
 # Formats are taken from axlotl: https://github.com/OpenAccess-AI-Collective/axolotl#dataset
 DATASET_FORMATS: list[DatasetFormat] = [SHARE_GPT_FORMAT]
 
