@@ -61,7 +61,7 @@
     command: Command.EditFilter;
     namespace: string;
     datasetName: string;
-    path: Path;
+    path?: Path;
   };
 
   export type CreateConceptCommand = {

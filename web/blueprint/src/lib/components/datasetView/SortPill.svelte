@@ -106,7 +106,15 @@
 </script>
 
 <div class="sort-container flex flex-row items-center gap-x-1 md:w-fit">
-  <DropdownPill bind:open title="Sort" on:select={selectSort} {selectedId} {items} let:item>
+  <DropdownPill
+    bind:open
+    direction="left"
+    title="Sort"
+    on:select={selectSort}
+    {selectedId}
+    {items}
+    let:item
+  >
     <div slot="icon">
       <button
         use:hoverTooltip={{

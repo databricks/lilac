@@ -8,6 +8,7 @@
   import {formatValue, type Search, type SearchType, type WebManifest} from '$lilac';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
   import {ArrowUpRight, Filter, TagGroup, TagNone} from 'carbon-icons-svelte';
+  import {Command, triggerCommand} from '../commands/Commands.svelte';
   import ConceptView from '../concepts/ConceptView.svelte';
   import EditLabel from './EditLabel.svelte';
   import FilterPill from './FilterPill.svelte';
@@ -67,7 +68,7 @@
   <div class="flex w-full justify-between gap-x-6 gap-y-2">
     <div class="flex w-full flex-row gap-x-4">
       <!-- Number of results. -->
-      <div class="flex rounded border border-neutral-200 bg-neutral-50 p-2">
+      <div class="flex items-center rounded border border-neutral-200 bg-neutral-50 p-2">
         {#if totalNumRows && manifest}
           {#if totalNumRows == manifest.dataset_manifest.num_items}
             {formatValue(totalNumRows)} rows
@@ -98,14 +99,14 @@
     </div>
     <div class="flex grow flex-row gap-x-4">
       <!-- Filters -->
-      <div class="mx-6 flex items-center gap-x-1">
+      <div class="flex items-center gap-x-1 rounded border border-neutral-300 px-2">
         <div><Filter /></div>
         {#if searches.length > 0 || (filters && filters.length > 0)}
           <div class="flex flex-grow flex-row gap-x-4">
             <!-- Search groups -->
             {#each searchTypeOrder as searchType}
               {#if searchesByType[searchType]}
-                <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
+                <div class="filter-group rounded bg-slate-50 px-2 shadow-sm">
                   <div class="text-xs font-light">{searchTypeDisplay[searchType]}</div>
                   <div class="flex flex-row gap-x-1">
                     {#each searchesByType[searchType] as search}
@@ -117,7 +118,7 @@
             {/each}
             <!-- Filters group -->
             {#if filters != null && filters.length > 0}
-              <div class="filter-group rounded bg-slate-50 px-2 py-1 shadow-sm">
+              <div class="filter-group rounded bg-slate-50 px-2 shadow-sm">
                 <div class="text-xs font-light">Filters</div>
                 <div class="flex flex-row gap-x-1">
                   {#if $schema.data}
@@ -132,12 +133,23 @@
             {/if}
           </div>
         {:else}
-          Filters
+          <button
+            on:click={() =>
+              triggerCommand({
+                command: Command.EditFilter,
+                namespace: $datasetViewStore.namespace,
+                datasetName: $datasetViewStore.datasetName
+              })}>Filters</button
+          >
         {/if}
       </div>
 
-      <GroupByPill />
-      <SortPill />
+      <div class="rounded border border-neutral-300">
+        <GroupByPill />
+      </div>
+      <div class="rounded border border-neutral-300">
+        <SortPill />
+      </div>
     </div>
   </div>
 </div>
@@ -171,6 +183,6 @@
 <style lang="postcss">
   .filter-group {
     min-width: 6rem;
-    @apply flex flex-row items-center gap-x-2 border border-gray-200 px-2 py-1 shadow-sm;
+    @apply flex flex-row items-center gap-x-2  px-2 shadow-sm;
   }
 </style>

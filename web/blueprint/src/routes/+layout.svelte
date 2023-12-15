@@ -115,7 +115,7 @@
     </div>
   </main>
 
-  <div class="absolute right-2 top-0 z-10 w-96">
+  <div class="absolute right-2 top-0 w-96" style="z-index: 1000">
     {#each notifications as notification}
       <ToastNotification
         lowContrast
@@ -131,7 +131,7 @@
       />
     {/each}
   </div>
-  <div class="absolute bottom-4 right-4">
+  <div class="absolute bottom-4 right-4" style="z-index: 1000">
     {#each $apiErrors as error}
       <ToastNotification
         lowContrast

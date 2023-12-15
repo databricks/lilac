@@ -47,9 +47,10 @@
         })
       : [];
 
-  $: defaultField = $selectRowsSchema?.isSuccess
-    ? getField($selectRowsSchema.data.schema, command.path)
-    : undefined;
+  $: defaultField =
+    $selectRowsSchema?.isSuccess && command.path
+      ? getField($selectRowsSchema.data.schema, command.path)
+      : undefined;
 
   // Copy filters from query options
   let stagedFilters: Filter[] = [];

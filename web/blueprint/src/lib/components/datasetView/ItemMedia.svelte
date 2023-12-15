@@ -207,10 +207,8 @@
 
 <div class="flex w-full flex-row gap-x-4 p-2">
   {#if isLeaf}
-    <div
-      class="relative mr-4 flex w-28 shrink-0 flex-row font-mono font-medium text-neutral-500 md:w-36"
-    >
-      <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
+    <div class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36">
+      <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
           <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
             {displayPath}

@@ -82,7 +82,7 @@
 {/each}
 
 {#if rowId != null}
-  <div class="flex h-full w-full flex-col overflow-y-scroll px-5 pb-32 pt-1">
+  <div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
     <RowItem
       {index}
       totalNumRows={rowsResponse?.total_num_rows}
