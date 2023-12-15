@@ -602,18 +602,18 @@ class Dataset(abc.ABC):
 
   @abc.abstractmethod
   def get_embeddings(
-    self, embedding: str, rowid: str, row_path: Union[PathKey, str]
+    self, embedding: str, rowid: str, path: Union[PathKey, str]
   ) -> list[SpanVector]:
     """Returns the span-level embeddings associated with a specific row value.
 
     Args:
       embedding: The embedding name (e.g. `gte-small`, or `jina-v2-small`).
       rowid: The row id to get embeddings for.
-      row_path: The row path to get embeddings for.
+      path: The path within a row to get embeddings for.
         - If the row is a struct, e.g. {person: {document: {text: ...}}} and we want the embeddings
         for text, the row path would be `person.document.text`.
-        - If the row has a list of strings, e.g. {documents: [{text: ...}, {text: ...}]}, then the
-          row path would be `documents.0.text` and `documents.1.text` for the 1st and 2nd document.
+        - If the row has a list of strings, e.g. {docs: [{text: ...}, {text: ...}]}, then the
+          row path would be `docs.0.text` for the 1st doc and `docs.1.text` for the 2nd doc.
 
     Returns:
       A list of `ll.SpanVector` dicts holding the span coordinates and the embedding.

@@ -973,17 +973,17 @@ class DatasetDuckDB(Dataset):
 
   @override
   def get_embeddings(
-    self, embedding: str, rowid: str, row_path: Union[PathKey, str]
+    self, embedding: str, rowid: str, path: Union[PathKey, str]
   ) -> list[SpanVector]:
     """Returns the span-level embeddings associated with a specific row value."""
-    row_path = normalize_path(cast(PathTuple, row_path))
-    row_path = tuple([int(p) if p.isdigit() else p for p in row_path])
+    path = normalize_path(cast(PathTuple, path))
+    path = tuple([int(p) if p.isdigit() else p for p in path])
 
-    field_path = tuple(['*' if isinstance(p, int) else p for p in row_path])
+    field_path = tuple([PATH_WILDCARD if isinstance(p, int) else p for p in path])
     vector_index = self._get_vector_db_index(embedding, field_path)
 
-    row_path_key: PathKey = tuple([rowid, *[p for p in row_path if isinstance(p, int)]])
-    res = list(vector_index.get([row_path_key]))
+    path_key: PathKey = tuple([rowid, *[p for p in path if isinstance(p, int)]])
+    res = list(vector_index.get([path_key]))
     return res[0]
 
   @override
