@@ -183,6 +183,6 @@
 <style lang="postcss">
   .filter-group {
     min-width: 6rem;
-    @apply flex flex-row items-center gap-x-2  px-2 shadow-sm;
+    @apply flex flex-row items-center gap-x-2 px-2 shadow-sm;
   }
 </style>

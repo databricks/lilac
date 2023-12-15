@@ -131,8 +131,10 @@
 
 <div class="relative flex w-full flex-col rounded md:flex-col">
   <!-- Header -->
-  <div style="z-index: 500;" class="sticky top-0 flex w-full flex-row justify-between rounded-t">
-    <div class="mx-4 flex w-full border border-neutral-300 bg-violet-100 py-2">
+  <div style="z-index: 500;" class="sticky top-0 flex w-full flex-row justify-between">
+    <div
+      class="mx-4 flex w-full rounded-t border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
+    >
       <!-- Left arrow -->
       <div class="flex w-1/3 flex-row">
         <!-- Right 1/3 -->
@@ -167,7 +169,7 @@
             {@const leftArrowEnabled = index != null && index > 0}
             <div class="flex-0 my-0.5">
               <button
-                class:opacity-20={!leftArrowEnabled}
+                class:opacity-30={!leftArrowEnabled}
                 disabled={!leftArrowEnabled}
                 on:click={() =>
                   updateSequentialRowId != null ? updateSequentialRowId('previous') : null}
@@ -184,9 +186,9 @@
                 <SkeletonText lines={1} class="!w-10" />
               {/if}
             </span>
-            <span class="inline-flex text-gray-500 opacity-90">of</span>
+            <span class="inline-flex text-gray-500 opacity-80">of</span>
 
-            <span class="inline-flex text-gray-500 opacity-90">
+            <span class="inline-flex text-gray-500 opacity-80">
               {#if totalNumRows != null}
                 {formatValue(totalNumRows)}
               {:else}
@@ -199,7 +201,7 @@
 
             <div class="flex-0">
               <button
-                class:opacity-20={!rightArrowEnabled}
+                class:opacity-30={!rightArrowEnabled}
                 disabled={!rightArrowEnabled}
                 on:click={() =>
                   updateSequentialRowId != null ? updateSequentialRowId('next') : null}
