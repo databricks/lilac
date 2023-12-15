@@ -108,5 +108,7 @@ class ConceptSignal(VectorSignal):
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:
-    suffix = 'preview' if not is_computed_signal else ''
-    return os.path.join(self.namespace, self.concept_name, self.embedding, suffix)
+    path = [self.namespace, self.concept_name, self.embedding]
+    if not is_computed_signal:
+      path.append('preview')
+    return os.path.join(*path)

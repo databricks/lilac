@@ -961,7 +961,8 @@ class DatasetDuckDB(Dataset):
       os.makedirs(os.path.dirname(parquet_filepath), exist_ok=True)
 
       con.execute(
-        f"""COPY (SELECT * FROM '{jsonl_view_name}') TO '{parquet_filepath}' (FORMAT PARQUET);"""
+        f"""COPY (SELECT * FROM '{jsonl_view_name}')
+          TO {escape_string_literal(parquet_filepath)} (FORMAT PARQUET);"""
       )
 
       con.close()
