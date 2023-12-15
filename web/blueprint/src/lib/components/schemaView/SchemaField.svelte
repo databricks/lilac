@@ -18,8 +18,7 @@
     type ConceptSignal,
     type LilacField,
     type LilacSchema,
-    type MetadataSearch,
-    type TextEmbeddingSignal
+    type MetadataSearch
   } from '$lilac';
   import {Tag} from 'carbon-components-svelte';
   import {ChevronDown, Chip, SortAscending, SortDescending} from 'carbon-icons-svelte';
@@ -92,11 +91,9 @@
 
   $: children = childDisplayFields(field);
 
-  $: embeddingFields = isSourceField
-    ? (childFields(field).filter(
-        f => f.signal != null && childFields(f).some(f => f.dtype?.type === 'embedding')
-      ) as LilacField<TextEmbeddingSignal>[])
-    : [];
+  $: embeddingFields = Object.values(field.fields || {}).filter(v => {
+    return v.repeated_field?.fields?.['embedding']?.dtype?.type == 'embedding';
+  });
 
   $: isSortedBy = $datasetViewStore.query.sort_by?.some(p => pathIsEqual(p, path));
   $: sortOrder = $datasetViewStore.query.sort_order;
