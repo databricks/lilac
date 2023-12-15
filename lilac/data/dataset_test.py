@@ -652,7 +652,7 @@ def test_map_dtype(make_test_data: TestDataMaker) -> None:
   ]
 
 
-def test_get_ebeddings(make_test_data: TestDataMaker) -> None:
+def test_get_embeddings(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello world.'}])
   dataset.compute_embedding('test_embedding', 'text')
 
