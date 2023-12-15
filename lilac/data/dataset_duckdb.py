@@ -848,7 +848,9 @@ class DatasetDuckDB(Dataset):
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-        dense_out = sparse_to_dense_compute(flat_input, lambda x: signal.compute(x))
+        dense_out = sparse_to_dense_compute(
+          flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
+        )
       else:
         map_fn = transform_fn
         assert not isinstance(map_fn, Signal)

@@ -1,6 +1,6 @@
 """Jina embeddings. Open-source, designed to run on device, with 8K context."""
 import functools
-from typing import TYPE_CHECKING, ClassVar, Iterable, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
 
 from ..utils import chunks
 
@@ -52,7 +52,7 @@ class JinaV2Small(TextEmbeddingSignal):
   _size = 'small'
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
     model = _get_model(self._size)
     docs = cast(Iterable[str], docs)
 
