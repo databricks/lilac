@@ -1,6 +1,6 @@
 """Test our public dataset REST API."""
 import os
-from typing import ClassVar, Iterable, Optional, Type
+from typing import ClassVar, Iterable, Iterator, Optional, Type
 
 import pytest
 from fastapi.testclient import TestClient
@@ -187,7 +187,7 @@ class LengthSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       yield len(text_content) if text_content is not None else None
 

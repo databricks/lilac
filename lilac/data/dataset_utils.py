@@ -8,7 +8,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
-from typing import Callable, Generator, Iterator, Optional, TypeVar, Union, cast
+from typing import Any, Callable, Generator, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pyarrow as pa
@@ -165,15 +165,14 @@ def _flat_embeddings(
 
 
 def write_embeddings_to_disk(
-  vector_store: str, rowids: Iterable[str], signal_items: Iterable[Item], output_dir: str
+  vector_store: str, signal_items: Iterable[Item], output_dir: str
 ) -> None:
   """Write a set of embeddings to disk."""
   path_embedding_items = (
     _flat_embeddings(signal_item, path=(signal_item[ROWID],)) for signal_item in signal_items
   )
 
-  def _get_span_vectors() -> Generator:
-    nonlocal path_embedding_items
+  def _get_span_vectors() -> Iterator[Item]:
     for path_item in path_embedding_items:
       for path_key, embedding_items in path_item:
         if not path_key or not embedding_items:
@@ -271,7 +270,7 @@ def get_parquet_filename(prefix: str, shard_index: int, num_shards: int) -> str:
 
 def _flatten_keys(
   rowid: str,
-  nested_input: Iterable,
+  nested_input: Iterable[Any],
   location: list[int],
   is_primitive_predicate: Callable[[object], bool],
 ) -> Iterator[VectorKey]:
@@ -289,7 +288,7 @@ def _flatten_keys(
 
 def flatten_keys(
   rowids: Iterable[str],
-  nested_input: Iterable,
+  nested_input: Iterable[Any],
   is_primitive_predicate: Callable[[object], bool] = is_primitive,
 ) -> Iterator[Optional[PathKey]]:
   """Flatten the rowids of a nested input."""
@@ -305,21 +304,18 @@ Tout = TypeVar('Tout')
 
 
 def sparse_to_dense_compute(
-  sparse_input: Iterator[Optional[Tin]], func: Callable[[Iterable[Tin]], Iterable[Tout]]
+  sparse_input: Iterable[Optional[Tin]], func: Callable[[Iterable[Tin]], Iterator[Tout]]
 ) -> Iterator[Optional[Tout]]:
   """Densifies the input before calling the provided `func` and sparsifies the output."""
-  total_size: int = 0
-
-  def densify(x: Iterator[Optional[Tin]]) -> Iterator[Tin]:
-    for value in x:
-      if value is not None:
-        yield value
-
+  sparse_input = iter(sparse_input)
   sparse_input, sparse_input_2 = itertools.tee(sparse_input, 2)
-  dense_input = densify(sparse_input_2)
-  dense_output = iter(func(dense_input))
+  dense_input = cast(Iterator[Tin], filter(lambda x: x is not None, sparse_input_2))
+  dense_output = func(dense_input)
   for input in sparse_input:
-    yield None if input is None else next(dense_output)
+    if input is None:
+      yield None
+    else:
+      yield next(dense_output)
 
 
 def shard_id_to_range(

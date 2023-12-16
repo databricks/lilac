@@ -1,5 +1,5 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
-from typing import ClassVar, Iterable, cast
+from typing import ClassVar, Iterable, Iterator, cast
 
 from typing_extensions import override
 
@@ -21,7 +21,7 @@ class SBERT(TextEmbeddingSignal):
   display_name: ClassVar[str] = 'SBERT Embeddings'
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     model = get_model(MINI_LM_MODEL)
     embed_fn = model.encode

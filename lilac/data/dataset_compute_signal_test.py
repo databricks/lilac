@@ -1,7 +1,7 @@
 """Tests for dataset.compute_signal()."""
 
 import re
-from typing import ClassVar, Iterable, Optional, Union, cast
+from typing import ClassVar, Iterable, Iterator, Optional, Union, cast
 
 import numpy as np
 import pytest
@@ -50,7 +50,7 @@ class TestSparseSignal(TextSignal):
     return field('int32')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text in data:
       if text == 'hello':
         # Skip this input.
@@ -69,7 +69,7 @@ class TestSparseRichSignal(TextSignal):
     return field(fields={'emails': ['string']})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text in data:
       if text == 'hello':
         # Skip this input.
@@ -85,7 +85,7 @@ class TestParamSignal(TextSignal):
   def fields(self) -> Field:
     return field('string')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       yield f'{str(text_content)}_{self.param}'
 
@@ -98,8 +98,8 @@ class TestSignal(TextSignal):
     return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return ({'len': len(text_content), 'flen': float(len(text_content))} for text_content in data)
 
 
 class TestSplitSignal(TextSignal):
@@ -112,7 +112,7 @@ class TestSplitSignal(TextSignal):
     return field(fields=['string_span'])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
@@ -140,7 +140,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       example = cast(str, example)
@@ -155,7 +155,7 @@ class ComputedKeySignal(TextSignal):
     return field('int64')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text in data:
       yield 1
 
@@ -193,9 +193,9 @@ def test_signal_output_validation(make_test_data: TestDataMaker) -> None:
       return field('int32')
 
     @override
-    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
       # Return an invalid output that doesn't match the input length.
-      return []
+      yield from ()
 
   signal = _TestInvalidSignal()
 
@@ -221,7 +221,7 @@ def test_signal_error_propagates(make_test_data: TestDataMaker) -> None:
       return field('int32')
 
     @override
-    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
       raise ValueError('signal error')
 
   signal = _TestInvalidSignal()
@@ -286,7 +286,7 @@ def test_signal_continuation(make_test_data: TestDataMaker) -> None:
       return field(dtype='int32')
 
     @override
-    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
       for i, item in enumerate(data):
         if first_run and item == 'ab':
           raise ValueError('Throwing')
@@ -777,7 +777,7 @@ def test_optional_schema(make_test_data: TestDataMaker) -> None:
     name: ClassVar[str] = 'len_of_text'
 
     @override
-    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
       for text in data:
         yield len(text)
 
@@ -797,7 +797,7 @@ def test_optional_schema_parameterized_signal(make_test_data: TestDataMaker) -> 
     param: str
 
     @override
-    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
       for text in data:
         yield {'len': len(text), 'first_and_last': [text[0], text[-1]]}
 

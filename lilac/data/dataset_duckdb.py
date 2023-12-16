@@ -304,6 +304,12 @@ class DuckDBQueryParams(BaseModel):
   include_deleted: bool = False
 
 
+def _consume_iterator(iterator: Iterator[Any]) -> None:
+  """Forces exhaustion of an iterator, without pulling it all into memory."""
+  for _ in iterator:
+    pass
+
+
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
@@ -323,6 +329,7 @@ class DatasetDuckDB(Dataset):
     self._map_manifests: list[MapManifest] = []
     self._label_schemas: dict[str, Schema] = {}
     self.con = duckdb.connect(database=':memory:')
+    # self.con.execute("SET memory_limit='2GB';")
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
@@ -614,7 +621,7 @@ class DatasetDuckDB(Dataset):
     query_options: Optional[DuckDBQueryParams] = None,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
-  ) -> Iterable[tuple[str, Item]]:
+  ) -> Iterator[tuple[str, Item]]:
     """Returns an iterable of (rowid, item), discluding results in the cache filepath."""
     manifest = self.manifest()
     num_items = self.manifest().num_items
@@ -764,7 +771,7 @@ class DatasetDuckDB(Dataset):
 
   def _compute_disk_cached(
     self,
-    transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterable[Optional[Item]]]],
+    transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterator[Optional[Item]]]],
     output_path: PathTuple,
     jsonl_cache_filepath: str,
     unnest_input_path: Optional[PathTuple] = None,
@@ -775,7 +782,7 @@ class DatasetDuckDB(Dataset):
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
     task_shard_id: Optional[TaskShardId] = None,
-  ) -> Iterable[Item]:
+  ) -> Iterator[Item]:
     manifest = self.manifest()
 
     os.makedirs(os.path.dirname(jsonl_cache_filepath), exist_ok=True)
@@ -834,9 +841,9 @@ class DatasetDuckDB(Dataset):
         embedding_signal = transform_fn
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
         vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
-        flat_keys = list(flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0))
+        flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
         dense_out = sparse_to_dense_compute(
-          iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
+          flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
         )
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
@@ -848,9 +855,7 @@ class DatasetDuckDB(Dataset):
         map_fn = transform_fn
         assert not isinstance(map_fn, Signal)
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-        dense_out = sparse_to_dense_compute(
-          flat_input, lambda x: map_fn(cast(Iterable[RichData], x))
-        )
+        dense_out = sparse_to_dense_compute(flat_input, lambda x: map_fn(x))
       output_items = deep_unflatten(dense_out, input_values_1)
 
     else:
@@ -880,7 +885,6 @@ class DatasetDuckDB(Dataset):
         estimated_len=estimated_len,
       )
 
-    output_items, jsonl_cache_items = itertools.tee(output_items, 2)
     # TODO(nsthorat): Support continuation of embeddings.
     try:
       if not isinstance(transform_fn, TextEmbeddingSignal):
@@ -889,6 +893,9 @@ class DatasetDuckDB(Dataset):
             json.dump(item, file)
             file.write('\n')
             file.flush()
+            yield item
+      else:
+        yield from output_items
     except RuntimeError as e:
       # NOTE: A RuntimeError exception is thrown when the output_items iterator, which is a zip of
       # input and output items, yields a StopIterator exception.
@@ -899,8 +906,6 @@ class DatasetDuckDB(Dataset):
       )
     except Exception as e:
       raise e
-
-    return jsonl_cache_items
 
   def _reshard_cache(
     self,
@@ -1038,16 +1043,18 @@ class DatasetDuckDB(Dataset):
       key=output_path,
       project_dir=self.project_dir,
     )
-    self._compute_disk_cached(
-      transform_fn=signal,
-      output_path=output_path,
-      jsonl_cache_filepath=jsonl_cache_filepath,
-      unnest_input_path=input_path,
-      overwrite=overwrite,
-      query_options=DuckDBQueryParams(
-        filters=filters, limit=limit, include_deleted=include_deleted
-      ),
-      task_shard_id=task_shard_id,
+    _consume_iterator(
+      self._compute_disk_cached(
+        transform_fn=signal,
+        output_path=output_path,
+        jsonl_cache_filepath=jsonl_cache_filepath,
+        unnest_input_path=input_path,
+        overwrite=overwrite,
+        query_options=DuckDBQueryParams(
+          filters=filters, limit=limit, include_deleted=include_deleted
+        ),
+        task_shard_id=task_shard_id,
+      )
     )
 
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
@@ -1143,11 +1150,8 @@ class DatasetDuckDB(Dataset):
 
     assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
 
-    row_ids = (item[ROWID] for item in output_items)
-
     write_embeddings_to_disk(
       vector_store=self.vector_store,
-      rowids=row_ids,
       signal_items=output_items,
       output_dir=output_dir,
     )
@@ -2739,7 +2743,6 @@ class DatasetDuckDB(Dataset):
       subtasks=subtasks,
     )
     show_progress_and_block(task_id, description=progress_description)
-
     # Wait for the task to finish before re-sharding the outputs.
     get_task_manager().wait([task_id])
 
@@ -2817,38 +2820,40 @@ class DatasetDuckDB(Dataset):
 
     has_job_id_arg = len(map_sig.parameters) == 2
 
-    def _map_iterable(items: Iterable[RichData]) -> Iterable[Optional[Item]]:
-      batch: Iterable[Any]
+    def _map_iterable(items: Iterable[RichData]) -> Iterator[Optional[Item]]:
+      batch_stream: Iterable[Any]
       map_args: Union[Iterable[Any], tuple[Iterable[Any], int]]
       if batch_size == -1:
-        batch = [list(items)]
+        batch_stream = [list(items)]
       elif batch_size is not None:
-        batch = map(list, chunks(items, batch_size))
+        batch_stream = map(list, chunks(items, batch_size))
       else:
-        batch = items
+        batch_stream = items
 
       if has_job_id_arg:
-        map_args = (batch, itertools.repeat(job_id))
+        map_args = (batch_stream, itertools.repeat(job_id))
       else:
-        map_args = (batch,)
+        map_args = (batch_stream,)
 
       if batch_size is None:
         yield from map(map_fn, *map_args)
       else:
         yield from itertools.chain.from_iterable(map(map_fn, *map_args))
 
-    self._compute_disk_cached(
-      _map_iterable,
-      output_path=output_path,
-      jsonl_cache_filepath=jsonl_cache_filepath,
-      unnest_input_path=unnest_input_path,
-      overwrite=overwrite,
-      query_options=query_options,
-      combine_columns=combine_columns,
-      resolve_span=resolve_span,
-      shard_id=job_id,
-      shard_count=job_count,
-      task_shard_id=task_shard_id,
+    _consume_iterator(
+      self._compute_disk_cached(
+        _map_iterable,
+        output_path=output_path,
+        jsonl_cache_filepath=jsonl_cache_filepath,
+        unnest_input_path=unnest_input_path,
+        overwrite=overwrite,
+        query_options=query_options,
+        combine_columns=combine_columns,
+        resolve_span=resolve_span,
+        shard_id=job_id,
+        shard_count=job_count,
+        task_shard_id=task_shard_id,
+      )
     )
 
   @override

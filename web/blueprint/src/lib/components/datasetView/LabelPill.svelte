@@ -10,6 +10,7 @@
   {disabled}
   class="rounded-lg border border-gray-300 hover:border-gray-500"
   class:bg-slate-500={active}
+  class:bg-white={!active}
   class:hover:bg-slate-500={active}
   class:hover:bg-transparent={!active}
   class:text-white={active}

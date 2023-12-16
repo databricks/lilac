@@ -61,7 +61,7 @@
       use:hoverTooltip={{text: helperText}}
       class:border={buttonOutline}
       class:border-gray-300={buttonOutline}
-      class="flex items-center gap-x-2"
+      class="flex items-center gap-x-2 bg-white"
       class:hidden={dropdownOpen}
     >
       {#if isLoading}

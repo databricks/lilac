@@ -1,7 +1,7 @@
 """Tests for dataset.compute_signal() when signals are chained."""
 
 import re
-from typing import ClassVar, Iterable, List, Optional, cast
+from typing import ClassVar, Iterable, Iterator, List, Optional, cast
 
 import numpy as np
 import pytest
@@ -64,7 +64,7 @@ class TestSplitter(TextSignal):
     return field(fields=['string_span'])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
@@ -80,7 +80,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
@@ -97,7 +97,7 @@ class TestEmbeddingSumSignal(VectorSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[PathKey], vector_index: VectorDBIndex) -> Iterable[Item]:
+  def vector_compute(self, keys: Iterable[PathKey], vector_index: VectorDBIndex) -> Iterator[Item]:
     # The signal just sums the values of the embedding.
     all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
@@ -183,7 +183,7 @@ class NamedEntity(TextSignal):
     return field(fields=['string_span'])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[List[Item]]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[List[Item]]]:
     for text in data:
       if not isinstance(text, str):
         yield None

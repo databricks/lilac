@@ -1,6 +1,6 @@
 """Tests for dataset.select_rows(sort_by=...)."""
 
-from typing import ClassVar, Iterable, Optional, Sequence, cast
+from typing import ClassVar, Iterable, Iterator, Optional, Sequence, cast
 
 import numpy as np
 import pytest
@@ -36,7 +36,7 @@ class TestSignal(TextSignal):
   def fields(self) -> Field:
     return field(fields={'len': 'int32', 'is_all_cap': 'boolean'})
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       yield {'len': len(text_content), 'is_all_cap': text_content.isupper()}
 
@@ -47,7 +47,7 @@ class TestPrimitiveSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       yield len(text_content) + 1
 
@@ -58,7 +58,7 @@ class NestedArraySignal(TextSignal):
   def fields(self) -> Field:
     return field(fields=[['int32']])
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       yield [[len(text_content) + 1], [len(text_content)]]
 
@@ -445,7 +445,7 @@ class TopKEmbedding(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'topk_embedding'
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       example = cast(str, example)
@@ -471,7 +471,7 @@ class TopKSignal(VectorSignal):
   @override
   def vector_compute(
     self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
       embeddings = np.array([vector_span['vector'] for vector_span in vector_spans])

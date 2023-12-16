@@ -1,5 +1,5 @@
 """Filters metadata based on an operatio. Internal use only for highlighting search results."""
-from typing import Any, ClassVar, Iterable, Optional, Union
+from typing import Any, ClassVar, Iterable, Iterator, Optional, Union
 
 from typing_extensions import override
 
@@ -23,7 +23,7 @@ class FilterMaskSignal(Signal):
     return field(dtype='boolean')
 
   @override
-  def compute(self, values: Iterable[Any]) -> Iterable[Optional[Item]]:
+  def compute(self, values: Iterable[Any]) -> Iterator[Optional[Item]]:
     for value in values:
       if self.op != 'equals':
         raise ValueError(f'Metadata search does not support "{self.op}" op yet.')

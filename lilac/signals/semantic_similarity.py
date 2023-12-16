@@ -1,6 +1,6 @@
 """A signal to compute semantic search for a document."""
 from functools import cached_property
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import numpy as np
 from pydantic import Field as PydanticField
@@ -70,7 +70,7 @@ class SemanticSimilaritySignal(VectorSignal):
 
   def _score_span_vectors(
     self, span_vectors: Iterable[Iterable[SpanVector]]
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     return flat_batched_compute(
       span_vectors, f=self._compute_span_vector_batch, batch_size=_BATCH_SIZE
     )
@@ -82,14 +82,14 @@ class SemanticSimilaritySignal(VectorSignal):
     return [span(start, end, {'score': score}) for score, (start, end) in zip(scores, spans)]
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     span_vectors = self._document_embed_fn(data)
     return self._score_span_vectors(span_vectors)
 
   @override
   def vector_compute(
     self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     span_vectors = vector_index.get(keys)
     return self._score_span_vectors(span_vectors)
 

@@ -1,6 +1,6 @@
 """Tests for dataset.select_rows(udf_col)."""
 
-from typing import ClassVar, Iterable, Optional, cast
+from typing import ClassVar, Iterable, Iterator, Optional, cast
 
 import numpy as np
 import pytest
@@ -49,7 +49,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       if example == '':
@@ -66,7 +66,7 @@ class LengthSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       self._call_count += 1
       yield len(text_content)
@@ -80,8 +80,8 @@ class TestSignal(TextSignal):
     return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return ({'len': len(text_content), 'flen': float(len(text_content))} for text_content in data)
 
 
 class TestEmbeddingSumSignal(VectorSignal):
@@ -97,7 +97,7 @@ class TestEmbeddingSumSignal(VectorSignal):
   @override
   def vector_compute(
     self, keys: Iterable[VectorKey], vector_index: VectorDBIndex
-  ) -> Iterable[Item]:
+  ) -> Iterator[Item]:
     # The signal just sums the values of the embedding.
     all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
@@ -112,7 +112,7 @@ class ComputedKeySignal(TextSignal):
     return field('int64')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text in data:
       yield 1
 
@@ -281,7 +281,7 @@ class TestSplitter(TextSignal):
     return field(fields=['string_span'])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')

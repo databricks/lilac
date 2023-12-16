@@ -383,7 +383,6 @@ def show_progress_and_block(task_id: TaskId, description: Optional[str] = None) 
       if task_info.total_progress:
         pbar.update(task_info.total_progress - pbar.n)
       if task_info.status == TaskStatus.COMPLETED:
-        pbar.update(pbar.total - pbar.n)
         break
       if task_info.status == TaskStatus.ERROR:
         break

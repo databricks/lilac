@@ -1,5 +1,5 @@
 """Compute near duplicates for a dataset."""
-from typing import ClassVar, Iterable, Optional, cast
+from typing import ClassVar, Iterable, Iterator, Optional, cast
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
@@ -34,7 +34,7 @@ class NearDuplicateSignal(TextSignal):
     return field(fields={CLUSTER_KEY: field('uint32', categorical=True)})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     cluster_ids = find_clusters(cast(Iterable[str], data), threshold=self.threshold)
     for cluster_id in cluster_ids:
       yield {CLUSTER_KEY: cluster_id}

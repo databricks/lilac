@@ -1,6 +1,6 @@
 """Tests for dataset.select_rows(filters=[...])."""
 
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 from ..schema import ROWID, Field, Item, MapType, RichData, field, schema
 from ..signal import TextSignal
@@ -224,7 +224,7 @@ def test_filter_by_exists_on_enriched(make_test_data: TestDataMaker) -> None:
     def fields(self) -> Field:
       return field('int32')
 
-    def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+    def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
       for text_content in data:
         yield len(text_content)
 

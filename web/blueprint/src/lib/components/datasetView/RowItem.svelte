@@ -15,6 +15,7 @@
   import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import {
+    formatValue,
     getRowLabels,
     getSchemaLabels,
     serializePath,
@@ -22,9 +23,9 @@
     type LilacField,
     type RemoveLabelsOptions
   } from '$lilac';
-  import {SidePanelClose, SidePanelOpen, Tag} from 'carbon-icons-svelte';
+  import {SkeletonText} from 'carbon-components-svelte';
+  import {ChevronLeft, ChevronRight, Tag} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
-  import {hoverTooltip} from '../common/HoverTooltip';
   import EditLabel from './EditLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
   import ItemMetadata from './ItemMetadata.svelte';
@@ -33,6 +34,11 @@
   export let rowId: string;
   export let mediaFields: LilacField[];
   export let highlightedFields: LilacField[];
+  // The counting index of this row item.
+  export let index: number | undefined = undefined;
+  export let totalNumRows: number | undefined = undefined;
+  export let updateSequentialRowId: ((direction: 'previous' | 'next') => void) | undefined =
+    undefined;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
@@ -123,73 +129,127 @@
   }
 </script>
 
-<div class="flex w-full flex-col rounded border border-neutral-300 md:flex-row">
-  <div
-    class={`flex flex-col gap-y-1 p-4 ${!$datasetViewStore.showMetadataPanel ? 'grow ' : 'w-2/3'}`}
-    bind:clientHeight={mediaHeight}
-  >
-    <div class="flex flex-wrap items-center gap-x-2 gap-y-2" class:opacity-50={disableLabels}>
-      {#each schemaLabels || [] as label}
-        <div class:opacity-50={labelsInProgress.has(label)}>
-          <LabelPill
-            {label}
-            disabled={labelsInProgress.has(label)}
-            active={rowLabels.includes(label)}
-            on:click={() => {
-              if (rowLabels.includes(label)) {
-                removeLabel(label);
-              } else {
-                addLabel(label);
-              }
-            }}
-          />
-        </div>
-      {/each}
-      <div class="relative h-8">
-        <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
-      </div>
-    </div>
-    {#if mediaFields.length > 0}
-      {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
+<div class="relative flex w-full flex-col rounded md:flex-col">
+  <!-- Header -->
+  <div style="z-index: 500;" class="sticky top-0 flex w-full flex-row justify-between">
+    <div
+      class="mx-4 flex w-full rounded-t border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
+    >
+      <!-- Left arrow -->
+      <div class="flex w-1/3 flex-row">
+        <!-- Right 1/3 -->
         <div
-          class:border-b={i < mediaFields.length - 1}
-          class:pb-2={i < mediaFields.length - 1}
-          class="flex h-full w-full flex-col border-neutral-200"
+          class="flex w-full flex-row items-center gap-x-2 gap-y-2 pl-2"
+          class:opacity-50={disableLabels}
         >
-          <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
+          {#each schemaLabels || [] as label}
+            <div class:opacity-50={labelsInProgress.has(label)}>
+              <LabelPill
+                {label}
+                disabled={labelsInProgress.has(label)}
+                active={rowLabels.includes(label)}
+                on:click={() => {
+                  if (rowLabels.includes(label)) {
+                    removeLabel(label);
+                  } else {
+                    addLabel(label);
+                  }
+                }}
+              />
+            </div>
+          {/each}
+          <div class="relative mr-8 h-8">
+            <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
+          </div>
         </div>
-      {/each}
-    {/if}
-    <div class="absolute right-0 top-0">
-      <button
-        class="mr-1 mt-1 opacity-60 hover:bg-gray-200"
-        use:hoverTooltip={{
-          text: $datasetViewStore.showMetadataPanel ? 'Close metadata' : 'Open metadata'
-        }}
-        on:click={() =>
-          ($datasetViewStore.showMetadataPanel = !$datasetViewStore.showMetadataPanel)}
-      >
-        {#if $datasetViewStore.showMetadataPanel}
-          <SidePanelOpen />
-        {:else}
-          <SidePanelClose />
-        {/if}</button
-      >
+      </div>
+      <div class="w-1/3 items-center justify-items-center self-center justify-self-center">
+        <div class="flex w-full flex-row items-center justify-center truncate text-center text-lg">
+          {#if updateSequentialRowId != null}
+            {@const leftArrowEnabled = index != null && index > 0}
+            <div class="flex-0 my-0.5">
+              <button
+                class:opacity-30={!leftArrowEnabled}
+                disabled={!leftArrowEnabled}
+                on:click={() =>
+                  updateSequentialRowId != null ? updateSequentialRowId('previous') : null}
+              >
+                <ChevronLeft title="Previous item" size={24} />
+              </button>
+            </div>
+          {/if}
+          <div class="flex w-32 flex-row justify-center gap-x-1.5">
+            <span class="inline-flex">
+              {#if index != null && index >= 0}
+                {index + 1}
+              {:else}
+                <SkeletonText lines={1} class="!w-10" />
+              {/if}
+            </span>
+            <span class="inline-flex text-gray-500 opacity-80">of</span>
+
+            <span class="inline-flex text-gray-500 opacity-80">
+              {#if totalNumRows != null}
+                {formatValue(totalNumRows)}
+              {:else}
+                <SkeletonText lines={1} class="!w-20" />
+              {/if}
+            </span>
+          </div>
+          {#if updateSequentialRowId != null && totalNumRows != null}
+            {@const rightArrowEnabled = index != null && index < totalNumRows - 1}
+
+            <div class="flex-0">
+              <button
+                class:opacity-30={!rightArrowEnabled}
+                disabled={!rightArrowEnabled}
+                on:click={() =>
+                  updateSequentialRowId != null ? updateSequentialRowId('next') : null}
+              >
+                <ChevronRight title="Next item" size={24} />
+              </button>
+            </div>
+          {/if}
+        </div>
+      </div>
+      <div class="flex w-1/3 flex-row">
+        <!-- Right 1/3 -->
+      </div>
     </div>
   </div>
-  {#if $datasetViewStore.showMetadataPanel}
+  <div class="px-4">
     <div
-      class="flex h-full bg-neutral-100 md:w-1/3"
-      transition:slide={{axis: 'x', duration: SIDEBAR_TRANSITION_TIME_MS}}
+      class={`flex flex-col ${!$datasetViewStore.showMetadataPanel ? 'grow ' : 'w-2/3'}`}
+      bind:clientHeight={mediaHeight}
     >
-      <div class="sticky top-0 w-full self-start">
-        <div
-          style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
-          class="overflow-y-auto"
-        >
-          <ItemMetadata {row} selectRowsSchema={$selectRowsSchema.data} {highlightedFields} />
-        </div>
+      <div class="rounded-b border-b border-l border-r border-neutral-300">
+        {#if mediaFields.length > 0}
+          {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
+            <div
+              class:border-b={i < mediaFields.length - 1}
+              class:pb-2={i < mediaFields.length - 1}
+              class="flex h-full w-full flex-col border-neutral-200"
+            >
+              <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
+            </div>
+          {/each}
+        {/if}
       </div>
     </div>
-  {/if}
+    {#if $datasetViewStore.showMetadataPanel}
+      <div
+        class="flex h-full bg-neutral-100 md:w-1/3"
+        transition:slide={{axis: 'x', duration: SIDEBAR_TRANSITION_TIME_MS}}
+      >
+        <div class="sticky top-0 w-full self-start">
+          <div
+            style={`max-height: ${Math.max(MIN_METADATA_HEIGHT_PX, mediaHeight)}px`}
+            class="overflow-y-auto"
+          >
+            <ItemMetadata {row} selectRowsSchema={$selectRowsSchema.data} {highlightedFields} />
+          </div>
+        </div>
+      </div>
+    {/if}
+  </div>
 </div>

@@ -24,6 +24,7 @@
   export let disabled = false;
   export let disabledMessage = 'User does not have access to add labels.';
   export let icon: typeof CarbonIcon;
+  // True when we are removing a particular label.
   export let remove = false;
   export let totalNumRows: number | undefined = undefined;
   const dispatch = createEventDispatcher();

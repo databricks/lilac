@@ -31,6 +31,8 @@
     CatalogPublish,
     ChevronDown,
     ChevronUp,
+    DataBackup,
+    DataView,
     DataViewAlt,
     DirectionFork,
     Search,
@@ -205,10 +207,8 @@
 
 <div class="flex w-full flex-row gap-x-4 p-2">
   {#if isLeaf}
-    <div
-      class="relative mr-4 flex w-32 shrink-0 flex-row font-mono font-medium text-neutral-500 md:w-44"
-    >
-      <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
+    <div class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36">
+      <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
           <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
             {displayPath}
@@ -253,6 +253,18 @@
           {/if}
 
           <button
+            on:click={() =>
+              ($datasetViewStore.showMetadataPanel = !$datasetViewStore.showMetadataPanel)}
+            use:hoverTooltip={{
+              text: $datasetViewStore.showMetadataPanel
+                ? 'Collapse metadata panel'
+                : 'Expand metadata panel'
+            }}
+            >{#if $datasetViewStore.showMetadataPanel}<DataBackup size={16} />{:else}<DataView
+                size={16}
+              />{/if}
+          </button>
+          <button
             disabled={!textIsOverBudget}
             class:opacity-50={!textIsOverBudget}
             on:click={() => (userExpanded = !userExpanded)}
@@ -265,7 +277,7 @@
     <div class="flex grow flex-col font-normal">
       {#if titleValue != null}
         <div
-          class="-m-2 mb-1 rounded bg-gray-100 p-1 px-2 text-xs font-bold uppercase text-gray-700"
+          class="mb-1 ml-11 rounded bg-gray-100 p-1 px-2 text-xs font-bold uppercase text-gray-700"
         >
           {titleValue}
         </div>

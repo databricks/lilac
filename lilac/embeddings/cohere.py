@@ -1,5 +1,5 @@
 """Cohere embeddings."""
-from typing import TYPE_CHECKING, ClassVar, Iterable, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
 
 import numpy as np
 from typing_extensions import override
@@ -51,7 +51,7 @@ class Cohere(TextEmbeddingSignal):
       )
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
     """Compute embeddings for the given documents."""
 
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
