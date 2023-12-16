@@ -95,7 +95,7 @@
   $: displayPath = getDisplayPath(pathForDisplay);
 
   $: valueNode = valueNodes[0];
-  $: value = L.value(valueNode);
+  $: value = L.value(valueNode) as string;
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Get slots for the view. These are custom UI renderings that are a function of dataset formats.
@@ -206,7 +206,7 @@
 </script>
 
 <div class="flex w-full flex-row gap-x-4 p-2">
-  {#if isLeaf}
+  {#if isLeaf && value != null}
     <div class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36">
       <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
@@ -288,7 +288,7 @@
           {#if colCompareState == null}
             <ItemMediaTextContent
               hidden={markdown}
-              text={formatValue(value)}
+              text={value}
               {row}
               path={rootPath}
               {field}
@@ -322,7 +322,7 @@
     <!-- Repeated values will render <ItemMedia> again. -->
     <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
       <div class="m-2 flex flex-col gap-y-2">
-        <div title={displayPath} class="mx-2 mt-2 truncate font-mono font-medium text-neutral-500">
+        <div title={displayPath} class="mx-2 my-2 truncate font-mono font-medium text-neutral-500">
           {displayPath}
         </div>
         {#each nextRootPaths as nextRootPath}

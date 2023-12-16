@@ -131,7 +131,7 @@
 
 <div class="relative flex w-full flex-col rounded md:flex-col">
   <!-- Header -->
-  <div style="z-index: 500;" class="sticky top-0 flex w-full flex-row justify-between">
+  <div style="z-index: 500;" class="sticky top-0 flex w-full flex-row justify-between bg-white">
     <div
       class="mx-4 flex w-full rounded-t border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
     >

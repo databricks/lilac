@@ -627,7 +627,7 @@
     class="editor-container ml-6 h-64"
     class:hidden
     bind:this={editorContainer}
-    class:invisible={!editorReady}
+    class:invisible={!editorReady || text == null}
   />
 </div>
 
