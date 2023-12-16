@@ -26,7 +26,6 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
   import {
     CatalogPublish,
     ChevronDown,
@@ -65,7 +64,7 @@
   }
 
   $: valueNodes = row != null ? getValueNodes(row, rootPath!) : [];
-  $: isLeaf = valueNodes.length <= 1;
+  $: isLeaf = pathIsMatching(mediaPath, rootPath);
 
   // Get the list of next root paths for children of a repeated node.
   $: nextRootPaths = valueNodes.map(v => {
@@ -206,7 +205,7 @@
 </script>
 
 <div class="flex w-full flex-row gap-x-4 p-2">
-  {#if isLeaf && value != null}
+  {#if isLeaf}
     <div class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36">
       <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
@@ -284,7 +283,7 @@
       {/if}
 
       <div class="grow pt-1">
-        {#if row != null}
+        {#if row != null && value != null}
           {#if colCompareState == null}
             <ItemMediaTextContent
               hidden={markdown}
@@ -314,7 +313,7 @@
             />
           {/if}
         {:else}
-          <SkeletonText lines={3} paragraph class="w-full" />
+          <span class="ml-12 italic">null</span>
         {/if}
       </div>
     </div>

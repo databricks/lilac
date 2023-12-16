@@ -56,11 +56,8 @@ DATASET_FORMATS: list[DatasetFormat] = [SHARE_GPT_FORMAT, OPEN_CHAT_FORMAT]
 
 def schema_is_compatible_with(dataset_schema: Schema, format_schema: Schema) -> bool:
   """Returns true if all fields of the format schema are in the dataset schema."""
-  print('checking', dataset_schema, format_schema, format_schema)
-
   for path, field in format_schema.all_fields:
     if not dataset_schema.has_field(path):
-      print('dataset doesnt have', path)
       return False
 
     field = dataset_schema.get_field(path)
