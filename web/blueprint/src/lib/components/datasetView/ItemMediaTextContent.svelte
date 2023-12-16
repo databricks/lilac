@@ -448,7 +448,6 @@
         let bgScoreClass = '';
         if (renderSpan.isConceptSearch || renderSpan.isSemanticSearch) {
           const score = renderSpan.value as number;
-          console.log(score);
           if (score < 0.55) {
             bgScoreClass = 'bg-blue-50';
           } else if (score < 0.6) {
