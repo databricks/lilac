@@ -224,7 +224,7 @@
     >
       <div class="rounded-b border-b border-l border-r border-neutral-300">
         {#if mediaFields.length > 0}
-          {#each mediaFields as mediaField, i (serializePath(mediaField.path))}
+          {#each mediaFields as mediaField (serializePath(mediaField.path))}
             <div class="flex w-full flex-col">
               <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
             </div>
