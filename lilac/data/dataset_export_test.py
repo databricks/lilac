@@ -4,7 +4,7 @@ import csv
 import json
 import pathlib
 from datetime import datetime
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import numpy as np
 import pandas as pd
@@ -26,8 +26,8 @@ class TestSignal(TextSignal):
     return field(fields={'len': 'int32', 'flen': 'float32'})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len': len(text_content), 'flen': float(len(text_content))} for text_content in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return ({'len': len(text_content), 'flen': float(len(text_content))} for text_content in data)
 
 
 @pytest.fixture(scope='module', autouse=True)

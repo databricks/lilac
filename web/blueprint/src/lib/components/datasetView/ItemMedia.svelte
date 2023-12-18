@@ -26,11 +26,12 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
   import {
     CatalogPublish,
     ChevronDown,
     ChevronUp,
+    DataBackup,
+    DataView,
     DataViewAlt,
     DirectionFork,
     Search,
@@ -63,7 +64,7 @@
   }
 
   $: valueNodes = row != null ? getValueNodes(row, rootPath!) : [];
-  $: isLeaf = valueNodes.length <= 1;
+  $: isLeaf = pathIsMatching(mediaPath, rootPath);
 
   // Get the list of next root paths for children of a repeated node.
   $: nextRootPaths = valueNodes.map(v => {
@@ -93,7 +94,7 @@
   $: displayPath = getDisplayPath(pathForDisplay);
 
   $: valueNode = valueNodes[0];
-  $: value = L.value(valueNode);
+  $: value = L.value(valueNode) as string;
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Get slots for the view. These are custom UI renderings that are a function of dataset formats.
@@ -205,10 +206,8 @@
 
 <div class="flex w-full flex-row gap-x-4 p-2">
   {#if isLeaf}
-    <div
-      class="relative mr-4 flex w-32 shrink-0 flex-row font-mono font-medium text-neutral-500 md:w-44"
-    >
-      <div class="sticky top-0 flex w-full flex-col gap-y-2 self-start">
+    <div class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36">
+      <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
           <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
             {displayPath}
@@ -253,6 +252,18 @@
           {/if}
 
           <button
+            on:click={() =>
+              ($datasetViewStore.showMetadataPanel = !$datasetViewStore.showMetadataPanel)}
+            use:hoverTooltip={{
+              text: $datasetViewStore.showMetadataPanel
+                ? 'Collapse metadata panel'
+                : 'Expand metadata panel'
+            }}
+            >{#if $datasetViewStore.showMetadataPanel}<DataBackup size={16} />{:else}<DataView
+                size={16}
+              />{/if}
+          </button>
+          <button
             disabled={!textIsOverBudget}
             class:opacity-50={!textIsOverBudget}
             on:click={() => (userExpanded = !userExpanded)}
@@ -265,18 +276,18 @@
     <div class="flex grow flex-col font-normal">
       {#if titleValue != null}
         <div
-          class="-m-2 mb-1 rounded bg-gray-100 p-1 px-2 text-xs font-bold uppercase text-gray-700"
+          class="mb-1 ml-11 rounded bg-gray-100 p-1 px-2 text-xs font-bold uppercase text-gray-700"
         >
           {titleValue}
         </div>
       {/if}
 
       <div class="grow pt-1">
-        {#if row != null}
+        {#if row != null && value != null}
           {#if colCompareState == null}
             <ItemMediaTextContent
               hidden={markdown}
-              text={formatValue(value)}
+              text={value}
               {row}
               path={rootPath}
               {field}
@@ -302,7 +313,7 @@
             />
           {/if}
         {:else}
-          <SkeletonText lines={3} paragraph class="w-full" />
+          <span class="ml-12 italic">null</span>
         {/if}
       </div>
     </div>
@@ -310,7 +321,7 @@
     <!-- Repeated values will render <ItemMedia> again. -->
     <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
       <div class="m-2 flex flex-col gap-y-2">
-        <div title={displayPath} class="mx-2 mt-2 truncate font-mono font-medium text-neutral-500">
+        <div title={displayPath} class="mx-2 my-2 truncate font-mono font-medium text-neutral-500">
           {displayPath}
         </div>
         {#each nextRootPaths as nextRootPath}

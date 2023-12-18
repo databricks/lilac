@@ -1,5 +1,5 @@
 """A signal to search for a substring in a document."""
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 from typing_extensions import override
 
@@ -35,7 +35,7 @@ class SubstringSignal(Signal):
     return field(fields=['string_span'])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text in data:
       if not isinstance(text, str):
         yield None

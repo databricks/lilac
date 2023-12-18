@@ -2,7 +2,7 @@
 
 import inspect
 import re
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import pytest
 from typing_extensions import override
@@ -46,8 +46,8 @@ class TestFirstCharSignal(TextSignal):
     return field(fields={'len': 'int32', 'firstchar': 'string'})
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
-    return [{'len': len(text_content), 'firstchar': text_content[0]} for text_content in data]
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+    return ({'len': len(text_content), 'firstchar': text_content[0]} for text_content in data)
 
 
 @pytest.fixture(scope='module', autouse=True)

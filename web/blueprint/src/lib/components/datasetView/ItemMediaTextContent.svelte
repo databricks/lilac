@@ -444,6 +444,25 @@
           endPosition.column
         );
 
+        // Map the score to a class.
+        let bgScoreClass = '';
+        if (renderSpan.isConceptSearch || renderSpan.isSemanticSearch) {
+          const score = renderSpan.value as number;
+          if (score < 0.55) {
+            bgScoreClass = 'bg-blue-50';
+          } else if (score < 0.6) {
+            bgScoreClass = 'bg-blue-100';
+          } else if (score < 0.7) {
+            bgScoreClass = 'bg-blue-200';
+          } else if (score < 0.8) {
+            bgScoreClass = 'bg-blue-300';
+          } else if (score < 0.9) {
+            bgScoreClass = 'bg-blue-400';
+          } else {
+            bgScoreClass = 'bg-blue-500';
+          }
+        }
+
         if (renderSpan.isKeywordSearch) {
           spanDecorations.push({
             range,
@@ -464,7 +483,7 @@
           spanDecorations.push({
             range,
             options: {
-              className: 'concept-search-bg',
+              className: 'concept-search-bg ' + bgScoreClass,
               inlineClassName: 'concept-search-text',
               hoverMessage: hoverCard,
               glyphMarginClassName: 'concept-search-bg',
@@ -480,7 +499,7 @@
           spanDecorations.push({
             range,
             options: {
-              className: 'semantic-search-bg',
+              className: 'semantic-search-bg ' + bgScoreClass,
               inlineClassName: 'semantic-search-text',
               hoverMessage: hoverCard,
               glyphMarginClassName: 'semantic-search-bg',
@@ -645,7 +664,7 @@
 
   /** Concept and semantic search */
   :global(.concept-search-bg, .semantic-search-bg) {
-    @apply bg-blue-400 bg-opacity-20;
+    @apply bg-opacity-20;
   }
   :global(.concept-search-text, .semantic-search-text) {
     @apply text-black;

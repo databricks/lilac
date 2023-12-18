@@ -1,7 +1,7 @@
 """Implementation-agnostic tests of the Dataset DB API working with projects."""
 
 from pathlib import Path
-from typing import ClassVar, Iterable, Optional, cast
+from typing import ClassVar, Iterable, Iterator, Optional, cast
 
 import numpy as np
 import pytest
@@ -68,7 +68,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
@@ -82,7 +82,7 @@ class TestSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       self._call_count += 1
       yield len(text_content)

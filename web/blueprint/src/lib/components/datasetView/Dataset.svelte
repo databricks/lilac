@@ -152,7 +152,7 @@
     >
       <SchemaView />
     </div>
-    <div class="h-full w-2/3 flex-grow">
+    <div class="h-full w-2/3 flex-grow py-1">
       {#if viewType == 'scroll'}
         <ScrollView />
       {:else if viewType == 'single_item'}

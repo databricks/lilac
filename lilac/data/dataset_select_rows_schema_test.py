@@ -1,6 +1,6 @@
 """Tests for `db.select_rows_schema()`."""
 
-from typing import ClassVar, Iterable, Optional, cast
+from typing import ClassVar, Iterable, Iterator, Optional, cast
 
 import numpy as np
 import pytest
@@ -79,7 +79,7 @@ class TestSplitter(TextSignal):
     return field(fields=['string_span'])
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     for text in data:
       if not isinstance(text, str):
         raise ValueError(f'Expected text to be a string, got {type(text)} instead.')
@@ -105,7 +105,7 @@ class TestEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Item]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
       yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
@@ -124,7 +124,7 @@ class TestEmbeddingSumSignal(VectorSignal):
   @override
   def vector_compute(
     self, keys: Iterable[VectorKey], vector_index: VectorDBIndex
-  ) -> Iterable[Item]:
+  ) -> Iterator[Item]:
     # The signal just sums the values of the embedding.
     all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
@@ -153,7 +153,7 @@ class LengthSignal(TextSignal):
   def fields(self) -> Field:
     return field('int32')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       yield len(text_content)
 
@@ -164,7 +164,7 @@ class AddSpaceSignal(TextSignal):
   def fields(self) -> Field:
     return field('string')
 
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     for text_content in data:
       yield cast(str, text_content) + ' '
 

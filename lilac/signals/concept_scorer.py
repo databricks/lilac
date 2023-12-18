@@ -1,6 +1,6 @@
 """A signal to compute a score along a concept."""
 import os
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import numpy as np
 from typing_extensions import override
@@ -60,7 +60,7 @@ class ConceptSignal(VectorSignal):
 
   def _score_span_vectors(
     self, span_vectors: Iterable[Iterable[SpanVector]]
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     concept_model = self._get_concept_model()
 
     return flat_batched_compute(
@@ -83,7 +83,7 @@ class ConceptSignal(VectorSignal):
     self.version = concept_model.version
 
   @override
-  def compute(self, examples: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, examples: Iterable[RichData]) -> Iterator[Optional[Item]]:
     """Get the scores for the provided examples."""
     embed_fn = get_embed_fn(self.embedding, split=True)
     span_vectors = embed_fn(examples)
@@ -92,7 +92,7 @@ class ConceptSignal(VectorSignal):
   @override
   def vector_compute(
     self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterable[Optional[Item]]:
+  ) -> Iterator[Optional[Item]]:
     span_vectors = vector_index.get(keys)
     return self._score_span_vectors(span_vectors)
 

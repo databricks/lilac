@@ -1,5 +1,5 @@
 """A signal to compute span offsets of already labeled concept text."""
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 from typing_extensions import override
 
@@ -38,7 +38,7 @@ class ConceptLabelsSignal(TextSignal):
       self.version = concept.version
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     concept = self._concept_db.get(self.namespace, self.concept_name, self._user)
     if not concept:
       raise ValueError(f'Concept "{self.namespace}/{self.concept_name}" does not exist.')

@@ -62,6 +62,7 @@
   title="Group by"
   {items}
   bind:open
+  direction="left"
   on:select={selectItem}
   {selectedId}
   tooltip={selectedPath ? `Grouping by ${getDisplayPath(selectedPath)}` : null}

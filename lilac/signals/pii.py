@@ -1,5 +1,5 @@
 """Compute text statistics for a document."""
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 from typing_extensions import override
 
@@ -39,7 +39,7 @@ class PIISignal(TextSignal):
     )
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     try:
       from .pii_presidio import find_pii
       from .pii_secrets import find_secrets

@@ -33,8 +33,25 @@ SHARE_GPT_FORMAT = DatasetFormat(
   ),
 )
 
+# https://github.com/imoneoi/openchat
+OPEN_CHAT_FORMAT = DatasetFormat(
+  name='openchat_format',
+  title_slots=[(('items', PATH_WILDCARD, 'content'), ('items', PATH_WILDCARD, 'role'))],
+  data_schema=schema(
+    {
+      'items': [
+        {
+          'role': 'string',
+          'content': 'string',
+        }
+      ],
+      'system': 'string',
+    },
+  ),
+)
+
 # Formats are taken from axlotl: https://github.com/OpenAccess-AI-Collective/axolotl#dataset
-DATASET_FORMATS: list[DatasetFormat] = [SHARE_GPT_FORMAT]
+DATASET_FORMATS: list[DatasetFormat] = [SHARE_GPT_FORMAT, OPEN_CHAT_FORMAT]
 
 
 def schema_is_compatible_with(dataset_schema: Schema, format_schema: Schema) -> bool:

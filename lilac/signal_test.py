@@ -1,5 +1,5 @@
 """Test signal base class."""
-from typing import ClassVar, Iterable, Optional
+from typing import ClassVar, Iterable, Iterator, Optional
 
 import pytest
 from typing_extensions import override
@@ -31,9 +31,9 @@ class TestSignal(Signal):
     return field('float32')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     del data
-    return []
+    yield from ()
 
 
 class TestTextEmbedding(TextEmbeddingSignal):
@@ -42,9 +42,9 @@ class TestTextEmbedding(TextEmbeddingSignal):
   name: ClassVar[str] = 'test_embedding'
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterable[Optional[Item]]:
+  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
     del data
-    return []
+    yield from ()
 
 
 @pytest.fixture(scope='module', autouse=True)

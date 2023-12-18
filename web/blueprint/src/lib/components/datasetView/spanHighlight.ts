@@ -6,6 +6,7 @@ import {
   serializePath,
   valueAtPath,
   type DataType,
+  type DataTypeCasted,
   type LilacValueNode,
   type LilacValueNodeCasted,
   type Path,
@@ -58,6 +59,8 @@ export interface MonacoRenderSpan {
   isSemanticSearch: boolean;
   isLeafSpan: boolean;
   hasNonNumericMetadata: boolean;
+
+  value: DataTypeCasted;
 
   // The text for this render span.
   text: string;
@@ -125,7 +128,8 @@ export function getMonacoRenderSpans(
           hasNonNumericMetadata,
           namedValue,
           path,
-          text
+          text,
+          value
         });
       }
     }

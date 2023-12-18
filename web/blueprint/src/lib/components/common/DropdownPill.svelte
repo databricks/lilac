@@ -12,6 +12,8 @@
   export let selectedId: string | null | undefined = null;
   export let items: DropdownItem[] | null | undefined = null;
   export let tooltip: string | null | undefined = undefined;
+  // The direction to open the dropdown.
+  export let direction: 'left' | 'right' = 'right';
 
   const dispatch = createEventDispatcher();
   export let open = false;
@@ -32,6 +34,7 @@
 
 <div
   class="drop-pill flex items-center px-2"
+  class:drop-pill-left={direction === 'left'}
   class:active={selectedId != null}
   use:hoverTooltip={!open && tooltip ? {text: tooltip} : {text: ''}}
 >
@@ -64,7 +67,14 @@
   :global(.drop-pill .bx--list-box__menu) {
     max-height: 26rem !important;
     width: unset;
-    right: unset;
+  }
+  :global(.drop-pill.drop-pill-left .bx--list-box__menu) {
+    /** These two lines move the drop pill from the right-hand side. */
+    transform: translateX(-100%);
+    margin-left: 100%;
+  }
+  :global(.drop-pill bx--list-box--expanded) {
+    @apply flex flex-col;
   }
   :global(.drop-pill .bx--dropdown) {
     @apply !max-w-xs;
