@@ -310,7 +310,7 @@ def sparse_to_dense_compute(
   sparse_input = iter(sparse_input)
   sparse_input, sparse_input_2 = itertools.tee(sparse_input, 2)
   dense_input = cast(Iterator[Tin], filter(lambda x: x is not None, sparse_input_2))
-  dense_output = func(dense_input)
+  dense_output = iter(func(dense_input))
   for input in sparse_input:
     if input is None:
       yield None
