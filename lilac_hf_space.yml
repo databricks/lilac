@@ -174,10 +174,6 @@ signals:
     embedding: gte-small
   - signal_name: concept_score
     namespace: lilac
-    concept_name: legal-termination
-    embedding: gte-small
-  - signal_name: concept_score
-    namespace: lilac
     concept_name: negative-sentiment
     embedding: gte-small
   - signal_name: concept_score

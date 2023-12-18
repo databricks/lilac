@@ -93,7 +93,6 @@ or your own! For more information on embeddings,
 We are also hosting a [HuggingFace space](https://huggingface.co/spaces/lilacai/lilac) with a
 handful of popular datasets (e.g. [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca))
 and curated concepts (e.g. [profanity](https://lilacai-lilac.hf.space/concepts#lilac/profanity),
-[legal termination](https://lilacai-lilac.hf.space/concepts#lilac/legal-termination),
 [source-code detection](https://lilacai-lilac.hf.space/concepts#lilac/source-code), etc.). In this
 demo, you can browse pre-enriched datasets and even create your own concepts. The space can be
 forked and made private with your own data, skipping the installation process of Lilac.
