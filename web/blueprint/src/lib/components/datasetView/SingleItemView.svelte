@@ -121,6 +121,7 @@
 <SingleItemSelectRows {limit} bind:rowsResponse />
 <SingleItemSelectRows limit={limit * 2} bind:rowsResponse={nextRowsResponse} />
 
+<!-- Prefetch both the current and the next page of responses, to minimize the loading bar. -->
 {#each nextRowsResponse?.rows || [] as row}
   {@const rowId = L.value(row[ROWID], 'string')}
   <PrefetchRowItem {rowId} />
