@@ -89,3 +89,15 @@ def test_sparse_to_dense_compute_empty() -> None:
 
   out = sparse_to_dense_compute(sparse_input, func)
   assert list(out) == []
+
+
+def test_sparse_to_dense_compute_iterable_returned() -> None:
+  sparse_input: Iterator[int] = iter([1, 2, 3])
+
+  # Users will sometimes write a Signal/Map function that's supposed to return an iterator
+  # but accidentally return an iterable. This test ensures that we are robust to this mistake.
+  def func(xs: Iterable[int]) -> Iterator[int]:
+    return [x + 1 for x in xs]  # type: ignore
+
+  out = sparse_to_dense_compute(sparse_input, func)
+  assert list(out) == [2, 3, 4]
