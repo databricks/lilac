@@ -27,6 +27,7 @@
     leaf_path: groupBy.path,
     sort_by: sortBy as GroupsSortBy,
     sort_order: sortOrder as SortOrder,
+    // Explicitly set the limit to null to get all the groups, not just the top 100.
     limit: null
   });
   $: allCounts = $groupsQuery.data?.counts.filter(c => c[0] != null);
@@ -58,6 +59,7 @@
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- A tab index let's us arrow through the groups when the group header is focused. -->
 <div
   tabindex="0"
   class="mx-5 my-2 flex items-center justify-between rounded-lg border border-neutral-300 bg-neutral-100 py-2"
