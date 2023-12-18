@@ -41,19 +41,19 @@
     }
   }
 
-  function updateValue(next: boolean) {
+  function updateValue(direction: 'previous' | 'next') {
     if (value == null || allCounts == null || valueIndex == null) {
       return;
     }
-    const newValue = next ? allCounts[valueIndex + 1][0] : allCounts[valueIndex - 1][0];
+    const newValue = direction ? allCounts[valueIndex + 1][0] : allCounts[valueIndex - 1][0];
     store.setGroupBy(groupBy.path, newValue);
   }
   function onKeyDown(key: KeyboardEvent) {
     key.stopPropagation();
     if (key.code === 'ArrowLeft') {
-      updateValue(false);
+      updateValue('previous');
     } else if (key.code === 'ArrowRight') {
-      updateValue(true);
+      updateValue('next');
     }
   }
 </script>
@@ -67,7 +67,7 @@
 >
   <div class="flex-0">
     {#if valueIndex != null && valueIndex > 0}
-      <button on:click={() => updateValue(false)}
+      <button on:click={() => updateValue('previous')}
         ><ChevronLeft title="Previous group" size={24} /></button
       >
     {/if}
@@ -92,7 +92,7 @@
   </div>
   <div class="flex-0">
     {#if valueIndex != null && allCounts && valueIndex < allCounts.length - 1}
-      <button on:click={() => updateValue(true)}
+      <button on:click={() => updateValue('next')}
         ><ChevronRight title="Next group" size={24} /></button
       >
     {/if}

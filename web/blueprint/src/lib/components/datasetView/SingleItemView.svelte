@@ -55,7 +55,7 @@
       return;
     }
     const newIndex = direction === 'next' ? index + 1 : Math.max(index - 1, 0);
-    const newRowId = L.value(nextRowsResponse?.rows[newIndex][ROWID], 'string');
+    const newRowId = L.value(nextRowsResponse?.rows[newIndex]?.[ROWID], 'string');
     if (newRowId != null) {
       store.setRowId(newRowId);
       return;
@@ -81,18 +81,14 @@
   {@const rowId = L.value(row[ROWID], 'string')}
   <PrefetchRowItem {rowId} />
 {/each}
-
-{#if rowId != null}
-  <div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
-    <RowItem
-      {index}
-      totalNumRows={rowsResponse?.total_num_rows}
-      {rowId}
-      {mediaFields}
-      {highlightedFields}
-      {updateSequentialRowId}
-    />
-  </div>
-{/if}
-
+<div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
+  <RowItem
+    {index}
+    totalNumRows={rowsResponse?.total_num_rows}
+    {rowId}
+    {mediaFields}
+    {highlightedFields}
+    {updateSequentialRowId}
+  />
+</div>
 <svelte:window on:keydown={onKeyDown} />

@@ -31,7 +31,7 @@
   import ItemMetadata from './ItemMetadata.svelte';
   import LabelPill from './LabelPill.svelte';
 
-  export let rowId: string;
+  export let rowId: string | undefined | null;
   export let mediaFields: LilacField[];
   export let highlightedFields: LilacField[];
   // The counting index of this row item.
@@ -63,7 +63,7 @@
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: rowQuery =
-    $selectRowsSchema.data != null && !$selectRowsSchema.isFetching
+    rowId != null && $selectRowsSchema.data != null && !$selectRowsSchema.isFetching
       ? queryRowMetadata(
           namespace,
           datasetName,
@@ -87,6 +87,9 @@
   }
 
   function addLabel(label: string) {
+    if (rowId == null) {
+      return;
+    }
     const addLabelsOptions: AddLabelsOptions = {
       row_ids: [rowId],
       label_name: label
@@ -110,6 +113,9 @@
   }
 
   function removeLabel(label: string) {
+    if (rowId == null) {
+      return;
+    }
     const body: RemoveLabelsOptions = {
       label_name: label,
       row_ids: [rowId]
@@ -159,7 +165,11 @@
             </div>
           {/each}
           <div class="relative mr-8 h-8">
-            <EditLabel icon={Tag} labelsQuery={{row_ids: [rowId]}} hideLabels={rowLabels} />
+            <EditLabel
+              icon={Tag}
+              labelsQuery={{row_ids: rowId != null ? [rowId] : []}}
+              hideLabels={rowLabels}
+            />
           </div>
         </div>
       </div>

@@ -111,7 +111,7 @@ class ClusterHDBScan(VectorSignal):
         start, end = text_span
         metadata = {CLUSTER_ID: cluster_id, MEMBERSHIP_PROB: membership_prob}
         if cluster_id < 0:
-          metadata = {}
+          metadata = {CLUSTER_ID: -1}
         span_clusters.append(span(start, end, metadata))
         span_index += 1
 

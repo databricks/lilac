@@ -26,6 +26,7 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
   import {
     CatalogPublish,
     ChevronDown,
@@ -283,37 +284,32 @@
       {/if}
 
       <div class="grow pt-1">
-        {#if row != null && value != null}
-          {#if colCompareState == null}
-            <ItemMediaTextContent
-              hidden={markdown}
-              text={value}
-              {row}
-              path={rootPath}
-              {field}
-              isExpanded={userExpanded}
-              spanPaths={spanValuePaths.spanPaths}
-              spanValueInfos={spanValuePaths.spanValueInfos}
-              {datasetViewStore}
-              embeddings={computedEmbeddings}
-              {viewType}
-              bind:textIsOverBudget
-            />
-            <div class="markdown w-full" class:hidden={!markdown}>
-              <div class="markdown -ml-0.5 w-fit pl-14">
-                <SvelteMarkdown source={formatValue(value)} />
-              </div>
-            </div>
-          {:else}
-            <ItemMediaDiff
-              {row}
-              {colCompareState}
-              bind:textIsOverBudget
-              isExpanded={userExpanded}
-            />
-          {/if}
-        {:else}
+        {#if row == null}
+          <SkeletonText class="w-20" />
+        {:else if value == null}
           <span class="ml-12 italic">null</span>
+        {:else if colCompareState == null}
+          <ItemMediaTextContent
+            hidden={markdown}
+            text={value}
+            {row}
+            path={rootPath}
+            {field}
+            isExpanded={userExpanded}
+            spanPaths={spanValuePaths.spanPaths}
+            spanValueInfos={spanValuePaths.spanValueInfos}
+            {datasetViewStore}
+            embeddings={computedEmbeddings}
+            {viewType}
+            bind:textIsOverBudget
+          />
+          <div class="markdown w-full" class:hidden={!markdown}>
+            <div class="markdown -ml-0.5 w-fit pl-14">
+              <SvelteMarkdown source={formatValue(value)} />
+            </div>
+          </div>
+        {:else}
+          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
         {/if}
       </div>
     </div>
