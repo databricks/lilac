@@ -94,7 +94,7 @@ class ClusterHDBScan(VectorSignal):
         min_dist=0.0,
         random_state=self.umap_random_state,
       )
-      all_vectors: list[np.ndarray] = reducer.fit_transform(all_vectors)
+      all_vectors = reducer.fit_transform(all_vectors)
 
     from sklearn.cluster import HDBSCAN
 
