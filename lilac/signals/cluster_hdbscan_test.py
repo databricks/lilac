@@ -64,9 +64,25 @@ def test_simple_data(make_test_data: TestDataMaker, mocker: MockerFixture) -> No
   signal_key = signal.key(is_computed_signal=True)
   result = dataset.select_rows(combine_columns=True)
   expected_result = [
-    {'text': enriched_item('a', {signal_key: [span(0, 1, {'cluster_id': 0})]})},
-    {'text': enriched_item('b', {signal_key: [span(0, 1, {'cluster_id': 1})]})},
-    {'text': enriched_item('c', {signal_key: [span(0, 1, {'cluster_id': 0})]})},
-    {'text': enriched_item('d', {signal_key: [span(0, 1, {'cluster_id': 1})]})},
+    {
+      'text': enriched_item(
+        'a', {signal_key: [span(0, 1, {'cluster_id': 0, 'membership_prob': 1.0})]}
+      )
+    },
+    {
+      'text': enriched_item(
+        'b', {signal_key: [span(0, 1, {'cluster_id': 1, 'membership_prob': 1.0})]}
+      )
+    },
+    {
+      'text': enriched_item(
+        'c', {signal_key: [span(0, 1, {'cluster_id': 0, 'membership_prob': 1.0})]}
+      )
+    },
+    {
+      'text': enriched_item(
+        'd', {signal_key: [span(0, 1, {'cluster_id': 1, 'membership_prob': 1.0})]}
+      )
+    },
   ]
   assert list(result) == expected_result

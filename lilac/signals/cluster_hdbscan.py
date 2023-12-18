@@ -3,7 +3,6 @@ from typing import ClassVar, Iterable, Optional
 
 import numpy as np
 from pydantic import Field as PyField
-from sklearn.cluster import HDBSCAN
 from typing_extensions import override
 
 from ..embeddings.embedding import get_embed_fn
@@ -13,6 +12,7 @@ from ..signal import VectorSignal
 from ..utils import DebugTimer
 
 CLUSTER_ID = 'cluster_id'
+MEMBERSHIP_PROB = 'membership_prob'
 MIN_CLUSTER_SIZE = 5
 UMAP_N_COMPONENTS = 10
 
@@ -46,7 +46,12 @@ class ClusterHDBScan(VectorSignal):
   @override
   def fields(self) -> Field:
     return field(
-      fields=[field(dtype='string_span', fields={CLUSTER_ID: field('int32', categorical=True)})]
+      fields=[
+        field(
+          dtype='string_span',
+          fields={CLUSTER_ID: field('int32', categorical=True), MEMBERSHIP_PROB: field('float32')},
+        )
+      ]
     )
 
   @override
@@ -89,7 +94,9 @@ class ClusterHDBScan(VectorSignal):
         min_dist=0.0,
         random_state=self.umap_random_state,
       )
-      all_vectors = reducer.fit_transform(all_vectors)
+      all_vectors: list[np.ndarray] = reducer.fit_transform(all_vectors)
+
+    from sklearn.cluster import HDBSCAN
 
     with DebugTimer('HDBSCAN: Clustering'):
       hdbscan = HDBSCAN(min_cluster_size=self.min_cluster_size, n_jobs=-1)
@@ -99,11 +106,13 @@ class ClusterHDBScan(VectorSignal):
     for spans in all_spans:
       span_clusters: list[Item] = []
       for text_span in spans:
-        cluster_id: Optional[int] = int(hdbscan.labels_[span_index])
+        cluster_id = int(hdbscan.labels_[span_index])
+        membership_prob = float(hdbscan.probabilities_[span_index])
         start, end = text_span
-        if cluster_id == -1:
-          cluster_id = None
-        span_clusters.append(span(start, end, {CLUSTER_ID: cluster_id}))
+        metadata = {CLUSTER_ID: cluster_id, MEMBERSHIP_PROB: membership_prob}
+        if cluster_id < 0:
+          metadata = {}
+        span_clusters.append(span(start, end, metadata))
         span_index += 1
 
       yield span_clusters

@@ -121,7 +121,7 @@
 <SingleItemSelectRows {limit} bind:rowsResponse />
 <SingleItemSelectRows limit={limit * 2} bind:rowsResponse={nextRowsResponse} />
 
-{#each rows || [] as row}
+{#each nextRowsResponse?.rows || [] as row}
   {@const rowId = L.value(row[ROWID], 'string')}
   <PrefetchRowItem {rowId} />
 {/each}
