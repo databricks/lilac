@@ -88,13 +88,15 @@ class ClusterHDBScan(VectorSignal):
       f'UMAP: Reducing dimensionality of {len(all_vectors)} vectors '
       f'of dimensionality {all_vectors[0].size} to {self.umap_n_components}'
     ):
-      reducer = umap.UMAP(
-        n_components=self.umap_n_components,
-        n_neighbors=30,
-        min_dist=0.0,
-        random_state=self.umap_random_state,
-      )
-      all_vectors = reducer.fit_transform(all_vectors)
+      dim = all_vectors[0].size
+      if self.umap_n_components < dim:
+        reducer = umap.UMAP(
+          n_components=self.umap_n_components,
+          n_neighbors=30,
+          min_dist=0.0,
+          random_state=self.umap_random_state,
+        )
+        all_vectors = reducer.fit_transform(all_vectors)
 
     from sklearn.cluster import HDBSCAN
 
