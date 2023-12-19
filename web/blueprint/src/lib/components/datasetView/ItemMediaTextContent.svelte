@@ -419,8 +419,6 @@
 
   let spanDecorations: Monaco.editor.IModelDeltaDecoration[] = [];
 
-  $: console.log(monacoSpans);
-
   // Add highlighting to the editor based on searches.
   $: {
     if (editor != null && model != null) {

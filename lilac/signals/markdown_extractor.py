@@ -1,4 +1,8 @@
-"""Finds markdown blocks."""
+"""Finds markdown blocks.
+
+NOTE: It would be great to use guesslang to detect the language automatically, however
+there is a dependency conflict with typing extensions.
+"""
 import re
 from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, Optional, cast
 
