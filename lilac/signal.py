@@ -162,6 +162,7 @@ class TextEmbeddingSignal(TextSignal):
   embed_input_type: EmbeddingInputType = PydanticField(
     title='Embedding Input Type', default='document', description='The input type to the embedding.'
   )
+  output_type: OutputType = 'embedding'
 
   _split = True
 
