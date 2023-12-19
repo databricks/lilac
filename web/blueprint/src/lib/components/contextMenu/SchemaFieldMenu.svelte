@@ -44,10 +44,10 @@
   $: computedEmbeddings = getComputedEmbeddings($schema.data, field.path);
 
   $: isPreview = isPreviewSignal($selectRowsSchema?.data || null, field.path);
-  $: isComputable = !isSignal && isSortableField(field) && !isPreview;
+  $: canComputeSignal = !isSignal && isSortableField(field) && !isPreview;
   $: hasMenu =
     !isPreview &&
-    (isSortableField(field) || isFilterableField(field) || isComputable || isDeletable);
+    (isSortableField(field) || isFilterableField(field) || canComputeSignal || isDeletable);
 
   const authInfo = queryAuthInfo();
   $: canComputeSignals = $authInfo.data?.access.dataset.compute_signals;
@@ -81,7 +81,7 @@
           })}
       />
     {/if}
-    {#if isComputable}
+    {#if canComputeSignal}
       <div
         class="w-full"
         use:hoverTooltip={{
@@ -103,7 +103,7 @@
         />
       </div>
     {/if}
-    {#if isComputable}
+    {#if canComputeSignal}
       <div
         class="w-full"
         use:hoverTooltip={{
@@ -127,7 +127,7 @@
         />
       </div>
     {/if}
-    {#if isComputable}
+    {#if canComputeSignal}
       <div
         class="w-full"
         use:hoverTooltip={{
@@ -149,7 +149,7 @@
         />
       </div>
     {/if}
-    {#if isComputable}
+    {#if canComputeSignal}
       <OverflowMenuItem
         text="Preview signal"
         on:click={() =>
