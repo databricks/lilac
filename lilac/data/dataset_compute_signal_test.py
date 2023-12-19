@@ -316,7 +316,9 @@ def test_signal_continuation(make_test_data: TestDataMaker) -> None:
       {
         'text': field(
           'string',
-          fields={'test_signal': field(dtype='int32', signal=test_signal.model_dump())},
+          fields={
+            'test_signal': field(dtype='int32', signal=test_signal.model_dump(exclude_none=True))
+          },
         ),
       }
     ),
@@ -345,7 +347,8 @@ def test_signal_overwrite(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
+              signal=test_signal.model_dump(exclude_none=True),
+              fields={'len': 'int32', 'flen': 'float32'},
             )
           },
         ),
@@ -400,7 +403,8 @@ def test_signal_ignores_deleted(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
+              signal=test_signal.model_dump(exclude_none=True),
+              fields={'len': 'int32', 'flen': 'float32'},
             )
           },
         ),
@@ -451,7 +455,8 @@ def test_source_joined_with_signal(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_signal': field(
-              signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
+              signal=test_signal.model_dump(exclude_none=True),
+              fields={'len': 'int32', 'flen': 'float32'},
             )
           },
         ),
@@ -511,8 +516,8 @@ def test_parameterized_signal(make_test_data: TestDataMaker) -> None:
         'text': field(
           'string',
           fields={
-            'param_signal(param=a)': field('string', test_signal_a.model_dump()),
-            'param_signal(param=b)': field('string', test_signal_b.model_dump()),
+            'param_signal(param=a)': field('string', test_signal_a.model_dump(exclude_none=True)),
+            'param_signal(param=b)': field('string', test_signal_b.model_dump(exclude_none=True)),
           },
         )
       }
@@ -555,7 +560,11 @@ def test_split_signal(make_test_data: TestDataMaker) -> None:
       {
         'text': field(
           'string',
-          fields={'test_split': field(signal=signal.model_dump(), fields=[field('string_span')])},
+          fields={
+            'test_split': field(
+              signal=signal.model_dump(exclude_none=True), fields=[field('string_span')]
+            )
+          },
         )
       }
     ),
@@ -599,7 +608,8 @@ def test_signal_on_repeated_field(make_test_data: TestDataMaker) -> None:
               'string',
               fields={
                 'test_signal': field(
-                  signal=test_signal.model_dump(), fields={'len': 'int32', 'flen': 'float32'}
+                  signal=test_signal.model_dump(exclude_none=True),
+                  fields={'len': 'int32', 'flen': 'float32'},
                 )
               },
             )
@@ -675,7 +685,7 @@ def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) 
           'string',
           fields={
             'test_embedding': field(
-              signal=embedding_signal.model_dump(),
+              signal=embedding_signal.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
             )
           },
@@ -723,7 +733,11 @@ def test_is_computed_signal_key(make_test_data: TestDataMaker) -> None:
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema(
-      {'text': field('string', fields={'key_True': field('int64', signal=signal.model_dump())})}
+      {
+        'text': field(
+          'string', fields={'key_True': field('int64', signal=signal.model_dump(exclude_none=True))}
+        )
+      }
     ),
     num_items=2,
     source=TestSource(),

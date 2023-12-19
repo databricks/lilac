@@ -455,8 +455,10 @@ class Dataset(abc.ABC):
     """
     pass
 
-  def cluster(self, embedding: str, path: Path) -> None:
+  def cluster(self, path: Path, embedding: Optional[str] = None) -> None:
     """Compute clusters for a field of the dataset."""
+    if not embedding:
+      raise ValueError('Only embedding-based clustering is supported for now.')
     signal = ClusterHDBScan(embedding=embedding)
     self.compute_signal(signal, path)
 

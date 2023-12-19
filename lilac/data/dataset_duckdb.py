@@ -1068,7 +1068,7 @@ class DatasetDuckDB(Dataset):
 
     if not signal_schema:
       signal_schema = inferred_schema
-      signal_schema.get_field(output_path).signal = signal.model_dump()
+      signal_schema.get_field(output_path).signal = signal.model_dump(exclude_none=True)
 
     assert parquet_filepath is not None
     parquet_filename = os.path.basename(parquet_filepath)
@@ -2049,7 +2049,7 @@ class DatasetDuckDB(Dataset):
         udfs.append(SelectRowsSchemaUDF(path=dest_path, alias=col.alias))
         field = col.signal_udf.fields()
         assert field, f'Signal {col.signal_udf.name} needs `Signal.fields` defined when run as UDF.'
-        field.signal = col.signal_udf.model_dump()
+        field.signal = col.signal_udf.model_dump(exclude_none=True)
       elif manifest.data_schema.has_field(dest_path):
         field = manifest.data_schema.get_field(dest_path)
       else:
