@@ -8,7 +8,7 @@ from typing_extensions import override
 from ..embeddings.embedding import get_embed_fn
 from ..embeddings.vector_store import VectorDBIndex
 from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, span
-from ..signal import OutputType, VectorSignal
+from ..signal import OutputType, TopicFn, VectorSignal
 from ..utils import DebugTimer
 
 CLUSTER_ID = 'cluster_id'
@@ -28,6 +28,7 @@ class ClusterHDBScan(VectorSignal):
   display_name: ClassVar[str] = 'Cluster with HDBSCAN'
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
   output_type: OutputType = 'cluster'
+  topic_fn: Optional[TopicFn] = None
 
   min_cluster_size: int = PyField(
     title='Minimum cluster size',

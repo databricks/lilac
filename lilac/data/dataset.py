@@ -55,6 +55,7 @@ from ..schema import (
 from ..signal import (
   Signal,
   TextEmbeddingSignal,
+  TopicFn,
   get_signal_by_type,
   resolve_signal,
 )
@@ -455,11 +456,22 @@ class Dataset(abc.ABC):
     """
     pass
 
-  def cluster(self, path: Path, embedding: Optional[str] = None) -> None:
-    """Compute clusters for a field of the dataset."""
+  def cluster(
+    self, path: Path, embedding: Optional[str] = None, topic_fn: Optional[TopicFn] = None
+  ) -> None:
+    """Compute clusters for a field of the dataset.
+
+    Args:
+      path: The path to the text field to cluster.
+      embedding: The pre-computed embedding to use.
+      topic_fn: A function that takes a list of (topic, membership_score) tuples and returns a
+        single topic. This is used to compute the topic for a given cluster.
+
+    """
     if not embedding:
       raise ValueError('Only embedding-based clustering is supported for now.')
-    signal = ClusterHDBScan(embedding=embedding)
+
+    signal = ClusterHDBScan(embedding=embedding, topic_fn=topic_fn)
     self.compute_signal(signal, path)
 
   def compute_embedding(
