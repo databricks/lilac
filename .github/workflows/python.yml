@@ -41,6 +41,10 @@ jobs:
           poetry run pip3 install --force-reinstall --pre torch==2.* --index-url https://download.pytorch.org/whl/nightly/cpu
           poetry run pip3 install typing_extensions==4.7.1 --force-reinstall
 
+      - name: Test CLI
+        run: |
+          ./integration_tests/run_integration_tests.sh
+
       # We run testing before linting since testing, surprisingly, is much faster.
       - name: Test python
         run: |
