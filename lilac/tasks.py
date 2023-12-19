@@ -34,7 +34,7 @@ from pydantic import BaseModel
 from tqdm import tqdm
 
 from .env import env
-from .utils import pretty_timedelta
+from .utils import log, pretty_timedelta
 
 # nest-asyncio is used to patch asyncio to allow nested event loops. This is required when Lilac is
 # run from a Jupyter notebook.
@@ -353,8 +353,8 @@ def _execute_task(
   except Exception as e:
     # Get traceback and print it.
     tb = traceback.format_exc()
-    print(f'Task shard id {task_shard_id} failed: {e}\n{tb}')
-    raise
+    log(f'Task shard id {task_shard_id} failed: {e}\n{tb}')
+    raise e
 
 
 TProgress = TypeVar('TProgress')

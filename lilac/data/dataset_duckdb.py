@@ -27,8 +27,6 @@ from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
-from lilac.data.dataset import DELETED_LABEL_NAME
-
 from ..auth import UserInfo
 from ..batch_utils import deep_flatten, deep_unflatten
 from ..config import (
@@ -113,6 +111,7 @@ from ..utils import (
 from . import dataset
 from .dataset import (
   BINARY_OPS,
+  DELETED_LABEL_NAME,
   LIST_OPS,
   MAX_TEXT_LEN_DISTINCT_COUNT,
   MEDIA_AVG_TEXT_LEN,

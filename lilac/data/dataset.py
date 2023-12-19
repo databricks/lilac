@@ -58,6 +58,7 @@ from ..signal import (
   get_signal_by_type,
   resolve_signal,
 )
+from ..signals.cluster_hdbscan import ClusterHDBScan
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
 from ..tasks import TaskExecutionType, TaskShardId
@@ -453,6 +454,11 @@ class Dataset(abc.ABC):
         the progress of the task.
     """
     pass
+
+  def cluster(self, embedding: str, path: Path) -> None:
+    """Compute clusters for a field of the dataset."""
+    signal = ClusterHDBScan(embedding=embedding)
+    self.compute_signal(signal, path)
 
   def compute_embedding(
     self,
