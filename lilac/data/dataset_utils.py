@@ -127,7 +127,7 @@ def create_signal_schema(
   if not signal_schema:
     return None
 
-  signal_schema.signal = signal.model_dump()
+  signal_schema.signal = signal.model_dump(exclude_none=True)
 
   enriched_schema = field(fields={signal.key(is_computed_signal=True): signal_schema})
 

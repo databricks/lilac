@@ -139,10 +139,10 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
           'string',
           fields={
             'test_embedding_sum(embedding=test_embedding)': field(
-              'float32', signal=embedding_sum_signal.model_dump()
+              'float32', signal=embedding_sum_signal.model_dump(exclude_none=True)
             ),
             'test_embedding': field(
-              signal=TestEmbedding().model_dump(),
+              signal=TestEmbedding().model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
             ),
           },

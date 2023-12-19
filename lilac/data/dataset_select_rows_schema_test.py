@@ -239,7 +239,7 @@ def test_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
       {
         'people': [
           {
-            'name': {'length_signal': field('int32', length_signal.model_dump())},
+            'name': {'length_signal': field('int32', length_signal.model_dump(exclude_none=True))},
             'locations': [{'city': 'string'}],
           }
         ]
@@ -265,7 +265,11 @@ def test_embedding_udf_with_combine_cols(make_test_data: TestDataMaker) -> None:
           {
             'name': field(
               'string',
-              fields={'add_space_signal': field('string', signal=add_space_signal.model_dump())},
+              fields={
+                'add_space_signal': field(
+                  'string', signal=add_space_signal.model_dump(exclude_none=True)
+                )
+              },
             )
           }
         ]
@@ -291,8 +295,10 @@ def test_udf_chained_with_combine_cols(make_test_data: TestDataMaker) -> None:
         'text': field(
           'string',
           fields={
-            'add_space_signal': field('string', add_space_signal.model_dump()),
-            'test_splitter': field(signal=test_splitter.model_dump(), fields=['string_span']),
+            'add_space_signal': field('string', add_space_signal.model_dump(exclude_none=True)),
+            'test_splitter': field(
+              signal=test_splitter.model_dump(exclude_none=True), fields=['string_span']
+            ),
           },
         )
       }
@@ -324,7 +330,7 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             expected_world_signal.key(): field(
-              signal=expected_world_signal.model_dump(), fields=['string_span']
+              signal=expected_world_signal.model_dump(exclude_none=True), fields=['string_span']
             )
           },
         ),
@@ -332,7 +338,7 @@ def test_search_keyword_schema(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             expected_hello_signal.key(): field(
-              signal=expected_hello_signal.model_dump(), fields=['string_span']
+              signal=expected_hello_signal.model_dump(exclude_none=True), fields=['string_span']
             )
           },
         ),
@@ -376,11 +382,11 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_embedding': field(
-              signal=test_embedding.model_dump(),
+              signal=test_embedding.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
             ),
             expected_world_signal.key(): field(
-              signal=expected_world_signal.model_dump(),
+              signal=expected_world_signal.model_dump(exclude_none=True),
               fields=[field('string_span', fields={'score': 'float32'})],
             ),
           },
@@ -431,11 +437,11 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
           'string',
           fields={
             'test_embedding': field(
-              signal=test_embedding.model_dump(),
+              signal=test_embedding.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
             ),
             expected_world_signal.key(): field(
-              signal=expected_world_signal.model_dump(),
+              signal=expected_world_signal.model_dump(exclude_none=True),
               fields=[
                 field(
                   dtype='string_span',
@@ -449,7 +455,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
             ),
             'test_namespace/test_concept/labels/preview': field(
               fields=[field('string_span', fields={'label': 'boolean', 'draft': 'string'})],
-              signal=expected_labels_signal.model_dump(),
+              signal=expected_labels_signal.model_dump(exclude_none=True),
             ),
           },
         )

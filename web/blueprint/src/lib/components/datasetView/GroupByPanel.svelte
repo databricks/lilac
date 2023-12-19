@@ -45,7 +45,8 @@
     if (value == null || allCounts == null || valueIndex == null) {
       return;
     }
-    const newValue = direction ? allCounts[valueIndex + 1][0] : allCounts[valueIndex - 1][0];
+    const newValue =
+      direction === 'next' ? allCounts[valueIndex + 1][0] : allCounts[valueIndex - 1][0];
     store.setGroupBy(groupBy.path, newValue);
   }
   function onKeyDown(key: KeyboardEvent) {
@@ -56,21 +57,26 @@
       updateValue('next');
     }
   }
+
+  $: leftArrowEnabled = valueIndex != null && valueIndex > 0;
+  $: rightArrowEnabled = valueIndex != null && allCounts && valueIndex < allCounts.length - 1;
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 <!-- A tab index let's us arrow through the groups when the group header is focused. -->
 <div
   tabindex="0"
-  class="mx-5 my-2 flex items-center justify-between rounded-lg border border-neutral-300 bg-neutral-100 py-2"
+  class="mx-4 my-2 flex items-center justify-center gap-x-2 rounded-lg border border-neutral-300 bg-neutral-100 py-2"
   on:keydown={onKeyDown}
 >
   <div class="flex-0">
-    {#if valueIndex != null && valueIndex > 0}
-      <button on:click={() => updateValue('previous')}
-        ><ChevronLeft title="Previous group" size={24} /></button
-      >
-    {/if}
+    <button
+      on:click={() => updateValue('previous')}
+      class:opacity-30={!leftArrowEnabled}
+      disabled={!leftArrowEnabled}
+    >
+      <ChevronLeft title="Previous group" size={24} />
+    </button>
   </div>
 
   <div class="flex-col items-center justify-items-center truncate">
@@ -90,11 +96,14 @@
       {/if}
     </div>
   </div>
+
   <div class="flex-0">
-    {#if valueIndex != null && allCounts && valueIndex < allCounts.length - 1}
-      <button on:click={() => updateValue('next')}
-        ><ChevronRight title="Next group" size={24} /></button
-      >
-    {/if}
+    <button
+      on:click={() => updateValue('next')}
+      class:opacity-30={!rightArrowEnabled}
+      disabled={!rightArrowEnabled}
+    >
+      <ChevronRight title="Next group" size={24} />
+    </button>
   </div>
 </div>

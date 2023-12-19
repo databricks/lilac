@@ -11,6 +11,7 @@
  */
 export type SemanticSimilaritySignal = {
     signal_name: 'semantic_similarity';
+    output_type?: ('embedding' | 'cluster' | null);
     /**
      * The name of the pre-computed embedding.
      */

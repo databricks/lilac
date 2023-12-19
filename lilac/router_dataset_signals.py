@@ -54,8 +54,6 @@ def compute_signal(
   signal = options.signal
 
   def _task_compute_signal(namespace: str, dataset_name: str, task_id: TaskId) -> None:
-    # NOTE: We manually call .model_dump() to avoid the dask serializer, which doesn't call the
-    # underlying pydantic serializer.
     dataset = get_dataset(namespace, dataset_name)
     dataset.compute_signal(
       signal,

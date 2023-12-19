@@ -8,6 +8,7 @@ from typing import (
   ClassVar,
   Iterable,
   Iterator,
+  Literal,
   Optional,
   Sequence,
   Type,
@@ -51,6 +52,9 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
   schema['required'].append('signal_name')
 
 
+OutputType = Optional[Literal['embedding', 'cluster']]
+
+
 class Signal(BaseModel):
   """Interface for signals to implement. A signal can score documents and a dataset column."""
 
@@ -61,6 +65,9 @@ class Signal(BaseModel):
 
   # The input type is used to populate the UI to determine what the signal accepts as input.
   input_type: ClassVar[SignalInputType]
+
+  # The output type is the logical type, and treated in a special way in the UI.
+  output_type: OutputType = None
 
   @model_serializer(mode='wrap', when_used='always')
   def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:
@@ -155,6 +162,7 @@ class TextEmbeddingSignal(TextSignal):
   embed_input_type: EmbeddingInputType = PydanticField(
     title='Embedding Input Type', default='document', description='The input type to the embedding.'
   )
+  output_type: OutputType = 'embedding'
 
   _split = True
 
