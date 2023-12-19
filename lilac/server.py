@@ -201,8 +201,11 @@ class Server(uvicorn.Server):
     super().__init__(config)
 
     def run() -> None:
-      loop = asyncio.get_event_loop()
-      loop.run_until_complete(self.serve())
+      try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.serve())
+      except RuntimeError:
+        self.run()
 
     self.thread = Thread(target=run)
 
