@@ -51,6 +51,7 @@
   export let rootPath: Path | undefined = undefined;
   // The showPath is a subset of the path that will be displayed for this node.
   export let showPath: Path | undefined = undefined;
+  export let isFetching: boolean | undefined = undefined;
 
   // Choose the root path which is up to the point of the next repeated value.
   $: firstRepeatedIndex = mediaPath.findIndex(p => p === PATH_WILDCARD);
@@ -203,6 +204,8 @@
   $: viewType = $settings.data?.ui?.view_type || 'single_item';
 
   $: markdown = userPreview !== undefined ? userPreview : datasetSettingsMarkdown;
+
+  $: console.log('isLef:', isLeaf);
 </script>
 
 <div class="flex w-full flex-row gap-x-4 p-2">
@@ -284,9 +287,9 @@
       {/if}
 
       <div class="grow pt-1">
-        {#if row == null}
+        {#if isFetching}
           <SkeletonText class="w-20" />
-        {:else if value == null}
+        {:else if value == null || row == null}
           <span class="ml-12 italic">null</span>
         {:else if colCompareState == null}
           <ItemMediaTextContent

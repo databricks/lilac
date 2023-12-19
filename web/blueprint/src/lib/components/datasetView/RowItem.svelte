@@ -188,21 +188,25 @@
               </button>
             </div>
           {/if}
-          <div class="flex w-32 flex-row justify-center gap-x-1.5">
-            <span class="inline-flex">
+          <div class="mx-2 flex w-32 flex-row justify-center justify-items-center gap-x-1.5">
+            <div class="flex">
               {#if index != null && index >= 0}
                 {index + 1}
               {:else}
-                <SkeletonText lines={1} class="!w-10" />
+                <div class="pt-1.5">
+                  <SkeletonText lines={1} class="!w-10" />
+                </div>
               {/if}
-            </span>
-            <span class="inline-flex text-gray-500 opacity-80">of</span>
+            </div>
+            <div class="text-gray-500 opacity-80">of</div>
 
             <span class="inline-flex text-gray-500 opacity-80">
               {#if totalNumRows != null}
                 {formatValue(totalNumRows)}
               {:else}
-                <SkeletonText lines={1} class="!w-20" />
+                <div class="pt-1.5">
+                  <SkeletonText lines={1} class="!w-20" />
+                </div>
               {/if}
             </span>
           </div>
@@ -233,10 +237,19 @@
       bind:clientHeight={mediaHeight}
     >
       <div class="rounded-b border-b border-l border-r border-neutral-300">
+        {#if $rowQuery?.isFetching}
+          <SkeletonText class="w-20" />
+        {/if}
         {#if mediaFields.length > 0}
           {#each mediaFields as mediaField (serializePath(mediaField.path))}
             <div class="flex w-full flex-col">
-              <ItemMedia mediaPath={mediaField.path} {row} field={mediaField} {highlightedFields} />
+              <ItemMedia
+                mediaPath={mediaField.path}
+                {row}
+                field={mediaField}
+                {highlightedFields}
+                isFetching={$rowQuery?.isFetching}
+              />
             </div>
           {/each}
         {/if}
