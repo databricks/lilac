@@ -55,7 +55,7 @@
       return;
     }
     const newIndex = direction === 'next' ? index + 1 : Math.max(index - 1, 0);
-    const newRowId = L.value(nextRowsResponse?.rows[newIndex][ROWID], 'string');
+    const newRowId = L.value(nextRowsResponse?.rows[newIndex]?.[ROWID], 'string');
     if (newRowId != null) {
       store.setRowId(newRowId);
       return;
@@ -76,22 +76,19 @@
 <SingleItemSelectRows {limit} bind:rowsResponse />
 <SingleItemSelectRows limit={limit * 2} bind:rowsResponse={nextRowsResponse} />
 
-{#each rows || [] as row}
+<!-- Prefetch both the current and the next page of responses, to minimize the loading bar. -->
+{#each nextRowsResponse?.rows || [] as row}
   {@const rowId = L.value(row[ROWID], 'string')}
   <PrefetchRowItem {rowId} />
 {/each}
-
-{#if rowId != null}
-  <div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
-    <RowItem
-      {index}
-      totalNumRows={rowsResponse?.total_num_rows}
-      {rowId}
-      {mediaFields}
-      {highlightedFields}
-      {updateSequentialRowId}
-    />
-  </div>
-{/if}
-
+<div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
+  <RowItem
+    {index}
+    totalNumRows={rowsResponse?.total_num_rows}
+    {rowId}
+    {mediaFields}
+    {highlightedFields}
+    {updateSequentialRowId}
+  />
+</div>
 <svelte:window on:keydown={onKeyDown} />
