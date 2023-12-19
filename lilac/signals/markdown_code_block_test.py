@@ -2,17 +2,17 @@
 
 from ..schema import field
 from ..splitters.text_splitter_test_utils import text_to_expected_spans
-from .markdown_extractor import MarkdownExtractorSignal
+from .markdown_code_block import MarkdownCodeBlockSignal
 
 
-def test_markdown_extractor_fields() -> None:
-  signal = MarkdownExtractorSignal()
+def test_markdown_code_block_fields() -> None:
+  signal = MarkdownCodeBlockSignal()
   signal.setup()
   assert signal.fields() == field(fields=[field('string_span', fields={'language': 'string'})])
 
 
-def test_markdown_extractor() -> None:
-  signal = MarkdownExtractorSignal()
+def test_markdown_code_block() -> None:
+  signal = MarkdownCodeBlockSignal()
   signal.setup()
 
   text = """
