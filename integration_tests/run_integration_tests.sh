@@ -11,7 +11,7 @@ PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.get
 
 
 poetry run lilac start ./test_data --port $PORT &
-pid="$!" # need to get the pid of the vlc process.
+pid="$!"
 
 URL="http://localhost:$PORT/docs"
 start_time="$(date -u +%s)"
@@ -26,9 +26,6 @@ until curl --fail --silent "$URL" > /dev/null; do
     exit 1
   fi
 done
-
-# Save curl's exit code (-f option causes it to return one on HTTP errors)
-curl_exit_code=$?
 
 echo "GET request to $URL succeeded."
 
