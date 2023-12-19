@@ -43,7 +43,6 @@ jobs:
 
       - name: Test CLI
         run: |
-          chmod +x ./integration_tests/run_integration_tests.sh
           ./integration_tests/run_integration_tests.sh
 
       # We run testing before linting since testing, surprisingly, is much faster.
