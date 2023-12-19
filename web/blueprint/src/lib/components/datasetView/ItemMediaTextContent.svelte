@@ -644,7 +644,7 @@
 <!-- For reasons unknown to me, the -ml-6 is required to make the autolayout of monaco react. -->
 <div class="relative -ml-6 flex h-fit w-full flex-col gap-x-4">
   {#if !editorReady}
-    <div class="ml-6 w-full"><SkeletonText class="ml-6 w-full " lines="3" /></div>
+    <div class="ml-6 w-full"><SkeletonText class="ml-6 w-full " lines={3} /></div>
   {/if}
   <div
     class="editor-container ml-6 h-64"
