@@ -9,7 +9,7 @@ touch test_data/lilac.yml
 FREE_PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()');
 
 
-poetry run lilac start test_data --port $FREE_PORT &
+poetry run lilac start ./test_data --port $FREE_PORT &
 pid="$!" # need to get the pid of the vlc process.
 sleep 4
 
