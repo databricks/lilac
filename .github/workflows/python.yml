@@ -49,3 +49,9 @@ jobs:
       - name: Lint python
         run: |
           poetry run ./scripts/lint_py.sh
+
+      - name: Test CLI
+        run: |
+          chmod +x ./integration_tests/run_integration_tests.sh
+          ./integration_tests/run_integration_tests.sh
+        shell: bash
