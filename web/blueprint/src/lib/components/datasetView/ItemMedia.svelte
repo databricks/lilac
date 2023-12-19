@@ -204,8 +204,6 @@
   $: viewType = $settings.data?.ui?.view_type || 'single_item';
 
   $: markdown = userPreview !== undefined ? userPreview : datasetSettingsMarkdown;
-
-  $: console.log('isLef:', isLeaf);
 </script>
 
 <div class="flex w-full flex-row gap-x-4 p-2">
