@@ -14,7 +14,7 @@ pid="$!" # need to get the pid of the vlc process.
 sleep 4
 
 # Make a test request using curl
-curl --fail "http://localhost:$FREE_PORT/"
+curl --fail "http://localhost:$FREE_PORT/docs"
 
 # Save curl's exit code (-f option causes it to return one on HTTP errors)
 curl_exit_code=$?
