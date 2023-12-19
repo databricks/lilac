@@ -286,7 +286,7 @@
 
       <div class="grow pt-1">
         {#if isFetching}
-          <SkeletonText class="w-20" />
+          <SkeletonText class="!w-80" />
         {:else if value == null || row == null}
           <span class="ml-12 italic">null</span>
         {:else if colCompareState == null}
