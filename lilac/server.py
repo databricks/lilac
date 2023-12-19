@@ -209,9 +209,15 @@ class Server(uvicorn.Server):
 
     self.thread = Thread(target=run)
 
-  def start(self) -> None:
+  def start(self, block: bool = True) -> None:
     """Start the server in a separate thread."""
     self.thread.start()
+    try:
+      asyncio.get_event_loop()
+    except RuntimeError:
+      # Block when running outside an event loop.
+      if block:
+        self.thread.join()
 
   def stop(self) -> None:
     """Stop the server."""
@@ -228,6 +234,7 @@ def start_server(
   open: bool = False,
   project_dir: str = '',
   load: bool = False,
+  block: bool = True,
 ) -> None:
   """Starts the Lilac web server.
 
@@ -240,6 +247,8 @@ def start_server(
       `LILAC_PROJECT_DIR` is not defined, will start in the current directory.
     load: Whether to load from the lilac.yml when the server boots up. This will diff the config
       with the fields that are computed and compute them when the server boots up.
+    block: Whether to block the main thread. Always `False` when running in a notebook. Defaults to
+      `True` when running from the command line.
   """
   create_project_and_set_env(project_dir)
 
@@ -258,7 +267,7 @@ def start_server(
 
   config = uvicorn.Config(app, host=host, port=port, access_log=False)
   SERVER = Server(config)
-  SERVER.start()
+  SERVER.start(block)
 
 
 def stop_server() -> None:

@@ -10,6 +10,7 @@ from .cluster_hdbscan import ClusterHDBScan
 from .concept_labels import ConceptLabelsSignal
 from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
+from .markdown_code_block import MarkdownCodeBlockSignal
 from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
 from .pii import PIISignal
@@ -29,6 +30,7 @@ def register_default_signals() -> None:
   register_signal(NearDuplicateSignal)
   register_signal(LangDetectionSignal)
   register_signal(ClusterHDBScan)
+  register_signal(MarkdownCodeBlockSignal)
 
   # Embeddings.
   register_signal(Cohere)

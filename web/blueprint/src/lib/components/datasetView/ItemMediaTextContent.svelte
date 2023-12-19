@@ -511,7 +511,7 @@
               }
             }
           });
-        } else if (renderSpan.isLeafSpan) {
+        } else if (renderSpan.isMetadata) {
           spanDecorations.push({
             range,
             options: {
@@ -678,7 +678,7 @@
     @apply border-r-8 border-orange-700 opacity-20;
   }
   :global(.leaf-text) {
-    @apply font-extrabold text-violet-500 underline;
+    @apply text-violet-500;
   }
 
   /** Deep-linked selection */
