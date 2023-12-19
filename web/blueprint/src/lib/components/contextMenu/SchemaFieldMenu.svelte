@@ -39,13 +39,15 @@
   const deleteSignal = deleteSignalMutation();
 
   $: isSignal = isSignalField(field);
-  $: isSignalRoot = isSignalRootField(field);
+  $: isDeletable = isSignalRootField(field);
 
   $: computedEmbeddings = getComputedEmbeddings($schema.data, field.path);
 
   $: isPreview = isPreviewSignal($selectRowsSchema?.data || null, field.path);
+  $: isComputable = !isSignal && isSortableField(field) && !isPreview;
   $: hasMenu =
-    (isSortableField(field) || isFilterableField(field) || !isSignal || isSignalRoot) && !isPreview;
+    !isPreview &&
+    (isSortableField(field) || isFilterableField(field) || isComputable || isDeletable);
 
   const authInfo = queryAuthInfo();
   $: canComputeSignals = $authInfo.data?.access.dataset.compute_signals;
@@ -79,7 +81,7 @@
           })}
       />
     {/if}
-    {#if !isSignal}
+    {#if isComputable}
       <div
         class="w-full"
         use:hoverTooltip={{
@@ -101,7 +103,7 @@
         />
       </div>
     {/if}
-    {#if !isSignal}
+    {#if isComputable}
       <div
         class="w-full"
         use:hoverTooltip={{
@@ -125,7 +127,7 @@
         />
       </div>
     {/if}
-    {#if !isSignal}
+    {#if isComputable}
       <div
         class="w-full"
         use:hoverTooltip={{
@@ -147,7 +149,7 @@
         />
       </div>
     {/if}
-    {#if !isSignal}
+    {#if isComputable}
       <OverflowMenuItem
         text="Preview signal"
         on:click={() =>
@@ -159,7 +161,7 @@
           })}
       />
     {/if}
-    {#if isSignalRoot}
+    {#if isDeletable}
       <div
         class="w-full"
         use:hoverTooltip={{

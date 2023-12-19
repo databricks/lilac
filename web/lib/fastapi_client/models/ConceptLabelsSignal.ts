@@ -8,6 +8,7 @@
  */
 export type ConceptLabelsSignal = {
     signal_name: 'concept_labels';
+    output_type?: ('embedding' | 'cluster' | null);
     namespace: string;
     concept_name: string;
     version?: (number | null);

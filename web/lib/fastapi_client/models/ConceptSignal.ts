@@ -8,6 +8,7 @@
  */
 export type ConceptSignal = {
     signal_name: 'concept_score';
+    output_type?: ('embedding' | 'cluster' | null);
     /**
      * The name of the pre-computed embedding.
      */
