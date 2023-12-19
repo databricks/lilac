@@ -6,19 +6,34 @@ set -e # Fail if any of the commands below fail.
 mkdir -p test_data
 touch test_data/lilac.yml
 
-FREE_PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()');
+# Find a free port.
+PORT=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()');
 
 
-poetry run lilac start ./test_data --port $FREE_PORT &
+poetry run lilac start ./test_data --port $PORT &
 pid="$!" # need to get the pid of the vlc process.
-sleep 4
 
-# Make a test request using curl
-curl --fail "http://localhost:$FREE_PORT/docs"
+URL="http://localhost:$PORT/docs"
+start_time="$(date -u +%s)"
+TIMEOUT_SEC=15
+until curl --fail --silent "$URL" > /dev/null; do
+  sleep 1
+  current_time="$(date -u +%s)"
+  elapsed_seconds=$(($current_time-$start_time))
+  if [ $elapsed_seconds -gt $TIMEOUT_SEC ]; then
+    echo "Timeout $TIMEOUT_SEC seconds to reach server."
+    kill $pid
+    exit 1
+  fi
+done
 
 # Save curl's exit code (-f option causes it to return one on HTTP errors)
 curl_exit_code=$?
 
+echo "GET request to $URL succeeded."
+
 kill $pid
 
+echo
+echo "CLI integration tests passed."
 exit 0
