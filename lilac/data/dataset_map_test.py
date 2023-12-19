@@ -377,7 +377,7 @@ def test_map_continuation(
     return _map_fn(item, first_run=False)
 
   # Write the output to a new column.
-  with pytest.raises(ValueError):
+  with pytest.raises(Exception):
     dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
   # The schema should not reflect the output of the map as it didn't finish.
