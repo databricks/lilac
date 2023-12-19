@@ -213,7 +213,8 @@ def test_load_signals(tmp_path: pathlib.Path) -> None:
     data_schema=schema(
       {
         'str': field(
-          'string', fields={'test_signal': field('int32', signal=test_signal.model_dump())}
+          'string',
+          fields={'test_signal': field('int32', signal=test_signal.model_dump(exclude_none=True))},
         ),
         'int': 'int32',
         'bool': 'boolean',
@@ -256,7 +257,7 @@ def test_load_embeddings(tmp_path: pathlib.Path) -> None:
           'string',
           fields={
             'test_embedding': field(
-              signal=TestEmbedding().model_dump(),
+              signal=TestEmbedding().model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
             )
           },

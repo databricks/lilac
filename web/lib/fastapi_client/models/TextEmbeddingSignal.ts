@@ -8,6 +8,7 @@
  */
 export type TextEmbeddingSignal = {
     signal_name: string;
+    output_type?: ('embedding' | 'cluster' | null);
     /**
      * The input type to the embedding.
      */

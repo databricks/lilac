@@ -8,6 +8,7 @@
  */
 export type SubstringSignal = {
     signal_name: 'substring_search';
+    output_type?: ('embedding' | 'cluster' | null);
     query: string;
 };
 

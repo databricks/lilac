@@ -139,7 +139,7 @@
   <!-- Header -->
   <div class="sticky top-0 z-10 flex w-full flex-row justify-between bg-white">
     <div
-      class="mx-4 flex w-full rounded-t border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
+      class="mx-4 flex w-full rounded-t-lg border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
     >
       <!-- Left arrow -->
       <div class="flex w-1/3 flex-row">

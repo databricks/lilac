@@ -285,7 +285,7 @@
 
       <div class="grow pt-1">
         {#if row == null}
-          <SkeletonText class="w-20" />
+          <SkeletonText class="!w-80" />
         {:else if value == null}
           <span class="ml-12 italic">null</span>
         {:else if colCompareState == null}
