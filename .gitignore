@@ -19,6 +19,8 @@ dist/
 # Data to ignore.
 /data
 demo_data/
+# Artifacts from integration test data.
+test_data/
 
 # Ignore pickled concept models.
 data/concept/**/*.pkl
