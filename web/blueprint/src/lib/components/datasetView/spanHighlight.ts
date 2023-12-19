@@ -57,6 +57,7 @@ export interface MonacoRenderSpan {
   isKeywordSearch: boolean;
   isConceptSearch: boolean;
   isSemanticSearch: boolean;
+  isMetadata: boolean;
   isLeafSpan: boolean;
   hasNonNumericMetadata: boolean;
 
@@ -103,6 +104,7 @@ export function getMonacoRenderSpans(
         const isConceptSearch = valueInfo.type === 'concept_score';
         const isSemanticSearch = valueInfo.type === 'semantic_similarity';
         const hasNonNumericMetadata = valueInfo.type === 'metadata' && !isNumeric(valueInfo.dtype);
+        const isMetadata = valueInfo.type === 'metadata';
         const isLeafSpan = valueInfo.type === 'leaf_span';
 
         let isHighlighted = false;
@@ -124,6 +126,7 @@ export function getMonacoRenderSpans(
           isKeywordSearch,
           isConceptSearch,
           isSemanticSearch,
+          isMetadata,
           isLeafSpan,
           hasNonNumericMetadata,
           namedValue,
