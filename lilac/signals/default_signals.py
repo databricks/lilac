@@ -10,7 +10,7 @@ from .cluster_hdbscan import ClusterHDBScan
 from .concept_labels import ConceptLabelsSignal
 from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
-from .markdown_extractor import MarkdownCodeBlockSignal
+from .markdown_code_block import MarkdownCodeBlockSignal
 from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
 from .pii import PIISignal
