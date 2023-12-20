@@ -1,5 +1,4 @@
 """Jina embeddings. Open-source, designed to run on device, with 8K context."""
-import functools
 from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
 
 from ..utils import chunks
@@ -26,19 +25,6 @@ JINA_BATCH_SIZE = 1
 JINA_CONTEXT_SIZE = 8192
 
 
-@functools.cache
-def _get_model(size: str) -> 'AutoModel':
-  try:
-    from transformers import AutoModel
-  except ImportError:
-    raise ImportError(
-      'Could not import the `transformers` python package. '
-      'Please install it with `pip install transformers`.'
-    )
-  # trust_remote_code is needed to use the encode method.
-  return AutoModel.from_pretrained(f'jinaai/{_SIZE_TO_MODEL[size]}', trust_remote_code=True)
-
-
 class JinaV2Small(TextEmbeddingSignal):
   """Jina V2 Embeddings with 8K context.
 
@@ -50,15 +36,33 @@ class JinaV2Small(TextEmbeddingSignal):
   display_name: ClassVar[str] = 'Jina V2 (small)'
 
   _size = 'small'
+  _model: 'AutoModel'
+
+  @override
+  def setup(self) -> None:
+    try:
+      from transformers import AutoModel
+    except ImportError:
+      raise ImportError(
+        'Could not import the `transformers` python package. '
+        'Please install it with `pip install transformers`.'
+      )
+    # trust_remote_code is needed to use the encode method.
+    self._model = AutoModel.from_pretrained(
+      f'jinaai/{_SIZE_TO_MODEL[self._size]}', trust_remote_code=True
+    )
+
+  @override
+  def teardown(self) -> None:
+    del self._model
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
-    model = _get_model(self._size)
     docs = cast(Iterable[str], docs)
 
     for batch_docs in chunks(docs, JINA_BATCH_SIZE):
       trimmed_docs = [doc[:JINA_CONTEXT_SIZE] for doc in batch_docs]
-      vectors = model.encode(trimmed_docs)
+      vectors = self._model.encode(trimmed_docs)
       for doc, vector in zip(trimmed_docs, vectors):
         vector = np.array(vector)
         vector /= norm(vector)

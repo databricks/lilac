@@ -3,6 +3,7 @@ import os
 import pathlib
 from typing import Generator, Optional, Type
 
+import freezegun.config
 import pytest
 from pytest_mock import MockerFixture
 
@@ -11,6 +12,9 @@ from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_test_utils import TestProcessLogger, make_dataset
 from .db_manager import set_default_dataset_cls
 from .schema import Item, Schema
+
+# Fixes https://github.com/huggingface/transformers/issues/24545
+freezegun.config.configure(extend_ignore_list=['transformers', 'torch'])
 
 
 @pytest.fixture(scope='function', params=[DatasetDuckDB])

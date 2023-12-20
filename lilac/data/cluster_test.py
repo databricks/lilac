@@ -1,4 +1,24 @@
+"""Unit tests for dataset.cluster()."""
+from typing import Iterable
+
+import pytest
+
+from ..embeddings.jina import JinaV2Small
+from ..signal import clear_signal_registry, register_signal
 from .dataset_test_utils import TestDataMaker
+
+
+@pytest.fixture(scope='module', autouse=True)
+def setup_teardown() -> Iterable[None]:
+  # Setup.
+  clear_signal_registry()
+  register_signal(JinaV2Small)
+
+  # Unit test runs.
+  yield
+
+  # Teardown.
+  clear_signal_registry()
 
 
 def test_simple_clustering(make_test_data: TestDataMaker) -> None:

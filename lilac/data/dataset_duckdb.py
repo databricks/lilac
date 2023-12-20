@@ -1062,7 +1062,7 @@ class DatasetDuckDB(Dataset):
         task_shard_id=task_shard_id,
       )
     )
-
+    signal.teardown()
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     _, inferred_schema, parquet_filepath = self._reshard_cache(
@@ -1162,6 +1162,7 @@ class DatasetDuckDB(Dataset):
       output_dir=output_dir,
     )
 
+    signal.teardown()
     gc.collect()
 
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)

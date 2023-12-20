@@ -344,19 +344,6 @@ class MetadataSearch(BaseModel):
 Search = Union[ConceptSearch, SemanticSearch, KeywordSearch, MetadataSearch]
 
 
-class DatasetLabel(BaseModel):
-  """A label for a row of a dataset."""
-
-  label: str
-  created: datetime
-
-  @field_validator('created')
-  @classmethod
-  def created_datetime_to_string(cls, created: datetime) -> str:
-    """Convert the datetime to a string for serialization."""
-    return created.isoformat()
-
-
 class Dataset(abc.ABC):
   """The database implementation to query a dataset."""
 
