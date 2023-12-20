@@ -723,6 +723,8 @@ class Dataset(abc.ABC):
     batch_size: Optional[int] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
+    sort_by: Optional[Path] = None,
+    sort_order: Optional[SortOrder] = SortOrder.ASC,
     include_deleted: bool = False,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
@@ -755,6 +757,9 @@ class Dataset(abc.ABC):
         filter, and there is no way to fill in those nulls without recomputing the entire map with
         a less restrictive filter and overwrite=True.
       limit: How many rows to map over. If not specified, all rows will be mapped over.
+      sort_by: The path to sort by. If specified, the map will be called with rows sorted by this
+        path. This is useful for map functions that need to maintain state across rows.
+      sort_order: The sort order. Defaults to ascending.
       include_deleted: Whether to include deleted rows in the query.
       num_jobs: The number of jobs to shard the work, defaults to 1. When set to -1, the number of
         jobs will correspond to the number of processors. If `num_jobs` is greater than the number

@@ -295,7 +295,7 @@ class DuckDBQueryParams(BaseModel):
   # Filters encompass anything that goes into a WHERE clause.
   filters: list[Filter] = []
   # A column name to sort by.
-  sort_by: Optional[str] = None
+  sort_by: Optional[PathTuple] = None
   sort_order: Optional[SortOrder] = SortOrder.ASC
   # If offset is specified, a sort must also be specified for stable results.
   offset: Optional[int] = None
@@ -869,7 +869,6 @@ class DatasetDuckDB(Dataset):
 
     # Add progress.
     if task_shard_id is not None:
-      estimated_len = manifest.num_items
       # When sharding, compute the length of the work for the shard.
       (shard_start_idx, shard_end_idx) = shard_id_to_range(
         shard_id, shard_count, manifest.num_items
@@ -2603,7 +2602,24 @@ class DatasetDuckDB(Dataset):
       if query_options.offset:
         limit_clause += f' OFFSET {query_options.offset}'
 
-    return f'{where_clause} {limit_clause}'
+    sort_path = query_options.sort_by
+    sort_order = query_options.sort_order or SortOrder.ASC
+    order_clause = ''
+    if sort_path:
+      self._validate_sort_path(sort_path, manifest.data_schema)
+      sql_path = self._leaf_path_to_duckdb_path(sort_path, manifest.data_schema)
+      sort_sql = _select_sql(
+        sql_path, flatten=True, unnest=False, path=sort_path, schema=manifest.data_schema
+      )
+      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in sql_path)
+      if has_repeated_field:
+        sort_sql = (
+          f'list_min({sort_sql})' if sort_order == SortOrder.ASC else f'list_max({sort_sql})'
+        )
+
+      order_clause = f'ORDER BY {sort_sql} {sort_order.value}'
+
+    return f'{where_clause} {order_clause} {limit_clause}'
 
   @override
   def map(
@@ -2618,6 +2634,8 @@ class DatasetDuckDB(Dataset):
     batch_size: Optional[int] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
+    sort_by: Optional[Path] = None,
+    sort_order: Optional[SortOrder] = SortOrder.ASC,
     include_deleted: bool = False,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
@@ -2702,6 +2720,14 @@ class DatasetDuckDB(Dataset):
       name=progress_description,
       type=TaskType.DATASET_MAP,
     )
+    sort_by = normalize_path(sort_by) if sort_by else None
+    query_params = DuckDBQueryParams(
+      filters=filters,
+      limit=limit,
+      include_deleted=include_deleted,
+      sort_by=sort_by,
+      sort_order=sort_order,
+    )
     subtasks: list[tuple[TaskFn, list[Any]]] = []
     for i in range(num_jobs):
       jsonl_cache_filepath = _jsonl_cache_filepath(
@@ -2725,7 +2751,7 @@ class DatasetDuckDB(Dataset):
             num_jobs,
             input_path,
             overwrite,
-            DuckDBQueryParams(filters=filters, limit=limit, include_deleted=include_deleted),
+            query_params,
             combine_columns,
             resolve_span,
             (task_id, i),
