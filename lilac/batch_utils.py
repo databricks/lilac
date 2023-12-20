@@ -38,7 +38,7 @@ def _deep_unflatten(
   is_primitive_predicate: Callable[[object], bool],
 ) -> Union[list, dict]:
   """Unflattens a deeply flattened iterable according to the original iterable's structure."""
-  if is_primitive_predicate(original_input):
+  if is_primitive_predicate(original_input) or isinstance(original_input, dict):
     return next(flat_input)
   else:
     values: Iterable

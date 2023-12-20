@@ -39,6 +39,7 @@ from ..schema import (
   ROWID,
   STRING,
   STRING_SPAN,
+  VALUE_KEY,
   Bin,
   EmbeddingInputType,
   Field,
@@ -63,6 +64,7 @@ from ..signals.cluster_hdbscan import ClusterHDBScan
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
 from ..tasks import TaskExecutionType, TaskShardId
+from .clustering import summarize_instructions
 from .dataset_format import DatasetFormat
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -457,22 +459,69 @@ class Dataset(abc.ABC):
     pass
 
   def cluster(
-    self, path: Path, embedding: Optional[str] = None, topic_fn: Optional[TopicFn] = None
+    self,
+    path: Path,
+    embedding: Optional[str] = None,
+    min_cluster_size: int = 5,
+    topic_fn: TopicFn = summarize_instructions,
   ) -> None:
     """Compute clusters for a field of the dataset.
 
     Args:
       path: The path to the text field to cluster.
       embedding: The pre-computed embedding to use.
-      topic_fn: A function that takes a list of (topic, membership_score) tuples and returns a
-        single topic. This is used to compute the topic for a given cluster.
+      min_cluster_size: The minimum number of docs in a cluster.
+      topic_fn: A function that takes a list of (doc, membership_score) tuples and returns a
+        single topic. This is used to compute the topic for a given cluster of docs. It defaults
+        to a function that uses GPT-3.5 to summarize user's instructions.
 
     """
     if not embedding:
       raise ValueError('Only embedding-based clustering is supported for now.')
+    path = normalize_path(path)
 
-    signal = ClusterHDBScan(embedding=embedding, topic_fn=topic_fn)
+    signal = ClusterHDBScan(embedding=embedding, min_cluster_size=min_cluster_size)
+    signal_key = signal.key(is_computed_signal=True)
     self.compute_signal(signal, path)
+
+    # Now that we have the clusters, compute the topic for each cluster with a map.
+    def _transform(items: Iterable[Item]) -> Iterable[Item]:
+      # Maps a cluster id to a list of (doc, membership_score) tuples.
+      clusters: dict[str, list[tuple[str, float]]] = {}
+
+      for item in items:
+        spans = item[signal_key]
+        if not spans:
+          continue
+        cluster_id = item[signal_key][0]['cluster_id']
+        membership_prob = item[signal_key][0]['membership_prob']
+        text = item[VALUE_KEY]
+        docs = clusters.get(cluster_id, [])
+        docs.append((text, membership_prob))
+        clusters[cluster_id] = docs
+
+      # Maps a cluster id to a topic.
+      cluster_topics: dict[str, str] = {}
+      # Compute the topic for each cluster.
+      for cluster_id, docs in clusters.items():
+        # Sort by membership score.
+        sorted_docs = sorted(docs, key=lambda x: x[1], reverse=True)
+        topic = topic_fn(sorted_docs)
+        cluster_topics[cluster_id] = topic
+
+      results: list[Optional[str]] = []
+      for item in items:
+        cluster_id = item[signal_key][0]['cluster_id']
+        results.append(cluster_topics.get(cluster_id, None))
+      return results
+
+    self.transform(
+      _transform,
+      input_path=path,
+      output_column='topic',
+      nest_under=path,
+      combine_columns=True,
+    )
 
   def compute_embedding(
     self,

@@ -612,7 +612,7 @@ class DatasetDuckDB(Dataset):
 
   def _select_iterable_values(
     self,
-    unnest_input_path: Optional[PathTuple] = None,
+    select_path: Optional[PathTuple] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
     shard_cache_filepath: Optional[str] = None,
@@ -629,7 +629,7 @@ class DatasetDuckDB(Dataset):
 
     column: Optional[Column] = None
     cols = self._normalize_columns(
-      [unnest_input_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
+      [select_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
     )
     select_queries: list[str] = []
     columns_to_merge: dict[str, dict[str, Column]] = {}
@@ -659,7 +659,7 @@ class DatasetDuckDB(Dataset):
         column_alias = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
         )
-        if unnest_input_path:
+        if select_path:
           unnest_column_alias = column_alias
 
         select_sqls.append(f'{sql} AS {escape_string_literal(column_alias)}')
@@ -759,8 +759,17 @@ class DatasetDuckDB(Dataset):
         # to elevate the all the columns under '*'.
         df_chunk = pd.DataFrame.from_records(df_chunk['*'])
 
-      if unnest_input_path and unnest_column_alias:
-        values = df_chunk[unnest_column_alias].tolist()
+      if select_path and unnest_column_alias:
+        if combine_columns:
+          for subpath in select_path:
+            values = df_chunk
+            if subpath == PATH_WILDCARD:
+              raise ValueError('Cannot unnest a wildcard path with combine_columns=True')
+            else:
+              values = values[subpath]
+            values = values.tolist()
+        else:
+          values = df_chunk[unnest_column_alias].tolist()
       else:
         values = df_chunk.to_dict('records')
 
@@ -809,7 +818,7 @@ class DatasetDuckDB(Dataset):
       con.close()
 
     rows = self._select_iterable_values(
-      unnest_input_path=unnest_input_path,
+      select_path=unnest_input_path,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
       shard_cache_filepath=jsonl_cache_filepath,
@@ -856,7 +865,6 @@ class DatasetDuckDB(Dataset):
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
         dense_out = sparse_to_dense_compute(flat_input, lambda x: map_fn(x))
       output_items = deep_unflatten(dense_out, input_values_1)
-
     else:
       assert not isinstance(transform_fn, Signal)
       output_items = transform_fn(input_values)
