@@ -320,3 +320,9 @@ rm memray.bin memray-flamegraph-memray.html; \
 ```bash
 poetry run python -X importtime -c "import lilac" 2> import.log && poetry run tuna import.log
 ```
+
+#### Profiling lilac base library memory consumption
+
+rm memray.bin memray-flamegraph-memray.html; \
+echo "import lilac" > test_import_script.py && poetry run memray run -o memray.bin test_import_script.py
+&& poetry run memray flamegraph memray.bin && open memray-flamegraph-memray.html

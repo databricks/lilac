@@ -329,18 +329,20 @@ def test_map_continuation(
   make_test_data: TestDataMaker,
   test_process_logger: TestProcessLogger,
 ) -> None:
-  dataset = make_test_data(
-    [
-      {'id': 0, 'text': 'a sentence'},
-      {'id': 1, 'text': 'b sentence'},
-      {'id': 2, 'text': 'c sentence'},
-    ]
-  )
+  # Some flakiness in this test.
+  # Say you have 2 workers. Worker 1 gets id 0. Worker 2 gets id 1, 2, 3, 4, 5....
+  # For whatever reason worker 2 gets all the cpu time and gets to item N, which throws.
+  # The pool is accumulating finished values from worker 2, while waiting on worker 1 because it has
+  # in-order guarantees. But when worker 2 throws the exception, the whole job fails, without a
+  # single item having been returned. By making a long dataset, we are hoping to overfill the
+  # Joblib's internal queue so that it stops assigning work to worker 2, and actually wait for
+  # worker 1 to return _anything_.
+  # This test is flaky on multithreaded mode with num_items = 100 but passes at num_items = 1000
+  num_items = 1000
+  dataset = make_test_data([{'id': i} for i in range(num_items)])
 
   def _map_fn(item: Item, first_run: bool) -> Item:
-    test_process_logger.log_event(item['id'])
-
-    if first_run and item['id'] == 1:
+    if first_run and item['id'] == num_items - 1:
       raise ValueError('Throwing')
 
     return item['id']
@@ -349,6 +351,7 @@ def test_map_continuation(
     return _map_fn(item, first_run=True)
 
   def _map_fn_2(item: Item) -> Item:
+    test_process_logger.log_event(item['id'])
     return _map_fn(item, first_run=False)
 
   # Write the output to a new column.
@@ -359,31 +362,25 @@ def test_map_continuation(
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({'text': 'string', 'id': 'int32'}),
-    num_items=3,
+    data_schema=schema({'id': 'int32'}),
+    num_items=num_items,
     source=TestSource(),
   )
   # The rows should not reflect the output of the unfinished map.
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'a sentence', 'id': 0},
-    {'text': 'b sentence', 'id': 1},
-    {'text': 'c sentence', 'id': 2},
-  ]
+  assert rows == [{'id': i} for i in range(num_items)]
 
-  test_process_logger.clear_logs()
+  # Hardcode this to thread-type, because the test_process_logger takes 2 seconds to serialize.
+  # We're only really testing whether the continuation is reusing the saved results, anyway.
+  dataset.map(_map_fn_2, output_column='map_id', num_jobs=1, execution_type='threads')
 
-  dataset.map(_map_fn_2, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
-
-  # The row_id=1 should be called for the continuation.
-  assert 1 in test_process_logger.get_logs()
+  assert 0 not in test_process_logger.get_logs()
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema(
       {
-        'text': 'string',
         'id': 'int32',
         'map_id': field(
           dtype='int64',
@@ -393,15 +390,13 @@ def test_map_continuation(
         ),
       }
     ),
-    num_items=3,
+    num_items=num_items,
     source=TestSource(),
   )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'a sentence', 'id': 0, 'map_id': 0},
-    {'text': 'b sentence', 'id': 1, 'map_id': 1},
-    {'text': 'c sentence', 'id': 2, 'map_id': 2},
+  assert sorted(rows, key=lambda obj: obj['id']) == [
+    {'id': i, 'map_id': i} for i in range(num_items)
   ]
 
 
