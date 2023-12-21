@@ -46,10 +46,8 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
     f'INSTRUCTION {i+1}\n{_shorten(doc)}\nEND_INSTRUCTION {i+1}' for i, doc in enumerate(docs)
   ]
   input = '\n'.join(texts)
-  print(input)
   title = _openai_client().chat.completions.create(
-    # model='gpt-4-1106-preview',
-    model='gpt-3.5-turbo',
+    model='gpt-3.5-turbo-1106',
     response_model=Title,
     temperature=0.0,
     top_p=0.1,
@@ -66,5 +64,4 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
       {'role': 'user', 'content': input},
     ],
   )
-  print('title', title.title)
   return title.title
