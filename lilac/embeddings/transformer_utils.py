@@ -30,6 +30,7 @@ def _get_model(model_name: str, preferred_device: Optional[str]) -> 'SentenceTra
     model = model.to(preferred_device)
 
   log(f'{model_name} using device: {model.device}')
+  return model
 
 
 def get_model(model_name: str) -> 'SentenceTransformer':
