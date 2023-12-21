@@ -68,8 +68,6 @@ class JinaV2Small(TextEmbeddingSignal):
     except ImportError:
       pass
 
-    del self._model
-
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
     docs = cast(Iterable[str], docs)
