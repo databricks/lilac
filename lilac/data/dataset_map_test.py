@@ -194,31 +194,6 @@ def test_map_signal(
   ]
 
 
-@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
-def test_map_job_id(
-  execution_type: tasks.TaskExecutionType,
-  make_test_data: TestDataMaker,
-  test_process_logger: TestProcessLogger,
-) -> None:
-  dataset = make_test_data(
-    [
-      {'text': 'a sentence'},
-      {'text': 'b sentence'},
-      {'text': 'c sentence'},
-      {'text': 'd sentence'},
-      {'text': 'e sentence'},
-    ]
-  )
-
-  def _map_fn(item: Item, job_id: int) -> Item:
-    test_process_logger.log_event(job_id)
-    return {}
-
-  dataset.map(_map_fn, output_column='map_id', num_jobs=3, execution_type=execution_type)
-
-  assert set(test_process_logger.get_logs()) == set([0, 1, 2])
-
-
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_input_path(
@@ -232,7 +207,7 @@ def test_map_input_path(
     ]
   )
 
-  def _upper(row: Item, job_id: int) -> Item:
+  def _upper(row: Item) -> Item:
     return str(row).upper()
 
   # Write the output to a new column.
@@ -288,7 +263,7 @@ def test_map_input_path_nested(
     ]
   )
 
-  def _upper(row: Item, job_id: int) -> Item:
+  def _upper(row: Item) -> Item:
     return str(row).upper()
 
   dataset.map(
@@ -339,7 +314,7 @@ def test_map_input_path_nonleaf_throws(make_test_data: TestDataMaker) -> None:
     ]
   )
 
-  def _upper(row: Item, job_id: int) -> Item:
+  def _upper(row: Item) -> Item:
     return str(row).upper()
 
   with pytest.raises(Exception):
@@ -1045,24 +1020,14 @@ def test_map_span(make_test_data: TestDataMaker) -> None:
 def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
-  def _job_fn_kw(item: Item, job_id: int) -> Item:
-    assert job_id is not None
-    return item['text'] + ' map'
-
   def _fn_kw(item: Item) -> Item:
     return item['text'] + ' map'
-
-  def _job_fn(x: Item, jid: int) -> Item:
-    assert jid is not None
-    return x['text'] + ' map'
 
   def _fn(x: Item) -> Item:
     return x['text'] + ' map'
 
   # Write the output to a new column.
-  dataset.map(_job_fn_kw, output_column='_job_fn_kw')
   dataset.map(_fn_kw, output_column='_fn_kw')
-  dataset.map(_job_fn, output_column='_job_fn')
   dataset.map(_fn, output_column='_fn')
 
   assert dataset.manifest() == DatasetManifest(
@@ -1071,26 +1036,10 @@ def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
     data_schema=schema(
       {
         'text': 'string',
-        '_job_fn_kw': field(
-          dtype='string',
-          map=MapInfo(
-            fn_name='_job_fn_kw',
-            fn_source=inspect.getsource(_job_fn_kw),
-            date_created=TEST_TIME,
-          ),
-        ),
         '_fn_kw': field(
           dtype='string',
           map=MapInfo(
             fn_name='_fn_kw', fn_source=inspect.getsource(_fn_kw), date_created=TEST_TIME
-          ),
-        ),
-        '_job_fn': field(
-          dtype='string',
-          map=MapInfo(
-            fn_name='_job_fn',
-            fn_source=inspect.getsource(_job_fn),
-            date_created=TEST_TIME,
           ),
         ),
         '_fn': field(
@@ -1107,16 +1056,12 @@ def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {
       'text': 'a sentence',
-      '_job_fn_kw': 'a sentence map',
       '_fn_kw': 'a sentence map',
-      '_job_fn': 'a sentence map',
       '_fn': 'a sentence map',
     },
     {
       'text': 'b sentence',
-      '_job_fn_kw': 'b sentence map',
       '_fn_kw': 'b sentence map',
-      '_job_fn': 'b sentence map',
       '_fn': 'b sentence map',
     },
   ]
@@ -1128,13 +1073,8 @@ def test_map_ergonomics_invalid_args(make_test_data: TestDataMaker) -> None:
   def _map_noargs() -> None:
     pass
 
-  def _map_toomany_args(row: Item, job_id: int, extra_arg: int) -> None:
-    pass
-
-  with pytest.raises(ValueError, match=re.escape('Invalid map function')):
+  with pytest.raises(TypeError, match=re.escape('takes 0 positional arguments but 1 was given')):
     dataset.map(_map_noargs, output_column='_map_noargs')
-  with pytest.raises(ValueError, match=re.escape('Invalid map function')):
-    dataset.map(_map_toomany_args, output_column='_map_toomany_args')
 
 
 def test_map_nest_under_validation(make_test_data: TestDataMaker) -> None:

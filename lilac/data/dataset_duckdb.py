@@ -20,6 +20,7 @@ from importlib import metadata
 from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union, cast
 
 import duckdb
+import joblib
 import numpy as np
 import pandas as pd
 import yaml
@@ -92,12 +93,9 @@ from ..signals.substring_search import SubstringSignal
 from ..source import NoSource, SourceManifest
 from ..tasks import (
   TaskExecutionType,
-  TaskFn,
   TaskShardId,
   TaskType,
   get_task_manager,
-  report_progress,
-  show_progress_and_block,
 )
 from ..utils import (
   DebugTimer,
@@ -152,7 +150,6 @@ from .dataset_utils import (
   flatten_keys,
   get_parquet_filename,
   schema_contains_path,
-  shard_id_to_range,
   sparse_to_dense_compute,
   wrap_in_dicts,
   write_embeddings_to_disk,
@@ -615,17 +612,11 @@ class DatasetDuckDB(Dataset):
     unnest_input_path: Optional[PathTuple] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    shard_cache_filepath: Optional[str] = None,
-    overwrite: bool = False,
     query_options: Optional[DuckDBQueryParams] = None,
-    shard_id: Optional[int] = None,
-    shard_count: Optional[int] = None,
+    cache_exclude_path: Optional[str] = None,
   ) -> Iterator[tuple[str, Item]]:
     """Returns an iterable of (rowid, item), discluding results in the cache filepath."""
     manifest = self.manifest()
-    num_items = self.manifest().num_items
-
-    (shard_start_idx, shard_end_idx) = shard_id_to_range(shard_id, shard_count, num_items)
 
     column: Optional[Column] = None
     cols = self._normalize_columns(
@@ -679,51 +670,34 @@ class DatasetDuckDB(Dataset):
     # Fetch the data from DuckDB.
     con = self.con.cursor()
 
-    # Create a view for the work of the shard before anti-joining.
-    t_shard_table = f't_shard_{shard_id}'
-    con.execute(
-      f"""
-      CREATE OR REPLACE VIEW {t_shard_table} as (
-        SELECT * FROM (
-          SELECT * FROM t {options_clause}
-        )
-        ORDER BY {ROWID}
-        LIMIT {shard_end_idx - shard_start_idx}
-        OFFSET {shard_start_idx}
-      );
-    """
-    )
     select_sql = ', '.join(select_queries)
 
     # Anti-join removes input rows that are already in the cache so they do not get passed to the
     # map function.
     anti_join = ''
-    use_jsonl_cache = False
-    if not overwrite and shard_cache_filepath and os.path.exists(shard_cache_filepath):
-      with open_file(shard_cache_filepath, 'r') as f:
+    cache_view = 't_cache_view'
+    if cache_exclude_path:
+      with open_file(cache_exclude_path, 'r') as f:
         # Read the first line of the file
         first_line = f.readline()
-      use_jsonl_cache = True if first_line.strip() else False
-
-    t_cache_table = f't_cache_{shard_id}'
-    if use_jsonl_cache:
-      con.execute(
-        f"""
-        CREATE OR REPLACE VIEW {t_cache_table} as (
-          SELECT {ROWID} FROM read_json_auto(
-            '{shard_cache_filepath}',
-            IGNORE_ERRORS=true,
-            hive_partitioning=false,
-            format='newline_delimited')
-        );
-      """
-      )
-
-      anti_join = f'ANTI JOIN {t_cache_table} USING({ROWID})'
+      if first_line.strip():
+        con.execute(
+          f"""
+          CREATE OR REPLACE VIEW {cache_view} as (
+            SELECT {ROWID} FROM read_json_auto(
+              '{cache_exclude_path}',
+              IGNORE_ERRORS=true,
+              hive_partitioning=false,
+              format='newline_delimited')
+          );
+        """
+        )
+        anti_join = f'ANTI JOIN {cache_view} USING({ROWID})'
 
     result = con.execute(
       f"""
-      SELECT {ROWID}, {select_sql} FROM {t_shard_table}
+      SELECT {ROWID}, {select_sql} FROM t
+      {options_clause}
       {anti_join}
     """
     )
@@ -768,22 +742,32 @@ class DatasetDuckDB(Dataset):
 
     con.close()
 
-  def _compute_disk_cached(
+  def _dispatch_workers(
     self,
+    pool_map: joblib.Parallel,
     transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterator[Optional[Item]]]],
     output_path: PathTuple,
     jsonl_cache_filepath: str,
+    batch_size: Optional[int],
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     query_options: Optional[DuckDBQueryParams] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
-    shard_id: Optional[int] = None,
-    shard_count: Optional[int] = None,
-    task_shard_id: Optional[TaskShardId] = None,
   ) -> Iterator[Item]:
-    manifest = self.manifest()
+    """Dispatches workers to compute the transform function.
 
+    Requires some complicated massaging of the data.
+
+    Step 1: Get specific columns from specific rows according to input_path, filters/limit. Any
+      repeated columns are returned as list[tuple[ROWID, list[value]]]
+    Step 2: Flatten the repeated values into a single stream.
+    Step 3: Remove None values from that stream.
+    Step 4: Optionally batch the stream values.
+    Step 5: Feed a stream of optionally batched non-None values to the transform function.
+    Step 6: Reverse all of these steps to piece together an iterable of tuple[ROWID, list[value]].
+    Step 7: Apply the expected output nesting structure.
+    """
     os.makedirs(os.path.dirname(jsonl_cache_filepath), exist_ok=True)
     # Overwrite the file if overwrite is True.
     if overwrite and os.path.exists(jsonl_cache_filepath):
@@ -791,33 +775,30 @@ class DatasetDuckDB(Dataset):
 
     use_jsonl_cache = not overwrite and os.path.exists(jsonl_cache_filepath)
 
-    # Compute the start index where the cache file left off.
-    start_idx = 0
-    if use_jsonl_cache:
-      con = self.con.cursor()
-      count_result = con.execute(
-        f"""
-        SELECT COUNT(*) FROM read_json_auto(
-          '{jsonl_cache_filepath}',
-          IGNORE_ERRORS=true,
-          hive_partitioning=false,
-          format='newline_delimited')
-        """
-      ).fetchone()
-      if count_result:
-        (start_idx,) = count_result
-      con.close()
-
+    # Step 1
     rows = self._select_iterable_values(
       unnest_input_path=unnest_input_path,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
-      shard_cache_filepath=jsonl_cache_filepath,
-      overwrite=overwrite,
       query_options=query_options,
-      shard_id=shard_id,
-      shard_count=shard_count,
+      cache_exclude_path=jsonl_cache_filepath if use_jsonl_cache else None,
     )
+
+    # Step 4/5
+    def batched_pool_map(fn: Callable, items: Iterable[RichData]) -> Iterator[Optional[Item]]:
+      map_arg: Iterable[Any]
+      if batch_size == -1:
+        map_arg = [list(items)]
+      elif batch_size is not None:
+        map_arg = map(list, chunks(items, batch_size))
+      else:
+        map_arg = items
+
+      fn = joblib.delayed(fn)
+      if batch_size is None:
+        yield from pool_map(fn(arg) for arg in map_arg)
+      else:
+        yield from itertools.chain.from_iterable(pool_map(fn(arg) for arg in map_arg))
 
     # Tee the results so we can zip the row ids with the outputs.
     inputs_0, inputs_1 = itertools.tee(rows, 2)
@@ -833,14 +814,13 @@ class DatasetDuckDB(Dataset):
     if unnest_input_path:
       input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
-      assert unnest_input_path is not None
-      source_path = unnest_input_path
-
       if isinstance(transform_fn, VectorSignal):
         embedding_signal = transform_fn
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
-        vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
+        vector_store = self._get_vector_db_index(embedding_signal.embedding, unnest_input_path)
+        # Step 2
         flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
+        # Step 3
         dense_out = sparse_to_dense_compute(
           flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
         )
@@ -851,40 +831,29 @@ class DatasetDuckDB(Dataset):
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
-        map_fn = transform_fn
-        assert not isinstance(map_fn, Signal)
+        assert not isinstance(transform_fn, Signal)
+        # Step 2
         flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
-        dense_out = sparse_to_dense_compute(flat_input, lambda x: map_fn(x))
+        # Step 3
+        dense_out = sparse_to_dense_compute(flat_input, lambda x: batched_pool_map(transform_fn, x))
+      # Step 6
       output_items = deep_unflatten(dense_out, input_values_1)
 
     else:
       assert not isinstance(transform_fn, Signal)
-      output_items = transform_fn(input_values)
+      output_items = batched_pool_map(transform_fn, input_values)
 
+    # Step 7
     output_items = cast(Iterable[Item], wrap_in_dicts(output_items, nested_spec))
 
+    # Step 6
     output_items = (
       {**item, ROWID: rowid} for (rowid, _), item in zip(inputs_1, output_items) if item
     )
 
-    # Add progress.
-    if task_shard_id is not None:
-      estimated_len = manifest.num_items
-      # When sharding, compute the length of the work for the shard.
-      (shard_start_idx, shard_end_idx) = shard_id_to_range(
-        shard_id, shard_count, manifest.num_items
-      )
-      estimated_len = shard_end_idx - shard_start_idx
+    # TODO: Report progress. (Current API heavily assumes shards but we actually have a central
+    # place to report progress. Perhaps we can just assume there is only 1 shard.)
 
-      output_items = report_progress(
-        output_items,
-        task_shard_id=task_shard_id,
-        shard_count=shard_count,
-        initial_index=start_idx,
-        estimated_len=estimated_len,
-      )
-
-    # TODO(nsthorat): Support continuation of embeddings.
     try:
       if not isinstance(transform_fn, TextEmbeddingSignal):
         with open_file(jsonl_cache_filepath, 'a') as file:
@@ -927,14 +896,6 @@ class DatasetDuckDB(Dataset):
       schema = schema.model_copy(deep=True)
       schema.fields[ROWID] = Field(dtype=STRING)
 
-    # Potential bug: if a computation is interrupted, and then the num-workers, filtering, or limits
-    # are updated, then shard assignment may not be consistent. Then, two workers may have processed
-    # the same row, leading to duplicate rows in the result. A further complication is if
-    # the map function changed in between the two computations, making it difficult to reconstruct.
-    # which value is more recent. This could happen if you ran a map function, realized there was a
-    # bug, interrupted it, updated and reran.
-    #
-    # Anyway this seems like a lot of unusual things have to happen so I'll leave the bug unfixed.
     json_query = f"""
       SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
         {jsonl_cache_filepaths},
@@ -1043,16 +1004,15 @@ class DatasetDuckDB(Dataset):
       project_dir=self.project_dir,
     )
     _consume_iterator(
-      self._compute_disk_cached(
-        transform_fn=signal,
-        output_path=output_path,
-        jsonl_cache_filepath=jsonl_cache_filepath,
+      self._dispatch_workers(
+        joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
+        signal,
+        output_path,
+        jsonl_cache_filepath,
+        batch_size=None,
         unnest_input_path=input_path,
         overwrite=overwrite,
-        query_options=DuckDBQueryParams(
-          filters=filters, limit=limit, include_deleted=include_deleted
-        ),
-        task_shard_id=task_shard_id,
+        query_options=DuckDBQueryParams(include_deleted=include_deleted),
       )
     )
 
@@ -1132,16 +1092,17 @@ class DatasetDuckDB(Dataset):
       key=output_path,
       project_dir=self.project_dir,
     )
-    output_items = self._compute_disk_cached(
+    output_items = self._dispatch_workers(
+      joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
       signal,
-      output_path=output_path,
-      jsonl_cache_filepath=jsonl_cache_filepath,
+      output_path,
+      jsonl_cache_filepath,
+      batch_size=None,
       unnest_input_path=input_path,
       overwrite=overwrite,
       query_options=DuckDBQueryParams(
         filters=filters, limit=limit, include_deleted=include_deleted
       ),
-      task_shard_id=task_shard_id,
     )
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
@@ -2689,8 +2650,15 @@ class DatasetDuckDB(Dataset):
     )
 
     num_jobs = (os.cpu_count() or 1) if num_jobs == -1 else num_jobs
+    pool_map = joblib.Parallel(n_jobs=num_jobs, return_as='generator', prefer=execution_type)
 
-    jsonl_cache_filepaths: list[str] = []
+    jsonl_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=output_path,
+      project_dir=self.project_dir,
+      is_temporary=is_tmp_output,
+    )
 
     output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
     progress_description = (
@@ -2702,52 +2670,27 @@ class DatasetDuckDB(Dataset):
       name=progress_description,
       type=TaskType.DATASET_MAP,
     )
-    subtasks: list[tuple[TaskFn, list[Any]]] = []
-    for i in range(num_jobs):
-      jsonl_cache_filepath = _jsonl_cache_filepath(
-        namespace=self.namespace,
-        dataset_name=self.dataset_name,
-        key=output_path,
-        project_dir=self.project_dir,
-        is_temporary=is_tmp_output,
-        shard_id=i,
-        shard_count=num_jobs,
-      )
-      subtasks.append(
-        (
-          self._map_worker,
-          [
-            map_fn,
-            batch_size,
-            output_path,
-            jsonl_cache_filepath,
-            i,
-            num_jobs,
-            input_path,
-            overwrite,
-            DuckDBQueryParams(filters=filters, limit=limit, include_deleted=include_deleted),
-            combine_columns,
-            resolve_span,
-            (task_id, i),
-          ],
-        )
-      )
 
-      jsonl_cache_filepaths.append(jsonl_cache_filepath)
-
-    # Execute all the subtasks in parallel.
-    get_task_manager().execute_sharded(
-      task_id,
-      type=execution_type,
-      subtasks=subtasks,
+    _consume_iterator(
+      self._dispatch_workers(
+        pool_map,
+        map_fn,
+        output_path,
+        jsonl_cache_filepath,
+        batch_size,
+        input_path,
+        overwrite=overwrite,
+        query_options=DuckDBQueryParams(
+          filters=filters, limit=limit, include_deleted=include_deleted
+        ),
+        combine_columns=combine_columns,
+        resolve_span=resolve_span,
+      )
     )
-    show_progress_and_block(task_id, description=progress_description)
-    # Wait for the task to finish before re-sharding the outputs.
-    get_task_manager().wait([task_id])
 
     json_query, map_schema, parquet_filepath = self._reshard_cache(
       output_path=output_path,
-      jsonl_cache_filepaths=jsonl_cache_filepaths,
+      jsonl_cache_filepaths=[jsonl_cache_filepath],
       is_tmp_output=is_tmp_output,
     )
 
@@ -2794,66 +2737,6 @@ class DatasetDuckDB(Dataset):
           self.add_media_field(path)
 
     return result
-
-  def _map_worker(
-    self,
-    map_fn: MapFn,
-    batch_size: Optional[int],
-    output_path: PathTuple,
-    jsonl_cache_filepath: str,
-    job_id: int,
-    job_count: int,
-    unnest_input_path: Optional[PathTuple] = None,
-    overwrite: bool = False,
-    query_options: Optional[DuckDBQueryParams] = None,
-    combine_columns: bool = False,
-    resolve_span: bool = False,
-    task_shard_id: Optional[TaskShardId] = None,
-  ) -> None:
-    map_sig = inspect.signature(map_fn)
-    if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
-      raise ValueError(
-        f'Invalid map function {map_fn.__name__}. Must have 1 or 2 arguments: '
-        f'(item: Item, job_id: int).'
-      )
-
-    has_job_id_arg = len(map_sig.parameters) == 2
-
-    def _map_iterable(items: Iterable[RichData]) -> Iterator[Optional[Item]]:
-      batch_stream: Iterable[Any]
-      map_args: Union[Iterable[Any], tuple[Iterable[Any], int]]
-      if batch_size == -1:
-        batch_stream = [list(items)]
-      elif batch_size is not None:
-        batch_stream = map(list, chunks(items, batch_size))
-      else:
-        batch_stream = items
-
-      if has_job_id_arg:
-        map_args = (batch_stream, itertools.repeat(job_id))
-      else:
-        map_args = (batch_stream,)
-
-      if batch_size is None:
-        yield from map(map_fn, *map_args)
-      else:
-        yield from itertools.chain.from_iterable(map(map_fn, *map_args))
-
-    _consume_iterator(
-      self._compute_disk_cached(
-        _map_iterable,
-        output_path=output_path,
-        jsonl_cache_filepath=jsonl_cache_filepath,
-        unnest_input_path=unnest_input_path,
-        overwrite=overwrite,
-        query_options=query_options,
-        combine_columns=combine_columns,
-        resolve_span=resolve_span,
-        shard_id=job_id,
-        shard_count=job_count,
-        task_shard_id=task_shard_id,
-      )
-    )
 
   @override
   def to_json(
