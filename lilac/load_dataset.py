@@ -27,7 +27,7 @@ from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, It
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
 from .sources.huggingface_source import HuggingFaceSource
-from .tasks import TaskId, report_progress
+from .tasks import TaskId, get_progress_bar
 from .utils import get_dataset_output_dir, log, open_file
 
 
@@ -155,12 +155,11 @@ def slow_process(
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
-  task_shard_id = (task_id, 0) if task_id else None
-  items = report_progress(
-    items,
-    task_shard_id=task_shard_id,
+  progress_bar = get_progress_bar(
+    task_id=task_id,
     estimated_len=source_schema.num_items,
   )
+  items = progress_bar(items)
 
   # Filter out the `None`s after progress.
   items = (item for item in items if item is not None)

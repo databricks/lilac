@@ -95,7 +95,7 @@ from ..tasks import (
   TaskExecutionType,
   TaskShardId,
   TaskType,
-  get_task_manager,
+  get_progress_bar,
 )
 from ..utils import (
   DebugTimer,
@@ -563,9 +563,16 @@ class DatasetDuckDB(Dataset):
       latest_mtime_micro_sec = int(latest_mtime * 1e6)
       return self._recompute_joint_table(latest_mtime_micro_sec)
 
-  def count(self, filters: Optional[list[FilterLike]] = None) -> int:
+  def count(self, query_options: Optional[DuckDBQueryParams]) -> int:
     """Count the number of rows."""
-    raise NotImplementedError('count is not yet implemented for DuckDB.')
+    if query_options is None:
+      option_sql = ''
+    else:
+      option_sql = self._compile_select_options(query_options)
+    return cast(
+      tuple,
+      self.con.execute(f'SELECT COUNT(*) FROM (SELECT {ROWID} from t {option_sql})').fetchone(),
+    )[0]
 
   def _get_vector_db_index(self, embedding: str, path: PathTuple) -> VectorDBIndex:
     # Refresh the manifest to make sure we have the latest signal manifests.
@@ -849,8 +856,6 @@ class DatasetDuckDB(Dataset):
       {**item, ROWID: rowid} for (rowid, _), item in zip(inputs_1, output_items) if item
     )
 
-    # TODO: Report progress. (Current API heavily assumes shards but we actually have a central
-    # place to report progress. Perhaps we can just assume there is only 1 shard.)
     try:
       if not isinstance(transform_fn, TextEmbeddingSignal):
         with open_file(jsonl_cache_filepath, 'a') as file:
@@ -980,10 +985,6 @@ class DatasetDuckDB(Dataset):
     if manifest.data_schema.has_field(output_path) and not overwrite:
       raise ValueError('Signal already exists. Use overwrite=True to overwrite.')
 
-    if task_shard_id is None:
-      # Make a dummy task step so we report progress via tqdm.
-      task_shard_id = ('', 0)
-
     # Update the project config before computing the signal.
     add_project_signal_config(
       self.namespace,
@@ -1071,9 +1072,6 @@ class DatasetDuckDB(Dataset):
       raise ValueError('Cannot compute embedding over a non-string field.')
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
-    if task_shard_id is None:
-      # Make a dummy task step so we report progress via tqdm.
-      task_shard_id = ('', 0)
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
@@ -2683,10 +2681,6 @@ class DatasetDuckDB(Dataset):
       f'"{map_fn.__name__}"{output_col_desc_suffix}'
     )
 
-    task_id = get_task_manager().task_id(
-      name=progress_description,
-      type=TaskType.DATASET_MAP,
-    )
     sort_by = normalize_path(sort_by) if sort_by else None
     query_params = DuckDBQueryParams(
       filters=filters,
@@ -2696,18 +2690,28 @@ class DatasetDuckDB(Dataset):
       sort_order=sort_order,
     )
 
+    estimated_len = self.count(query_params)
+    print(f'Estimated len: {estimated_len}')
+    progress_bar = get_progress_bar(
+      task_description=progress_description,
+      task_type=TaskType.DATASET_MAP,
+      estimated_len=estimated_len,
+    )
+
     _consume_iterator(
-      self._dispatch_workers(
-        pool_map,
-        map_fn,
-        output_path,
-        jsonl_cache_filepath,
-        batch_size,
-        input_path,
-        overwrite=overwrite,
-        query_options=query_params,
-        combine_columns=combine_columns,
-        resolve_span=resolve_span,
+      progress_bar(
+        self._dispatch_workers(
+          pool_map,
+          map_fn,
+          output_path,
+          jsonl_cache_filepath,
+          batch_size,
+          input_path,
+          overwrite=overwrite,
+          query_options=query_params,
+          combine_columns=combine_columns,
+          resolve_span=resolve_span,
+        ),
       )
     )
 
