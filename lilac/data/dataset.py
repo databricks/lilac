@@ -450,6 +450,8 @@ class Dataset(abc.ABC):
     self,
     path: Path,
     embedding: Optional[str] = None,
+    output_column: str = 'topic',
+    nest_under: Optional[Path] = None,
     min_cluster_size: int = 5,
     topic_fn: TopicFn = summarize_instructions,
     overwrite: bool = False,
@@ -459,10 +461,16 @@ class Dataset(abc.ABC):
     Args:
       path: The path to the text field to cluster.
       embedding: The pre-computed embedding to use.
+      output_column: The name of the output column to write to. When `nest_under` is False
+        (the default), this will be the name of the top-level column. When `nest_under` is True,
+        the output_column will be the name of the column under the path given by `nest_under`.
+      nest_under: The path to nest the output under. Defaults to the input `path`, so it gets
+        hierarchically shown in the UI.
       min_cluster_size: The minimum number of docs in a cluster.
       topic_fn: A function that takes a list of (doc, membership_score) tuples and returns a
         single topic. This is used to compute the topic for a given cluster of docs. It defaults
         to a function that uses GPT-3.5 to summarize user's instructions.
+      overwrite: Whether to overwrite an existing output.
 
     """
     if not embedding:
@@ -515,8 +523,8 @@ class Dataset(abc.ABC):
     self.transform(
       _transform,
       input_path=path,
-      output_column='topic',
-      nest_under=path,
+      output_column=output_column,
+      nest_under=nest_under or path,
       combine_columns=True,
       overwrite=overwrite,
     )

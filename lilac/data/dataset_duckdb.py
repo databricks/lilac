@@ -28,7 +28,7 @@ from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
 from ..auth import UserInfo
-from ..batch_utils import deep_flatten, deep_unflatten
+from ..batch_utils import array_flatten, array_unflatten
 from ..config import (
   OLD_CONFIG_FILENAME,
   DatasetConfig,
@@ -845,16 +845,16 @@ class DatasetDuckDB(Dataset):
         )
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
-        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
         dense_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
         map_fn = transform_fn
         assert not isinstance(map_fn, Signal)
-        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
         dense_out = sparse_to_dense_compute(flat_input, lambda x: map_fn(x))
-      output_items = deep_unflatten(dense_out, input_values_1)
+      output_items = array_unflatten(dense_out, input_values_1)
     else:
       assert not isinstance(transform_fn, Signal)
       output_items = transform_fn(input_values)
@@ -1930,10 +1930,10 @@ class DatasetDuckDB(Dataset):
           signal_out = sparse_to_dense_compute(
             iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
           )
-          df[signal_column] = list(deep_unflatten(signal_out, input))
+          df[signal_column] = list(array_unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
-          flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input))
+          flat_input = cast(Iterator[Optional[RichData]], array_flatten(input))
           signal_out = sparse_to_dense_compute(
             flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
           )
@@ -1941,7 +1941,7 @@ class DatasetDuckDB(Dataset):
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
             nested_spans: Iterable[Item] = df[offset_column_name]
-            flat_spans = deep_flatten(nested_spans)
+            flat_spans = array_flatten(nested_spans)
             for text_span, item in zip(flat_spans, signal_out_list):
               _offset_any_span(cast(int, text_span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
@@ -1952,7 +1952,7 @@ class DatasetDuckDB(Dataset):
               '"None" for a sparse output, or generated too many items.'
             )
 
-          df[signal_column] = list(deep_unflatten(signal_out_list, input))
+          df[signal_column] = list(array_unflatten(signal_out_list, input))
 
         signal.teardown()
 

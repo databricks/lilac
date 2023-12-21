@@ -40,4 +40,10 @@ def test_simple_clustering(make_test_data: TestDataMaker) -> None:
 
   dataset.cluster('text', 'jina-v2-small', min_cluster_size=2, topic_fn=topic_fn)
 
-  print(list(dataset.select_rows()))
+  rows = list(dataset.select_rows(['text.topic']))
+  assert rows == [
+    {'text.topic': 'summarization'},
+    {'text.topic': 'simplification'},
+    {'text.topic': 'summarization'},
+    {'text.topic': 'simplification'},
+  ]
