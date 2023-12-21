@@ -32,6 +32,7 @@
     type SemanticSimilaritySignal,
     type SubstringSignal
   } from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
   import {derived} from 'svelte/store';
   import {getMonacoRenderSpans, type MonacoRenderSpan, type SpanValueInfo} from './spanHighlight';
   export let text: string;
@@ -143,7 +144,7 @@
         scale: 2
       }
     });
-    model = monaco.editor.createModel('', 'text/plain');
+    model = monaco.editor.createModel(text, 'text/plain');
     editor.setModel(model);
 
     // When the fonts are ready, measure the fonts and display the editor after the font measurement
@@ -642,6 +643,9 @@
 
 <!-- For reasons unknown to me, the -ml-6 is required to make the autolayout of monaco react. -->
 <div class="relative -ml-6 flex h-fit w-full flex-col gap-x-4">
+  {#if !editorReady}
+    <div class="ml-6 w-full"><SkeletonText class="ml-6 w-full " lines={3} /></div>
+  {/if}
   <div
     class="editor-container ml-6 h-64"
     class:hidden

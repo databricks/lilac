@@ -21,5 +21,6 @@ RUN python -m pip install --find-links=dist --upgrade lilac[all]
 
 COPY LICENSE .
 
-EXPOSE 8000
-CMD ["uvicorn", "lilac.server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Google cloud does not support -p forwarding, so we pass port 80 as an argument in the config.
+EXPOSE 80
+CMD ["uvicorn", "lilac.server:app", "--host", "0.0.0.0", "--port", "80"]
