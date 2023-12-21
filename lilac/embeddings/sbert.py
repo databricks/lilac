@@ -10,7 +10,7 @@ from ..schema import Item, RichData
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from .embedding import compute_split_embeddings
-from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, prepare_model
+from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
 
 # The `all-mpnet-base-v2` model provides the best quality, while `all-MiniLM-L6-v2`` is 5 times
 # faster and still offers good quality. See https://www.sbert.net/docs/pretrained_models.html#sentence-embedding-models/
@@ -33,7 +33,7 @@ class SBERT(TextEmbeddingSignal):
         'Could not import the "sentence_transformers" python package. '
         'Please install it with `pip install "sentence_transformers".'
       )
-    self._model = prepare_model(SentenceTransformer(MINI_LM_MODEL))
+    self._model = setup_model_device(SentenceTransformer(MINI_LM_MODEL), MINI_LM_MODEL)
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:

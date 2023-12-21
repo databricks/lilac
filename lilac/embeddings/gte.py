@@ -10,7 +10,7 @@ from ..schema import Item, RichData
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from .embedding import compute_split_embeddings
-from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, prepare_model
+from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
 
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
 GTE_SMALL = 'thenlper/gte-small'
@@ -40,7 +40,7 @@ class GTESmall(TextEmbeddingSignal):
         'Could not import the "sentence_transformers" python package. '
         'Please install it with `pip install "sentence_transformers".'
       )
-    self._model = prepare_model(SentenceTransformer(self._model_name))
+    self._model = setup_model_device(SentenceTransformer(self._model_name), self._model_name)
 
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:

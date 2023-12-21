@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
 
 from ..utils import chunks
-from .transformer_utils import prepare_model
+from .transformer_utils import setup_model_device
 
 if TYPE_CHECKING:
   from transformers import AutoModel
@@ -49,8 +49,9 @@ class JinaV2Small(TextEmbeddingSignal):
         'Please install it with `pip install transformers`.'
       )
     # trust_remote_code is needed to use the encode method.
-    self._model = prepare_model(
-      AutoModel.from_pretrained(f'jinaai/{_SIZE_TO_MODEL[self._size]}', trust_remote_code=True)
+    model_name = f'jinaai/{_SIZE_TO_MODEL[self._size]}'
+    self._model = setup_model_device(
+      AutoModel.from_pretrained(model_name, trust_remote_code=True), model_name
     )
 
   @override

@@ -15,8 +15,9 @@ if TYPE_CHECKING:
 SENTENCE_TRANSFORMER_BATCH_SIZE = 1024
 
 
-def prepare_model(
-  model: Union['SentenceTransformer', 'AutoModel']
+def setup_model_device(
+  model: Union['SentenceTransformer', 'AutoModel'],
+  model_name: str,
 ) -> Union['SentenceTransformer', 'AutoModel']:
   """Prepare a transformer model to run on the most efficient device / backend."""
   try:
@@ -35,6 +36,7 @@ def prepare_model(
 
   if preferred_device:
     model = model.to(preferred_device)
-    log(f'The model is using device: {preferred_device}')
+
+  log(f'{model_name} using device: {model.device}')
 
   return model
