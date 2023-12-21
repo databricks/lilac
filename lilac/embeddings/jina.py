@@ -1,4 +1,5 @@
 """Jina embeddings. Open-source, designed to run on device, with 8K context."""
+import gc
 from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
 
 from ..utils import chunks
@@ -56,6 +57,17 @@ class JinaV2Small(TextEmbeddingSignal):
 
   @override
   def teardown(self) -> None:
+    self._model.cpu()
+    del self._model
+    gc.collect()
+
+    try:
+      import torch
+
+      torch.cuda.empty_cache()
+    except ImportError:
+      pass
+
     del self._model
 
   @override

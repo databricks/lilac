@@ -5,6 +5,7 @@ from typing_extensions import override
 
 if TYPE_CHECKING:
   from sentence_transformers import SentenceTransformer
+import gc
 
 from ..schema import Item, RichData
 from ..signal import TextEmbeddingSignal
@@ -47,4 +48,13 @@ class SBERT(TextEmbeddingSignal):
 
   @override
   def teardown(self) -> None:
+    self._model.cpu()
     del self._model
+    gc.collect()
+
+    try:
+      import torch
+
+      torch.cuda.empty_cache()
+    except ImportError:
+      pass

@@ -1,4 +1,5 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
+import gc
 from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
 
 from typing_extensions import override
@@ -54,7 +55,16 @@ class GTESmall(TextEmbeddingSignal):
 
   @override
   def teardown(self) -> None:
+    self._model.cpu()
     del self._model
+    gc.collect()
+
+    try:
+      import torch
+
+      torch.cuda.empty_cache()
+    except ImportError:
+      pass
 
 
 class GTEBase(GTESmall):
