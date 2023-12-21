@@ -5,6 +5,7 @@ import threading
 from typing import Optional, Union
 
 import yaml
+from yaml import CLoader as Loader
 
 from .config import (
   Config,
@@ -193,8 +194,14 @@ def read_project_config(project_dir: Union[str, pathlib.Path]) -> Config:
     create_project(project_dir)
 
   with open(project_config_filepath) as f:
-    config_dict = yaml.safe_load(f.read()) or {}
-    return Config(**config_dict)
+    yaml_config = f.read()
+
+  try:  # Try using the fast loader.
+    config_dict = yaml.load(yaml_config, Loader=Loader) or {}
+  except Exception:  # Fall back to the slow loader.
+    config_dict = yaml.safe_load(yaml_config) or {}
+
+  return Config(**config_dict)
 
 
 def write_project_config(project_dir: Union[str, pathlib.Path], config: Config) -> None:
