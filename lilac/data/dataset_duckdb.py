@@ -735,7 +735,7 @@ class DatasetDuckDB(Dataset):
 
       for final_col_name, temp_columns in columns_to_merge.items():
         for temp_col_name, column in temp_columns.items():
-          if combine_columns:
+          if combine_columns and not select_path:
             dest_path = _col_destination_path(column)
             spec = _split_path_into_subpaths_of_lists(dest_path)
             df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
@@ -758,18 +758,8 @@ class DatasetDuckDB(Dataset):
         # Since we aliased every column to `*`, the object will have only '*' as the key. We need
         # to elevate the all the columns under '*'.
         df_chunk = pd.DataFrame.from_records(df_chunk['*'])
-
-      if select_path and unnest_column_alias:
-        if combine_columns:
-          for subpath in select_path:
-            values = df_chunk
-            if subpath == PATH_WILDCARD:
-              raise ValueError('Cannot unnest a wildcard path with combine_columns=True')
-            else:
-              values = values[subpath]
-            values = values.tolist()
-        else:
-          values = df_chunk[unnest_column_alias].tolist()
+      if select_path and unnest_column_alias and not combine_columns:
+        values = df_chunk[unnest_column_alias].tolist()
       else:
         values = df_chunk.to_dict('records')
 

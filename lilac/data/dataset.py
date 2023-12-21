@@ -451,6 +451,7 @@ class Dataset(abc.ABC):
     embedding: Optional[str] = None,
     min_cluster_size: int = 5,
     topic_fn: TopicFn = summarize_instructions,
+    overwrite: bool = False,
   ) -> None:
     """Compute clusters for a field of the dataset.
 
@@ -469,7 +470,7 @@ class Dataset(abc.ABC):
 
     signal = ClusterHDBScan(embedding=embedding, min_cluster_size=min_cluster_size)
     signal_key = signal.key(is_computed_signal=True)
-    self.compute_signal(signal, path)
+    self.compute_signal(signal, path, overwrite=overwrite)
 
     # Now that we have the clusters, compute the topic for each cluster with a map.
     def _transform(items: Iterable[Item]) -> Iterable[Item]:
@@ -477,6 +478,7 @@ class Dataset(abc.ABC):
       clusters: dict[str, list[tuple[str, float]]] = {}
 
       for item in items:
+        print(item)
         spans = item[signal_key]
         if not spans:
           continue
@@ -508,6 +510,7 @@ class Dataset(abc.ABC):
       output_column='topic',
       nest_under=path,
       combine_columns=True,
+      overwrite=overwrite,
     )
 
   def compute_embedding(
