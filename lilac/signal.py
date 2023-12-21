@@ -53,6 +53,8 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
 
 
 OutputType = Optional[Literal['embedding', 'cluster']]
+# A function that takes a list of (topic, membership_score) tuples and returns a single topic.
+TopicFn = Callable[[list[tuple[str, float]]], str]
 
 
 class Signal(BaseModel):

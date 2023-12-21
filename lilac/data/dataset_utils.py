@@ -13,7 +13,7 @@ from typing import Any, Callable, Generator, Iterator, Optional, TypeVar, Union,
 import numpy as np
 import pyarrow as pa
 
-from ..batch_utils import deep_flatten
+from ..batch_utils import array_flatten
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
 from ..parquet_writer import ParquetWriter
@@ -65,7 +65,7 @@ def count_primitives(input: Union[Iterable, Iterator]) -> int:
 
   Sum the final set of counts. This is the important iterable not to exhaust.
   """
-  return sum((len(list(deep_flatten(i))) for i in input))
+  return sum((len(list(array_flatten(i))) for i in input))
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:

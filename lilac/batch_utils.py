@@ -6,22 +6,18 @@ from .schema import Item
 from .utils import chunks, is_primitive
 
 
-def _deep_flatten(
+def _array_flatten(
   input: Union[Iterator, object], is_primitive_predicate: Callable[[object], bool]
 ) -> Iterator:
   """Flattens a nested iterable."""
-  if is_primitive_predicate(input):
-    yield input
-  elif isinstance(input, dict):
-    yield input
-  elif is_primitive(input):
+  if is_primitive_predicate(input) or isinstance(input, dict) or is_primitive(input):
     yield input
   else:
     for elem in cast(Iterator, input):
-      yield from _deep_flatten(elem, is_primitive_predicate)
+      yield from _array_flatten(elem, is_primitive_predicate)
 
 
-def deep_flatten(
+def array_flatten(
   input: Union[Iterator, Iterable], is_primitive_predicate: Callable[[object], bool] = is_primitive
 ) -> Iterator:
   """Flattens a deeply nested iterator.
@@ -29,27 +25,23 @@ def deep_flatten(
   Primitives and dictionaries are not flattened. The user can also provide a predicate to determine
   what is a primitive.
   """
-  return _deep_flatten(input, is_primitive_predicate)
+  return _array_flatten(input, is_primitive_predicate)
 
 
-def _deep_unflatten(
+def _array_unflatten(
   flat_input: Iterator[list[object]],
   original_input: Union[Iterable, object],
   is_primitive_predicate: Callable[[object], bool],
 ) -> Union[list, dict]:
   """Unflattens a deeply flattened iterable according to the original iterable's structure."""
-  if is_primitive_predicate(original_input):
+  if is_primitive_predicate(original_input) or isinstance(original_input, dict):
     return next(flat_input)
   else:
-    values: Iterable
-    if isinstance(original_input, dict):
-      values = original_input.values()
-    else:
-      values = cast(Iterable, original_input)
-    return [_deep_unflatten(flat_input, orig_elem, is_primitive_predicate) for orig_elem in values]
+    values = cast(Iterable, original_input)
+    return [_array_unflatten(flat_input, orig_elem, is_primitive_predicate) for orig_elem in values]
 
 
-def deep_unflatten(
+def array_unflatten(
   flat_input: Union[Iterable, Iterator],
   original_input: Union[Iterable, object],
   is_primitive_predicate: Callable[[object], bool] = is_primitive,
@@ -58,10 +50,10 @@ def deep_unflatten(
   flat_input_iter = iter(flat_input)
   if isinstance(original_input, Iterable) and not is_primitive_predicate(original_input):
     for o in original_input:
-      yield _deep_unflatten(flat_input_iter, o, is_primitive_predicate)
+      yield _array_unflatten(flat_input_iter, o, is_primitive_predicate)
     return
 
-  yield _deep_unflatten(iter(flat_input), original_input, is_primitive_predicate)
+  yield _array_unflatten(iter(flat_input), original_input, is_primitive_predicate)
 
 
 TFlatten = TypeVar('TFlatten')

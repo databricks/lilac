@@ -85,6 +85,7 @@ def compute(
   else:
     signal.setup()
     result = list(signal.compute(options.inputs))
+    signal.teardown()
   return SignalComputeResponse(items=result)
 
 

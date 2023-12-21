@@ -29,7 +29,7 @@ from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
 from ..auth import UserInfo
-from ..batch_utils import deep_flatten, deep_unflatten
+from ..batch_utils import array_flatten, array_unflatten
 from ..config import (
   OLD_CONFIG_FILENAME,
   DatasetConfig,
@@ -292,7 +292,7 @@ class DuckDBQueryParams(BaseModel):
   # Filters encompass anything that goes into a WHERE clause.
   filters: list[Filter] = []
   # A column name to sort by.
-  sort_by: Optional[str] = None
+  sort_by: Optional[PathTuple] = None
   sort_order: Optional[SortOrder] = SortOrder.ASC
   # If offset is specified, a sort must also be specified for stable results.
   offset: Optional[int] = None
@@ -609,7 +609,7 @@ class DatasetDuckDB(Dataset):
 
   def _select_iterable_values(
     self,
-    unnest_input_path: Optional[PathTuple] = None,
+    select_path: Optional[PathTuple] = None,
     combine_columns: bool = False,
     resolve_span: bool = False,
     query_options: Optional[DuckDBQueryParams] = None,
@@ -620,7 +620,7 @@ class DatasetDuckDB(Dataset):
 
     column: Optional[Column] = None
     cols = self._normalize_columns(
-      [unnest_input_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
+      [select_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
     )
     select_queries: list[str] = []
     columns_to_merge: dict[str, dict[str, Column]] = {}
@@ -650,7 +650,7 @@ class DatasetDuckDB(Dataset):
         column_alias = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
         )
-        if unnest_input_path:
+        if select_path:
           unnest_column_alias = column_alias
 
         select_sqls.append(f'{sql} AS {escape_string_literal(column_alias)}')
@@ -709,7 +709,7 @@ class DatasetDuckDB(Dataset):
 
       for final_col_name, temp_columns in columns_to_merge.items():
         for temp_col_name, column in temp_columns.items():
-          if combine_columns:
+          if combine_columns and not select_path:
             dest_path = _col_destination_path(column)
             spec = _split_path_into_subpaths_of_lists(dest_path)
             df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
@@ -732,8 +732,7 @@ class DatasetDuckDB(Dataset):
         # Since we aliased every column to `*`, the object will have only '*' as the key. We need
         # to elevate the all the columns under '*'.
         df_chunk = pd.DataFrame.from_records(df_chunk['*'])
-
-      if unnest_input_path and unnest_column_alias:
+      if select_path and unnest_column_alias and not combine_columns:
         values = df_chunk[unnest_column_alias].tolist()
       else:
         values = df_chunk.to_dict('records')
@@ -749,7 +748,7 @@ class DatasetDuckDB(Dataset):
     output_path: PathTuple,
     jsonl_cache_filepath: str,
     batch_size: Optional[int],
-    unnest_input_path: Optional[PathTuple] = None,
+    select_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     query_options: Optional[DuckDBQueryParams] = None,
     combine_columns: bool = False,
@@ -777,7 +776,7 @@ class DatasetDuckDB(Dataset):
 
     # Step 1
     rows = self._select_iterable_values(
-      unnest_input_path=unnest_input_path,
+      select_path=select_path,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
       query_options=query_options,
@@ -811,13 +810,13 @@ class DatasetDuckDB(Dataset):
     output_items: Iterable[Optional[Item]]
     # Flatten the outputs back to the shape of the original data.
     # The output values are flat from the signal. This
-    if unnest_input_path:
+    if select_path:
       input_values_0, input_values_1 = itertools.tee(input_values, 2)
 
       if isinstance(transform_fn, VectorSignal):
         embedding_signal = transform_fn
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
-        vector_store = self._get_vector_db_index(embedding_signal.embedding, unnest_input_path)
+        vector_store = self._get_vector_db_index(embedding_signal.embedding, select_path)
         # Step 2
         flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
         # Step 3
@@ -826,19 +825,18 @@ class DatasetDuckDB(Dataset):
         )
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
-        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
         dense_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
         assert not isinstance(transform_fn, Signal)
         # Step 2
-        flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input_values_0))
+        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
         # Step 3
         dense_out = sparse_to_dense_compute(flat_input, lambda x: batched_pool_map(transform_fn, x))
       # Step 6
-      output_items = deep_unflatten(dense_out, input_values_1)
-
+      output_items = array_unflatten(dense_out, input_values_1)
     else:
       assert not isinstance(transform_fn, Signal)
       output_items = batched_pool_map(transform_fn, input_values)
@@ -853,7 +851,6 @@ class DatasetDuckDB(Dataset):
 
     # TODO: Report progress. (Current API heavily assumes shards but we actually have a central
     # place to report progress. Perhaps we can just assume there is only 1 shard.)
-
     try:
       if not isinstance(transform_fn, TextEmbeddingSignal):
         with open_file(jsonl_cache_filepath, 'a') as file:
@@ -1010,12 +1007,12 @@ class DatasetDuckDB(Dataset):
         output_path,
         jsonl_cache_filepath,
         batch_size=None,
-        unnest_input_path=input_path,
+        select_path=input_path,
         overwrite=overwrite,
         query_options=DuckDBQueryParams(include_deleted=include_deleted),
       )
     )
-
+    signal.teardown()
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     _, inferred_schema, parquet_filepath = self._reshard_cache(
@@ -1098,7 +1095,7 @@ class DatasetDuckDB(Dataset):
       output_path,
       jsonl_cache_filepath,
       batch_size=None,
-      unnest_input_path=input_path,
+      select_path=input_path,
       overwrite=overwrite,
       query_options=DuckDBQueryParams(
         filters=filters, limit=limit, include_deleted=include_deleted
@@ -1116,6 +1113,7 @@ class DatasetDuckDB(Dataset):
       output_dir=output_dir,
     )
 
+    signal.teardown()
     gc.collect()
 
     signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
@@ -1893,10 +1891,10 @@ class DatasetDuckDB(Dataset):
           signal_out = sparse_to_dense_compute(
             iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
           )
-          df[signal_column] = list(deep_unflatten(signal_out, input))
+          df[signal_column] = list(array_unflatten(signal_out, input))
         else:
           num_rich_data = count_primitives(input)
-          flat_input = cast(Iterator[Optional[RichData]], deep_flatten(input))
+          flat_input = cast(Iterator[Optional[RichData]], array_flatten(input))
           signal_out = sparse_to_dense_compute(
             flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
           )
@@ -1904,7 +1902,7 @@ class DatasetDuckDB(Dataset):
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
             nested_spans: Iterable[Item] = df[offset_column_name]
-            flat_spans = deep_flatten(nested_spans)
+            flat_spans = array_flatten(nested_spans)
             for text_span, item in zip(flat_spans, signal_out_list):
               _offset_any_span(cast(int, text_span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
@@ -1915,7 +1913,7 @@ class DatasetDuckDB(Dataset):
               '"None" for a sparse output, or generated too many items.'
             )
 
-          df[signal_column] = list(deep_unflatten(signal_out_list, input))
+          df[signal_column] = list(array_unflatten(signal_out_list, input))
 
         signal.teardown()
 
@@ -2564,7 +2562,24 @@ class DatasetDuckDB(Dataset):
       if query_options.offset:
         limit_clause += f' OFFSET {query_options.offset}'
 
-    return f'{where_clause} {limit_clause}'
+    sort_path = query_options.sort_by
+    sort_order = query_options.sort_order or SortOrder.ASC
+    order_clause = ''
+    if sort_path:
+      self._validate_sort_path(sort_path, manifest.data_schema)
+      sql_path = self._leaf_path_to_duckdb_path(sort_path, manifest.data_schema)
+      sort_sql = _select_sql(
+        sql_path, flatten=True, unnest=False, path=sort_path, schema=manifest.data_schema
+      )
+      has_repeated_field = any(subpath == PATH_WILDCARD for subpath in sql_path)
+      if has_repeated_field:
+        sort_sql = (
+          f'list_min({sort_sql})' if sort_order == SortOrder.ASC else f'list_max({sort_sql})'
+        )
+
+      order_clause = f'ORDER BY {sort_sql} {sort_order.value}'
+
+    return f'{where_clause} {order_clause} {limit_clause}'
 
   @override
   def map(
@@ -2579,6 +2594,8 @@ class DatasetDuckDB(Dataset):
     batch_size: Optional[int] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
+    sort_by: Optional[Path] = None,
+    sort_order: Optional[SortOrder] = SortOrder.ASC,
     include_deleted: bool = False,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
@@ -2670,6 +2687,14 @@ class DatasetDuckDB(Dataset):
       name=progress_description,
       type=TaskType.DATASET_MAP,
     )
+    sort_by = normalize_path(sort_by) if sort_by else None
+    query_params = DuckDBQueryParams(
+      filters=filters,
+      limit=limit,
+      include_deleted=include_deleted,
+      sort_by=sort_by,
+      sort_order=sort_order,
+    )
 
     _consume_iterator(
       self._dispatch_workers(
@@ -2680,9 +2705,7 @@ class DatasetDuckDB(Dataset):
         batch_size,
         input_path,
         overwrite=overwrite,
-        query_options=DuckDBQueryParams(
-          filters=filters, limit=limit, include_deleted=include_deleted
-        ),
+        query_options=query_params,
         combine_columns=combine_columns,
         resolve_span=resolve_span,
       )

@@ -204,10 +204,12 @@ class TaskManager:
     self._tasks[task_id] = new_task
     return task_id
 
-  def _set_task_completed(self, task_id: TaskId, task_future: Future) -> None:
+  def _set_task_completed(self, task_id: TaskId) -> None:
     end_timestamp = datetime.now().isoformat()
     task = self._tasks[task_id]
     task.end_timestamp = end_timestamp
+
+    self._update_task(task_id)
 
     elapsed = datetime.fromisoformat(end_timestamp) - datetime.fromisoformat(task.start_timestamp)
     elapsed_formatted = pretty_timedelta(elapsed)
@@ -242,7 +244,7 @@ class TaskManager:
 
     self._task_shard_completions[task_id] = self._task_shard_completions.get(task_id, 0) + 1
     if self._task_shard_completions[task_id] == num_shards:
-      self._set_task_completed(task_id, task_future)
+      self._set_task_completed(task_id)
 
   def execute(self, task_id: str, type: TaskExecutionType, task_fn: TaskFn, *args: Any) -> None:
     """Execute a task."""
@@ -406,18 +408,17 @@ def report_progress(
     yield from it
     return
 
-  it_idx = initial_index if initial_index else 0
-  shard_info = TaskShardInfo(current_index=it_idx, estimated_len=estimated_len)
+  shard_info = TaskShardInfo(current_index=initial_index or 0, estimated_len=estimated_len)
   shard_count = shard_count if shard_count else 1
   last_emit = 0.0
   # Reduce the emit frequency if there are multiple shards to reduce IPC.
   max_delay = EMIT_DELAY_PER_WORKER * shard_count
   for t in it:
+    shard_info.current_index += 1
     emit_delay = random.uniform(MIN_DELAY, max_delay)
     cur_time = time.time()
     if estimated_len and cur_time - last_emit > emit_delay:
-      shard_info.current_index = it_idx
       report_shard_info(task_shard_id, shard_info)
       last_emit = cur_time
     yield t
-    it_idx += 1
+  report_shard_info(task_shard_id, shard_info)

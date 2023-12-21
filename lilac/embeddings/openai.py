@@ -2,7 +2,6 @@
 from typing import Any, ClassVar, Iterable, Iterator, cast
 
 import numpy as np
-from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from typing_extensions import override
 
@@ -66,7 +65,16 @@ class OpenAIEmbedding(TextEmbeddingSignal):
   @override
   def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
     """Compute embeddings for the given documents."""
-    client = OpenAI()
+    try:
+      import openai
+
+    except ImportError:
+      raise ImportError(
+        'Could not import the "openai" python package. '
+        'Please install it with `pip install openai`.'
+      )
+
+    client = openai.OpenAI()
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:

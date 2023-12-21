@@ -24,7 +24,13 @@ def _get_model(model_name: str, preferred_device: Optional[str]) -> 'SentenceTra
       'Could not import the "sentence_transformers" python package. '
       'Please install it with `pip install "lilac[gte]".'
     )
-  return SentenceTransformer(model_name, device=preferred_device)
+  model = SentenceTransformer(model_name)
+  # To enable cuda, we have to call model.to, as device='cuda' does not seem to use cuda.
+  if preferred_device:
+    model = model.to(preferred_device)
+
+  log(f'{model_name} using device: {model.device}')
+  return model
 
 
 def get_model(model_name: str) -> 'SentenceTransformer':
@@ -39,6 +45,8 @@ def get_model(model_name: str) -> 'SentenceTransformer':
   preferred_device: Optional[str] = None
   if torch.backends.mps.is_available():
     preferred_device = 'mps'
+  elif torch.cuda.is_available():
+    preferred_device = 'cuda'
   elif not torch.backends.mps.is_built():
     log('MPS not available because the current PyTorch install was not built with MPS enabled.')
 
