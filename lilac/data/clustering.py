@@ -24,7 +24,7 @@ def _openai_client() -> Any:
   return instructor.patch(openai.OpenAI())
 
 
-def _shorten(text: str) -> str:
+def _snippet_to_prefix_and_suffix(text: str) -> str:
   text = text.strip()
   if len(text) <= _SHORTEN_LEN:
     return text
@@ -43,7 +43,8 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
   # Get the top 5 documents.
   docs = [doc for doc, _ in ranked_docs[:_TOP_K_CENTRAL_DOCS]]
   texts = [
-    f'INSTRUCTION {i+1}\n{_shorten(doc)}\nEND_INSTRUCTION {i+1}' for i, doc in enumerate(docs)
+    f'INSTRUCTION {i+1}\n{_snippet_to_prefix_and_suffix(doc)}\nEND_INSTRUCTION {i+1}'
+    for i, doc in enumerate(docs)
   ]
   input = '\n'.join(texts)
   title = _openai_client().chat.completions.create(

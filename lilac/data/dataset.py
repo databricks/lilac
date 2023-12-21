@@ -467,9 +467,10 @@ class Dataset(abc.ABC):
       nest_under: The path to nest the output under. Defaults to the input `path`, so it gets
         hierarchically shown in the UI.
       min_cluster_size: The minimum number of docs in a cluster.
-      topic_fn: A function that takes a list of (doc, membership_score) tuples and returns a
-        single topic. This is used to compute the topic for a given cluster of docs. It defaults
-        to a function that uses GPT-3.5 to summarize user's instructions.
+      topic_fn: A function that returns a topic summary for each cluster. It takes a list of
+        (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
+        for a given cluster of docs. It defaults to a function that uses GPT-3.5 to summarize
+        user's instructions.
       overwrite: Whether to overwrite an existing output.
 
     """
