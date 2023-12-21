@@ -18,7 +18,7 @@ SENTENCE_TRANSFORMER_BATCH_SIZE = 1024
 def prepare_model(
   model: Union['SentenceTransformer', 'AutoModel']
 ) -> Union['SentenceTransformer', 'AutoModel']:
-  """Get a transformer model and the optimal batch size for it."""
+  """Prepare a transformer model to run on the most efficient device / backend."""
   try:
     import torch.backends.mps
   except ImportError:
