@@ -21,6 +21,7 @@ from pydantic import (
   field_validator,
 )
 from pydantic import Field as PydanticField
+from tqdm import tqdm
 from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
@@ -478,13 +479,18 @@ class Dataset(abc.ABC):
       clusters: dict[str, list[tuple[str, float]]] = {}
 
       for item in items:
-        print(item)
         spans = item[signal_key]
         if not spans:
           continue
-        cluster_id = item[signal_key][0]['cluster_id']
-        membership_prob = item[signal_key][0]['membership_prob']
         text = item[VALUE_KEY]
+        if not text:
+          continue
+        cluster_id = item[signal_key][0]['cluster_id']
+        if cluster_id < 0:
+          continue
+        membership_prob = item[signal_key][0]['membership_prob'] or 0
+        if membership_prob == 0:
+          continue
         docs = clusters.get(cluster_id, [])
         docs.append((text, membership_prob))
         clusters[cluster_id] = docs
@@ -492,7 +498,9 @@ class Dataset(abc.ABC):
       # Maps a cluster id to a topic.
       cluster_topics: dict[str, str] = {}
       # Compute the topic for each cluster.
-      for cluster_id, docs in clusters.items():
+      for cluster_id, docs in tqdm(
+        list(clusters.items()), dynamic_ncols=True, desc='Generating topics'
+      ):
         # Sort by membership score.
         sorted_docs = sorted(docs, key=lambda x: x[1], reverse=True)
         topic = topic_fn(sorted_docs)
