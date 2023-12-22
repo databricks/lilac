@@ -920,6 +920,63 @@ def test_map_on_double_nested_input(make_test_data: TestDataMaker) -> None:
   ]
 
 
+def test_map_select_subfields_of_repeated_dicts(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {
+        'people': [
+          {'name': 'A', 'phones': [1, 2, 3], 'address': 'a'},
+          {'name': 'BB', 'phones': [4], 'address': 'b'},
+          {'name': 'C', 'phones': [5], 'address': 'c'},
+        ]
+      },
+      {
+        'people': [
+          {'name': 'D', 'phones': [6], 'address': 'd'},
+          {'name': 'EEE', 'phones': [7, 8], 'address': 'e'},
+        ]
+      },
+    ]
+  )
+
+  dataset.map(lambda x: len(x), 'people', output_column='people_len')
+  dataset.map(lambda x: x['name'], 'people.*', output_column='person_name')
+  dataset.map(lambda x: len(x), 'people.*.name', output_column='len_name')
+  dataset.map(lambda x: len(x), 'people.*.phones', output_column='len_phones')
+  dataset.map(lambda x: x - 1, 'people.*.phones.*', output_column='phones_minus_one')
+
+  # No input path and combine columns is True.
+  dataset.map(
+    lambda x: 'people' in x and 'name' in x['people'][0],
+    output_column='has_name',
+    combine_columns=True,
+  )
+
+  rows = list(
+    dataset.select_rows(
+      ['people_len', 'person_name', 'len_name', 'len_phones', 'phones_minus_one', 'has_name']
+    )
+  )
+  assert rows == [
+    {
+      'people_len': 3,
+      'person_name': ['A', 'BB', 'C'],
+      'len_name': [1, 2, 1],
+      'len_phones': [3, 1, 1],
+      'phones_minus_one': [[0, 1, 2], [3], [4]],
+      'has_name': True,
+    },
+    {
+      'people_len': 2,
+      'person_name': ['D', 'EEE'],
+      'len_name': [1, 3],
+      'len_phones': [1, 2],
+      'phones_minus_one': [[5], [6, 7]],
+      'has_name': True,
+    },
+  ]
+
+
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
