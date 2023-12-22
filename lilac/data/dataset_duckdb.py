@@ -2652,7 +2652,6 @@ class DatasetDuckDB(Dataset):
       if not manifest.data_schema.has_field(nest_under):
         raise ValueError(f'The `nest_under` column {nest_under} does not exist.')
 
-      # Make sure the input path has the same cardinality as the nest_under path.
       assert paths_have_same_cardinality(
         input_path or tuple(), nest_under
       ), f'`input_path` {input_path} and `nest_under` {nest_under} have different cardinalities.'
