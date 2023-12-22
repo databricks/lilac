@@ -9,10 +9,9 @@ import pyarrow.parquet as pq
 import pytest
 from pydantic import ValidationError
 
-from lilac.config import DatasetConfig
-from lilac.project import create_project_and_set_env
-
+from ..config import DatasetConfig
 from ..load_dataset import create_dataset
+from ..project import create_project_and_set_env
 from ..schema import STRING, Field, MapType, field, schema
 from ..source import SourceSchema
 from ..test_utils import retrieve_parquet_rows
