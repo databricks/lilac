@@ -4,12 +4,12 @@ from typing import Iterable, Iterator
 
 from ..schema import PathTuple
 from ..utils import chunks
-from .dataset_utils import count_primitives, sparse_to_dense_compute, wrap_in_dicts
+from .dataset_utils import count_leafs, sparse_to_dense_compute, wrap_in_dicts
 
 
 def test_count_nested() -> None:
   a = [[1, 2], [[3]], [4, 5, 6]]
-  assert 6 == count_primitives(a)
+  assert 6 == count_leafs(a)
 
 
 def test_wrap_in_dicts_with_spec_of_one_repeated() -> None:

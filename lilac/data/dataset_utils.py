@@ -13,7 +13,7 @@ from typing import Any, Callable, Generator, Iterator, Optional, TypeVar, Union,
 import numpy as np
 import pyarrow as pa
 
-from ..batch_utils import array_flatten
+from ..batch_utils import flatten_iter
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
 from ..parquet_writer import ParquetWriter
@@ -60,12 +60,12 @@ def replace_embeddings_with_none(input: Union[Item, Item]) -> Item:
   return cast(Item, _replace_embeddings_with_none(input))
 
 
-def count_primitives(input: Union[Iterable, Iterator]) -> int:
+def count_leafs(input: Union[Iterable, Iterator]) -> int:
   """Iterate through each element of the input, flattening each one, computing a count.
 
   Sum the final set of counts. This is the important iterable not to exhaust.
   """
-  return sum(1 for _ in array_flatten(input))
+  return len(list(flatten_iter(input)))
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:

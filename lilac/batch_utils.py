@@ -6,33 +6,33 @@ from .schema import Item
 from .utils import chunks, is_primitive
 
 
-def _array_flatten(input: Union[Iterator, object], depth: int) -> Iterator:
+def _flatten_iter(input: Union[Iterator, object], max_depth: int) -> Iterator:
   """Flattens a nested iterable."""
-  if depth == 0 or isinstance(input, dict) or is_primitive(input):
+  if max_depth == 0 or isinstance(input, dict) or is_primitive(input):
     yield input
   else:
     for elem in cast(Iterator, input):
-      yield from _array_flatten(elem, depth - 1)
+      yield from _flatten_iter(elem, max_depth - 1)
 
 
-def array_flatten(input: Union[Iterator, Iterable], max_depth: int = -1) -> Iterator:
+def flatten_iter(input: Union[Iterator, Iterable], max_depth: int = -1) -> Iterator:
   """Flattens a deeply nested iterator. Primitives and dictionaries are not flattened."""
   for elem in input:
-    yield from _array_flatten(elem, max_depth)
+    yield from _flatten_iter(elem, max_depth)
 
 
-def _array_unflatten(
-  flat_input: Iterator[list[object]], original_input: Union[Iterable, object], depth: int
+def _unflatten_iter(
+  flat_input: Iterator[list[object]], original_input: Union[Iterable, object], max_depth: int
 ) -> Union[list, dict]:
   """Unflattens a deeply flattened iterable according to the original iterable's structure."""
-  if depth == 0 or is_primitive(original_input) or isinstance(original_input, dict):
+  if max_depth == 0 or is_primitive(original_input) or isinstance(original_input, dict):
     return next(flat_input)
   else:
     values = cast(Iterable, original_input)
-    return [_array_unflatten(flat_input, orig_elem, depth - 1) for orig_elem in values]
+    return [_unflatten_iter(flat_input, orig_elem, max_depth - 1) for orig_elem in values]
 
 
-def array_unflatten(
+def unflatten_iter(
   flat_input: Union[Iterable, Iterator],
   original_input: Union[Iterable, object],
   max_depth: int = -1,
@@ -41,10 +41,10 @@ def array_unflatten(
   flat_input_iter = iter(flat_input)
   if isinstance(original_input, Iterable) and not is_primitive(original_input):
     for o in original_input:
-      yield _array_unflatten(flat_input_iter, o, max_depth)
+      yield _unflatten_iter(flat_input_iter, o, max_depth)
     return
 
-  yield _array_unflatten(iter(flat_input), original_input, max_depth)
+  yield _unflatten_iter(iter(flat_input), original_input, max_depth)
 
 
 TFlatten = TypeVar('TFlatten')
