@@ -87,6 +87,11 @@ def _wrap_in_dicts(
   if input is None or isinstance(input, float) and math.isnan(input):
     # Return empty dict for missing inputs.
     return {}
+  if isinstance(input, dict) or is_primitive(input):
+    raise ValueError(
+      f'The input should be a list, not a primitive. '
+      f'Got input type: {type(input)}, with a wrapping spec: {spec}'
+    )
   res = [_wrap_in_dicts(elem, spec[1:]) for elem in cast(Iterable, input)]
   return _wrap_value_in_dict(res, props)
 
@@ -326,3 +331,18 @@ def shard_id_to_range(
   shard_start_idx = min(shard_id * shard_size, num_items) if shard_id is not None else 0
   shard_end_idx = min((shard_id + 1) * shard_size, num_items) if shard_id is not None else num_items
   return (shard_start_idx, shard_end_idx)
+
+
+def _cardinality_prefix(path: PathTuple) -> PathTuple:
+  """Returns the cardinality prefix for a path."""
+  # Find the last wildcard in the path.
+  wildcard_idx = 0
+  for i, path_part in enumerate(path):
+    if path_part == PATH_WILDCARD:
+      wildcard_idx = i
+  return path[:wildcard_idx]
+
+
+def paths_have_same_cardinality(path1: PathTuple, path2: PathTuple) -> bool:
+  """Returns true if the paths have the same cardinality."""
+  return _cardinality_prefix(path1) == _cardinality_prefix(path2)

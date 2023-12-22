@@ -977,6 +977,65 @@ def test_map_select_subfields_of_repeated_dicts(make_test_data: TestDataMaker) -
   ]
 
 
+def test_map_nests_under_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'people': [{'name': 'A'}, {'name': 'BB'}, {'name': 'C'}]},
+      {'people': [{'name': 'D'}, {'name': 'EEE'}]},
+    ]
+  )
+
+  dataset.map(lambda x: len(x), 'people.*.name', output_column='len_name', nest_under='people.*')
+
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'people': [
+        {'name': 'A', 'len_name': 1},
+        {'name': 'BB', 'len_name': 2},
+        {'name': 'C', 'len_name': 1},
+      ]
+    },
+    {'people': [{'name': 'D', 'len_name': 1}, {'name': 'EEE', 'len_name': 3}]},
+  ]
+
+  rows = list(dataset.select_rows())
+  assert rows == [
+    {'people.*.name': ['A', 'BB', 'C'], 'people.*.len_name': [1, 2, 1]},
+    {'people.*.name': ['D', 'EEE'], 'people.*.len_name': [1, 3]},
+  ]
+
+
+def test_map_nests_under_field_of_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'people': [{'name': 'A', 'info': {'extra': 1}}, {'name': 'BB'}, {'name': 'C'}]},
+      {'people': [{'name': 'D'}, {'name': 'EEE'}]},
+    ]
+  )
+
+  dataset.map(
+    lambda x: len(x), 'people.*.name', output_column='len_name', nest_under='people.*.info'
+  )
+
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'people': [
+        {'name': 'A', 'info': {'extra': 1, 'len_name': 1}},
+        {'name': 'BB', 'info': {'len_name': 2}},
+        {'name': 'C', 'info': {'len_name': 1}},
+      ]
+    },
+    {
+      'people': [
+        {'name': 'D', 'info': {'len_name': 1}},
+        {'name': 'EEE', 'info': {'len_name': 3}},
+      ]
+    },
+  ]
+
+
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
@@ -1239,25 +1298,22 @@ def test_map_ergonomics_invalid_args(make_test_data: TestDataMaker) -> None:
     dataset.map(_map_toomany_args, output_column='_map_toomany_args')
 
 
-def test_map_nest_under_validation(make_test_data: TestDataMaker) -> None:
+def test_map_nest_under_another_cardinality_fails(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [{'text': 'abcd', 'parent': ['a', 'b']}, {'text': 'efghi', 'parent': ['c', 'd']}]
   )
 
   def _map_fn(item: Item) -> Item:
-    return item['text'] + ' ' + item['text']
+    res = item['text'] + ' ' + item['text']
+    return res
 
   with pytest.raises(
-    ValueError, match='Nesting map outputs under a repeated field is not yet supported'
+    AssertionError,
+    match=re.escape(
+      "`input_path` None and `nest_under` ('parent', '*') have different cardinalities"
+    ),
   ):
-    dataset.map(
-      _map_fn, output_column='output', nest_under=('parent', PATH_WILDCARD), combine_columns=False
-    )
-
-  with pytest.raises(
-    ValueError, match=re.escape("The `nest_under` column ('fake',) does not exist.")
-  ):
-    dataset.map(_map_fn, output_column='output', nest_under=('fake',), combine_columns=False)
+    dataset.map(_map_fn, output_column='output', nest_under='parent.*', combine_columns=False)
 
 
 def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:

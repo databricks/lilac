@@ -151,6 +151,7 @@ from .dataset_utils import (
   create_signal_schema,
   flatten_keys,
   get_parquet_filename,
+  paths_have_same_cardinality,
   schema_contains_path,
   shard_id_to_range,
   sparse_to_dense_compute,
@@ -2648,13 +2649,13 @@ class DatasetDuckDB(Dataset):
       if output_column is None:
         raise ValueError('When using `nest_under`, you must specify an output column name.')
 
-      # Make sure nest_under does not contain any repeated values.
-      for path_part in nest_under:
-        if path_part == PATH_WILDCARD:
-          raise ValueError('Nesting map outputs under a repeated field is not yet supported.')
-
       if not manifest.data_schema.has_field(nest_under):
         raise ValueError(f'The `nest_under` column {nest_under} does not exist.')
+
+      # Make sure the input path has the same cardinality as the nest_under path.
+      assert paths_have_same_cardinality(
+        input_path or tuple(), nest_under
+      ), f'`input_path` {input_path} and `nest_under` {nest_under} have different cardinalities.'
 
     # If the user didn't provide an output_column, we make a temporary one so that we can store the
     # output JSON objects in the cache, represented in the right hierarchy.
@@ -2686,7 +2687,6 @@ class DatasetDuckDB(Dataset):
           )
           if os.path.exists(map_manifest_filepath):
             delete_file(map_manifest_filepath)
-
         else:
           raise ValueError(
             f'Cannot map to path "{output_column}" which already exists in the dataset. '
@@ -3186,6 +3186,8 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
       for key, value in source_cell.items():
         res[key] = value if key not in dest_cell else _merge_cells(dest_cell[key], value)
       return res
+    elif source_cell is None:
+      return dest_cell
     else:
       return {VALUE_KEY: source_cell, **dest_cell}
   elif isinstance(dest_cell, list):
@@ -3195,6 +3197,8 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
       _merge_cells(dest_subcell, source_subcell)
       for dest_subcell, source_subcell in zip(dest_cell, source_cell)
     ]
+  elif dest_cell is None:
+    return source_cell
   else:
     # The destination is a primitive.
     if isinstance(source_cell, list):
