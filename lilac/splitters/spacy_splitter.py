@@ -35,7 +35,12 @@ def embed_tokenizer_BoW(texts: list[str]) -> np.ndarray:
 def get_spacy() -> 'spacy.Language':
   """Lazily instantiate and return a singeton SpaCy sentencizer object."""
   # Lazy import; spacy is a heavy dependency.
-  import spacy
+  try:
+    import spacy
+  except ImportError:
+    raise ImportError(
+      'Could not import the "spacy" python package. ' 'Please install it with `pip install spacy`.'
+    )
 
   sentencizer = spacy.blank('en')
   # This includes colon as a sentence boundary; LLM datasets tend to contain a lot of semantic

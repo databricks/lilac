@@ -330,22 +330,6 @@ def test_map_input_path_nested(
   ]
 
 
-def test_map_input_path_nonleaf_throws(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {'id': 0, 'text': ['a']},
-      {'id': 1, 'text': ['b']},
-      {'id': 2, 'text': ['c']},
-    ]
-  )
-
-  def _upper(row: Item, job_id: int) -> Item:
-    return str(row).upper()
-
-  with pytest.raises(Exception):
-    dataset.map(_upper, input_path='text', output_column='text_upper')
-
-
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_continuation(
@@ -871,6 +855,67 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
       'text.test_signal.firstchar': 'b',
       'text.test_signal.len': 10,
       'output_text.result': 'b_10',
+    },
+  ]
+
+
+def test_map_combine_columns_with_input_path(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
+
+  signal = TestFirstCharSignal()
+  dataset.compute_signal(signal, 'text')
+
+  def _map_fn(enriched_text: Item) -> Item:
+    # We use the combine_columns=True input here.
+    return {
+      'result': f'{enriched_text["test_signal"]["firstchar"]}_{len(enriched_text[VALUE_KEY])}'
+    }
+
+  # Write the output to a new column.
+  dataset.map(_map_fn, 'text', output_column='output_text', combine_columns=True)
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'text.test_signal.firstchar': 'a',
+      'text.test_signal.len': 10,
+      'output_text.result': 'a_10',
+    },
+    {
+      'text': 'b sentence',
+      'text.test_signal.firstchar': 'b',
+      'text.test_signal.len': 10,
+      'output_text.result': 'b_10',
+    },
+  ]
+
+
+def test_map_on_double_nested_input(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'texts': [['a', 'b'], ['c'], ['dd', 'e']]},
+      {'texts': [['ff', 'ggg']]},
+    ]
+  )
+
+  dataset.map(lambda x: len(x), 'texts', output_column='texts_len')
+  dataset.map(lambda x: len(x), 'texts.*', output_column='texts[i]_len')
+  dataset.map(lambda x: len(x), 'texts.*.*', output_column='texts[i][j]_len')
+
+  rows = list(dataset.select_rows())
+  assert rows == [
+    {
+      'texts': [['a', 'b'], ['c'], ['dd', 'e']],
+      'texts_len': 3,
+      'texts[i]_len': [2, 1, 2],
+      'texts[i][j]_len': [[1, 1], [1], [2, 1]],
+    },
+    {
+      'texts': [['ff', 'ggg']],
+      'texts_len': 1,
+      'texts[i]_len': [2],
+      'texts[i][j]_len': [[2, 3]],
     },
   ]
 

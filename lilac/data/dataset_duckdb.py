@@ -634,7 +634,7 @@ class DatasetDuckDB(Dataset):
     select_queries: list[str] = []
     columns_to_merge: dict[str, dict[str, Column]] = {}
 
-    unnest_column_alias: Optional[str] = None
+    final_col_name: Optional[str] = None
     for column in cols:
       path = column.path
 
@@ -659,8 +659,6 @@ class DatasetDuckDB(Dataset):
         column_alias = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
         )
-        if select_path:
-          unnest_column_alias = column_alias
 
         select_sqls.append(f'{sql} AS {escape_string_literal(column_alias)}')
         columns_to_merge[final_col_name][column_alias] = column
@@ -758,8 +756,8 @@ class DatasetDuckDB(Dataset):
         # Since we aliased every column to `*`, the object will have only '*' as the key. We need
         # to elevate the all the columns under '*'.
         df_chunk = pd.DataFrame.from_records(df_chunk['*'])
-      if select_path and unnest_column_alias and not combine_columns:
-        values = df_chunk[unnest_column_alias].tolist()
+      if select_path and final_col_name and not combine_columns:
+        values = df_chunk[final_col_name].tolist()
       else:
         values = df_chunk.to_dict('records')
 
@@ -823,16 +821,12 @@ class DatasetDuckDB(Dataset):
 
     # Tee the values so we can use them for the deep flatten and the deep unflatten.
     input_values = (value for (_, value) in inputs_0)
-
-    nested_spec = _split_path_into_subpaths_of_lists(output_path or ())
-
     output_items: Iterable[Optional[Item]]
     # Flatten the outputs back to the shape of the original data.
     # The output values are flat from the signal. This
     if unnest_input_path:
+      flatten_depth = len([part for part in unnest_input_path if part == PATH_WILDCARD])
       input_values_0, input_values_1 = itertools.tee(input_values, 2)
-
-      assert unnest_input_path is not None
       source_path = unnest_input_path
 
       if isinstance(transform_fn, VectorSignal):
@@ -845,20 +839,26 @@ class DatasetDuckDB(Dataset):
         )
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
-        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
+        flat_input = cast(
+          Iterator[Optional[RichData]], array_flatten(input_values_0, flatten_depth)
+        )
         dense_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
         map_fn = transform_fn
         assert not isinstance(map_fn, Signal)
-        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
+        flat_input = cast(
+          Iterator[Optional[RichData]], array_flatten(input_values_0, flatten_depth)
+        )
         dense_out = sparse_to_dense_compute(flat_input, lambda x: map_fn(x))
-      output_items = array_unflatten(dense_out, input_values_1)
+      output_items = array_unflatten(dense_out, input_values_1, flatten_depth)
     else:
       assert not isinstance(transform_fn, Signal)
       output_items = transform_fn(input_values)
 
+    # Wrap the output items in dicts to match the output path shape.
+    nested_spec = _split_path_into_subpaths_of_lists(output_path or ())
     output_items = cast(Iterable[Item], wrap_in_dicts(output_items, nested_spec))
 
     output_items = (
@@ -2643,13 +2643,8 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
 
     input_path = normalize_path(input_path) if input_path else None
-    if input_path:
-      input_field = manifest.data_schema.get_field(input_path)
-      if not input_field.dtype:
-        raise ValueError(
-          f'Input path {input_path} is not a leaf path. This is currently unsupported. If you '
-          'require this, please file an issue and we will prioritize.'
-        )
+    if input_path and not manifest.data_schema.has_field(input_path):
+      raise ValueError(f'Input path {input_path} does not exist in the dataset.')
 
     # Validate output_column and nest_under.
     if nest_under is not None:
