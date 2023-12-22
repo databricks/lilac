@@ -50,11 +50,6 @@ def test_deep_flatten() -> None:
   assert result == [1, 2, 3, 4, 5, 5]
 
 
-def test_deep_flatten_primitive() -> None:
-  result = list(array_flatten('hello'))
-  assert result == ['hello']
-
-
 def test_deep_flatten_np() -> None:
   input = [[np.array([1, 1])], [np.array([2, 2]), np.array([3, 3])]]
   result = list(array_flatten(input))

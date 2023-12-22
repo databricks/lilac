@@ -65,7 +65,7 @@ def count_primitives(input: Union[Iterable, Iterator]) -> int:
 
   Sum the final set of counts. This is the important iterable not to exhaust.
   """
-  return sum((len(list(array_flatten(i))) for i in input))
+  return sum(1 for _ in array_flatten(input))
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
