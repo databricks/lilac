@@ -1036,6 +1036,50 @@ def test_map_nests_under_field_of_repeated(make_test_data: TestDataMaker) -> Non
   ]
 
 
+def test_map_nests_under_a_parent_of_input_path(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {
+        'people': [
+          {'name': 'A', 'address': {'zip': 1}},
+          {'name': 'B'},
+          {'name': 'C', 'address': {'zip': 2}},
+        ]
+      },
+      {
+        'people': [
+          {'name': 'D', 'address': {'zip': 3}},
+          {'name': 'E', 'address': {}},
+        ]
+      },
+    ]
+  )
+
+  def zip_code_verifier(zip_code: int) -> bool:
+    return zip_code != 2
+
+  dataset.map(
+    zip_code_verifier, 'people.*.address.zip', output_column='verified', nest_under='people.*'
+  )
+
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'people': [
+        {'name': 'A', 'address': {'zip': 1}, 'verified': True},
+        {'name': 'B', 'address': None, 'verified': None},
+        {'name': 'C', 'address': {'zip': 2}, 'verified': False},
+      ]
+    },
+    {
+      'people': [
+        {'name': 'D', 'address': {'zip': 3}, 'verified': True},
+        {'name': 'E', 'address': {'zip': None}, 'verified': None},
+      ]
+    },
+  ]
+
+
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
