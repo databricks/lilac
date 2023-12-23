@@ -21,10 +21,10 @@ from pydantic import (
   field_validator,
 )
 from pydantic import Field as PydanticField
-from tqdm import tqdm
 from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
+from ..batch_utils import group_by_sorted_key_iter
 from ..config import (
   DatasetConfig,
   DatasetSettings,
@@ -483,43 +483,30 @@ class Dataset(abc.ABC):
     self.compute_signal(signal, path, overwrite=overwrite)
 
     # Now that we have the clusters, compute the topic for each cluster with a map.
-    def _transform(items: Iterable[Item]) -> Iterable[Item]:
-      # Maps a cluster id to a list of (doc, membership_score) tuples.
-      clusters: dict[str, list[tuple[str, float]]] = {}
+    def _transform(items: Iterator[Item]) -> Iterator[Item]:
+      groups = group_by_sorted_key_iter(items, lambda x: x[signal_key][0]['cluster_id'])
+      for group in groups:
+        docs: list[tuple[str, float]] = []
+        for item in group:
+          text = item[VALUE_KEY]
+          if not text:
+            continue
+          cluster_id = item[signal_key][0]['cluster_id']
+          if cluster_id < 0:
+            continue
+          membership_prob = item[signal_key][0]['membership_prob'] or 0
+          if membership_prob == 0:
+            continue
+          docs.append((text, membership_prob))
 
-      for item in items:
-        spans = item[signal_key]
-        if not spans:
-          continue
-        text = item[VALUE_KEY]
-        if not text:
-          continue
-        cluster_id = item[signal_key][0]['cluster_id']
-        if cluster_id < 0:
-          continue
-        membership_prob = item[signal_key][0]['membership_prob'] or 0
-        if membership_prob == 0:
-          continue
-        docs = clusters.get(cluster_id, [])
-        docs.append((text, membership_prob))
-        clusters[cluster_id] = docs
-
-      # Maps a cluster id to a topic.
-      cluster_topics: dict[str, str] = {}
-      # Compute the topic for each cluster.
-      for cluster_id, docs in tqdm(
-        list(clusters.items()), dynamic_ncols=True, desc='Generating topics'
-      ):
         # Sort by membership score.
         sorted_docs = sorted(docs, key=lambda x: x[1], reverse=True)
-        topic = topic_fn(sorted_docs)
-        cluster_topics[cluster_id] = topic
+        topic = topic_fn(sorted_docs) if sorted_docs else None
 
-      results: list[Optional[str]] = []
-      for item in items:
-        cluster_id = item[signal_key][0]['cluster_id']
-        results.append(cluster_topics.get(cluster_id, None))
-      return results
+        # Yield a topic for each item in the group since the combined output needs to be the same
+        # length as the combined input.
+        for item in group:
+          yield topic
 
     self.transform(
       _transform,
@@ -528,6 +515,7 @@ class Dataset(abc.ABC):
       nest_under=nest_under or path,
       combine_columns=True,
       overwrite=overwrite,
+      sort_by=(*path, signal_key, PATH_WILDCARD, 'cluster_id'),
     )
 
   def compute_embedding(
@@ -832,7 +820,7 @@ class Dataset(abc.ABC):
 
   def transform(
     self,
-    transform_fn: Callable[[Iterable[Item]], Iterable[Item]],
+    transform_fn: Callable[[Iterator[Item]], Iterator[Item]],
     input_path: Optional[Path] = None,
     output_column: Optional[str] = None,
     nest_under: Optional[Path] = None,
@@ -841,12 +829,14 @@ class Dataset(abc.ABC):
     resolve_span: bool = False,
     filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
+    sort_by: Optional[Path] = None,
+    sort_order: Optional[SortOrder] = SortOrder.ASC,
   ) -> Iterable[Item]:
     """Transforms the entire dataset (or a column) and writes the result to a new column.
 
     Args:
-      transform_fn: A callable that takes a full row item dictionary, and returns an Item for the
-        result. The result Item can be a primitive, like a string.
+      transform_fn: A callable that takes an iterable of all items in the dataset, and returns an
+      iterable of the same length for the result.
       output_column: The name of the output column to write to. When `nest_under` is False
         (the default), this will be the name of the top-level column. When `nest_under` is True,
         the output_column will be the name of the column under the path given by `nest_under`.
@@ -867,6 +857,9 @@ class Dataset(abc.ABC):
         filter, and there is no way to fill in those nulls without recomputing the entire map with
         a less restrictive filter and overwrite=True.
       limit: How many rows to map over. If not specified, all rows will be mapped over.
+      sort_by: The path to sort by. If specified, the map will be called with rows sorted by this
+        path. This is useful for map functions that need to maintain state across rows.
+      sort_order: The sort order. Defaults to ascending.
     """
     return self.map(
       map_fn=transform_fn,
@@ -879,6 +872,8 @@ class Dataset(abc.ABC):
       batch_size=-1,
       filters=filters,
       limit=limit,
+      sort_by=sort_by,
+      sort_order=sort_order,
       num_jobs=1,
       execution_type='threads',
     )

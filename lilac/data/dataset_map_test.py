@@ -8,6 +8,7 @@ import pytest
 from typing_extensions import override
 
 from .. import tasks
+from ..batch_utils import group_by_sorted_key_iter
 from ..schema import (
   PATH_WILDCARD,
   VALUE_KEY,
@@ -1080,6 +1081,39 @@ def test_map_nests_under_a_parent_of_input_path(make_test_data: TestDataMaker) -
   ]
 
 
+def test_transform_with_sort_by(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'text': 'a', 'cluster_id': 2},
+      {'text': 'b', 'cluster_id': 1},
+      {'text': 'c', 'cluster_id': 1},
+      {'text': 'd', 'cluster_id': 2},
+      {'text': 'e', 'cluster_id': 2},
+      {'text': 'f', 'cluster_id': 3},
+    ]
+  )
+
+  def aggregate_cluster(items: Iterator[str]) -> Iterator[Item]:
+    groups = group_by_sorted_key_iter(items, lambda x: x)
+    for group in groups:
+      for _ in group:
+        yield len(group)
+
+  dataset.transform(
+    aggregate_cluster, input_path='cluster_id', output_column='cluster_size', sort_by='cluster_id'
+  )
+
+  rows = list(dataset.select_rows())
+  assert rows == [
+    {'text': 'a', 'cluster_id': 2, 'cluster_size': 3},
+    {'text': 'b', 'cluster_id': 1, 'cluster_size': 2},
+    {'text': 'c', 'cluster_id': 1, 'cluster_size': 2},
+    {'text': 'd', 'cluster_id': 2, 'cluster_size': 3},
+    {'text': 'e', 'cluster_id': 2, 'cluster_size': 3},
+    {'text': 'f', 'cluster_id': 3, 'cluster_size': 1},
+  ]
+
+
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
@@ -1384,7 +1418,7 @@ def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
 
 
 def test_transform(make_test_data: TestDataMaker) -> None:
-  def text_len(items: Iterable[Item]) -> Iterable[Item]:
+  def text_len(items: Iterator[Item]) -> Iterator[Item]:
     for item in items:
       yield len(item['text'])
 
@@ -1396,7 +1430,7 @@ def test_transform(make_test_data: TestDataMaker) -> None:
 
 
 def test_transform_with_input_path(make_test_data: TestDataMaker) -> None:
-  def text_len(texts: Iterable[Item]) -> Iterable[Item]:
+  def text_len(texts: Iterator[Item]) -> Iterator[Item]:
     for text in texts:
       yield len(text)
 
@@ -1408,7 +1442,7 @@ def test_transform_with_input_path(make_test_data: TestDataMaker) -> None:
 
 
 def test_transform_size_mismatch(make_test_data: TestDataMaker) -> None:
-  def text_len(texts: Iterable[Item]) -> Iterable[Item]:
+  def text_len(texts: Iterator[Item]) -> Iterator[Item]:
     for i, text in enumerate(texts):
       # Skip the first item.
       if i > 0:
