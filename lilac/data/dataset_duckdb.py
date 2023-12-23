@@ -2690,7 +2690,7 @@ class DatasetDuckDB(Dataset):
             delete_file(map_manifest_filepath)
         else:
           raise ValueError(
-            f'Cannot map to path "{output_column}" which already exists in the dataset. '
+            f'Cannot map to path "{output_path}" which already exists in the dataset. '
             'Use overwrite=True to overwrite the column.'
           )
     filters, _ = self._normalize_filters(
