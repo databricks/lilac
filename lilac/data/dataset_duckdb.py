@@ -266,7 +266,8 @@ class DuckDBMapOutput:
     cursor = self.con.cursor()
     pyarrow_reader = cursor.execute(self.query).fetch_record_batch(rows_per_batch=10_000)
     for batch in pyarrow_reader:
-      yield from (row for row in batch.to_pylist())
+      for row in batch.to_pylist():
+        yield row['value']
 
     pyarrow_reader.close()
 
@@ -899,7 +900,7 @@ class DatasetDuckDB(Dataset):
             yield item
       else:
         yield from output_items
-    except RuntimeError as e:
+    except RuntimeError:
       # NOTE: A RuntimeError exception is thrown when the output_items iterator, which is a zip of
       # input and output items, yields a StopIterator exception.
       raise ValueError(
@@ -912,6 +913,7 @@ class DatasetDuckDB(Dataset):
 
   def _reshard_cache(
     self,
+    manifest: DatasetManifest,
     output_path: PathTuple,
     jsonl_cache_filepaths: list[str],
     schema: Optional[Schema] = None,
@@ -939,16 +941,21 @@ class DatasetDuckDB(Dataset):
     # bug, interrupted it, updated and reran.
     #
     # Anyway this seems like a lot of unusual things have to happen so I'll leave the bug unfixed.
-    json_query = f"""
-      SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
-        {jsonl_cache_filepaths},
-        {f'columns={duckdb_schema(schema)},' if schema else ''}
-        hive_partitioning=false,
-        ignore_errors=true,
-        format='newline_delimited'
-      )
-    """
-    con.execute(f'CREATE OR REPLACE VIEW "{jsonl_view_name}" as ({json_query});')
+
+    def get_json_query(selection: str) -> str:
+      if selection != '*':
+        selection += ' AS value'
+      return f"""
+        SELECT {selection} FROM {'read_json' if schema else 'read_json_auto'}(
+          {jsonl_cache_filepaths},
+          {f'columns={duckdb_schema(schema)},' if schema else ''}
+          hive_partitioning=false,
+          ignore_errors=true,
+          format='newline_delimited'
+        )
+      """
+
+    con.execute(f'CREATE OR REPLACE VIEW "{jsonl_view_name}" as ({get_json_query("*")});')
 
     parquet_filepath: Optional[str] = None
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
@@ -978,7 +985,10 @@ class DatasetDuckDB(Dataset):
     if ROWID in output_schema.fields:
       del output_schema.fields[ROWID]
 
-    return json_query, output_schema, parquet_filepath
+    select_str = _select_sql(
+      output_path, flatten=False, unnest=False, path=output_path, schema=manifest.data_schema
+    )
+    return get_json_query(select_str), output_schema, parquet_filepath
 
   @override
   def get_embeddings(
@@ -1063,6 +1073,7 @@ class DatasetDuckDB(Dataset):
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     _, inferred_schema, parquet_filepath = self._reshard_cache(
+      manifest=manifest,
       output_path=output_path,
       schema=signal_schema,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
@@ -1738,10 +1749,6 @@ class DatasetDuckDB(Dataset):
     # Add search where queries.
     for search in searches:
       search_path = normalize_path(search.path)
-      duckdb_path = self._leaf_path_to_duckdb_path(search_path, manifest.data_schema)
-      select_str = _select_sql(
-        duckdb_path, flatten=False, unnest=False, path=search_path, schema=manifest.data_schema
-      )
       if search.type == 'keyword':
         filters.append(Filter(path=search_path, op='ilike', value=search.query))
       elif search.type == 'semantic' or search.type == 'concept':
@@ -2764,6 +2771,7 @@ class DatasetDuckDB(Dataset):
     get_task_manager().wait([task_id])
 
     json_query, map_schema, parquet_filepath = self._reshard_cache(
+      manifest=manifest,
       output_path=output_path,
       jsonl_cache_filepaths=jsonl_cache_filepaths,
       is_tmp_output=is_tmp_output,
