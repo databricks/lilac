@@ -86,7 +86,7 @@ def group_by_sorted_key_iter(
     key_fn: A function that takes an item and returns a key.
 
   Yields:
-    Each group of items sharing the same key.
+    A list of items sharing the same key, for each group.
   """
   last_key: object = None
   last_group: list[Item] = []

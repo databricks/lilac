@@ -1,9 +1,25 @@
 """Clustering utilities."""
 import functools
-from typing import Any
+from typing import Any, Iterator, Optional
 
 import instructor
-from pydantic import BaseModel
+from pydantic import (
+  BaseModel,
+)
+
+from ..batch_utils import group_by_sorted_key_iter
+from ..schema import (
+  PATH_WILDCARD,
+  VALUE_KEY,
+  Item,
+  Path,
+  normalize_path,
+)
+from ..signal import (
+  TopicFn,
+)
+from ..signals.cluster_hdbscan import ClusterHDBScan
+from .dataset import Dataset
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 5
@@ -66,3 +82,63 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
     ],
   )
   return title.title
+
+
+_CLUSTER_ID = 'cluster_id'
+_MEMBERSHIP_PROB = 'membership_prob'
+
+
+def cluster(
+  dataset: Dataset,
+  path: Path,
+  embedding: Optional[str] = None,
+  output_column: str = 'topic',
+  nest_under: Optional[Path] = None,
+  min_cluster_size: int = 5,
+  topic_fn: TopicFn = summarize_instructions,
+  overwrite: bool = False,
+) -> None:
+  """Compute clusters for a field of the dataset."""
+  if not embedding:
+    raise ValueError('Only embedding-based clustering is supported for now.')
+  path = normalize_path(path)
+
+  signal = ClusterHDBScan(embedding=embedding, min_cluster_size=min_cluster_size)
+  signal_key = signal.key(is_computed_signal=True)
+  dataset.compute_signal(signal, path, overwrite=overwrite)
+
+  # Now that we have the clusters, compute the topic for each cluster with a map.
+  def _transform(items: Iterator[Item]) -> Iterator[Item]:
+    groups = group_by_sorted_key_iter(items, lambda x: x[signal_key][0][_CLUSTER_ID])
+    for group in groups:
+      docs: list[tuple[str, float]] = []
+      for item in group:
+        text = item[VALUE_KEY]
+        if not text:
+          continue
+        cluster_id = item[signal_key][0][_CLUSTER_ID]
+        if cluster_id < 0:
+          continue
+        membership_prob = item[signal_key][0][_MEMBERSHIP_PROB] or 0
+        if membership_prob == 0:
+          continue
+        docs.append((text, membership_prob))
+
+      # Sort by membership score.
+      sorted_docs = sorted(docs, key=lambda x: x[1], reverse=True)
+      topic = topic_fn(sorted_docs) if sorted_docs else None
+
+      # Yield a topic for each item in the group since the combined output needs to be the same
+      # length as the combined input.
+      for item in group:
+        yield topic
+
+  dataset.transform(
+    _transform,
+    input_path=path,
+    output_column=output_column,
+    nest_under=nest_under or path,
+    combine_columns=True,
+    overwrite=overwrite,
+    sort_by=(*path, signal_key, PATH_WILDCARD, _CLUSTER_ID),
+  )

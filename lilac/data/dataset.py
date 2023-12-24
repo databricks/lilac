@@ -24,7 +24,6 @@ from pydantic import Field as PydanticField
 from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
-from ..batch_utils import group_by_sorted_key_iter
 from ..config import (
   DatasetConfig,
   DatasetSettings,
@@ -40,7 +39,6 @@ from ..schema import (
   ROWID,
   STRING,
   STRING_SPAN,
-  VALUE_KEY,
   Bin,
   EmbeddingInputType,
   Field,
@@ -61,11 +59,9 @@ from ..signal import (
   get_signal_by_type,
   resolve_signal,
 )
-from ..signals.cluster_hdbscan import ClusterHDBScan
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
 from ..tasks import TaskExecutionType, TaskShardId
-from .clustering import summarize_instructions
 from .dataset_format import DatasetFormat
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -446,13 +442,14 @@ class Dataset(abc.ABC):
     """
     pass
 
+  @abc.abstractmethod
   def cluster(
     self,
     path: Path,
     embedding: Optional[str] = None,
     output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
-    topic_fn: TopicFn = summarize_instructions,
+    topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
   ) -> None:
     """Compute clusters for a field of the dataset.
@@ -464,54 +461,11 @@ class Dataset(abc.ABC):
       min_cluster_size: The minimum number of docs in a cluster.
       topic_fn: A function that returns a topic summary for each cluster. It takes a list of
         (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
-        for a given cluster of docs. It defaults to a function that uses GPT-3.5 to summarize
-        user's instructions.
+        for a given cluster of docs. It defaults to a function that summarizes user's instructions.
       overwrite: Whether to overwrite an existing output.
 
     """
-    if not embedding:
-      raise ValueError('Only embedding-based clustering is supported for now.')
-    path = normalize_path(path)
-
-    signal = ClusterHDBScan(embedding=embedding, min_cluster_size=min_cluster_size)
-    signal_key = signal.key(is_computed_signal=True)
-    self.compute_signal(signal, path, overwrite=overwrite)
-
-    # Now that we have the clusters, compute the topic for each cluster with a map.
-    def _transform(items: Iterator[Item]) -> Iterator[Item]:
-      groups = group_by_sorted_key_iter(items, lambda x: x[signal_key][0]['cluster_id'])
-      for group in groups:
-        docs: list[tuple[str, float]] = []
-        for item in group:
-          text = item[VALUE_KEY]
-          if not text:
-            continue
-          cluster_id = item[signal_key][0]['cluster_id']
-          if cluster_id < 0:
-            continue
-          membership_prob = item[signal_key][0]['membership_prob'] or 0
-          if membership_prob == 0:
-            continue
-          docs.append((text, membership_prob))
-
-        # Sort by membership score.
-        sorted_docs = sorted(docs, key=lambda x: x[1], reverse=True)
-        topic = topic_fn(sorted_docs) if sorted_docs else None
-
-        # Yield a topic for each item in the group since the combined output needs to be the same
-        # length as the combined input.
-        for item in group:
-          yield topic
-
-    output_path = output_path or (*path, 'cluster')
-    self.transform(
-      _transform,
-      input_path=path,
-      output_path=output_path,
-      combine_columns=True,
-      overwrite=overwrite,
-      sort_by=(*path, signal_key, PATH_WILDCARD, 'cluster_id'),
-    )
+    pass
 
   def compute_embedding(
     self,
