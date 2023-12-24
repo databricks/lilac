@@ -9,16 +9,16 @@ from pydantic import (
 
 from ..batch_utils import group_by_sorted_key_iter
 from ..schema import (
-  PATH_WILDCARD,
   VALUE_KEY,
   Item,
   Path,
+  SpanVector,
   normalize_path,
 )
 from ..signal import (
   TopicFn,
 )
-from ..signals.cluster_hdbscan import ClusterHDBScan
+from ..signals.cluster_hdbscan import CLUSTER_ID, MEMBERSHIP_PROB, cluster_span_vectors
 from .dataset import Dataset
 
 _SHORTEN_LEN = 400
@@ -84,10 +84,6 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
   return title.title
 
 
-_CLUSTER_ID = 'cluster_id'
-_MEMBERSHIP_PROB = 'membership_prob'
-
-
 def cluster(
   dataset: Dataset,
   path: Path,
@@ -101,24 +97,38 @@ def cluster(
   if not embedding:
     raise ValueError('Only embedding-based clustering is supported for now.')
   path = normalize_path(path)
+  output_path = output_path or (*path, 'cluster')
 
-  signal = ClusterHDBScan(embedding=embedding, min_cluster_size=min_cluster_size)
-  signal_key = signal.key(is_computed_signal=True)
-  dataset.compute_signal(signal, path, overwrite=overwrite)
+  def compute_clusters(span_vectors: Iterator[list[SpanVector]]) -> Iterator[Item]:
+    yield from (
+      {
+        CLUSTER_ID: x[0][CLUSTER_ID],
+        MEMBERSHIP_PROB: x[0][MEMBERSHIP_PROB],
+      }
+      for x in cluster_span_vectors(span_vectors, min_cluster_size)
+    )
+
+  dataset.transform(
+    compute_clusters,
+    input_path=path,
+    output_path=output_path,
+    combine_columns=True,
+    embedding=embedding,
+  )
 
   # Now that we have the clusters, compute the topic for each cluster with a map.
-  def _transform(items: Iterator[Item]) -> Iterator[Item]:
-    groups = group_by_sorted_key_iter(items, lambda x: x[signal_key][0][_CLUSTER_ID])
+  def compute_topics(items: Iterator[Item]) -> Iterator[Item]:
+    groups = group_by_sorted_key_iter(items, lambda x: x['cluster'][CLUSTER_ID])
     for group in groups:
       docs: list[tuple[str, float]] = []
       for item in group:
         text = item[VALUE_KEY]
         if not text:
           continue
-        cluster_id = item[signal_key][0][_CLUSTER_ID]
+        cluster_id = item['cluster'][CLUSTER_ID]
         if cluster_id < 0:
           continue
-        membership_prob = item[signal_key][0][_MEMBERSHIP_PROB] or 0
+        membership_prob = item['cluster'][MEMBERSHIP_PROB] or 0
         if membership_prob == 0:
           continue
         docs.append((text, membership_prob))
@@ -132,12 +142,11 @@ def cluster(
       for item in group:
         yield topic
 
-  output_path = output_path or (*path, 'topic')
   dataset.transform(
-    _transform,
+    compute_topics,
     input_path=path,
-    output_path=output_path,
+    output_path=(*output_path, 'topic'),
     combine_columns=True,
     overwrite=overwrite,
-    sort_by=(*path, signal_key, PATH_WILDCARD, _CLUSTER_ID),
+    sort_by=(*path, 'cluster', CLUSTER_ID),
   )

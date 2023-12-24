@@ -720,6 +720,7 @@ class Dataset(abc.ABC):
     include_deleted: bool = False,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
+    embedding: Optional[str] = None,
   ) -> Iterable[Item]:
     """Maps a function over all rows in the dataset and writes the result to a new column.
 
@@ -756,6 +757,9 @@ class Dataset(abc.ABC):
       execution_type: The local execution type of the map. Either "threads" or "processes". Threads
         are better for network bound tasks like making requests to an external server, while
         processes are better for CPU bound tasks, like running a local LLM.
+      embedding: The embedding to use for the map function. If specified, the map function will be
+        called with the embedding for that item. This is useful for map functions that need
+        embeddings (e.g. clustering).
 
     Returns:
       An iterable of items that are the result of map. The result item does not have the column name
@@ -775,6 +779,7 @@ class Dataset(abc.ABC):
     limit: Optional[int] = None,
     sort_by: Optional[Path] = None,
     sort_order: Optional[SortOrder] = SortOrder.ASC,
+    embedding: Optional[str] = None,
   ) -> Iterable[Item]:
     """Transforms the entire dataset (or a column) and writes the result to a new column.
 
@@ -801,6 +806,9 @@ class Dataset(abc.ABC):
       sort_by: The path to sort by. If specified, the map will be called with rows sorted by this
         path. This is useful for map functions that need to maintain state across rows.
       sort_order: The sort order. Defaults to ascending.
+      embedding: The embedding to use for the transform function. If specified, the transform
+        function will be called with the embedding for that item. This is useful for functions that
+        need embeddings (e.g. clustering).
     """
     return self.map(
       map_fn=transform_fn,
@@ -816,6 +824,7 @@ class Dataset(abc.ABC):
       sort_order=sort_order,
       num_jobs=1,
       execution_type='threads',
+      embedding=embedding,
     )
 
   @abc.abstractmethod

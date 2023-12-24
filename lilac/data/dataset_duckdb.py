@@ -630,6 +630,7 @@ class DatasetDuckDB(Dataset):
     query_options: Optional[DuckDBQueryParams] = None,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
+    empty: bool = False,
   ) -> Iterator[tuple[str, Item]]:
     """Returns an iterable of (rowid, item), discluding results in the cache filepath."""
     manifest = self.manifest()
@@ -790,6 +791,7 @@ class DatasetDuckDB(Dataset):
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
     task_shard_id: Optional[TaskShardId] = None,
+    embedding: Optional[str] = None,
   ) -> Iterator[Item]:
     manifest = self.manifest()
 
@@ -826,6 +828,7 @@ class DatasetDuckDB(Dataset):
       query_options=query_options,
       shard_id=shard_id,
       shard_count=shard_count,
+      empty=embedding is not None,
     )
 
     # Tee the results so we can zip the row ids with the outputs.
@@ -839,12 +842,11 @@ class DatasetDuckDB(Dataset):
     if unnest_input_path:
       flatten_depth = len([part for part in unnest_input_path if part == PATH_WILDCARD])
       input_values_0, input_values_1 = itertools.tee(input_values, 2)
-      source_path = unnest_input_path
 
       if isinstance(transform_fn, VectorSignal):
         embedding_signal = transform_fn
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
-        vector_store = self._get_vector_db_index(embedding_signal.embedding, source_path)
+        vector_store = self._get_vector_db_index(embedding_signal.embedding, unnest_input_path)
         flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
         sparse_out = sparse_to_dense_compute(
           flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
@@ -855,6 +857,12 @@ class DatasetDuckDB(Dataset):
         sparse_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
+      elif embedding is not None:
+        map_fn = transform_fn
+        vector_store = self._get_vector_db_index(embedding, unnest_input_path)
+        inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
+        flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
+        sparse_out = sparse_to_dense_compute(flat_keys, lambda keys: map_fn(vector_store.get(keys)))
       else:
         map_fn = transform_fn
         assert not isinstance(map_fn, Signal)
@@ -1940,9 +1948,9 @@ class DatasetDuckDB(Dataset):
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
-          flat_keys = list(flatten_keys(df[ROWID], input))
+          flat_keys = flatten_keys(df[ROWID], input)
           signal_out = sparse_to_dense_compute(
-            iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
+            flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
           )
           df[signal_column] = list(unflatten_iter(signal_out, input))
         else:
@@ -2651,6 +2659,7 @@ class DatasetDuckDB(Dataset):
     include_deleted: bool = False,
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
+    embedding: Optional[str] = None,
   ) -> Iterable[Item]:
     is_tmp_output = output_path is None
     manifest = self.manifest()
@@ -2754,6 +2763,7 @@ class DatasetDuckDB(Dataset):
             combine_columns,
             resolve_span,
             (task_id, i),
+            embedding,
           ],
         )
       )
@@ -2836,6 +2846,7 @@ class DatasetDuckDB(Dataset):
     combine_columns: bool = False,
     resolve_span: bool = False,
     task_shard_id: Optional[TaskShardId] = None,
+    embedding: Optional[str] = None,
   ) -> None:
     map_sig = inspect.signature(map_fn)
     if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
@@ -2880,6 +2891,7 @@ class DatasetDuckDB(Dataset):
         shard_id=job_id,
         shard_count=job_count,
         task_shard_id=task_shard_id,
+        embedding=embedding,
       )
     )
 
