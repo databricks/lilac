@@ -900,9 +900,9 @@ def test_map_on_double_nested_input(make_test_data: TestDataMaker) -> None:
     ]
   )
 
-  dataset.map(lambda x: len(x), 'texts', output_column='texts_len')
-  dataset.map(lambda x: len(x), 'texts.*', output_column='texts[i]_len')
-  dataset.map(lambda x: len(x), 'texts.*.*', output_column='texts[i][j]_len')
+  dataset.map(lambda x: len(x), 'texts', output_path='texts_len')
+  dataset.map(lambda x: len(x), 'texts.*', output_path='texts[i]_len')
+  dataset.map(lambda x: len(x), 'texts.*.*', output_path='texts[i][j]_len')
 
   rows = list(dataset.select_rows())
   assert rows == [
@@ -940,16 +940,16 @@ def test_map_select_subfields_of_repeated_dicts(make_test_data: TestDataMaker) -
     ]
   )
 
-  dataset.map(lambda x: len(x), 'people', output_column='people_len')
-  dataset.map(lambda x: x['name'], 'people.*', output_column='person_name')
-  dataset.map(lambda x: len(x), 'people.*.name', output_column='len_name')
-  dataset.map(lambda x: len(x), 'people.*.phones', output_column='len_phones')
-  dataset.map(lambda x: x - 1, 'people.*.phones.*', output_column='phones_minus_one')
+  dataset.map(lambda x: len(x), 'people', output_path='people_len')
+  dataset.map(lambda x: x['name'], 'people.*', output_path='person_name')
+  dataset.map(lambda x: len(x), 'people.*.name', output_path='len_name')
+  dataset.map(lambda x: len(x), 'people.*.phones', output_path='len_phones')
+  dataset.map(lambda x: x - 1, 'people.*.phones.*', output_path='phones_minus_one')
 
   # No input path and combine columns is True.
   dataset.map(
     lambda x: 'people' in x and 'name' in x['people'][0],
-    output_column='has_name',
+    output_path='has_name',
     combine_columns=True,
   )
 
@@ -986,7 +986,7 @@ def test_map_nests_under_repeated(make_test_data: TestDataMaker) -> None:
     ]
   )
 
-  dataset.map(lambda x: len(x), 'people.*.name', output_column='len_name', nest_under='people.*')
+  dataset.map(lambda x: len(x), 'people.*.name', output_path='people.*.len_name')
 
   rows = list(dataset.select_rows(combine_columns=True))
   assert rows == [
@@ -1015,9 +1015,7 @@ def test_map_nests_under_field_of_repeated(make_test_data: TestDataMaker) -> Non
     ]
   )
 
-  dataset.map(
-    lambda x: len(x), 'people.*.name', output_column='len_name', nest_under='people.*.info'
-  )
+  dataset.map(lambda x: len(x), 'people.*.name', output_column='people.*.info.len_name')
 
   rows = list(dataset.select_rows(combine_columns=True))
   assert rows == [
@@ -1120,7 +1118,7 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   def _map_fn(item: Item) -> Item:
     return item['text'] + ' ' + item['text']
 
-  dataset.map(_map_fn, output_column='double', combine_columns=False)
+  dataset.map(_map_fn, output_path='double', combine_columns=False)
 
   # Compute a signal on the map output.
   signal = TestFirstCharSignal()
@@ -1194,7 +1192,7 @@ def test_map_nest_under(make_test_data: TestDataMaker) -> None:
   def _map_fn(item: Item) -> Item:
     return {'value': len(item['parent.text'])}
 
-  dataset.map(_map_fn, output_column='len', nest_under=('parent', 'text'))
+  dataset.map(_map_fn, output_path='parent.text.len')
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -1244,7 +1242,7 @@ def test_map_span(make_test_data: TestDataMaker) -> None:
       span(m.start(), m.end(), {'len': m.end() - m.start()}) for m in re.finditer('b', item['text'])
     ]
 
-  dataset.map(_map_fn, output_column='b_span', nest_under='text')
+  dataset.map(_map_fn, output_column='text.b_span')
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,

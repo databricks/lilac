@@ -450,8 +450,7 @@ class Dataset(abc.ABC):
     self,
     path: Path,
     embedding: Optional[str] = None,
-    output_column: str = 'topic',
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
     topic_fn: TopicFn = summarize_instructions,
     overwrite: bool = False,
@@ -461,11 +460,7 @@ class Dataset(abc.ABC):
     Args:
       path: The path to the text field to cluster.
       embedding: The pre-computed embedding to use.
-      output_column: The name of the output column to write to. When `nest_under` is False
-        (the default), this will be the name of the top-level column. When `nest_under` is True,
-        the output_column will be the name of the column under the path given by `nest_under`.
-      nest_under: The path to nest the output under. Defaults to the input `path`, so it gets
-        hierarchically shown in the UI.
+      output_path: The name of the output path to write to. Defaults to the input path + ".cluster".
       min_cluster_size: The minimum number of docs in a cluster.
       topic_fn: A function that returns a topic summary for each cluster. It takes a list of
         (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
@@ -508,11 +503,11 @@ class Dataset(abc.ABC):
         for item in group:
           yield topic
 
+    output_path = output_path or (*path, 'cluster')
     self.transform(
       _transform,
       input_path=path,
-      output_column=output_column,
-      nest_under=nest_under or path,
+      output_path=output_path,
       combine_columns=True,
       overwrite=overwrite,
       sort_by=(*path, signal_key, PATH_WILDCARD, 'cluster_id'),
@@ -759,8 +754,7 @@ class Dataset(abc.ABC):
     self,
     map_fn: MapFn,
     input_path: Optional[Path] = None,
-    output_column: Optional[str] = None,
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -782,11 +776,8 @@ class Dataset(abc.ABC):
         be called with the full row item dictionary. If specified, the map function will be called
         with the value at the given path, flattened. The output column will be written in the same
         shape as the input column, paralleling its nestedness.
-      output_column: The name of the output column to write to. When `nest_under` is False
-        (the default), this will be the name of the top-level column. When `nest_under` is True,
-        the output_column will be the name of the column under the path given by `nest_under`.
-      nest_under: The path to nest the output under. This is useful when emitting annotations, like
-        spans, so they will get hierarchically shown in the UI.
+      output_path: The name of the output path to write to. It is often useful to emit results
+        next to the input, so they will get hierarchically shown in the UI.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
@@ -822,8 +813,7 @@ class Dataset(abc.ABC):
     self,
     transform_fn: Callable[[Iterator[Item]], Iterator[Item]],
     input_path: Optional[Path] = None,
-    output_column: Optional[str] = None,
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -837,15 +827,12 @@ class Dataset(abc.ABC):
     Args:
       transform_fn: A callable that takes an iterable of all items in the dataset, and returns an
       iterable of the same length for the result.
-      output_column: The name of the output column to write to. When `nest_under` is False
-        (the default), this will be the name of the top-level column. When `nest_under` is True,
-        the output_column will be the name of the column under the path given by `nest_under`.
       input_path: The path to the input column to map over. If not specified, the map function will
         be called with the full row item dictionary. If specified, the map function will be called
         with the value at the given path, flattened. The output column will be written in the same
         shape as the input column, paralleling its nestedness.
-      nest_under: The path to nest the output under. This is useful when emitting annotations, like
-        spans, so they will get hierarchically shown in the UI.
+      output_path: The name of the output path to write to. It is often useful to emit results
+        next to the input, so they will get hierarchically shown in the UI.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
@@ -864,8 +851,7 @@ class Dataset(abc.ABC):
     return self.map(
       map_fn=transform_fn,
       input_path=input_path,
-      output_column=output_column,
-      nest_under=nest_under,
+      output_path=output_path,
       overwrite=overwrite,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
