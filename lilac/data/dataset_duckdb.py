@@ -83,7 +83,14 @@ from ..schema import (
   signal_type_supports_dtype,
 )
 from ..schema_duckdb import duckdb_schema, escape_col_name, escape_string_literal
-from ..signal import Signal, TextEmbeddingSignal, VectorSignal, get_signal_by_type, resolve_signal
+from ..signal import (
+  Signal,
+  TextEmbeddingSignal,
+  TopicFn,
+  VectorSignal,
+  get_signal_by_type,
+  resolve_signal,
+)
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.filter_mask import FilterMaskSignal
@@ -109,6 +116,7 @@ from ..utils import (
   open_file,
 )
 from . import dataset
+from .clustering import cluster, summarize_instructions
 from .dataset import (
   BINARY_OPS,
   DELETED_LABEL_NAME,
@@ -2871,6 +2879,22 @@ class DatasetDuckDB(Dataset):
         shard_count=job_count,
         task_shard_id=task_shard_id,
       )
+    )
+
+  @override
+  def cluster(
+    self,
+    path: Path,
+    embedding: Optional[str] = None,
+    output_column: str = 'topic',
+    nest_under: Optional[Path] = None,
+    min_cluster_size: int = 5,
+    topic_fn: Optional[TopicFn] = None,
+    overwrite: bool = False,
+  ) -> None:
+    topic_fn = topic_fn or summarize_instructions
+    return cluster(
+      self, path, embedding, output_column, nest_under, min_cluster_size, topic_fn, overwrite
     )
 
   @override
