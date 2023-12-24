@@ -207,7 +207,6 @@ ignore = [
   "D213", # Multi-line docstring summary should start at the second line.
   "D401", # First line of docstring should be in imperative mood: "{first_line}"
   "D407", # Missing dashed underline after section.
-  "F841", # Unused variable rules.
 ]
 select = ["E", "W", "F", "Q", "I", "D"]
 

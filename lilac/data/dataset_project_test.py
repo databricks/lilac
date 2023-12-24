@@ -128,7 +128,7 @@ def test_load_dataset_updates_project() -> None:
 
 
 def test_delete_dataset_updates_project() -> None:
-  config = read_project_config(get_project_dir())
+  _ = read_project_config(get_project_dir())
 
   # TODO: nsthorat do this.
   pass
