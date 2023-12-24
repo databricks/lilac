@@ -92,8 +92,7 @@ def cluster(
   dataset: Dataset,
   path: Path,
   embedding: Optional[str] = None,
-  output_column: str = 'topic',
-  nest_under: Optional[Path] = None,
+  output_path: Optional[Path] = None,
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_instructions,
   overwrite: bool = False,
@@ -133,11 +132,11 @@ def cluster(
       for item in group:
         yield topic
 
+  output_path = output_path or (*path, 'cluster')
   dataset.transform(
     _transform,
     input_path=path,
-    output_column=output_column,
-    nest_under=nest_under or path,
+    output_path=output_path,
     combine_columns=True,
     overwrite=overwrite,
     sort_by=(*path, signal_key, PATH_WILDCARD, _CLUSTER_ID),

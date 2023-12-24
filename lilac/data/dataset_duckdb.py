@@ -2877,16 +2877,13 @@ class DatasetDuckDB(Dataset):
     self,
     path: Path,
     embedding: Optional[str] = None,
-    output_column: str = 'topic',
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
   ) -> None:
     topic_fn = topic_fn or summarize_instructions
-    return cluster(
-      self, path, embedding, output_column, nest_under, min_cluster_size, topic_fn, overwrite
-    )
+    return cluster(self, path, embedding, output_path, min_cluster_size, topic_fn, overwrite)
 
   @override
   def to_json(
