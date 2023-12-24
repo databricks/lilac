@@ -2656,12 +2656,15 @@ class DatasetDuckDB(Dataset):
     if output_path is not None:
       output_path = normalize_path(output_path)
       output_parent = output_path[:-1]
-      if not manifest.data_schema.has_field(output_parent):
-        raise ValueError(f'Invalid output path. The parent {output_parent} does not exist.')
+      if output_parent:
+        if not manifest.data_schema.has_field(output_parent):
+          raise ValueError(f'Invalid output path. The parent {output_parent} does not exist.')
 
-      assert paths_have_same_cardinality(
-        input_path or tuple(), output_path
-      ), f'`input_path` {input_path} and `output_path` {output_path} have different cardinalities.'
+        assert paths_have_same_cardinality(
+          input_path or tuple(), output_parent
+        ), (
+          f'`input_path` {input_path} and `output_path` {output_path} have different cardinalities.'
+        )
 
     # If the user didn't provide an output_path, we make a temporary one so that we can store the
     # output JSON objects in the cache, represented in the right hierarchy.

@@ -132,7 +132,7 @@ def cluster(
       for item in group:
         yield topic
 
-  output_path = output_path or (*path, 'cluster')
+  output_path = output_path or (*path, 'topic')
   dataset.transform(
     _transform,
     input_path=path,
