@@ -89,7 +89,7 @@ def cluster_span_vectors(
 
   all_spans: list[list[tuple[int, int]]] = []
   all_vectors: list[np.ndarray] = []
-  with DebugTimer('DBSCAN: Reading from vector store'):
+  with DebugTimer('HDBSCAN: Reading from vector store'):
     for vectors in span_vectors:
       all_spans.append([vector['span'] for vector in vectors])
       for vector in vectors:

@@ -859,10 +859,10 @@ class DatasetDuckDB(Dataset):
         )
       elif embedding is not None:
         map_fn = transform_fn
-        vector_store = self._get_vector_db_index(embedding, unnest_input_path)
+        vector_index = self._get_vector_db_index(embedding, unnest_input_path)
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
         flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
-        sparse_out = sparse_to_dense_compute(flat_keys, lambda keys: map_fn(vector_store.get(keys)))
+        sparse_out = sparse_to_dense_compute(flat_keys, lambda keys: map_fn(vector_index.get(keys)))
       else:
         map_fn = transform_fn
         assert not isinstance(map_fn, Signal)
