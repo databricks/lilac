@@ -121,6 +121,13 @@ class TaskManager:
     task = self._tasks[task_id]
     task.total_progress = progress
 
+  def set_task_error(self, task_id: TaskId, error: str) -> None:
+    """Mark a task as errored."""
+    task = self._tasks[task_id]
+    task.status = TaskStatus.ERROR
+    task.error = error
+    task.end_timestamp = datetime.now().isoformat()
+
   def set_task_completed(self, task_id: TaskId) -> None:
     """Mark a task completed."""
     end_timestamp = datetime.now().isoformat()
@@ -153,14 +160,14 @@ def get_progress_bar(
   task_id: Optional[TaskId] = None,
   task_description: Optional[str] = None,
   estimated_len: Optional[int] = None,
-  offset: Optional[int] = None,
+  offset: int = 0,
 ) -> Callable[[Iterator[TProgress]], Iterator[TProgress]]:
   """An iterable wrapper that emits progress and yields the original iterable."""
   # reduce unit test spam
   if env('LILAC_TEST', False):
     return lambda it: it
   if task_id is None:
-    return lambda it: iter(tqdm(it, total=estimated_len, desc=task_description))
+    return lambda it: iter(tqdm(it, initial=offset, total=estimated_len, desc=task_description))
 
   task_manager = get_task_manager()
   task_info = task_manager.get_task_info(task_id)
@@ -170,11 +177,15 @@ def get_progress_bar(
     task_info.description = task_description
 
   def progress_reporter(it: Iterator[TProgress]) -> Iterator[TProgress]:
-    progress = offset or 0
-    for item in tqdm(it, initial=progress, total=task_info.total_len, desc=task_info.description):
-      progress += 1
-      yield item
-      task_manager.report_task_progress(task_id, progress)
+    progress = offset
+    try:
+      for item in tqdm(it, initial=progress, total=task_info.total_len, desc=task_info.description):
+        progress += 1
+        yield item
+        task_manager.report_task_progress(task_id, progress)
+    except Exception as e:
+      task_manager.set_task_error(task_id, str(e))
+      raise e
     task_manager.set_task_completed(task_id)
 
   return progress_reporter

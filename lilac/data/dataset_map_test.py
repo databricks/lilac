@@ -338,11 +338,11 @@ def test_map_continuation(
   # single item having been returned.
   # Threads seem to be the flakiest, even with very large num_items, because the GIL is
   # conservative about switching threads. The time.sleep() seems to give the GIL a hint to switch.
-  num_items = 100
+  num_items = 1000
   dataset = make_test_data([{'id': i} for i in range(num_items)])
 
   def _map_fn(item: Item, first_run: bool) -> Item:
-    time.sleep(0.001)
+    time.sleep(0.0001)
     if first_run and item['id'] == num_items - 1:
       raise ValueError('Throwing')
 

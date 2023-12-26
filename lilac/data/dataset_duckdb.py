@@ -613,6 +613,14 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
+  def _get_cache_len(self, cache_filepath: str) -> int:
+    """Returns the number of lines in a cache file."""
+    try:
+      with open_file(cache_filepath, 'r') as f:
+        return len(f.readlines())
+    except Exception:
+      return 0
+
   def _select_iterable_values(
     self,
     select_path: Optional[PathTuple] = None,
@@ -703,8 +711,8 @@ class DatasetDuckDB(Dataset):
     result = con.execute(
       f"""
       SELECT {ROWID}, {select_sql} FROM t
-      {options_clause}
       {anti_join}
+      {options_clause}
     """
     )
 
@@ -1005,14 +1013,15 @@ class DatasetDuckDB(Dataset):
     )
 
     query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
+    offset = self._get_cache_len(jsonl_cache_filepath)
     estimated_len = self.count(query_params)
 
-    # TODO: figure out where the cache resumer's progress offset should be calculated and passed to
-    # the progress bar offset parameter.
     if task_shard_id is not None:
-      progress_bar = get_progress_bar(estimated_len=estimated_len, task_id=task_shard_id[0])
+      progress_bar = get_progress_bar(
+        offset=offset, estimated_len=estimated_len, task_id=task_shard_id[0]
+      )
     else:
-      progress_bar = get_progress_bar(estimated_len=estimated_len)
+      progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
 
     _consume_iterator(
       progress_bar(
@@ -1104,12 +1113,15 @@ class DatasetDuckDB(Dataset):
     )
 
     query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
+    offset = self._get_cache_len(jsonl_cache_filepath)
     estimated_len = self.count(query_params)
 
     if task_shard_id is not None:
-      progress_bar = get_progress_bar(estimated_len=estimated_len, task_id=task_shard_id[0])
+      progress_bar = get_progress_bar(
+        offset=offset, estimated_len=estimated_len, task_id=task_shard_id[0]
+      )
     else:
-      progress_bar = get_progress_bar(estimated_len=estimated_len)
+      progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
 
     output_items = progress_bar(
       self._dispatch_workers(
@@ -2714,8 +2726,10 @@ class DatasetDuckDB(Dataset):
       sort_order=sort_order,
     )
 
+    offset = self._get_cache_len(jsonl_cache_filepath)
     estimated_len = self.count(query_params)
     progress_bar = get_progress_bar(
+      offset=offset,
       task_description=progress_description,
       estimated_len=estimated_len,
     )
