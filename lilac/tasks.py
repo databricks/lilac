@@ -1,5 +1,6 @@
 """Manage FastAPI background tasks."""
 
+import functools
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -142,15 +143,10 @@ class TaskManager:
       task.message = f'Completed in {elapsed_formatted}'
 
 
-_TASK_MANAGER: Optional[TaskManager] = None
-
-
+@functools.cache
 def get_task_manager() -> TaskManager:
   """The global singleton for the task manager."""
-  global _TASK_MANAGER
-  if not _TASK_MANAGER:
-    _TASK_MANAGER = TaskManager()
-  return _TASK_MANAGER
+  return TaskManager()
 
 
 TProgress = TypeVar('TProgress')
