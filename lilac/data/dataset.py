@@ -61,7 +61,7 @@ from ..signal import (
 )
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
-from ..tasks import TaskExecutionType, TaskShardId
+from ..tasks import TaskExecutionType, TaskId
 from .dataset_format import DatasetFormat
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -426,7 +426,7 @@ class Dataset(abc.ABC):
     limit: Optional[int] = None,
     include_deleted: bool = False,
     overwrite: bool = False,
-    task_shard_id: Optional[TaskShardId] = None,
+    task_id: Optional[TaskId] = None,
   ) -> None:
     """Compute a signal for a column.
 
@@ -437,7 +437,7 @@ class Dataset(abc.ABC):
       limit: Limit the number of rows to compute the signal on.
       include_deleted: Whether to include deleted rows in the computation.
       overwrite: Whether to overwrite an existing signal computed at this path.
-      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
+      task_id: The TaskManager `task_id` for this process run. This is used to update
         the progress of the task.
     """
     pass
@@ -475,11 +475,11 @@ class Dataset(abc.ABC):
     limit: Optional[int] = None,
     include_deleted: bool = False,
     overwrite: bool = False,
-    task_shard_id: Optional[TaskShardId] = None,
+    task_id: Optional[TaskId] = None,
   ) -> None:
     """Compute an embedding for a given field path."""
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
-    self.compute_signal(signal, path, filters, limit, include_deleted, overwrite, task_shard_id)
+    self.compute_signal(signal, path, filters, limit, include_deleted, overwrite, task_id)
 
   def compute_concept(
     self,
@@ -491,7 +491,7 @@ class Dataset(abc.ABC):
     limit: Optional[int] = None,
     include_deleted: bool = False,
     overwrite: bool = False,
-    task_shard_id: Optional[TaskShardId] = None,
+    task_id: Optional[TaskId] = None,
   ) -> None:
     """Compute concept scores for a given field path."""
     signal = ConceptSignal(namespace=namespace, concept_name=concept_name, embedding=embedding)
@@ -502,7 +502,7 @@ class Dataset(abc.ABC):
       limit,
       include_deleted,
       overwrite=overwrite,
-      task_shard_id=task_shard_id,
+      task_id=task_id,
     )
 
   @abc.abstractmethod

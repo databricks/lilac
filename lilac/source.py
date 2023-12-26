@@ -99,10 +99,6 @@ class Source(BaseModel):
     This method is easier to use, and simply requires you to return an iterator of Python dicts.
     Lilac will take your iterable of items and handle writing it to parquet. You will still have to
     override source_schema.
-
-    Args:
-      task_shard_id: The TaskManager `task_shard_id` for this process run. This is used to update
-        the progress of the task.
     """
     raise NotImplementedError
 

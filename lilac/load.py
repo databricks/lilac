@@ -23,7 +23,7 @@ from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
 from .tasks import (
   TaskExecutionType,
-  TaskShardId,
+  TaskId,
   TaskType,
   get_task_manager,
 )
@@ -185,7 +185,7 @@ def load(
               d.name,
               s,
               project_dir,
-              (task_id, 0),
+              task_id,
               overwrite,
             )
           else:
@@ -216,7 +216,7 @@ def _compute_signal(
   name: str,
   signal_config: SignalConfig,
   project_dir: Union[str, pathlib.Path],
-  task_shard_id: TaskShardId,
+  task_id: TaskId,
   overwrite: bool = False,
 ) -> None:
   # Turn off debug logging.
@@ -228,7 +228,7 @@ def _compute_signal(
     signal=signal_config.signal,
     path=signal_config.path,
     overwrite=overwrite,
-    task_shard_id=task_shard_id,
+    task_id=task_id,
   )
 
   # Free up RAM.

@@ -22,9 +22,7 @@ from tqdm import tqdm
 from .env import env
 from .utils import pretty_timedelta
 
-# A tuple of the (task_id, shard_id).
 TaskId = str
-TaskShardId = tuple[TaskId, int]
 TaskFn = Union[Callable[..., Any], Callable[..., Awaitable[Any]]]
 
 

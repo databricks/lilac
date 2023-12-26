@@ -100,7 +100,7 @@ from ..signals.substring_search import SubstringSignal
 from ..source import NoSource, SourceManifest
 from ..tasks import (
   TaskExecutionType,
-  TaskShardId,
+  TaskId,
   get_progress_bar,
 )
 from ..utils import (
@@ -279,22 +279,6 @@ class DuckDBQueryParams(BaseModel):
 
   The columns are not included in this interface for now, because there are too many ways
   that we use selects - all columns, one column, aliasing, unwrapping/flattening, etc.
-
-  Functions that will eventually wrap DuckDBQueryParams:
-      Exporters: choose the columns, choose some filters. Has some unique logic for "include" tags.
-      to_pandas -> _get_selection
-      to_json -> _get_selection
-      to_parquet -> _get_selection
-      to_csv -> _get_selection
-
-      The megafunction. Needs to be sliced down featurewise to simplify.
-      select_rows -> ???
-
-      Compute on one column. No partial application. Has complicated caching logic.
-      compute_concept/embedding -> _compute_disk_cached -> _select_iterable_values
-
-      Compute on a whole row. Has complicated caching logic. Has complicated sharding logic.
-      map/transform -> _map_worker -> _compute_disk_cached -> _select_iterable_values
 
   Searches and tag inclusions should be compiled down to the equivalent Filter operations.
   Sharding limit/offsets should be handled by computing and setting the desired offsets/limits/sort.
@@ -994,12 +978,10 @@ class DatasetDuckDB(Dataset):
     limit: Optional[int] = None,
     include_deleted: bool = False,
     overwrite: bool = False,
-    task_shard_id: Optional[TaskShardId] = None,
+    task_id: Optional[TaskId] = None,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
-      return self.compute_embedding(
-        signal.name, path, overwrite=overwrite, task_shard_id=task_shard_id
-      )
+      return self.compute_embedding(signal.name, path, overwrite=overwrite, task_id=task_id)
 
     input_path = normalize_path(path)
 
@@ -1037,10 +1019,8 @@ class DatasetDuckDB(Dataset):
     offset = self._get_cache_len(jsonl_cache_filepath)
     estimated_len = self.count(query_params)
 
-    if task_shard_id is not None:
-      progress_bar = get_progress_bar(
-        offset=offset, estimated_len=estimated_len, task_id=task_shard_id[0]
-      )
+    if task_id is not None:
+      progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len, task_id=task_id)
     else:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
 
@@ -1102,7 +1082,7 @@ class DatasetDuckDB(Dataset):
     limit: Optional[int] = None,
     include_deleted: bool = False,
     overwrite: bool = False,
-    task_shard_id: Optional[TaskShardId] = None,
+    task_id: Optional[TaskId] = None,
   ) -> None:
     input_path = normalize_path(path)
     add_project_embedding_config(
@@ -1138,10 +1118,8 @@ class DatasetDuckDB(Dataset):
     offset = self._get_cache_len(jsonl_cache_filepath)
     estimated_len = self.count(query_params)
 
-    if task_shard_id is not None:
-      progress_bar = get_progress_bar(
-        offset=offset, estimated_len=estimated_len, task_id=task_shard_id[0]
-      )
+    if task_id is not None:
+      progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len, task_id=task_id)
     else:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
 
@@ -2651,6 +2629,7 @@ class DatasetDuckDB(Dataset):
     execution_type: TaskExecutionType = 'threads',
     embedding: Optional[str] = None,
     schema: Optional[Field] = None,
+    task_id: Optional[TaskId] = None,
   ) -> Iterable[Item]:
     is_tmp_output = output_path is None
     manifest = self.manifest()
@@ -2717,12 +2696,6 @@ class DatasetDuckDB(Dataset):
       is_temporary=is_tmp_output,
     )
 
-    output_col_desc_suffix = f' to "{output_path}"' if output_path else ''
-    progress_description = (
-      f'[{self.namespace}/{self.dataset_name}][{num_jobs} shards] map '
-      f'"{map_fn_name}"{output_col_desc_suffix}'
-    )
-
     sort_by = normalize_path(sort_by) if sort_by else None
     query_params = DuckDBQueryParams(
       filters=filters,
@@ -2734,11 +2707,20 @@ class DatasetDuckDB(Dataset):
 
     offset = self._get_cache_len(jsonl_cache_filepath)
     estimated_len = self.count(query_params)
-    progress_bar = get_progress_bar(
-      offset=offset,
-      task_description=progress_description,
-      estimated_len=estimated_len,
-    )
+    if task_id is not None:
+      progress_bar = get_progress_bar(task_id, offset=offset, estimated_len=estimated_len)
+    else:
+      output_col_desc_suffix = f' to "{output_path}"' if output_path else ''
+      progress_description = (
+        f'[{self.namespace}/{self.dataset_name}][{num_jobs} shards] map '
+        f'"{map_fn_name}"{output_col_desc_suffix}'
+      )
+
+      progress_bar = get_progress_bar(
+        offset=offset,
+        task_description=progress_description,
+        estimated_len=estimated_len,
+      )
 
     _consume_iterator(
       progress_bar(

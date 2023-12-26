@@ -64,7 +64,7 @@ def compute_signal(
     options.leaf_path,
     # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
     overwrite=isinstance(options.signal, TextEmbeddingSignal),
-    task_shard_id=(task_id, 0),
+    task_id=task_id,
   )
 
   return ComputeSignalResponse(task_id=task_id)
