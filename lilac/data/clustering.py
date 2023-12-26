@@ -123,6 +123,7 @@ def cluster(
         MEMBERSHIP_PROB: 'float32',
       }
     ),
+    overwrite=overwrite,
   )
 
   ancestor_path, text_column, cluster_column = get_ancestor_path(path, cluster_output_path)
