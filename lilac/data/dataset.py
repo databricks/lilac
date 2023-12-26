@@ -754,9 +754,8 @@ class Dataset(abc.ABC):
       execution_type: The local execution type of the map. Either "threads" or "processes". Threads
         are better for network bound tasks like making requests to an external server, while
         processes are better for CPU bound tasks, like running a local LLM.
-      embedding: The embedding to use for the map function. If specified, the map function will be
-        called with the embedding for that item. This is useful for map functions that need
-        embeddings (e.g. clustering).
+      embedding: If specified, the map function will be called with the embedding spans for that
+        item. This is useful for any computation that needs the embeddings (e.g. clustering).
       schema: The schema for the output of the map function. If not provided, the schema will be
         auto inferred.
 
