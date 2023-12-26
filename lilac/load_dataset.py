@@ -10,7 +10,7 @@ poetry run python -m lilac.load_dataset \
 import os
 import pathlib
 import uuid
-from typing import Iterable, Optional, Union, cast
+from typing import Iterable, Iterator, Optional, Union, cast
 
 import pandas as pd
 from datasets import Dataset as HFDataset
@@ -27,7 +27,7 @@ from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, It
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
 from .sources.huggingface_source import HuggingFaceSource
-from .tasks import TaskId, report_progress
+from .tasks import TaskId, get_progress_bar, get_task_manager
 from .utils import get_dataset_output_dir, log, open_file
 
 
@@ -130,6 +130,9 @@ def process_source(
     settings = default_settings(dataset)
     update_project_dataset_settings(config.namespace, config.name, settings, project_dir)
 
+  if task_id is not None:
+    get_task_manager().set_task_completed(task_id)
+
   log(f'Dataset "{config.name}" written to {output_dir}')
 
   return output_dir
@@ -150,17 +153,15 @@ def slow_process(
   """
   source_schema = source.source_schema()
   items = source.yield_items()
-
   # Add rowids and fix NaN in string columns.
   items = normalize_items(items, source_schema.fields)
 
   # Add progress.
-  task_shard_id = (task_id, 0) if task_id else None
-  items = report_progress(
-    items,
-    task_shard_id=task_shard_id,
+  progress_bar = get_progress_bar(
+    task_id=task_id,
     estimated_len=source_schema.num_items,
   )
+  items = progress_bar(items)
 
   # Filter out the `None`s after progress.
   items = (item for item in items if item is not None)
@@ -180,7 +181,7 @@ def slow_process(
   return manifest
 
 
-def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
+def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Iterator[Item]:
   """Sanitize items by removing NaNs and NaTs."""
   replace_nan_fields = [
     field_name for field_name, field in fields.items() if field.dtype and not is_float(field.dtype)

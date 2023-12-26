@@ -2,6 +2,7 @@
 
 import inspect
 import re
+import time
 from typing import ClassVar, Iterable, Iterator, Optional
 
 import pytest
@@ -193,31 +194,6 @@ def test_map_signal(
   ]
 
 
-@pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
-def test_map_job_id(
-  execution_type: tasks.TaskExecutionType,
-  make_test_data: TestDataMaker,
-  test_process_logger: TestProcessLogger,
-) -> None:
-  dataset = make_test_data(
-    [
-      {'text': 'a sentence'},
-      {'text': 'b sentence'},
-      {'text': 'c sentence'},
-      {'text': 'd sentence'},
-      {'text': 'e sentence'},
-    ]
-  )
-
-  def _map_fn(item: Item, job_id: int) -> Item:
-    test_process_logger.log_event(job_id)
-    return {}
-
-  dataset.map(_map_fn, output_path='map_id', num_jobs=3, execution_type=execution_type)
-
-  assert set(test_process_logger.get_logs()) == set([0, 1, 2])
-
-
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_input_path(
@@ -231,7 +207,7 @@ def test_map_input_path(
     ]
   )
 
-  def _upper(row: Item, job_id: int) -> Item:
+  def _upper(row: Item) -> Item:
     return str(row).upper()
 
   # Write the output to a new column.
@@ -287,7 +263,7 @@ def test_map_input_path_nested(
     ]
   )
 
-  def _upper(row: Item, job_id: int) -> Item:
+  def _upper(row: Item) -> Item:
     return str(row).upper()
 
   dataset.map(
@@ -337,18 +313,20 @@ def test_map_continuation(
   make_test_data: TestDataMaker,
   test_process_logger: TestProcessLogger,
 ) -> None:
-  dataset = make_test_data(
-    [
-      {'id': 0, 'text': 'a sentence'},
-      {'id': 1, 'text': 'b sentence'},
-      {'id': 2, 'text': 'c sentence'},
-    ]
-  )
+  # Some flakiness in this test.
+  # Say you have 2 workers. Worker 1 gets id 0. Worker 2 gets id 1, 2, 3, 4, 5....
+  # For whatever reason worker 2 gets all the cpu time and gets to item N, which throws.
+  # The pool is accumulating finished values from worker 2, while waiting on worker 1 because it has
+  # in-order guarantees. But when worker 2 throws the exception, the whole job fails, without a
+  # single item having been returned.
+  # Threads seem to be the flakiest, even with very large num_items, because the GIL is
+  # conservative about switching threads. The time.sleep() seems to give the GIL a hint to switch.
+  num_items = 1000
+  dataset = make_test_data([{'id': i} for i in range(num_items)])
 
   def _map_fn(item: Item, first_run: bool) -> Item:
-    test_process_logger.log_event(item['id'])
-
-    if first_run and item['id'] == 1:
+    time.sleep(0.0001)
+    if first_run and item['id'] == num_items - 1:
       raise ValueError('Throwing')
 
     return item['id']
@@ -357,6 +335,7 @@ def test_map_continuation(
     return _map_fn(item, first_run=True)
 
   def _map_fn_2(item: Item) -> Item:
+    test_process_logger.log_event(item['id'])
     return _map_fn(item, first_run=False)
 
   # Write the output to a new column.
@@ -367,31 +346,25 @@ def test_map_continuation(
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
-    data_schema=schema({'text': 'string', 'id': 'int32'}),
-    num_items=3,
+    data_schema=schema({'id': 'int32'}),
+    num_items=num_items,
     source=TestSource(),
   )
   # The rows should not reflect the output of the unfinished map.
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'a sentence', 'id': 0},
-    {'text': 'b sentence', 'id': 1},
-    {'text': 'c sentence', 'id': 2},
-  ]
+  assert rows == [{'id': i} for i in range(num_items)]
 
-  test_process_logger.clear_logs()
+  # Hardcode this to thread-type, because the test_process_logger takes 2 seconds to serialize.
+  # We're only really testing whether the continuation is reusing the saved results, anyway.
+  dataset.map(_map_fn_2, output_path='map_id', num_jobs=1, execution_type='threads')
 
-  dataset.map(_map_fn_2, output_path='map_id', num_jobs=num_jobs, execution_type=execution_type)
-
-  # The row_id=1 should be called for the continuation.
-  assert 1 in test_process_logger.get_logs()
+  assert 0 not in test_process_logger.get_logs()
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
     dataset_name=TEST_DATASET_NAME,
     data_schema=schema(
       {
-        'text': 'string',
         'id': 'int32',
         'map_id': field(
           dtype='int64',
@@ -401,15 +374,13 @@ def test_map_continuation(
         ),
       }
     ),
-    num_items=3,
+    num_items=num_items,
     source=TestSource(),
   )
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {'text': 'a sentence', 'id': 0, 'map_id': 0},
-    {'text': 'b sentence', 'id': 1, 'map_id': 1},
-    {'text': 'c sentence', 'id': 2, 'map_id': 2},
+  assert sorted(rows, key=lambda obj: obj['id']) == [
+    {'id': i, 'map_id': i} for i in range(num_items)
   ]
 
 
@@ -1270,24 +1241,14 @@ def test_map_span(make_test_data: TestDataMaker) -> None:
 def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
-  def _job_fn_kw(item: Item, job_id: int) -> Item:
-    assert job_id is not None
-    return item['text'] + ' map'
-
   def _fn_kw(item: Item) -> Item:
     return item['text'] + ' map'
-
-  def _job_fn(x: Item, jid: int) -> Item:
-    assert jid is not None
-    return x['text'] + ' map'
 
   def _fn(x: Item) -> Item:
     return x['text'] + ' map'
 
   # Write the output to a new column.
-  dataset.map(_job_fn_kw, output_path='_job_fn_kw')
   dataset.map(_fn_kw, output_path='_fn_kw')
-  dataset.map(_job_fn, output_path='_job_fn')
   dataset.map(_fn, output_path='_fn')
 
   assert dataset.manifest() == DatasetManifest(
@@ -1296,26 +1257,10 @@ def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
     data_schema=schema(
       {
         'text': 'string',
-        '_job_fn_kw': field(
-          dtype='string',
-          map=MapInfo(
-            fn_name='_job_fn_kw',
-            fn_source=inspect.getsource(_job_fn_kw),
-            date_created=TEST_TIME,
-          ),
-        ),
         '_fn_kw': field(
           dtype='string',
           map=MapInfo(
             fn_name='_fn_kw', fn_source=inspect.getsource(_fn_kw), date_created=TEST_TIME
-          ),
-        ),
-        '_job_fn': field(
-          dtype='string',
-          map=MapInfo(
-            fn_name='_job_fn',
-            fn_source=inspect.getsource(_job_fn),
-            date_created=TEST_TIME,
           ),
         ),
         '_fn': field(
@@ -1332,16 +1277,12 @@ def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
   assert rows == [
     {
       'text': 'a sentence',
-      '_job_fn_kw': 'a sentence map',
       '_fn_kw': 'a sentence map',
-      '_job_fn': 'a sentence map',
       '_fn': 'a sentence map',
     },
     {
       'text': 'b sentence',
-      '_job_fn_kw': 'b sentence map',
       '_fn_kw': 'b sentence map',
-      '_job_fn': 'b sentence map',
       '_fn': 'b sentence map',
     },
   ]
@@ -1353,12 +1294,13 @@ def test_map_ergonomics_invalid_args(make_test_data: TestDataMaker) -> None:
   def _map_noargs() -> None:
     pass
 
+  with pytest.raises(TypeError, match=re.escape('takes 0 positional arguments but 1 was given')):
+    dataset.map(_map_noargs, output_path='_map_noargs')
+
   def _map_toomany_args(row: Item, job_id: int, extra_arg: int) -> None:
     pass
 
-  with pytest.raises(ValueError, match=re.escape('Invalid map function')):
-    dataset.map(_map_noargs, output_path='_map_noargs')
-  with pytest.raises(ValueError, match=re.escape('Invalid map function')):
+  with pytest.raises(TypeError, match=re.escape('missing 2 required positional arguments')):
     dataset.map(_map_toomany_args, output_path='_map_toomany_args')
 
 

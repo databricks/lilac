@@ -42,10 +42,6 @@ tqdm = "^4.66.1"
 typing-extensions = "^4.7.1"
 uvicorn = { extras = ["standard"], version = "^0.23.2" }
 tiktoken = "^0.5.1"
-# nest-asyncio is required so that asyncio operations can be executed from within a Jupyter
-# notebook.
-# https://stackoverflow.com/questions/46827007/runtimeerror-this-event-loop-is-already-running-in-python
-nest-asyncio = "^1.5.8"
 loky = "^3.4.1"
 cloudpickle = "^3.0.0"
 

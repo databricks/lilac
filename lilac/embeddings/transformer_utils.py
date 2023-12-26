@@ -1,5 +1,6 @@
 """Utils for transformer embeddings."""
 
+import os
 from typing import TYPE_CHECKING, Optional, Union
 
 from ..utils import log
@@ -13,6 +14,10 @@ if TYPE_CHECKING:
 # length (for performance reasons). A larger batch size gives sentence_transformer more
 # opportunities to minimize padding by grouping similar sentence lengths together.
 SENTENCE_TRANSFORMER_BATCH_SIZE = 1024
+
+# We're using joblib, which uses spawning, not forking. So it should be safe to hardcode this to
+# true without deadlocks.
+os.environ['TOKENIZERS_PARALLELISM'] = 'true'
 
 
 def setup_model_device(

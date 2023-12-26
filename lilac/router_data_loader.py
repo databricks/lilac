@@ -89,13 +89,10 @@ async def load(
     type=TaskType.DATASET_LOAD,
     description=f'Loader: {source.name}. \n Config: {source}',
   )
-  get_task_manager().execute(
-    task_id,
-    'processes',
-    process_source,
+  process_source(
     get_project_dir(),
     DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
-    (task_id, 0),
+    task_id,
   )
 
   return LoadDatasetResponse(task_id=task_id)

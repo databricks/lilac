@@ -88,7 +88,6 @@ export type { StringFilter } from './models/StringFilter';
 export type { SubstringSignal } from './models/SubstringSignal';
 export type { TaskInfo } from './models/TaskInfo';
 export type { TaskManifest } from './models/TaskManifest';
-export type { TaskShardInfo } from './models/TaskShardInfo';
 export type { TaskStatus } from './models/TaskStatus';
 export type { TaskType } from './models/TaskType';
 export type { TextEmbeddingSignal } from './models/TextEmbeddingSignal';

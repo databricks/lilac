@@ -106,7 +106,8 @@ def test_data_loader(
   setup_mock = mocker.spy(source_cls, 'setup')
 
   output_dir = process_source(
-    tmp_path, DatasetConfig(namespace='test_namespace', name='test_dataset', source=source)
+    tmp_path,
+    DatasetConfig(namespace='test_namespace', name='test_dataset', source=source),
   )
 
   assert setup_mock.call_count == 1
