@@ -159,6 +159,7 @@ from .dataset_utils import (
   create_json_map_output_schema,
   create_signal_schema,
   flatten_keys,
+  get_callable_name,
   get_parquet_filename,
   paths_have_same_cardinality,
   schema_contains_path,
@@ -2676,10 +2677,11 @@ class DatasetDuckDB(Dataset):
           f'`input_path` {input_path} and `output_path` {output_path} have different cardinalities.'
         )
 
+    map_fn_name = get_callable_name(map_fn)
     # If the user didn't provide an output_path, we make a temporary one so that we can store the
     # output JSON objects in the cache, represented in the right hierarchy.
     if output_path is None:
-      output_path = (cast(str, getattr(map_fn, 'name', None)) or map_fn.__name__,)
+      output_path = (map_fn_name,)
 
     parquet_filepath: Optional[str] = None
     if not is_tmp_output:
@@ -2715,7 +2717,7 @@ class DatasetDuckDB(Dataset):
     output_col_desc_suffix = f' to "{output_path}"' if output_path else ''
     progress_description = (
       f'[{self.namespace}/{self.dataset_name}][{num_jobs} shards] map '
-      f'"{map_fn.__name__}"{output_col_desc_suffix}'
+      f'"{map_fn_name}"{output_col_desc_suffix}'
     )
 
     task_id = get_task_manager().task_id(
@@ -2800,7 +2802,7 @@ class DatasetDuckDB(Dataset):
     except Exception:
       pass
     map_field_root.map = MapInfo(
-      fn_name=map_fn.__name__,
+      fn_name=map_fn_name,
       input_path=input_path,
       fn_source=map_source,
       date_created=datetime.now(),
@@ -2846,9 +2848,10 @@ class DatasetDuckDB(Dataset):
     embedding: Optional[str] = None,
   ) -> None:
     map_sig = inspect.signature(map_fn)
+    map_fn_name = get_callable_name(map_fn)
     if len(map_sig.parameters) > 2 or len(map_sig.parameters) == 0:
       raise ValueError(
-        f'Invalid map function {map_fn.__name__}. Must have 1 or 2 arguments: '
+        f'Invalid map function {map_fn_name}. Must have 1 or 2 arguments: '
         f'(item: Item, job_id: int).'
       )
 

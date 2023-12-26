@@ -8,6 +8,7 @@ import os
 import pprint
 import secrets
 from collections.abc import Iterable
+from functools import partial
 from typing import Any, Callable, Generator, Iterator, Optional, TypeVar, Union, cast
 
 import numpy as np
@@ -27,6 +28,7 @@ from ..schema import (
   TEXT_SPAN_START_FEATURE,
   Field,
   Item,
+  MapFn,
   PathKey,
   PathTuple,
   Schema,
@@ -384,3 +386,14 @@ def get_ancestor_path(path1: PathTuple, path2: PathTuple) -> tuple[Optional[Path
       break
   ancestor_path = None if index == 0 else path1[:index]
   return (ancestor_path, column1, column2)
+
+
+def get_callable_name(map_fn: MapFn) -> str:
+  """Get the name of a callable function."""
+  if hasattr(map_fn, '__name__'):
+    return map_fn.__name__
+  if isinstance(map_fn, partial):
+    return get_callable_name(map_fn.func)
+  if hasattr(map_fn, 'name'):
+    return getattr(map_fn, 'name')
+  return 'unknown'

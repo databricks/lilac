@@ -98,10 +98,12 @@ def cluster(
   if not embedding:
     raise ValueError('Only embedding-based clustering is supported for now.')
 
+  # Output the cluster enrichment to a sibling path, unless an output path is provided by the user.
   path = normalize_path(path)
   if output_path:
     cluster_output_path = normalize_path(output_path)
   else:
+    # The sibling output path is the same as the input path, but with a different suffix.
     cluster_output_path = get_sibling_output_path(path, 'cluster')
 
   def compute_clusters(span_vectors: Iterator[list[SpanVector]]) -> Iterator[Item]:
@@ -116,20 +118,17 @@ def cluster(
     compute_clusters,
     input_path=path,
     output_path=cluster_output_path,
-    embedding=embedding,
-    schema=field(
-      fields={
-        CLUSTER_ID: field('int32', categorical=True),
-        MEMBERSHIP_PROB: 'float32',
-      }
-    ),
+    embedding=embedding,  # Map over the embedding spans instead of the text.
+    # Providing schema to avoid inferring and to flag the cluster_id as categorical so the histogram
+    # is sorted by size in the UI.
+    schema=field(fields={CLUSTER_ID: field('int32', categorical=True), MEMBERSHIP_PROB: 'float32'}),
     overwrite=overwrite,
   )
 
-  ancestor_path, text_column, cluster_column = get_ancestor_path(path, cluster_output_path)
-
-  # Now that we have the clusters, compute the topic for each cluster with a map.
-  def compute_topics(items: Iterator[Item]) -> Iterator[Item]:
+  def compute_topics(
+    text_column: str, cluster_column: str, items: Iterator[Item]
+  ) -> Iterator[Item]:
+    # items here are pre-sorted by cluster id so we can group neighboring items.
     groups = group_by_sorted_key_iter(items, lambda item: item[cluster_column][CLUSTER_ID])
     for group in groups:
       docs: list[tuple[str, float]] = []
@@ -154,11 +153,20 @@ def cluster(
       for item in group:
         yield topic
 
+  # Now that we have the clusters, compute the topic for each cluster with another transform.
+  # The transform needs to be see both the original text and the cluster enrichment, so we need
+  # to map over the ancestor path.
+  ancestor_path, text_column, cluster_column = get_ancestor_path(path, cluster_output_path)
+
+  # Output the topic as a child of the cluster enrichment.
+  topic_output_path = (*cluster_output_path, 'topic')
   dataset.transform(
-    compute_topics,
+    functools.partial(compute_topics, text_column, cluster_column),
     input_path=ancestor_path,
-    output_path=(*cluster_output_path, 'topic'),
+    output_path=topic_output_path,
     overwrite=overwrite,
+    # Pre-sort by cluster id so we can group neighboring items that share the same cluster.
     sort_by=(*cluster_output_path, CLUSTER_ID),
+    # Providing schema to avoid inferring.
     schema=field('string'),
   )
