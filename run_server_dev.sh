@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -e
 export NODE_ENV=development
 
 # Make the web client upon bootup to make sure TypeScript files are in sync.
@@ -25,5 +26,5 @@ poetry run watchmedo auto-restart \
 pid[0]=$!
 
 # When control+c is pressed, kill all process ids.
-trap "kill ${pid[0]} ${pid[1]} ${pid[2]};  exit 1" INT
+trap "pkill -P $$;  exit 1" INT
 wait

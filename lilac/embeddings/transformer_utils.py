@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 # opportunities to minimize padding by grouping similar sentence lengths together.
 SENTENCE_TRANSFORMER_BATCH_SIZE = 1024
 
+# We're using joblib, which uses spawning, not forking. So it should be safe to hardcode this to
+# true without deadlocks.
 os.environ['TOKENIZERS_PARALLELISM'] = 'true'
 
 
