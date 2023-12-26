@@ -20,10 +20,12 @@ from ..signal import (
 )
 from ..signals.cluster_hdbscan import CLUSTER_ID, MEMBERSHIP_PROB, cluster_span_vectors
 from .dataset import Dataset
-from .dataset_utils import get_ancestor_path, get_sibling_output_path
+from .dataset_utils import get_common_ancestor, get_sibling_output_path
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 5
+TOPIC_FIELD_NAME = 'topic'
+CLUSTER_FIELD_NAME = 'cluster'
 
 
 @functools.cache
@@ -104,9 +106,9 @@ def cluster(
     cluster_output_path = normalize_path(output_path)
   else:
     # The sibling output path is the same as the input path, but with a different suffix.
-    cluster_output_path = get_sibling_output_path(path, 'cluster')
+    cluster_output_path = get_sibling_output_path(path, CLUSTER_FIELD_NAME)
 
-  def compute_clusters(span_vectors: Iterator[list[SpanVector]]) -> Iterator[Item]:
+  def _compute_clusters(span_vectors: Iterator[list[SpanVector]]) -> Iterator[Item]:
     for x in cluster_span_vectors(span_vectors, min_cluster_size):
       first_span = x[0]
       cluster = {CLUSTER_ID: first_span[CLUSTER_ID]}
@@ -115,7 +117,7 @@ def cluster(
       yield cluster
 
   dataset.transform(
-    compute_clusters,
+    _compute_clusters,
     input_path=path,
     output_path=cluster_output_path,
     embedding=embedding,  # Map over the embedding spans instead of the text.
@@ -125,7 +127,7 @@ def cluster(
     overwrite=overwrite,
   )
 
-  def compute_topics(
+  def _compute_topics(
     text_column: str, cluster_column: str, items: Iterator[Item]
   ) -> Iterator[Item]:
     # items here are pre-sorted by cluster id so we can group neighboring items.
@@ -156,12 +158,12 @@ def cluster(
   # Now that we have the clusters, compute the topic for each cluster with another transform.
   # The transform needs to be see both the original text and the cluster enrichment, so we need
   # to map over the ancestor path.
-  ancestor_path, text_column, cluster_column = get_ancestor_path(path, cluster_output_path)
+  ancestor_path, text_column, cluster_column = get_common_ancestor(path, cluster_output_path)
 
   # Output the topic as a child of the cluster enrichment.
-  topic_output_path = (*cluster_output_path, 'topic')
+  topic_output_path = (*cluster_output_path, TOPIC_FIELD_NAME)
   dataset.transform(
-    functools.partial(compute_topics, text_column, cluster_column),
+    functools.partial(_compute_topics, text_column, cluster_column),
     input_path=ancestor_path,
     output_path=topic_output_path,
     overwrite=overwrite,

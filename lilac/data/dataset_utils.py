@@ -373,7 +373,7 @@ def get_sibling_output_path(path: PathTuple, suffix: str) -> PathTuple:
   return (*path[:index], f'{path[index]}_{suffix}', *path[index + 1 :])
 
 
-def get_ancestor_path(path1: PathTuple, path2: PathTuple) -> tuple[Optional[PathTuple], str, str]:
+def get_common_ancestor(path1: PathTuple, path2: PathTuple) -> tuple[Optional[PathTuple], str, str]:
   """Get the path of the common ancestor of the two paths, along with the columns of the paths."""
   index = 0
   column1: str = ''

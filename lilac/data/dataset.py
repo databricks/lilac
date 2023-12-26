@@ -754,8 +754,9 @@ class Dataset(abc.ABC):
       execution_type: The local execution type of the map. Either "threads" or "processes". Threads
         are better for network bound tasks like making requests to an external server, while
         processes are better for CPU bound tasks, like running a local LLM.
-      embedding: If specified, the map function will be called with the embedding spans for that
-        item. This is useful for any computation that needs the embeddings (e.g. clustering).
+      embedding: If specified, the map function will be called with the `lilac.SpanVector`s
+        of each item, instead of the original text. This is needed for embedding-based computations
+        (e.g. clustering).
       schema: The schema for the output of the map function. If not provided, the schema will be
         auto inferred.
 
@@ -801,9 +802,9 @@ class Dataset(abc.ABC):
       sort_by: The path to sort by. If specified, the map will be called with rows sorted by this
         path. This is useful for map functions that need to maintain state across rows.
       sort_order: The sort order. Defaults to ascending.
-      embedding: The embedding to use for the transform function. If specified, the transform
-        function will be called with the embedding for that item. This is useful for functions that
-        need embeddings (e.g. clustering).
+      embedding: If specified, the transform function will be called with the `lilac.SpanVector`s
+        of each item, instead of the original text. This is needed for embedding-based computations
+        (e.g. clustering).
       schema: The schema for the output of the map function. If not provided, the schema will be
         auto inferred.
     """

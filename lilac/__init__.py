@@ -21,7 +21,7 @@ from .load_dataset import create_dataset, from_dicts, from_huggingface
 from .project import init
 from .rag import *  # noqa: F403
 from .schema import *  # noqa: F403
-from .schema import Field, span
+from .schema import Field, SpanVector, span
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
 from .source import Source
@@ -65,4 +65,5 @@ __all__ = [
   'Field',
   'deploy_project',
   'deploy_config',
+  'SpanVector',
 ]

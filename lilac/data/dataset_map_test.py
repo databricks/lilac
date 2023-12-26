@@ -772,7 +772,7 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
   )
 
 
-def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
+def test_map_over_enriched_item(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
 
   signal = TestFirstCharSignal()
@@ -808,37 +808,6 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
     num_items=2,
     source=TestSource(),
   )
-
-  rows = list(dataset.select_rows([PATH_WILDCARD]))
-  assert rows == [
-    {
-      'text': 'a sentence',
-      'text.test_signal.firstchar': 'a',
-      'text.test_signal.len': 10,
-      'output_text.result': 'a_10',
-    },
-    {
-      'text': 'b sentence',
-      'text.test_signal.firstchar': 'b',
-      'text.test_signal.len': 10,
-      'output_text.result': 'b_10',
-    },
-  ]
-
-
-def test_map_over_enriched_item(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
-
-  signal = TestFirstCharSignal()
-  dataset.compute_signal(signal, 'text')
-
-  def _map_fn(enriched: Item) -> Item:
-    return {
-      'result': f'{enriched["text"]["test_signal"]["firstchar"]}_{len(enriched["text"][VALUE_KEY])}'
-    }
-
-  # Write the output to a new column.
-  dataset.map(_map_fn, output_path='output_text')
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
