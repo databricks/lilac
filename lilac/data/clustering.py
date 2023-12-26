@@ -9,10 +9,10 @@ from pydantic import (
 
 from ..batch_utils import group_by_sorted_key_iter
 from ..schema import (
-  VALUE_KEY,
   Item,
   Path,
   SpanVector,
+  field,
   normalize_path,
 )
 from ..signal import (
@@ -20,6 +20,7 @@ from ..signal import (
 )
 from ..signals.cluster_hdbscan import CLUSTER_ID, MEMBERSHIP_PROB, cluster_span_vectors
 from .dataset import Dataset
+from .dataset_utils import get_ancestor_path, get_sibling_output_path
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 5
@@ -96,39 +97,49 @@ def cluster(
   """Compute clusters for a field of the dataset."""
   if not embedding:
     raise ValueError('Only embedding-based clustering is supported for now.')
+
   path = normalize_path(path)
-  output_path = output_path or (*path, 'cluster')
+  if output_path:
+    cluster_output_path = normalize_path(output_path)
+  else:
+    cluster_output_path = get_sibling_output_path(path, 'cluster')
 
   def compute_clusters(span_vectors: Iterator[list[SpanVector]]) -> Iterator[Item]:
-    yield from (
-      {
-        CLUSTER_ID: x[0][CLUSTER_ID],
-        MEMBERSHIP_PROB: x[0][MEMBERSHIP_PROB],
-      }
-      for x in cluster_span_vectors(span_vectors, min_cluster_size)
-    )
+    for x in cluster_span_vectors(span_vectors, min_cluster_size):
+      first_span = x[0]
+      cluster = {CLUSTER_ID: first_span[CLUSTER_ID]}
+      if MEMBERSHIP_PROB in first_span:
+        cluster[MEMBERSHIP_PROB] = first_span[MEMBERSHIP_PROB]
+      yield cluster
 
   dataset.transform(
     compute_clusters,
     input_path=path,
-    output_path=output_path,
-    combine_columns=True,
+    output_path=cluster_output_path,
     embedding=embedding,
+    schema=field(
+      fields={
+        CLUSTER_ID: field('int32', categorical=True),
+        MEMBERSHIP_PROB: 'float32',
+      }
+    ),
   )
+
+  ancestor_path, text_column, cluster_column = get_ancestor_path(path, cluster_output_path)
 
   # Now that we have the clusters, compute the topic for each cluster with a map.
   def compute_topics(items: Iterator[Item]) -> Iterator[Item]:
-    groups = group_by_sorted_key_iter(items, lambda x: x['cluster'][CLUSTER_ID])
+    groups = group_by_sorted_key_iter(items, lambda item: item[cluster_column][CLUSTER_ID])
     for group in groups:
       docs: list[tuple[str, float]] = []
       for item in group:
-        text = item[VALUE_KEY]
+        text = item[text_column]
         if not text:
           continue
-        cluster_id = item['cluster'][CLUSTER_ID]
+        cluster_id = item[cluster_column][CLUSTER_ID]
         if cluster_id < 0:
           continue
-        membership_prob = item['cluster'][MEMBERSHIP_PROB] or 0
+        membership_prob = item[cluster_column][MEMBERSHIP_PROB] or 0
         if membership_prob == 0:
           continue
         docs.append((text, membership_prob))
@@ -144,9 +155,9 @@ def cluster(
 
   dataset.transform(
     compute_topics,
-    input_path=path,
-    output_path=(*output_path, 'topic'),
-    combine_columns=True,
+    input_path=ancestor_path,
+    output_path=(*cluster_output_path, 'topic'),
     overwrite=overwrite,
-    sort_by=(*path, 'cluster', CLUSTER_ID),
+    sort_by=(*cluster_output_path, CLUSTER_ID),
+    schema=field('string'),
   )

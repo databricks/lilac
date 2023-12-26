@@ -116,6 +116,19 @@ def schema_contains_path(schema: Schema, path: PathTuple) -> bool:
   return True
 
 
+def create_json_map_output_schema(map_schema: Field, output_path: PathTuple) -> Schema:
+  """Create a json schema describing the final output of a map function."""
+  json_schema = map_schema.model_copy(deep=True)
+  for path_part in reversed(output_path):
+    if path_part == PATH_WILDCARD:
+      json_schema = Field(repeated_field=json_schema)
+    else:
+      json_schema = Field(fields={path_part: json_schema})
+
+  assert json_schema.fields, 'json_schema always has fields'
+  return Schema(fields=json_schema.fields)
+
+
 def create_signal_schema(
   signal: Signal, source_path: PathTuple, current_schema: Schema
 ) -> Optional[Schema]:
@@ -346,3 +359,28 @@ def _cardinality_prefix(path: PathTuple) -> PathTuple:
 def paths_have_same_cardinality(path1: PathTuple, path2: PathTuple) -> bool:
   """Returns true if the paths have the same cardinality."""
   return _cardinality_prefix(path1) == _cardinality_prefix(path2)
+
+
+def get_sibling_output_path(path: PathTuple, suffix: str) -> PathTuple:
+  """Get the output path for a sibling column."""
+  # Find the last non-wildcard in the path.
+  index = 0
+  for i, path_part in enumerate(path):
+    if path_part != PATH_WILDCARD:
+      index = i
+  return (*path[:index], f'{path[index]}_{suffix}', *path[index + 1 :])
+
+
+def get_ancestor_path(path1: PathTuple, path2: PathTuple) -> tuple[Optional[PathTuple], str, str]:
+  """Get the path of the common ancestor of the two paths, along with the columns of the paths."""
+  index = 0
+  column1: str = ''
+  column2: str = ''
+  for i, (path_part1, path_part2) in enumerate(zip(path1, path2)):
+    if path_part1 != path_part2:
+      index = i
+      column1 = path_part1
+      column2 = path_part2
+      break
+  ancestor_path = None if index == 0 else path1[:index]
+  return (ancestor_path, column1, column2)

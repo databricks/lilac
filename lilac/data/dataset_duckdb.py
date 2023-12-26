@@ -156,6 +156,7 @@ from .dataset import (
 from .dataset_format import infer_formats
 from .dataset_utils import (
   count_leafs,
+  create_json_map_output_schema,
   create_signal_schema,
   flatten_keys,
   get_parquet_filename,
@@ -623,7 +624,6 @@ class DatasetDuckDB(Dataset):
   def _select_iterable_values(
     self,
     select_path: Optional[PathTuple] = None,
-    combine_columns: bool = False,
     resolve_span: bool = False,
     shard_cache_filepath: Optional[str] = None,
     overwrite: bool = False,
@@ -636,11 +636,17 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
     num_items = self.manifest().num_items
 
+    combine_columns = True
+    if select_path:
+      select_field = manifest.data_schema.get_field(select_path)
+      if select_field.fields and select_field.dtype:
+        combine_columns = False
+
     (shard_start_idx, shard_end_idx) = shard_id_to_range(shard_id, shard_count, num_items)
 
     column: Optional[Column] = None
     cols = self._normalize_columns(
-      [select_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns
+      [select_path or (PATH_WILDCARD,)], manifest.data_schema, combine_columns=True
     )
     select_queries: list[str] = []
     columns_to_merge: dict[str, dict[str, Column]] = {}
@@ -654,7 +660,9 @@ class DatasetDuckDB(Dataset):
       if final_col_name not in columns_to_merge:
         columns_to_merge[final_col_name] = {}
 
-      duckdb_paths = self._column_to_duckdb_paths(column, manifest.data_schema, combine_columns)
+      duckdb_paths = self._column_to_duckdb_paths(
+        column, manifest.data_schema, combine_columns=combine_columns
+      )
       span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
@@ -676,12 +684,6 @@ class DatasetDuckDB(Dataset):
 
       if select_sqls:
         select_queries.append(', '.join(select_sqls))
-
-      if combine_columns:
-        all_columns: dict[str, Column] = {}
-        for col_dict in columns_to_merge.values():
-          all_columns.update(col_dict)
-        columns_to_merge = {'*': all_columns}
 
     options_clause = self._compile_select_options(query_options)
 
@@ -746,11 +748,6 @@ class DatasetDuckDB(Dataset):
 
       for final_col_name, temp_columns in columns_to_merge.items():
         for temp_col_name, column in temp_columns.items():
-          if combine_columns and not select_path:
-            dest_path = _col_destination_path(column)
-            spec = _split_path_into_subpaths_of_lists(dest_path)
-            df_chunk[temp_col_name] = list(wrap_in_dicts(df_chunk[temp_col_name], spec))
-
           # If the temp col name is the same as the final name, we can skip merging. This happens
           # when we select a source leaf column.
           if temp_col_name == final_col_name:
@@ -765,11 +762,7 @@ class DatasetDuckDB(Dataset):
           del df_chunk[temp_col_name]
 
       row_ids = df_chunk[ROWID].tolist()
-      if combine_columns:
-        # Since we aliased every column to `*`, the object will have only '*' as the key. We need
-        # to elevate the all the columns under '*'.
-        df_chunk = pd.DataFrame.from_records(df_chunk['*'])
-      if select_path and final_col_name and not combine_columns:
+      if select_path and final_col_name:
         values = df_chunk[final_col_name].tolist()
       else:
         values = df_chunk.to_dict('records')
@@ -786,7 +779,6 @@ class DatasetDuckDB(Dataset):
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     query_options: Optional[DuckDBQueryParams] = None,
-    combine_columns: bool = False,
     resolve_span: bool = False,
     shard_id: Optional[int] = None,
     shard_count: Optional[int] = None,
@@ -821,7 +813,6 @@ class DatasetDuckDB(Dataset):
 
     rows = self._select_iterable_values(
       select_path=unnest_input_path,
-      combine_columns=combine_columns,
       resolve_span=resolve_span,
       shard_cache_filepath=jsonl_cache_filepath,
       overwrite=overwrite,
@@ -937,9 +928,10 @@ class DatasetDuckDB(Dataset):
     jsonl_view_name = 'tmp_output'
     con = self.con.cursor()
 
-    if schema and ROWID not in schema.fields:
+    if schema:
       schema = schema.model_copy(deep=True)
-      schema.fields[ROWID] = Field(dtype=STRING)
+      if ROWID not in schema.fields:
+        schema.fields[ROWID] = Field(dtype=STRING)
 
     # Potential bug: if a computation is interrupted, and then the num-workers, filtering, or limits
     # are updated, then shard assignment may not be consistent. Then, two workers may have processed
@@ -965,12 +957,14 @@ class DatasetDuckDB(Dataset):
 
     con.execute(f'CREATE OR REPLACE VIEW "{jsonl_view_name}" as ({get_json_query("*")});')
 
-    parquet_filepath: Optional[str] = None
-    reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
-      rows_per_batch=10_000
-    )
-    output_schema = arrow_schema_to_schema(reader.schema)
+    if not schema:
+      reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
+        rows_per_batch=10_000
+      )
+      schema = arrow_schema_to_schema(reader.schema)
+      reader.close()
 
+    parquet_filepath: Optional[str] = None
     if not is_tmp_output:
       parquet_filepath = _get_parquet_filepath(
         dataset_path=self.dataset_path,
@@ -990,13 +984,13 @@ class DatasetDuckDB(Dataset):
 
       con.close()
 
-    if ROWID in output_schema.fields:
-      del output_schema.fields[ROWID]
+    if ROWID in schema.fields:
+      del schema.fields[ROWID]
 
     select_str = _select_sql(
       output_path, flatten=False, unnest=False, path=output_path, schema=manifest.data_schema
     )
-    return get_json_query(select_str), output_schema, parquet_filepath
+    return get_json_query(select_str), schema, parquet_filepath
 
   @override
   def get_embeddings(
@@ -2649,7 +2643,6 @@ class DatasetDuckDB(Dataset):
     input_path: Optional[Path] = None,
     output_path: Optional[Path] = None,
     overwrite: bool = False,
-    combine_columns: bool = False,
     resolve_span: bool = False,
     batch_size: Optional[int] = None,
     filters: Optional[Sequence[FilterLike]] = None,
@@ -2660,6 +2653,7 @@ class DatasetDuckDB(Dataset):
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
     embedding: Optional[str] = None,
+    schema: Optional[Field] = None,
   ) -> Iterable[Item]:
     is_tmp_output = output_path is None
     manifest = self.manifest()
@@ -2760,7 +2754,6 @@ class DatasetDuckDB(Dataset):
             input_path,
             overwrite,
             query_params,
-            combine_columns,
             resolve_span,
             (task_id, i),
             embedding,
@@ -2780,10 +2773,15 @@ class DatasetDuckDB(Dataset):
     # Wait for the task to finish before re-sharding the outputs.
     get_task_manager().wait([task_id])
 
+    json_schema: Optional[Schema] = None
+    if output_path and schema:
+      json_schema = create_json_map_output_schema(schema, output_path)
+
     json_query, map_schema, parquet_filepath = self._reshard_cache(
       manifest=manifest,
       output_path=output_path,
       jsonl_cache_filepaths=jsonl_cache_filepaths,
+      schema=json_schema,
       is_tmp_output=is_tmp_output,
     )
 
@@ -2843,7 +2841,6 @@ class DatasetDuckDB(Dataset):
     unnest_input_path: Optional[PathTuple] = None,
     overwrite: bool = False,
     query_options: Optional[DuckDBQueryParams] = None,
-    combine_columns: bool = False,
     resolve_span: bool = False,
     task_shard_id: Optional[TaskShardId] = None,
     embedding: Optional[str] = None,
@@ -2886,7 +2883,6 @@ class DatasetDuckDB(Dataset):
         unnest_input_path=unnest_input_path,
         overwrite=overwrite,
         query_options=query_options,
-        combine_columns=combine_columns,
         resolve_span=resolve_span,
         shard_id=job_id,
         shard_count=job_count,
