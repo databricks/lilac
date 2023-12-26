@@ -91,9 +91,8 @@ def load(
       task_id = task_manager.task_id(
         f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD
       )
-      task_manager.execute(task_id, execution_type, process_source, project_dir, d, (task_id, 0))
+      process_source(project_dir, d, task_id)
       dataset_task_ids.append(task_id)
-    task_manager.wait(dataset_task_ids)
 
   log()
   total_num_rows = 0
@@ -140,15 +139,11 @@ def load(
         embedding_field = (field.fields or {}).get(e.embedding)
         if embedding_field is None or overwrite:
           task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
-          task_manager.execute(
-            task_id,
-            execution_type,
-            _compute_embedding,
+          _compute_embedding(
             d.namespace,
             d.name,
             e,
             project_dir,
-            (task_id, 0),
           )
           embedding_task_ids.append(task_id)
         else:
@@ -156,9 +151,6 @@ def load(
 
       del dataset
       gc.collect()
-
-      # Wait for all embeddings for each dataset to reduce the memory pressure.
-      task_manager.wait(embedding_task_ids)
 
   log()
   log('*** Compute signals ***')
@@ -188,10 +180,7 @@ def load(
           signal_field = (field.fields or {}).get(s.signal.key(is_computed_signal=True))
           if signal_field is None or overwrite:
             task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
-            task_manager.execute(
-              task_id,
-              execution_type,
-              _compute_signal,
+            _compute_signal(
               d.namespace,
               d.name,
               s,
@@ -199,8 +188,6 @@ def load(
               (task_id, 0),
               overwrite,
             )
-            # Wait for each signal to reduce memory pressure.
-            task_manager.wait([task_id])
           else:
             log(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
 
@@ -254,8 +241,7 @@ def _compute_embedding(
   namespace: str,
   name: str,
   embedding_config: EmbeddingConfig,
-  project_dir: str,
-  task_shard_id: TaskShardId,
+  project_dir: Union[str, pathlib.Path],
 ) -> None:
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
@@ -266,7 +252,6 @@ def _compute_embedding(
     embedding=embedding_config.embedding,
     path=embedding_config.path,
     overwrite=True,
-    task_shard_id=task_shard_id,
   )
   remove_dataset_from_cache(namespace, name)
   del dataset

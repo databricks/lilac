@@ -41,7 +41,6 @@ from .load import load
 from .project import create_project_and_set_env
 from .router_utils import RouteErrorHandler
 from .source import registered_sources
-from .tasks import get_task_manager
 
 DIST_PATH = os.path.join(os.path.dirname(__file__), 'web')
 
@@ -65,9 +64,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     load(project_dir=get_project_dir(), overwrite=False, execution_type='processes')
 
   yield
-
-  # Clean up the ML models and release the resources
-  get_task_manager().stop()
 
 
 app = FastAPI(

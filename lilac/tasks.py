@@ -151,29 +151,27 @@ TProgress = TypeVar('TProgress')
 
 def get_progress_bar(
   task_id: Optional[TaskId] = None,
-  task_name: Optional[str] = None,
   task_description: Optional[str] = None,
-  task_type: Optional[TaskType] = None,
   estimated_len: Optional[int] = None,
   offset: Optional[int] = None,
 ) -> Callable[[Iterator[TProgress]], Iterator[TProgress]]:
   """An iterable wrapper that emits progress and yields the original iterable."""
-  task_manager = get_task_manager()
+  # reduce unit test spam
+  if env('LILAC_TEST', False):
+    return lambda it: it
   if task_id is None:
-    task_name = task_name or ''
-    task_id = task_manager.task_id(
-      task_name, type=task_type, description=task_description, total_len=estimated_len
-    )
+    return lambda it: iter(tqdm(it, total=estimated_len, desc=task_description))
+
+  task_manager = get_task_manager()
   task_info = task_manager.get_task_info(task_id)
+  if estimated_len:
+    task_info.total_len = estimated_len
+  if task_description:
+    task_info.description = task_description
 
   def progress_reporter(it: Iterator[TProgress]) -> Iterator[TProgress]:
-    # reduce unit test spam
-    if env('LILAC_TEST', False):
-      yield from it
-      return
-
     progress = offset or 0
-    for item in tqdm(it, total=task_info.total_len, desc=task_info.description):
+    for item in tqdm(it, initial=progress, total=task_info.total_len, desc=task_info.description):
       progress += 1
       yield item
       task_manager.report_task_progress(task_id, progress)

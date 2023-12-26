@@ -3,7 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { TaskShardInfo } from './TaskShardInfo';
 import type { TaskStatus } from './TaskStatus';
 import type { TaskType } from './TaskType';
 
@@ -15,7 +14,6 @@ export type TaskInfo = {
     type?: (TaskType | null);
     message?: (string | null);
     details?: (string | null);
-    shards?: Record<string, TaskShardInfo>;
     description?: (string | null);
     error?: (string | null);
     total_len?: (number | null);

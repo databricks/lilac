@@ -1,6 +1,7 @@
 """Utils for transformer embeddings."""
 
 import functools
+import os
 from typing import TYPE_CHECKING, Optional
 
 from ..utils import log
@@ -13,6 +14,8 @@ if TYPE_CHECKING:
 # length (for performance reasons). A larger batch size gives sentence_transformer more
 # opportunities to minimize padding by grouping similar sentence lengths together.
 SENTENCE_TRANSFORMER_BATCH_SIZE = 1024
+
+os.environ['TOKENIZERS_PARALLELISM'] = 'true'
 
 
 @functools.cache

@@ -53,23 +53,18 @@ def compute_signal(
   # case, we recommend defining and registering the signal outside a Jupyter notebook.
   signal = options.signal
 
-  def _task_compute_signal(namespace: str, dataset_name: str, task_id: TaskId) -> None:
-    dataset = get_dataset(namespace, dataset_name)
-    dataset.compute_signal(
-      signal,
-      options.leaf_path,
-      # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
-      overwrite=isinstance(options.signal, TextEmbeddingSignal),
-      task_shard_id=(task_id, 0),
-    )
-
   path_str = '.'.join(map(str, options.leaf_path))
   task_id = get_task_manager().task_id(
     name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}',
   )
-  get_task_manager().execute(
-    task_id, 'processes', _task_compute_signal, namespace, dataset_name, task_id
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.compute_signal(
+    signal,
+    options.leaf_path,
+    # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
+    overwrite=isinstance(options.signal, TextEmbeddingSignal),
+    task_shard_id=(task_id, 0),
   )
 
   return ComputeSignalResponse(task_id=task_id)

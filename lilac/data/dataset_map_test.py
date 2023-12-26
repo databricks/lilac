@@ -2,6 +2,7 @@
 
 import inspect
 import re
+import time
 from typing import ClassVar, Iterable, Iterator, Optional
 
 import pytest
@@ -334,14 +335,14 @@ def test_map_continuation(
   # For whatever reason worker 2 gets all the cpu time and gets to item N, which throws.
   # The pool is accumulating finished values from worker 2, while waiting on worker 1 because it has
   # in-order guarantees. But when worker 2 throws the exception, the whole job fails, without a
-  # single item having been returned. By making a long dataset, we are hoping to overfill the
-  # Joblib's internal queue so that it stops assigning work to worker 2, and actually wait for
-  # worker 1 to return _anything_.
-  # This test is flaky on multithreaded mode with num_items = 100 but passes at num_items = 1000
-  num_items = 1000
+  # single item having been returned.
+  # Threads seem to be the flakiest, even with very large num_items, because the GIL is
+  # conservative about switching threads. The time.sleep() seems to give the GIL a chance to switch.
+  num_items = 100
   dataset = make_test_data([{'id': i} for i in range(num_items)])
 
   def _map_fn(item: Item, first_run: bool) -> Item:
+    time.sleep(0.001)
     if first_run and item['id'] == num_items - 1:
       raise ValueError('Throwing')
 

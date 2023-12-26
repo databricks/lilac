@@ -10,7 +10,7 @@ poetry run python -m lilac.load_dataset \
 import os
 import pathlib
 import uuid
-from typing import Iterable, Optional, Union, cast
+from typing import Iterable, Iterator, Optional, Union, cast
 
 import pandas as pd
 from datasets import Dataset as HFDataset
@@ -150,7 +150,6 @@ def slow_process(
   """
   source_schema = source.source_schema()
   items = source.yield_items()
-
   # Add rowids and fix NaN in string columns.
   items = normalize_items(items, source_schema.fields)
 
@@ -179,7 +178,7 @@ def slow_process(
   return manifest
 
 
-def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Item:
+def normalize_items(items: Iterable[Item], fields: dict[str, Field]) -> Iterator[Item]:
   """Sanitize items by removing NaNs and NaTs."""
   replace_nan_fields = [
     field_name for field_name, field in fields.items() if field.dtype and not is_float(field.dtype)

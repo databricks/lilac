@@ -94,7 +94,6 @@ from ..source import NoSource, SourceManifest
 from ..tasks import (
   TaskExecutionType,
   TaskShardId,
-  TaskType,
   get_progress_bar,
 )
 from ..utils import (
@@ -781,6 +780,9 @@ class DatasetDuckDB(Dataset):
 
     use_jsonl_cache = not overwrite and os.path.exists(jsonl_cache_filepath)
 
+    # TODO: figure out where the resuming offset should be calculated and passed to
+    # the progress bar offset parameter.
+
     # Step 1
     rows = self._select_iterable_values(
       select_path=select_path,
@@ -841,8 +843,8 @@ class DatasetDuckDB(Dataset):
         # Step 2
         flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
         # Step 3
-        dense_out = sparse_to_dense_compute(flat_input, lambda x: batched_pool_map(transform_fn, x))
-      # Step 6
+        dense_out = sparse_to_dense_compute(flat_input, lambda x: batched_pool_map(transform_fn, x))  # type: ignore
+        # Step 6
       output_items = array_unflatten(dense_out, input_values_1)
     else:
       assert not isinstance(transform_fn, Signal)
@@ -1001,16 +1003,29 @@ class DatasetDuckDB(Dataset):
       key=output_path,
       project_dir=self.project_dir,
     )
+
+    query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
+    estimated_len = self.count(query_params)
+
+    # TODO: figure out where the cache resumer's progress offset should be calculated and passed to
+    # the progress bar offset parameter.
+    if task_shard_id is not None:
+      progress_bar = get_progress_bar(estimated_len=estimated_len, task_id=task_shard_id[0])
+    else:
+      progress_bar = get_progress_bar(estimated_len=estimated_len)
+
     _consume_iterator(
-      self._dispatch_workers(
-        joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
-        signal,
-        output_path,
-        jsonl_cache_filepath,
-        batch_size=None,
-        select_path=input_path,
-        overwrite=overwrite,
-        query_options=DuckDBQueryParams(include_deleted=include_deleted),
+      progress_bar(
+        self._dispatch_workers(
+          joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
+          signal,
+          output_path,
+          jsonl_cache_filepath,
+          batch_size=None,
+          select_path=input_path,
+          overwrite=overwrite,
+          query_options=query_params,
+        )
       )
     )
     signal.teardown()
@@ -1087,17 +1102,26 @@ class DatasetDuckDB(Dataset):
       key=output_path,
       project_dir=self.project_dir,
     )
-    output_items = self._dispatch_workers(
-      joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
-      signal,
-      output_path,
-      jsonl_cache_filepath,
-      batch_size=None,
-      select_path=input_path,
-      overwrite=overwrite,
-      query_options=DuckDBQueryParams(
-        filters=filters, limit=limit, include_deleted=include_deleted
-      ),
+
+    query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
+    estimated_len = self.count(query_params)
+
+    if task_shard_id is not None:
+      progress_bar = get_progress_bar(estimated_len=estimated_len, task_id=task_shard_id[0])
+    else:
+      progress_bar = get_progress_bar(estimated_len=estimated_len)
+
+    output_items = progress_bar(
+      self._dispatch_workers(
+        joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
+        signal,
+        output_path,
+        jsonl_cache_filepath,
+        batch_size=None,
+        select_path=input_path,
+        overwrite=overwrite,
+        query_options=query_params,
+      )
     )
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
@@ -2691,10 +2715,8 @@ class DatasetDuckDB(Dataset):
     )
 
     estimated_len = self.count(query_params)
-    print(f'Estimated len: {estimated_len}')
     progress_bar = get_progress_bar(
       task_description=progress_description,
-      task_type=TaskType.DATASET_MAP,
       estimated_len=estimated_len,
     )
 
