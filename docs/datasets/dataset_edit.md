@@ -50,7 +50,7 @@ dataset = ll.from_dicts('local', 'questions', items)
 def add_prefix(item):
   return 'Q: ' + item['question']
 
-dataset.map(add_prefix, output_column='question_prefixed')
+dataset.map(add_prefix, output_path='question_prefixed')
 dataset.to_pandas()
 ```
 
@@ -71,7 +71,7 @@ field we care about:
 def add_prefix(question):
   return 'Q: ' + question
 
-dataset.map(add_prefix, input_path='question', output_column='question_prefixed2')
+dataset.map(add_prefix, input_path='question', output_path='question_prefixed2')
 dataset.to_pandas()
 ```
 
@@ -115,7 +115,7 @@ list `['A', 'B', 'C', 'D', 'E']`.
 def add_prefix(question):
   return 'Q: ' + question
 
-dataset.map(add_prefix, input_path=('questions', '*'), output_column='questions_prefixed')
+dataset.map(add_prefix, input_path=('questions', '*'), output_path='questions_prefixed')
 dataset.to_pandas()
 ```
 
@@ -129,10 +129,10 @@ dataset.to_pandas()
 We can see that the `questions_prefixed` column is a nested list, with the same nestedness as the
 `questions` column.
 
-### `output_column`
+### `output_path`
 
 To test the map function while developing without writing to a new column, we can omit the
-`output_column` argument and print the result of `map`:
+`output_path` argument and print the result of `map`:
 
 ```python
 result = dataset.map(add_prefix, input_path='question')
@@ -144,7 +144,7 @@ print(list(result))
 
 Often our maps will output multiple values for a given item, e.g. when calling GPT to extract
 structure from a piece of text. If the output of the `map` function is a `dict`, Lilac will
-automatically unpack the `dict` and create nested columns under the `output_column`. This is useful
+automatically unpack the `dict` and create nested columns under the `output_path`. This is useful
 when we want to output multiple values for a single input item. For example, we can use a `map`
 function to compute the length of each question, and whether it ends with a question mark:
 
@@ -159,7 +159,7 @@ dataset = ll.from_dicts('local', 'questions3', items)
 def enrich(question):
   return {'length': len(question), 'ends_with_?': question[-1] == '?'}
 
-dataset.map(enrich, input_path='question', output_column='metadata')
+dataset.map(enrich, input_path='question', output_path='metadata')
 dataset.to_pandas()
 ```
 
@@ -256,7 +256,7 @@ def extract_company(text):
   return [ll.span(m.span(1)[0], m.span(1)[1]) for m in matches]
 
 
-dataset.map(extract_company, input_path='text', output_column='company')
+dataset.map(extract_company, input_path='text', output_path='company')
 dataset.to_pandas()
 ```
 
@@ -264,10 +264,10 @@ Lilac will then highlight the spans in the UI when we filter by the `company` co
 
 <video loop muted autoplay controls src="../_static/dataset/company_name_span.mp4"></video>
 
-### `nest_under`
+### Nested `output_path`
 
-By default, Lilac will create a top level column to store the output of `map`. If we want to nest
-the output of a map under an existing column, we can use the `nest_under` argument:
+If we want to nest the output of a map under an existing column, we can prefix the `output_path`
+with the name of the existing column: :
 
 ```python
 items = [
@@ -280,7 +280,7 @@ dataset = ll.from_dicts('local', 'questions3', items)
 def enrich(question):
   return {'length': len(question), 'ends_with_?': question[-1] == '?'}
 
-dataset.map(enrich, input_path='question', output_column='metadata', nest_under='question')
+dataset.map(enrich, input_path='question', output_path='question.metadata')
 dataset.to_pandas()
 ```
 

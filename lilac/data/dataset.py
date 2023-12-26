@@ -21,7 +21,6 @@ from pydantic import (
   field_validator,
 )
 from pydantic import Field as PydanticField
-from tqdm import tqdm
 from typing_extensions import TypeAlias
 
 from ..auth import UserInfo
@@ -40,7 +39,6 @@ from ..schema import (
   ROWID,
   STRING,
   STRING_SPAN,
-  VALUE_KEY,
   Bin,
   EmbeddingInputType,
   Field,
@@ -61,11 +59,9 @@ from ..signal import (
   get_signal_by_type,
   resolve_signal,
 )
-from ..signals.cluster_hdbscan import ClusterHDBScan
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
 from ..tasks import TaskExecutionType, TaskShardId
-from .clustering import summarize_instructions
 from .dataset_format import DatasetFormat
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
@@ -446,14 +442,14 @@ class Dataset(abc.ABC):
     """
     pass
 
+  @abc.abstractmethod
   def cluster(
     self,
     path: Path,
     embedding: Optional[str] = None,
-    output_column: str = 'topic',
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
-    topic_fn: TopicFn = summarize_instructions,
+    topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
   ) -> None:
     """Compute clusters for a field of the dataset.
@@ -461,74 +457,15 @@ class Dataset(abc.ABC):
     Args:
       path: The path to the text field to cluster.
       embedding: The pre-computed embedding to use.
-      output_column: The name of the output column to write to. When `nest_under` is False
-        (the default), this will be the name of the top-level column. When `nest_under` is True,
-        the output_column will be the name of the column under the path given by `nest_under`.
-      nest_under: The path to nest the output under. Defaults to the input `path`, so it gets
-        hierarchically shown in the UI.
+      output_path: The name of the output path to write to. Defaults to the input path + ".cluster".
       min_cluster_size: The minimum number of docs in a cluster.
       topic_fn: A function that returns a topic summary for each cluster. It takes a list of
         (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
-        for a given cluster of docs. It defaults to a function that uses GPT-3.5 to summarize
-        user's instructions.
+        for a given cluster of docs. It defaults to a function that summarizes user's instructions.
       overwrite: Whether to overwrite an existing output.
 
     """
-    if not embedding:
-      raise ValueError('Only embedding-based clustering is supported for now.')
-    path = normalize_path(path)
-
-    signal = ClusterHDBScan(embedding=embedding, min_cluster_size=min_cluster_size)
-    signal_key = signal.key(is_computed_signal=True)
-    self.compute_signal(signal, path, overwrite=overwrite)
-
-    # Now that we have the clusters, compute the topic for each cluster with a map.
-    def _transform(items: Iterable[Item]) -> Iterable[Item]:
-      # Maps a cluster id to a list of (doc, membership_score) tuples.
-      clusters: dict[str, list[tuple[str, float]]] = {}
-
-      for item in items:
-        spans = item[signal_key]
-        if not spans:
-          continue
-        text = item[VALUE_KEY]
-        if not text:
-          continue
-        cluster_id = item[signal_key][0]['cluster_id']
-        if cluster_id < 0:
-          continue
-        membership_prob = item[signal_key][0]['membership_prob'] or 0
-        if membership_prob == 0:
-          continue
-        docs = clusters.get(cluster_id, [])
-        docs.append((text, membership_prob))
-        clusters[cluster_id] = docs
-
-      # Maps a cluster id to a topic.
-      cluster_topics: dict[str, str] = {}
-      # Compute the topic for each cluster.
-      for cluster_id, docs in tqdm(
-        list(clusters.items()), dynamic_ncols=True, desc='Generating topics'
-      ):
-        # Sort by membership score.
-        sorted_docs = sorted(docs, key=lambda x: x[1], reverse=True)
-        topic = topic_fn(sorted_docs)
-        cluster_topics[cluster_id] = topic
-
-      results: list[Optional[str]] = []
-      for item in items:
-        cluster_id = item[signal_key][0]['cluster_id']
-        results.append(cluster_topics.get(cluster_id, None))
-      return results
-
-    self.transform(
-      _transform,
-      input_path=path,
-      output_column=output_column,
-      nest_under=nest_under or path,
-      combine_columns=True,
-      overwrite=overwrite,
-    )
+    pass
 
   def compute_embedding(
     self,
@@ -771,8 +708,7 @@ class Dataset(abc.ABC):
     self,
     map_fn: MapFn,
     input_path: Optional[Path] = None,
-    output_column: Optional[str] = None,
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -794,11 +730,8 @@ class Dataset(abc.ABC):
         be called with the full row item dictionary. If specified, the map function will be called
         with the value at the given path, flattened. The output column will be written in the same
         shape as the input column, paralleling its nestedness.
-      output_column: The name of the output column to write to. When `nest_under` is False
-        (the default), this will be the name of the top-level column. When `nest_under` is True,
-        the output_column will be the name of the column under the path given by `nest_under`.
-      nest_under: The path to nest the output under. This is useful when emitting annotations, like
-        spans, so they will get hierarchically shown in the UI.
+      output_path: The name of the output path to write to. It is often useful to emit results
+        next to the input, so they will get hierarchically shown in the UI.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
@@ -832,30 +765,28 @@ class Dataset(abc.ABC):
 
   def transform(
     self,
-    transform_fn: Callable[[Iterable[Item]], Iterable[Item]],
+    transform_fn: Callable[[Iterator[Item]], Iterator[Item]],
     input_path: Optional[Path] = None,
-    output_column: Optional[str] = None,
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
     filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
+    sort_by: Optional[Path] = None,
+    sort_order: Optional[SortOrder] = SortOrder.ASC,
   ) -> Iterable[Item]:
     """Transforms the entire dataset (or a column) and writes the result to a new column.
 
     Args:
-      transform_fn: A callable that takes a full row item dictionary, and returns an Item for the
-        result. The result Item can be a primitive, like a string.
-      output_column: The name of the output column to write to. When `nest_under` is False
-        (the default), this will be the name of the top-level column. When `nest_under` is True,
-        the output_column will be the name of the column under the path given by `nest_under`.
+      transform_fn: A callable that takes an iterable of all items in the dataset, and returns an
+      iterable of the same length for the result.
       input_path: The path to the input column to map over. If not specified, the map function will
         be called with the full row item dictionary. If specified, the map function will be called
         with the value at the given path, flattened. The output column will be written in the same
         shape as the input column, paralleling its nestedness.
-      nest_under: The path to nest the output under. This is useful when emitting annotations, like
-        spans, so they will get hierarchically shown in the UI.
+      output_path: The name of the output path to write to. It is often useful to emit results
+        next to the input, so they will get hierarchically shown in the UI.
       overwrite: Set to true to overwrite this column if it already exists. If this bit is False,
         an error will be thrown if the column already exists.
       combine_columns: When true, the row passed to the map function will be a deeply nested object
@@ -867,18 +798,22 @@ class Dataset(abc.ABC):
         filter, and there is no way to fill in those nulls without recomputing the entire map with
         a less restrictive filter and overwrite=True.
       limit: How many rows to map over. If not specified, all rows will be mapped over.
+      sort_by: The path to sort by. If specified, the map will be called with rows sorted by this
+        path. This is useful for map functions that need to maintain state across rows.
+      sort_order: The sort order. Defaults to ascending.
     """
     return self.map(
       map_fn=transform_fn,
       input_path=input_path,
-      output_column=output_column,
-      nest_under=nest_under,
+      output_path=output_path,
       overwrite=overwrite,
       combine_columns=combine_columns,
       resolve_span=resolve_span,
       batch_size=-1,
       filters=filters,
       limit=limit,
+      sort_by=sort_by,
+      sort_order=sort_order,
       num_jobs=1,
       execution_type='threads',
     )

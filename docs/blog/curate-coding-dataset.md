@@ -106,7 +106,7 @@ def format_code(item):
  return {'answer': new_text, 'has_edit': has_edit}
 
 ds = ll.get_dataset('local', 'glaive-coder')
-ds.map(format_code, output_column='answer_formatted', num_jobs=-1, execution_type='processes')
+ds.map(format_code, output_path='answer_formatted', num_jobs=-1, execution_type='processes')
 ````
 
 ## Dataset.map

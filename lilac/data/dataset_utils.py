@@ -13,7 +13,7 @@ from typing import Any, Callable, Generator, Iterator, Optional, TypeVar, Union,
 import numpy as np
 import pyarrow as pa
 
-from ..batch_utils import array_flatten
+from ..batch_utils import flatten_iter
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
 from ..parquet_writer import ParquetWriter
@@ -60,12 +60,12 @@ def replace_embeddings_with_none(input: Union[Item, Item]) -> Item:
   return cast(Item, _replace_embeddings_with_none(input))
 
 
-def count_primitives(input: Union[Iterable, Iterator]) -> int:
+def count_leafs(input: Union[Iterable, Iterator]) -> int:
   """Iterate through each element of the input, flattening each one, computing a count.
 
   Sum the final set of counts. This is the important iterable not to exhaust.
   """
-  return sum((len(list(array_flatten(i))) for i in input))
+  return len(list(flatten_iter(input)))
 
 
 def _wrap_value_in_dict(input: Union[object, dict], props: PathTuple) -> Union[object, dict]:
@@ -87,6 +87,11 @@ def _wrap_in_dicts(
   if input is None or isinstance(input, float) and math.isnan(input):
     # Return empty dict for missing inputs.
     return {}
+  if isinstance(input, dict) or is_primitive(input):
+    raise ValueError(
+      f'The input should be a list, not a primitive. '
+      f'Got input type: {type(input)}, with a wrapping spec: {spec}'
+    )
   res = [_wrap_in_dicts(elem, spec[1:]) for elem in cast(Iterable, input)]
   return _wrap_value_in_dict(res, props)
 
@@ -326,3 +331,18 @@ def shard_id_to_range(
   shard_start_idx = min(shard_id * shard_size, num_items) if shard_id is not None else 0
   shard_end_idx = min((shard_id + 1) * shard_size, num_items) if shard_id is not None else num_items
   return (shard_start_idx, shard_end_idx)
+
+
+def _cardinality_prefix(path: PathTuple) -> PathTuple:
+  """Returns the cardinality prefix for a path."""
+  # Find the last wildcard in the path.
+  wildcard_idx = 0
+  for i, path_part in enumerate(path):
+    if path_part == PATH_WILDCARD:
+      wildcard_idx = i
+  return path[:wildcard_idx]
+
+
+def paths_have_same_cardinality(path1: PathTuple, path2: PathTuple) -> bool:
+  """Returns true if the paths have the same cardinality."""
+  return _cardinality_prefix(path1) == _cardinality_prefix(path2)

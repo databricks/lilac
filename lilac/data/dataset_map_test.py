@@ -9,6 +9,7 @@ import pytest
 from typing_extensions import override
 
 from .. import tasks
+from ..batch_utils import group_by_sorted_key_iter
 from ..schema import (
   PATH_WILDCARD,
   VALUE_KEY,
@@ -78,7 +79,7 @@ def test_map(
     return item['text'].upper()
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type)
+  dataset.map(_map_fn, output_path='text_upper', num_jobs=num_jobs, execution_type=execution_type)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -128,7 +129,7 @@ def test_map_idle_worker(
   def _map_fn(item: Item) -> Item:
     return item['text'].upper()
 
-  dataset.map(_map_fn, output_column='text_upper', num_jobs=4, execution_type=execution_type)
+  dataset.map(_map_fn, output_path='text_upper', num_jobs=4, execution_type=execution_type)
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert len(rows) == 3
 
@@ -147,9 +148,7 @@ def test_map_signal(
     return {'result': f'{item["text.test_signal.firstchar"]}_{len(item["text"])}'}
 
   # Write the output to a new column.
-  dataset.map(
-    _map_fn, output_column='output_text', num_jobs=num_jobs, execution_type=execution_type
-  )
+  dataset.map(_map_fn, output_path='output_text', num_jobs=num_jobs, execution_type=execution_type)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -215,7 +214,7 @@ def test_map_input_path(
   dataset.map(
     _upper,
     input_path='text',
-    output_column='text_upper',
+    output_path='text_upper',
     num_jobs=num_jobs,
     execution_type=execution_type,
   )
@@ -270,7 +269,7 @@ def test_map_input_path_nested(
   dataset.map(
     _upper,
     input_path=('texts', PATH_WILDCARD, 'value'),
-    output_column='texts_upper',
+    output_path='texts_upper',
     num_jobs=num_jobs,
     execution_type=execution_type,
   )
@@ -304,22 +303,6 @@ def test_map_input_path_nested(
     {'id': 1, 'texts.*.value': ['b', 'c'], 'texts_upper': ['B', 'C']},
     {'id': 2, 'texts.*.value': ['d', 'e', 'f'], 'texts_upper': ['D', 'E', 'F']},
   ]
-
-
-def test_map_input_path_nonleaf_throws(make_test_data: TestDataMaker) -> None:
-  dataset = make_test_data(
-    [
-      {'id': 0, 'text': ['a']},
-      {'id': 1, 'text': ['b']},
-      {'id': 2, 'text': ['c']},
-    ]
-  )
-
-  def _upper(row: Item) -> Item:
-    return str(row).upper()
-
-  with pytest.raises(Exception):
-    dataset.map(_upper, input_path='text', output_column='text_upper')
 
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
@@ -357,7 +340,7 @@ def test_map_continuation(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
+    dataset.map(_map_fn_1, output_path='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
   # The schema should not reflect the output of the map as it didn't finish.
   assert dataset.manifest() == DatasetManifest(
@@ -373,7 +356,7 @@ def test_map_continuation(
 
   # Hardcode this to thread-type, because the test_process_logger takes 2 seconds to serialize.
   # We're only really testing whether the continuation is reusing the saved results, anyway.
-  dataset.map(_map_fn_2, output_column='map_id', num_jobs=1, execution_type='threads')
+  dataset.map(_map_fn_2, output_path='map_id', num_jobs=1, execution_type='threads')
 
   assert 0 not in test_process_logger.get_logs()
 
@@ -433,13 +416,13 @@ def test_map_continuation_overwrite(
 
   # Write the output to a new column.
   with pytest.raises(Exception):
-    dataset.map(_map_fn_1, output_column='map_id', num_jobs=num_jobs, execution_type=execution_type)
+    dataset.map(_map_fn_1, output_path='map_id', num_jobs=num_jobs, execution_type=execution_type)
 
   test_process_logger.clear_logs()
 
   dataset.map(
     _map_fn_2,
-    output_column='map_id',
+    output_path='map_id',
     overwrite=True,
     num_jobs=num_jobs,
     execution_type=execution_type,
@@ -487,7 +470,7 @@ def test_map_limit(
 
   # Write the output to a new column.
   dataset.map(
-    _map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type, limit=10
+    _map_fn, output_path='text_upper', num_jobs=num_jobs, execution_type=execution_type, limit=10
   )
 
   rows = list(
@@ -509,7 +492,7 @@ def test_map_filter(
   # Write the output to a new column.
   dataset.map(
     _map_fn,
-    output_column='text_upper',
+    output_path='text_upper',
     num_jobs=num_jobs,
     execution_type=execution_type,
     filters=[Filter(path=('text',), op='in', value=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'])],
@@ -538,7 +521,7 @@ def test_map_batch(
   # Write the output to a new column.
   dataset.map(
     _map_fn,
-    output_column='text_upper',
+    output_path='text_upper',
     batch_size=batch_size,
     num_jobs=num_jobs,
     execution_type=execution_type,
@@ -579,7 +562,7 @@ def test_map_deleted_interaction(
 
   dataset.delete_rows(row_ids=['1', '2', '3'])
 
-  dataset.map(_map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type)
+  dataset.map(_map_fn, output_path='text_upper', num_jobs=num_jobs, execution_type=execution_type)
 
   rows = list(dataset.select_rows(['text_upper'], include_deleted=True))
   assert rows == [
@@ -592,7 +575,7 @@ def test_map_deleted_interaction(
 
   dataset.map(
     _map_fn,
-    output_column='text_upper',
+    output_path='text_upper',
     num_jobs=num_jobs,
     execution_type=execution_type,
     overwrite=True,
@@ -623,19 +606,19 @@ def test_map_overwrite(
     return prefix + item['text']
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_column='map_text', num_jobs=num_jobs, execution_type=execution_type)
+  dataset.map(_map_fn, output_path='map_text', num_jobs=num_jobs, execution_type=execution_type)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [{'text': 'a', 'map_text': '0a'}, {'text': 'b', 'map_text': '0b'}]
 
   with pytest.raises(ValueError, match=' which already exists in the dataset'):
     dataset.map(
-      _map_fn, output_column='map_text', combine_columns=False, execution_type=execution_type
+      _map_fn, output_path='map_text', combine_columns=False, execution_type=execution_type
     )
 
   prefix = '1'
   # Overwrite the output
-  dataset.map(_map_fn, output_column='map_text', overwrite=True, execution_type=execution_type)
+  dataset.map(_map_fn, output_path='map_text', overwrite=True, execution_type=execution_type)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -678,7 +661,7 @@ def test_map_overwrite(
 
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
-def test_map_output_column_returns_iterable(
+def test_map_output_path_returns_iterable(
   num_jobs: int, execution_type: tasks.TaskExecutionType, make_test_data: TestDataMaker
 ) -> None:
   dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
@@ -688,7 +671,7 @@ def test_map_output_column_returns_iterable(
 
   # Write the output to a new column.
   result_rows = dataset.map(
-    _map_fn, output_column='text_upper', num_jobs=num_jobs, execution_type=execution_type
+    _map_fn, output_path='text_upper', num_jobs=num_jobs, execution_type=execution_type
   )
 
   assert list(result_rows) == [
@@ -751,12 +734,12 @@ def test_map_chained(make_test_data: TestDataMaker) -> None:
   def _split_fn(item: Item) -> Item:
     return item['text'].split(' ')
 
-  dataset.map(_split_fn, output_column='splits', combine_columns=False)
+  dataset.map(_split_fn, output_path='splits', combine_columns=False)
 
   def _rearrange_fn(item: Item) -> Item:
     return item['splits'][1] + ' ' + item['splits'][0]
 
-  dataset.map(_rearrange_fn, output_column='rearrange', combine_columns=False)
+  dataset.map(_rearrange_fn, output_path='rearrange', combine_columns=False)
 
   rows = list(dataset.select_rows([PATH_WILDCARD]))
   assert rows == [
@@ -802,7 +785,7 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
     return {'result': f'{item["text"]["test_signal"]["firstchar"]}_{len(item["text"][VALUE_KEY])}'}
 
   # Write the output to a new column.
-  dataset.map(_map_fn, output_column='output_text', combine_columns=True)
+  dataset.map(_map_fn, output_path='output_text', combine_columns=True)
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -846,13 +829,263 @@ def test_map_combine_columns(make_test_data: TestDataMaker) -> None:
   ]
 
 
+def test_map_combine_columns_with_input_path(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'a sentence'}, {'text': 'b sentence'}])
+
+  signal = TestFirstCharSignal()
+  dataset.compute_signal(signal, 'text')
+
+  def _map_fn(enriched_text: Item) -> Item:
+    # We use the combine_columns=True input here.
+    return {
+      'result': f'{enriched_text["test_signal"]["firstchar"]}_{len(enriched_text[VALUE_KEY])}'
+    }
+
+  # Write the output to a new column.
+  dataset.map(_map_fn, 'text', output_path='output_text', combine_columns=True)
+
+  rows = list(dataset.select_rows([PATH_WILDCARD]))
+  assert rows == [
+    {
+      'text': 'a sentence',
+      'text.test_signal.firstchar': 'a',
+      'text.test_signal.len': 10,
+      'output_text.result': 'a_10',
+    },
+    {
+      'text': 'b sentence',
+      'text.test_signal.firstchar': 'b',
+      'text.test_signal.len': 10,
+      'output_text.result': 'b_10',
+    },
+  ]
+
+
+def test_map_on_double_nested_input(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'texts': [['a', 'b'], ['c'], ['dd', 'e']]},
+      {'texts': [['ff', 'ggg']]},
+    ]
+  )
+
+  dataset.map(lambda x: len(x), 'texts', output_path='texts_len')
+  dataset.map(lambda x: len(x), 'texts.*', output_path='texts[i]_len')
+  dataset.map(lambda x: len(x), 'texts.*.*', output_path='texts[i][j]_len')
+
+  rows = list(dataset.select_rows())
+  assert rows == [
+    {
+      'texts': [['a', 'b'], ['c'], ['dd', 'e']],
+      'texts_len': 3,
+      'texts[i]_len': [2, 1, 2],
+      'texts[i][j]_len': [[1, 1], [1], [2, 1]],
+    },
+    {
+      'texts': [['ff', 'ggg']],
+      'texts_len': 1,
+      'texts[i]_len': [2],
+      'texts[i][j]_len': [[2, 3]],
+    },
+  ]
+
+
+def test_map_select_subfields_of_repeated_dicts(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {
+        'people': [
+          {'name': 'A', 'phones': [1, 2, 3], 'address': 'a'},
+          {'name': 'BB', 'phones': [4], 'address': 'b'},
+          {'name': 'C', 'phones': [5], 'address': 'c'},
+        ]
+      },
+      {
+        'people': [
+          {'name': 'D', 'phones': [6], 'address': 'd'},
+          {'name': 'EEE', 'phones': [7, 8], 'address': 'e'},
+        ]
+      },
+    ]
+  )
+
+  dataset.map(lambda x: len(x), 'people', output_path='people_len')
+  dataset.map(lambda x: x['name'], 'people.*', output_path='person_name')
+  dataset.map(lambda x: len(x), 'people.*.name', output_path='len_name')
+  dataset.map(lambda x: len(x), 'people.*.phones', output_path='len_phones')
+  dataset.map(lambda x: x - 1, 'people.*.phones.*', output_path='phones_minus_one')
+
+  # No input path and combine columns is True.
+  dataset.map(
+    lambda x: 'people' in x and 'name' in x['people'][0],
+    output_path='has_name',
+    combine_columns=True,
+  )
+
+  rows = list(
+    dataset.select_rows(
+      ['people_len', 'person_name', 'len_name', 'len_phones', 'phones_minus_one', 'has_name']
+    )
+  )
+  assert rows == [
+    {
+      'people_len': 3,
+      'person_name': ['A', 'BB', 'C'],
+      'len_name': [1, 2, 1],
+      'len_phones': [3, 1, 1],
+      'phones_minus_one': [[0, 1, 2], [3], [4]],
+      'has_name': True,
+    },
+    {
+      'people_len': 2,
+      'person_name': ['D', 'EEE'],
+      'len_name': [1, 3],
+      'len_phones': [1, 2],
+      'phones_minus_one': [[5], [6, 7]],
+      'has_name': True,
+    },
+  ]
+
+
+def test_map_nests_under_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'people': [{'name': 'A'}, {'name': 'BB'}, {'name': 'C'}]},
+      {'people': [{'name': 'D'}, {'name': 'EEE'}]},
+    ]
+  )
+
+  dataset.map(lambda x: len(x), 'people.*.name', output_path='people.*.len_name')
+
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'people': [
+        {'name': 'A', 'len_name': 1},
+        {'name': 'BB', 'len_name': 2},
+        {'name': 'C', 'len_name': 1},
+      ]
+    },
+    {'people': [{'name': 'D', 'len_name': 1}, {'name': 'EEE', 'len_name': 3}]},
+  ]
+
+  rows = list(dataset.select_rows())
+  assert rows == [
+    {'people.*.name': ['A', 'BB', 'C'], 'people.*.len_name': [1, 2, 1]},
+    {'people.*.name': ['D', 'EEE'], 'people.*.len_name': [1, 3]},
+  ]
+
+
+def test_map_nests_under_field_of_repeated(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'people': [{'name': 'A', 'info': {'extra': 1}}, {'name': 'BB'}, {'name': 'C'}]},
+      {'people': [{'name': 'D'}, {'name': 'EEE'}]},
+    ]
+  )
+
+  dataset.map(lambda x: len(x), 'people.*.name', output_path='people.*.info.len_name')
+
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'people': [
+        {'name': 'A', 'info': {'extra': 1, 'len_name': 1}},
+        {'name': 'BB', 'info': {'len_name': 2}},
+        {'name': 'C', 'info': {'len_name': 1}},
+      ]
+    },
+    {
+      'people': [
+        {'name': 'D', 'info': {'len_name': 1}},
+        {'name': 'EEE', 'info': {'len_name': 3}},
+      ]
+    },
+  ]
+
+
+def test_map_nests_under_a_parent_of_input_path(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {
+        'people': [
+          {'name': 'A', 'address': {'zip': 1}},
+          {'name': 'B'},
+          {'name': 'C', 'address': {'zip': 2}},
+        ]
+      },
+      {
+        'people': [
+          {'name': 'D', 'address': {'zip': 3}},
+          {'name': 'E', 'address': {}},
+        ]
+      },
+    ]
+  )
+
+  def zip_code_verifier(zip_code: int) -> bool:
+    return zip_code != 2
+
+  dataset.map(zip_code_verifier, 'people.*.address.zip', output_path='people.*.verified')
+
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'people': [
+        {'name': 'A', 'address': {'zip': 1}, 'verified': True},
+        {'name': 'B', 'address': None, 'verified': None},
+        {'name': 'C', 'address': {'zip': 2}, 'verified': False},
+      ]
+    },
+    {
+      'people': [
+        {'name': 'D', 'address': {'zip': 3}, 'verified': True},
+        {'name': 'E', 'address': {'zip': None}, 'verified': None},
+      ]
+    },
+  ]
+
+
+def test_transform_with_sort_by(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(
+    [
+      {'text': 'a', 'cluster_id': 2},
+      {'text': 'b', 'cluster_id': 1},
+      {'text': 'c', 'cluster_id': 1},
+      {'text': 'd', 'cluster_id': 2},
+      {'text': 'e', 'cluster_id': 2},
+      {'text': 'f', 'cluster_id': 3},
+    ]
+  )
+
+  def aggregate_cluster(items: Iterator[str]) -> Iterator[Item]:
+    groups = group_by_sorted_key_iter(items, lambda x: x)
+    for group in groups:
+      for _ in group:
+        yield len(group)
+
+  dataset.transform(
+    aggregate_cluster, input_path='cluster_id', output_path='cluster_size', sort_by='cluster_id'
+  )
+
+  rows = list(dataset.select_rows())
+  assert rows == [
+    {'text': 'a', 'cluster_id': 2, 'cluster_size': 3},
+    {'text': 'b', 'cluster_id': 1, 'cluster_size': 2},
+    {'text': 'c', 'cluster_id': 1, 'cluster_size': 2},
+    {'text': 'd', 'cluster_id': 2, 'cluster_size': 3},
+    {'text': 'e', 'cluster_id': 2, 'cluster_size': 3},
+    {'text': 'f', 'cluster_id': 3, 'cluster_size': 1},
+  ]
+
+
 def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
 
   def _map_fn(item: Item) -> Item:
     return item['text'] + ' ' + item['text']
 
-  dataset.map(_map_fn, output_column='double', combine_columns=False)
+  dataset.map(_map_fn, output_path='double', combine_columns=False)
 
   # Compute a signal on the map output.
   signal = TestFirstCharSignal()
@@ -920,13 +1153,13 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
   ]
 
 
-def test_map_nest_under(make_test_data: TestDataMaker) -> None:
+def test_map_nested_output_path(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'parent': {'text': 'a'}}, {'parent': {'text': 'abc'}}])
 
   def _map_fn(item: Item) -> Item:
     return {'value': len(item['parent.text'])}
 
-  dataset.map(_map_fn, output_column='len', nest_under=('parent', 'text'))
+  dataset.map(_map_fn, output_path='parent.text.len')
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -976,7 +1209,7 @@ def test_map_span(make_test_data: TestDataMaker) -> None:
       span(m.start(), m.end(), {'len': m.end() - m.start()}) for m in re.finditer('b', item['text'])
     ]
 
-  dataset.map(_map_fn, output_column='b_span', nest_under='text')
+  dataset.map(_map_fn, output_path='text.b_span')
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -1023,8 +1256,8 @@ def test_map_ergonomics(make_test_data: TestDataMaker) -> None:
     return x['text'] + ' map'
 
   # Write the output to a new column.
-  dataset.map(_fn_kw, output_column='_fn_kw')
-  dataset.map(_fn, output_column='_fn')
+  dataset.map(_fn_kw, output_path='_fn_kw')
+  dataset.map(_fn, output_path='_fn')
 
   assert dataset.manifest() == DatasetManifest(
     namespace=TEST_NAMESPACE,
@@ -1070,28 +1303,31 @@ def test_map_ergonomics_invalid_args(make_test_data: TestDataMaker) -> None:
     pass
 
   with pytest.raises(TypeError, match=re.escape('takes 0 positional arguments but 1 was given')):
-    dataset.map(_map_noargs, output_column='_map_noargs')
+    dataset.map(_map_noargs, output_path='_map_noargs')
+
+  def _map_toomany_args(row: Item, job_id: int, extra_arg: int) -> None:
+    pass
+
+  with pytest.raises(TypeError, match=re.escape('missing 2 required positional arguments')):
+    dataset.map(_map_toomany_args, output_path='_map_toomany_args')
 
 
-def test_map_nest_under_validation(make_test_data: TestDataMaker) -> None:
+def test_map_nested_output_another_cardinality_fails(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(
     [{'text': 'abcd', 'parent': ['a', 'b']}, {'text': 'efghi', 'parent': ['c', 'd']}]
   )
 
   def _map_fn(item: Item) -> Item:
-    return item['text'] + ' ' + item['text']
+    res = item['text'] + ' ' + item['text']
+    return res
 
   with pytest.raises(
-    ValueError, match='Nesting map outputs under a repeated field is not yet supported'
+    AssertionError,
+    match=re.escape(
+      "`input_path` None and `output_path` ('parent', '*', 'output') have different cardinalities"
+    ),
   ):
-    dataset.map(
-      _map_fn, output_column='output', nest_under=('parent', PATH_WILDCARD), combine_columns=False
-    )
-
-  with pytest.raises(
-    ValueError, match=re.escape("The `nest_under` column ('fake',) does not exist.")
-  ):
-    dataset.map(_map_fn, output_column='output', nest_under=('fake',), combine_columns=False)
+    dataset.map(_map_fn, output_path='parent.*.output', combine_columns=False)
 
 
 def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
@@ -1100,7 +1336,7 @@ def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
   def skip_first_and_last_letter(item: str) -> Item:
     return span(1, len(item) - 1)
 
-  dataset.map(skip_first_and_last_letter, input_path='text', output_column='skip')
+  dataset.map(skip_first_and_last_letter, input_path='text', output_path='skip')
 
   result = dataset.select_groups('skip')
   assert result == SelectGroupsResult(too_many_distinct=False, counts=[('bc', 1), ('fgh', 1)])
@@ -1118,31 +1354,31 @@ def test_map_with_span_resolving(make_test_data: TestDataMaker) -> None:
 
 
 def test_transform(make_test_data: TestDataMaker) -> None:
-  def text_len(items: Iterable[Item]) -> Iterable[Item]:
+  def text_len(items: Iterator[Item]) -> Iterator[Item]:
     for item in items:
       yield len(item['text'])
 
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
-  dataset.transform(text_len, output_column='text_len')
+  dataset.transform(text_len, output_path='text_len')
 
   rows = dataset.select_rows()
   assert list(rows) == [{'text': 'abcd', 'text_len': 4}, {'text': 'efghi', 'text_len': 5}]
 
 
 def test_transform_with_input_path(make_test_data: TestDataMaker) -> None:
-  def text_len(texts: Iterable[Item]) -> Iterable[Item]:
+  def text_len(texts: Iterator[Item]) -> Iterator[Item]:
     for text in texts:
       yield len(text)
 
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
-  dataset.transform(text_len, input_path='text', output_column='text_len')
+  dataset.transform(text_len, input_path='text', output_path='text_len')
 
   rows = dataset.select_rows()
   assert list(rows) == [{'text': 'abcd', 'text_len': 4}, {'text': 'efghi', 'text_len': 5}]
 
 
 def test_transform_size_mismatch(make_test_data: TestDataMaker) -> None:
-  def text_len(texts: Iterable[Item]) -> Iterable[Item]:
+  def text_len(texts: Iterator[Item]) -> Iterator[Item]:
     for i, text in enumerate(texts):
       # Skip the first item.
       if i > 0:
@@ -1150,7 +1386,7 @@ def test_transform_size_mismatch(make_test_data: TestDataMaker) -> None:
 
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
   with pytest.raises(Exception):
-    dataset.transform(text_len, input_path='text', output_column='text_len')
+    dataset.transform(text_len, input_path='text', output_path='text_len')
 
 
 def test_map_outputs_long_string_that_promotes_to_media(make_test_data: TestDataMaker) -> None:
@@ -1158,6 +1394,6 @@ def test_map_outputs_long_string_that_promotes_to_media(make_test_data: TestData
     return text * 100
 
   dataset = make_test_data([{'text': 'abcd'}, {'text': 'efghi'}])
-  dataset.map(long_str, input_path='text', output_column='text_long')
+  dataset.map(long_str, input_path='text', output_path='text_long')
 
   assert ('text_long',) in dataset.settings().ui.media_paths

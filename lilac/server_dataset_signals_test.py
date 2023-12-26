@@ -6,9 +6,8 @@ from typing import ClassVar, Iterable, Iterator, Optional
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from lilac.data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE
-from lilac.router_dataset_signals import ComputeSignalOptions, DeleteSignalOptions
-
+from .data.dataset_test_utils import TEST_DATASET_NAME, TEST_NAMESPACE
+from .router_dataset_signals import ComputeSignalOptions, DeleteSignalOptions
 from .schema import Field, Item, RichData, field
 from .server import app
 from .signal import TextSignal

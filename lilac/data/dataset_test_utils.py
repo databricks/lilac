@@ -88,7 +88,7 @@ def _infer_field(item: Item, diallow_pedals: bool = False) -> Field:
       del fields[SPAN_KEY]
     if not fields:
       # The object is an empty dict. We need a dummy child to represent this with parquet.
-      return Field(fields={'__empty__': Field(dtype=NULL)})
+      return Field(dtype=NULL)
     return Field(fields=fields, dtype=dtype)
   elif is_primitive(item):
     return Field(dtype=_infer_dtype(item))

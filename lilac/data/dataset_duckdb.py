@@ -29,7 +29,7 @@ from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
 from ..auth import UserInfo
-from ..batch_utils import array_flatten, array_unflatten
+from ..batch_utils import flatten_iter, unflatten_iter
 from ..config import (
   OLD_CONFIG_FILENAME,
   DatasetConfig,
@@ -84,7 +84,14 @@ from ..schema import (
   signal_type_supports_dtype,
 )
 from ..schema_duckdb import duckdb_schema, escape_col_name, escape_string_literal
-from ..signal import Signal, TextEmbeddingSignal, VectorSignal, get_signal_by_type, resolve_signal
+from ..signal import (
+  Signal,
+  TextEmbeddingSignal,
+  TopicFn,
+  VectorSignal,
+  get_signal_by_type,
+  resolve_signal,
+)
 from ..signals.concept_labels import ConceptLabelsSignal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.filter_mask import FilterMaskSignal
@@ -106,6 +113,7 @@ from ..utils import (
   open_file,
 )
 from . import dataset
+from .clustering import cluster, summarize_instructions
 from .dataset import (
   BINARY_OPS,
   DELETED_LABEL_NAME,
@@ -144,10 +152,11 @@ from .dataset import (
 )
 from .dataset_format import infer_formats
 from .dataset_utils import (
-  count_primitives,
+  count_leafs,
   create_signal_schema,
   flatten_keys,
   get_parquet_filename,
+  paths_have_same_cardinality,
   schema_contains_path,
   sparse_to_dense_compute,
   wrap_in_dicts,
@@ -244,16 +253,17 @@ class MapManifest(BaseModel):
 class DuckDBMapOutput:
   """The output of a map computation."""
 
-  def __init__(self, con: duckdb.DuckDBPyConnection, query: str, output_column: str):
+  def __init__(self, con: duckdb.DuckDBPyConnection, query: str, output_path: PathTuple):
     self.con = con
     self.query = query
-    self.output_column = output_column
+    self.output_path = output_path
 
   def __iter__(self) -> Iterator[Item]:
     cursor = self.con.cursor()
     pyarrow_reader = cursor.execute(self.query).fetch_record_batch(rows_per_batch=10_000)
     for batch in pyarrow_reader:
-      yield from (row[self.output_column] for row in batch.to_pylist())
+      for row in batch.to_pylist():
+        yield row['value']
 
     pyarrow_reader.close()
 
@@ -639,7 +649,7 @@ class DatasetDuckDB(Dataset):
     select_queries: list[str] = []
     columns_to_merge: dict[str, dict[str, Column]] = {}
 
-    unnest_column_alias: Optional[str] = None
+    final_col_name: Optional[str] = None
     for column in cols:
       path = column.path
 
@@ -664,8 +674,6 @@ class DatasetDuckDB(Dataset):
         column_alias = (
           final_col_name if len(duckdb_paths) == 1 else f'{final_col_name}/{parquet_id}'
         )
-        if select_path:
-          unnest_column_alias = column_alias
 
         select_sqls.append(f'{sql} AS {escape_string_literal(column_alias)}')
         columns_to_merge[final_col_name][column_alias] = column
@@ -746,8 +754,8 @@ class DatasetDuckDB(Dataset):
         # Since we aliased every column to `*`, the object will have only '*' as the key. We need
         # to elevate the all the columns under '*'.
         df_chunk = pd.DataFrame.from_records(df_chunk['*'])
-      if select_path and unnest_column_alias and not combine_columns:
-        values = df_chunk[unnest_column_alias].tolist()
+      if select_path and final_col_name and not combine_columns:
+        values = df_chunk[final_col_name].tolist()
       else:
         values = df_chunk.to_dict('records')
 
@@ -804,7 +812,8 @@ class DatasetDuckDB(Dataset):
     def batched_pool_map(fn: Callable, items: Iterable[RichData]) -> Iterator[Optional[Item]]:
       map_arg: Iterable[Any]
       if batch_size == -1:
-        map_arg = [list(items)]
+        yield from fn(items)
+        return
       elif batch_size is not None:
         map_arg = map(list, chunks(items, batch_size))
       else:
@@ -821,14 +830,12 @@ class DatasetDuckDB(Dataset):
 
     # Tee the values so we can use them for the deep flatten and the deep unflatten.
     input_values = (value for (_, value) in inputs_0)
-
-    nested_spec = _split_path_into_subpaths_of_lists(output_path or ())
-
     output_items: Iterable[Optional[Item]]
     # Flatten the outputs back to the shape of the original data.
     # The output values are flat from the signal. This
     if select_path:
       input_values_0, input_values_1 = itertools.tee(input_values, 2)
+      flatten_depth = len([part for part in select_path if part == PATH_WILDCARD])
 
       if isinstance(transform_fn, VectorSignal):
         embedding_signal = transform_fn
@@ -836,29 +843,33 @@ class DatasetDuckDB(Dataset):
         vector_store = self._get_vector_db_index(embedding_signal.embedding, select_path)
         # Step 2
         flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
-        # Step 3
-        dense_out = sparse_to_dense_compute(
+        sparse_out = sparse_to_dense_compute(
           flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
         )
       elif isinstance(transform_fn, Signal):
         signal = transform_fn
-        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
-        dense_out = sparse_to_dense_compute(
+        flat_input = cast(Iterator[Optional[RichData]], flatten_iter(input_values_0, flatten_depth))
+        sparse_out = sparse_to_dense_compute(
           flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
         )
       else:
         assert not isinstance(transform_fn, Signal)
         # Step 2
-        flat_input = cast(Iterator[Optional[RichData]], array_flatten(input_values_0))
+        flat_input = cast(Iterator[Optional[RichData]], flatten_iter(input_values_0, flatten_depth))
         # Step 3
-        dense_out = sparse_to_dense_compute(flat_input, lambda x: batched_pool_map(transform_fn, x))  # type: ignore
-        # Step 6
-      output_items = array_unflatten(dense_out, input_values_1)
+        sparse_out = sparse_to_dense_compute(
+          flat_input,
+          lambda x: batched_pool_map(transform_fn, x),  # type: ignore
+        )
+      # Step 6
+      output_items = unflatten_iter(sparse_out, input_values_1, flatten_depth)
     else:
       assert not isinstance(transform_fn, Signal)
       output_items = batched_pool_map(transform_fn, input_values)
 
     # Step 7
+    # Wrap the output items in dicts to match the output path shape.
+    nested_spec = _split_path_into_subpaths_of_lists(output_path or ())
     output_items = cast(Iterable[Item], wrap_in_dicts(output_items, nested_spec))
 
     # Step 6
@@ -876,7 +887,7 @@ class DatasetDuckDB(Dataset):
             yield item
       else:
         yield from output_items
-    except RuntimeError as e:
+    except RuntimeError:
       # NOTE: A RuntimeError exception is thrown when the output_items iterator, which is a zip of
       # input and output items, yields a StopIterator exception.
       raise ValueError(
@@ -889,6 +900,7 @@ class DatasetDuckDB(Dataset):
 
   def _reshard_cache(
     self,
+    manifest: DatasetManifest,
     output_path: PathTuple,
     jsonl_cache_filepaths: list[str],
     schema: Optional[Schema] = None,
@@ -908,16 +920,20 @@ class DatasetDuckDB(Dataset):
       schema = schema.model_copy(deep=True)
       schema.fields[ROWID] = Field(dtype=STRING)
 
-    json_query = f"""
-      SELECT * FROM {'read_json' if schema else 'read_json_auto'}(
-        {jsonl_cache_filepaths},
-        {f'columns={duckdb_schema(schema)},' if schema else ''}
-        hive_partitioning=false,
-        ignore_errors=true,
-        format='newline_delimited'
-      )
-    """
-    con.execute(f'CREATE OR REPLACE VIEW "{jsonl_view_name}" as ({json_query});')
+    def get_json_query(selection: str) -> str:
+      if selection != '*':
+        selection += ' AS value'
+      return f"""
+        SELECT {selection} FROM {'read_json' if schema else 'read_json_auto'}(
+          {jsonl_cache_filepaths},
+          {f'columns={duckdb_schema(schema)},' if schema else ''}
+          hive_partitioning=false,
+          ignore_errors=true,
+          format='newline_delimited'
+        )
+      """
+
+    con.execute(f'CREATE OR REPLACE VIEW "{jsonl_view_name}" as ({get_json_query("*")});')
 
     parquet_filepath: Optional[str] = None
     reader = con.execute(f'SELECT * from {jsonl_view_name}').fetch_record_batch(
@@ -947,7 +963,10 @@ class DatasetDuckDB(Dataset):
     if ROWID in output_schema.fields:
       del output_schema.fields[ROWID]
 
-    return json_query, output_schema, parquet_filepath
+    select_str = _select_sql(
+      output_path, flatten=False, unnest=False, path=output_path, schema=manifest.data_schema
+    )
+    return get_json_query(select_str), output_schema, parquet_filepath
 
   @override
   def get_embeddings(
@@ -1041,6 +1060,7 @@ class DatasetDuckDB(Dataset):
     signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
 
     _, inferred_schema, parquet_filepath = self._reshard_cache(
+      manifest=manifest,
       output_path=output_path,
       schema=signal_schema,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
@@ -1726,10 +1746,6 @@ class DatasetDuckDB(Dataset):
     # Add search where queries.
     for search in searches:
       search_path = normalize_path(search.path)
-      duckdb_path = self._leaf_path_to_duckdb_path(search_path, manifest.data_schema)
-      select_str = _select_sql(
-        duckdb_path, flatten=False, unnest=False, path=search_path, schema=manifest.data_schema
-      )
       if search.type == 'keyword':
         filters.append(Filter(path=search_path, op='ilike', value=search.query))
       elif search.type == 'semantic' or search.type == 'concept':
@@ -1925,10 +1941,10 @@ class DatasetDuckDB(Dataset):
           signal_out = sparse_to_dense_compute(
             iter(flat_keys), lambda keys: embedding_signal.vector_compute(keys, vector_store)
           )
-          df[signal_column] = list(array_unflatten(signal_out, input))
+          df[signal_column] = list(unflatten_iter(signal_out, input))
         else:
-          num_rich_data = count_primitives(input)
-          flat_input = cast(Iterator[Optional[RichData]], array_flatten(input))
+          num_rich_data = count_leafs(input)
+          flat_input = cast(Iterator[Optional[RichData]], flatten_iter(input))
           signal_out = sparse_to_dense_compute(
             flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
           )
@@ -1936,7 +1952,7 @@ class DatasetDuckDB(Dataset):
           if signal_column in temp_column_to_offset_column:
             offset_column_name, field = temp_column_to_offset_column[signal_column]
             nested_spans: Iterable[Item] = df[offset_column_name]
-            flat_spans = array_flatten(nested_spans)
+            flat_spans = flatten_iter(nested_spans)
             for text_span, item in zip(flat_spans, signal_out_list):
               _offset_any_span(cast(int, text_span[SPAN_KEY][TEXT_SPAN_START_FEATURE]), item, field)
 
@@ -1947,7 +1963,7 @@ class DatasetDuckDB(Dataset):
               '"None" for a sparse output, or generated too many items.'
             )
 
-          df[signal_column] = list(array_unflatten(signal_out_list, input))
+          df[signal_column] = list(unflatten_iter(signal_out_list, input))
 
         signal.teardown()
 
@@ -2620,8 +2636,7 @@ class DatasetDuckDB(Dataset):
     self,
     map_fn: MapFn,
     input_path: Optional[Path] = None,
-    output_column: Optional[str] = None,
-    nest_under: Optional[Path] = None,
+    output_path: Optional[Path] = None,
     overwrite: bool = False,
     combine_columns: bool = False,
     resolve_span: bool = False,
@@ -2634,41 +2649,31 @@ class DatasetDuckDB(Dataset):
     num_jobs: int = 1,
     execution_type: TaskExecutionType = 'threads',
   ) -> Iterable[Item]:
-    is_tmp_output = output_column is None
+    is_tmp_output = output_path is None
     manifest = self.manifest()
 
     input_path = normalize_path(input_path) if input_path else None
-    if input_path:
-      input_field = manifest.data_schema.get_field(input_path)
-      if not input_field.dtype:
-        raise ValueError(
-          f'Input path {input_path} is not a leaf path. This is currently unsupported. If you '
-          'require this, please file an issue and we will prioritize.'
+    if input_path and not manifest.data_schema.has_field(input_path):
+      raise ValueError(f'Input path {input_path} does not exist in the dataset.')
+
+    # Validate output_path.
+    if output_path is not None:
+      output_path = normalize_path(output_path)
+      output_parent = output_path[:-1]
+      if output_parent:
+        if not manifest.data_schema.has_field(output_parent):
+          raise ValueError(f'Invalid output path. The parent {output_parent} does not exist.')
+
+        assert paths_have_same_cardinality(
+          input_path or tuple(), output_parent
+        ), (
+          f'`input_path` {input_path} and `output_path` {output_path} have different cardinalities.'
         )
 
-    # Validate output_column and nest_under.
-    if nest_under is not None:
-      nest_under = normalize_path(nest_under)
-      if output_column is None:
-        raise ValueError('When using `nest_under`, you must specify an output column name.')
-
-      # Make sure nest_under does not contain any repeated values.
-      for path_part in nest_under:
-        if path_part == PATH_WILDCARD:
-          raise ValueError('Nesting map outputs under a repeated field is not yet supported.')
-
-      if not manifest.data_schema.has_field(nest_under):
-        raise ValueError(f'The `nest_under` column {nest_under} does not exist.')
-
-    # If the user didn't provide an output_column, we make a temporary one so that we can store the
+    # If the user didn't provide an output_path, we make a temporary one so that we can store the
     # output JSON objects in the cache, represented in the right hierarchy.
-    if output_column is None:
-      output_column = cast(str, getattr(map_fn, 'name', None)) or map_fn.__name__
-
-    if nest_under is not None:
-      output_path = (*nest_under, output_column)
-    else:
-      output_path = (output_column,)
+    if output_path is None:
+      output_path = (cast(str, getattr(map_fn, 'name', None)) or map_fn.__name__,)
 
     parquet_filepath: Optional[str] = None
     if not is_tmp_output:
@@ -2678,22 +2683,19 @@ class DatasetDuckDB(Dataset):
           if field.map is None:
             raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
           # Delete the parquet file and map manifest.
-          assert output_column is not None
+          prefix = '.'.join(output_path)
           parquet_filepath = os.path.join(
-            self.dataset_path, get_parquet_filename(output_column, shard_index=0, num_shards=1)
+            self.dataset_path, get_parquet_filename(prefix, shard_index=0, num_shards=1)
           )
           if os.path.exists(parquet_filepath):
             delete_file(parquet_filepath)
 
-          map_manifest_filepath = os.path.join(
-            self.dataset_path, f'{output_column}.{MAP_MANIFEST_SUFFIX}'
-          )
+          map_manifest_filepath = os.path.join(self.dataset_path, f'{prefix}.{MAP_MANIFEST_SUFFIX}')
           if os.path.exists(map_manifest_filepath):
             delete_file(map_manifest_filepath)
-
         else:
           raise ValueError(
-            f'Cannot map to path "{output_column}" which already exists in the dataset. '
+            f'Cannot map to path "{output_path}" which already exists in the dataset. '
             'Use overwrite=True to overwrite the column.'
           )
     filters, _ = self._normalize_filters(
@@ -2711,7 +2713,7 @@ class DatasetDuckDB(Dataset):
       is_temporary=is_tmp_output,
     )
 
-    output_col_desc_suffix = f' to "{output_column}"' if output_column else ''
+    output_col_desc_suffix = f' to "{output_path}"' if output_path else ''
     progress_description = (
       f'[{self.namespace}/{self.dataset_name}][{num_jobs} shards] map '
       f'"{map_fn.__name__}"{output_col_desc_suffix}'
@@ -2752,12 +2754,13 @@ class DatasetDuckDB(Dataset):
     )
 
     json_query, map_schema, parquet_filepath = self._reshard_cache(
+      manifest=manifest,
       output_path=output_path,
       jsonl_cache_filepaths=[jsonl_cache_filepath],
       is_tmp_output=is_tmp_output,
     )
 
-    result = DuckDBMapOutput(con=self.con, query=json_query, output_column=output_column)
+    result = DuckDBMapOutput(con=self.con, query=json_query, output_path=output_path)
 
     if is_tmp_output:
       return result
@@ -2779,7 +2782,8 @@ class DatasetDuckDB(Dataset):
     )
 
     parquet_dir = os.path.dirname(parquet_filepath)
-    map_manifest_filepath = os.path.join(parquet_dir, f'{output_column}.{MAP_MANIFEST_SUFFIX}')
+    prefix = '.'.join(output_path)
+    map_manifest_filepath = os.path.join(parquet_dir, f'{prefix}.{MAP_MANIFEST_SUFFIX}')
     parquet_filename = os.path.basename(parquet_filepath)
     map_manifest = MapManifest(
       files=[parquet_filename],
@@ -2800,6 +2804,19 @@ class DatasetDuckDB(Dataset):
           self.add_media_field(path)
 
     return result
+
+  @override
+  def cluster(
+    self,
+    path: Path,
+    embedding: Optional[str] = None,
+    output_path: Optional[Path] = None,
+    min_cluster_size: int = 5,
+    topic_fn: Optional[TopicFn] = None,
+    overwrite: bool = False,
+  ) -> None:
+    topic_fn = topic_fn or summarize_instructions
+    return cluster(self, path, embedding, output_path, min_cluster_size, topic_fn, overwrite)
 
   @override
   def to_json(
@@ -3116,6 +3133,8 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
       for key, value in source_cell.items():
         res[key] = value if key not in dest_cell else _merge_cells(dest_cell[key], value)
       return res
+    elif source_cell is None:
+      return dest_cell
     else:
       return {VALUE_KEY: source_cell, **dest_cell}
   elif isinstance(dest_cell, list):
@@ -3125,6 +3144,8 @@ def _merge_cells(dest_cell: Item, source_cell: Item) -> Item:
       _merge_cells(dest_subcell, source_subcell)
       for dest_subcell, source_subcell in zip(dest_cell, source_cell)
     ]
+  elif dest_cell is None:
+    return source_cell
   else:
     # The destination is a primitive.
     if isinstance(source_cell, list):

@@ -71,8 +71,12 @@ class ClusterHDBScan(VectorSignal):
   def _cluster_span_vectors(
     self, span_vectors: Iterable[list[SpanVector]]
   ) -> Iterator[Optional[Item]]:
-    # umap is expensive to import due to numba compilation; lazy import when needed.
-    import umap
+    # Try to import the cuml version of UMAP, which is much faster than the sklearn version.
+    # if CUDA is available.
+    try:
+      from cuml import UMAP  # type: ignore
+    except ImportError:
+      from umap import UMAP
 
     all_spans: list[list[tuple[int, int]]] = []
     all_vectors: list[np.ndarray] = []
@@ -85,13 +89,14 @@ class ClusterHDBScan(VectorSignal):
     # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
     # For details on hyperparameters, see:
     # https://umap-learn.readthedocs.io/en/latest/clustering.html
+    all_vectors = np.array(all_vectors)
     dim = all_vectors[0].size
     with DebugTimer(
       f'UMAP: Reducing dim from {dim} to {self.umap_n_components} of {len(all_vectors)} vectors'
     ):
       n_neighbors = min(30, len(all_vectors) - 1)
       if self.umap_n_components < dim and self.umap_n_components < len(all_vectors):
-        reducer = umap.UMAP(
+        reducer = UMAP(
           n_components=self.umap_n_components,
           n_neighbors=n_neighbors,
           min_dist=0.0,
@@ -100,7 +105,12 @@ class ClusterHDBScan(VectorSignal):
         )
         all_vectors = reducer.fit_transform(all_vectors)
 
-    from sklearn.cluster import HDBSCAN
+    # Try to import the cuml version of HDBSCAN, which is much faster than the sklearn version.
+    # if CUDA is available.
+    try:
+      from cuml.cluster.hdbscan import HDBSCAN  # type: ignore
+    except ImportError:
+      from sklearn.cluster import HDBSCAN
 
     with DebugTimer('HDBSCAN: Clustering'):
       min_cluster_size = min(self.min_cluster_size, len(all_vectors))

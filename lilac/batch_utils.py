@@ -6,54 +6,45 @@ from .schema import Item
 from .utils import chunks, is_primitive
 
 
-def _array_flatten(
-  input: Union[Iterator, object], is_primitive_predicate: Callable[[object], bool]
-) -> Iterator:
+def _flatten_iter(input: Union[Iterator, object], max_depth: int) -> Iterator:
   """Flattens a nested iterable."""
-  if is_primitive_predicate(input) or isinstance(input, dict) or is_primitive(input):
+  if max_depth == 0 or isinstance(input, dict) or is_primitive(input):
     yield input
   else:
     for elem in cast(Iterator, input):
-      yield from _array_flatten(elem, is_primitive_predicate)
+      yield from _flatten_iter(elem, max_depth - 1)
 
 
-def array_flatten(
-  input: Union[Iterator, Iterable], is_primitive_predicate: Callable[[object], bool] = is_primitive
-) -> Iterator:
-  """Flattens a deeply nested iterator.
-
-  Primitives and dictionaries are not flattened. The user can also provide a predicate to determine
-  what is a primitive.
-  """
-  return _array_flatten(input, is_primitive_predicate)
+def flatten_iter(input: Union[Iterator, Iterable], max_depth: int = -1) -> Iterator:
+  """Flattens a deeply nested iterator. Primitives and dictionaries are not flattened."""
+  for elem in input:
+    yield from _flatten_iter(elem, max_depth)
 
 
-def _array_unflatten(
-  flat_input: Iterator[list[object]],
-  original_input: Union[Iterable, object],
-  is_primitive_predicate: Callable[[object], bool],
+def _unflatten_iter(
+  flat_input: Iterator[list[object]], original_input: Union[Iterable, object], max_depth: int
 ) -> Union[list, dict]:
   """Unflattens a deeply flattened iterable according to the original iterable's structure."""
-  if is_primitive_predicate(original_input) or isinstance(original_input, dict):
+  if max_depth == 0 or is_primitive(original_input) or isinstance(original_input, dict):
     return next(flat_input)
   else:
     values = cast(Iterable, original_input)
-    return [_array_unflatten(flat_input, orig_elem, is_primitive_predicate) for orig_elem in values]
+    return [_unflatten_iter(flat_input, orig_elem, max_depth - 1) for orig_elem in values]
 
 
-def array_unflatten(
+def unflatten_iter(
   flat_input: Union[Iterable, Iterator],
   original_input: Union[Iterable, object],
-  is_primitive_predicate: Callable[[object], bool] = is_primitive,
+  max_depth: int = -1,
 ) -> Generator:
   """Unflattens a deeply flattened iterable according to the original iterable's structure."""
   flat_input_iter = iter(flat_input)
-  if isinstance(original_input, Iterable) and not is_primitive_predicate(original_input):
+  if isinstance(original_input, Iterable) and not is_primitive(original_input):
     for o in original_input:
-      yield _array_unflatten(flat_input_iter, o, is_primitive_predicate)
+      yield _unflatten_iter(flat_input_iter, o, max_depth)
     return
 
-  yield _array_unflatten(iter(flat_input), original_input, is_primitive_predicate)
+  yield _unflatten_iter(iter(flat_input), original_input, max_depth)
 
 
 TFlatten = TypeVar('TFlatten')
@@ -83,6 +74,33 @@ def unflatten(
 
 TFlatBatchedInput = TypeVar('TFlatBatchedInput')
 TFlatBatchedOutput = TypeVar('TFlatBatchedOutput')
+
+
+def group_by_sorted_key_iter(
+  input: Iterator[Item], key_fn: Callable[[Item], object]
+) -> Iterator[list[Item]]:
+  """Takes a key-sorted iterator and yields each group of items sharing the same key.
+
+  Args:
+    input: An iterator of items, ordered by the key.
+    key_fn: A function that takes an item and returns a key.
+
+  Yields:
+    A list of items sharing the same key, for each group.
+  """
+  last_key: object = None
+  last_group: list[Item] = []
+  for item in input:
+    key = key_fn(item)
+    if key != last_key:
+      if last_group:
+        yield last_group
+      last_group = [item]
+      last_key = key
+    else:
+      last_group.append(item)
+  if last_group:
+    yield last_group
 
 
 def flat_batched_compute(
