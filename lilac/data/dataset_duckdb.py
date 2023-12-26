@@ -2752,6 +2752,7 @@ class DatasetDuckDB(Dataset):
           overwrite=overwrite,
           query_options=query_params,
           resolve_span=resolve_span,
+          embedding=embedding,
         ),
       )
     )
