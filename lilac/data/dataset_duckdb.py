@@ -1028,7 +1028,7 @@ class DatasetDuckDB(Dataset):
       progress_bar(
         self._dispatch_workers(
           joblib.Parallel(
-            n_jobs=signal.map_parallelism, backend=signal.map_strategy, return_as='generator'
+            n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
           ),
           signal,
           output_path,
@@ -1128,7 +1128,7 @@ class DatasetDuckDB(Dataset):
     output_items = progress_bar(
       self._dispatch_workers(
         joblib.Parallel(
-          n_jobs=signal.map_parallelism, backend=signal.map_strategy, return_as='generator'
+          n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
         ),
         signal,
         output_path,
