@@ -974,7 +974,15 @@ class DatasetDuckDB(Dataset):
     task_id: Optional[TaskId] = None,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
-      return self.compute_embedding(signal.name, path, overwrite=overwrite, task_id=task_id)
+      return self.compute_embedding(
+        signal.name,
+        path,
+        filters=filters,
+        limit=limit,
+        include_deleted=include_deleted,
+        overwrite=overwrite,
+        task_id=task_id,
+      )
 
     input_path = normalize_path(path)
 
