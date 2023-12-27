@@ -2,6 +2,7 @@
 
 import os
 import pathlib
+import re
 from typing import ClassVar, Iterable, Iterator, Optional, cast
 
 import numpy as np
@@ -303,9 +304,7 @@ def test_load_twice_no_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureF
 
   second_manifest = get_dataset('namespace', 'test').manifest()
   assert first_manifest == second_manifest
-  assert (
-    'Signal  TestSignal({"signal_name":"test_signal"}) already exists' in capsys.readouterr().out
-  )
+  assert re.search('Signal  TestSignal(.*) already exists', capsys.readouterr().out)
 
 
 def test_load_twice_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture) -> None:

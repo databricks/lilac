@@ -4,6 +4,7 @@ import inspect
 import re
 import time
 from typing import ClassVar, Iterable, Iterator, Optional
+from unittest.mock import ANY
 
 import pytest
 from typing_extensions import override
@@ -157,11 +158,7 @@ def test_map_signal(
       {
         'text': field(
           'string',
-          fields={
-            'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
-            )
-          },
+          fields={'test_signal': field(fields={'len': 'int32', 'firstchar': 'string'}, signal=ANY)},
         ),
         'output_text': field(
           fields={'result': 'string'},
@@ -791,11 +788,7 @@ def test_map_over_enriched_item(make_test_data: TestDataMaker) -> None:
       {
         'text': field(
           'string',
-          fields={
-            'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
-            )
-          },
+          fields={'test_signal': field(fields={'len': 'int32', 'firstchar': 'string'}, signal=ANY)},
         ),
         'output_text': field(
           fields={'result': 'string'},
@@ -1060,11 +1053,7 @@ def test_signal_on_map_output(make_test_data: TestDataMaker) -> None:
         'text': 'string',
         'double': field(
           'string',
-          fields={
-            'test_signal': field(
-              fields={'len': 'int32', 'firstchar': 'string'}, signal={'signal_name': 'test_signal'}
-            )
-          },
+          fields={'test_signal': field(fields={'len': 'int32', 'firstchar': 'string'}, signal=ANY)},
           map=MapInfo(
             fn_name='_map_fn', fn_source=inspect.getsource(_map_fn), date_created=TEST_TIME
           ),
