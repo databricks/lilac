@@ -1,16 +1,16 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
 import gc
-from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
+from typing import TYPE_CHECKING, ClassVar
 
 from typing_extensions import override
 
 if TYPE_CHECKING:
   from sentence_transformers import SentenceTransformer
 
-from ..schema import Item, RichData
+from ..schema import Item, RichData, lilac_embedding
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
-from .embedding import compute_split_embeddings
+from ..tasks import TaskExecutionType
 from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
 
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
@@ -28,6 +28,9 @@ class GTESmall(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'gte-small'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (small)'
+  map_batch_size: int = SENTENCE_TRANSFORMER_BATCH_SIZE
+  map_parallelism: int = -1
+  map_strategy: TaskExecutionType = 'processes'
 
   _model_name = GTE_SMALL
   _model: 'SentenceTransformer'
@@ -44,14 +47,17 @@ class GTESmall(TextEmbeddingSignal):
     self._model = setup_model_device(SentenceTransformer(self._model_name), self._model_name)
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
+  def compute(self, docs: list[RichData]) -> list[list[Item]]:
     """Call the embedding function."""
-    embed_fn = self._model.encode
-    split_fn = clustering_spacy_chunker if self._split else None
-    docs = cast(Iterable[str], docs)
-    yield from compute_split_embeddings(
-      docs, batch_size=SENTENCE_TRANSFORMER_BATCH_SIZE, embed_fn=embed_fn, split_fn=split_fn
-    )
+    text_chunks = [
+      (i, chunk) for i, doc in enumerate(docs) for chunk in clustering_spacy_chunker(doc)
+    ]
+    output: list[list[LilacSpan]] = [[] for _ in docs]
+    texts = [text for _, (text, _) in text_chunks]
+    batch_embeddings = self._model.encode(texts)
+    for (i, (_, (start, end))), embedding in zip(text_chunks, batch_embeddings):
+      output[i].append(lilac_embedding(start, end, embedding))
+    return output
 
   @override
   def teardown(self) -> None:
