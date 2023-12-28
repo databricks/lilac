@@ -1,4 +1,5 @@
 """Unit tests for dataset.cluster()."""
+import re
 from typing import Iterable
 
 import pytest
@@ -114,3 +115,14 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       ],
     },
   ]
+
+
+def test_path_ending_with_repeated_errors(make_test_data: TestDataMaker) -> None:
+  texts: list[list[str]] = [['a', 'b'], ['c'], ['d']]
+  dataset = make_test_data([{'texts': t} for t in texts])
+  dataset.compute_embedding('jina-v2-small', 'texts.*')
+
+  with pytest.raises(
+    ValueError, match=re.escape("Path ('texts', '*') must end with a field name.")
+  ):
+    dataset.cluster('texts.*', 'jina-v2-small')

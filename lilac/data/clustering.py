@@ -11,6 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from ..batch_utils import group_by_sorted_key_iter
 from ..schema import (
+  PATH_WILDCARD,
   Item,
   Path,
   SpanVector,
@@ -104,8 +105,12 @@ def cluster(
   if not embedding:
     raise ValueError('Only embedding-based clustering is supported for now.')
 
-  # Output the cluster enrichment to a sibling path, unless an output path is provided by the user.
   path = normalize_path(path)
+  # Make sure the input path ends with a field name so we can store the cluster enrichment as a sibling.
+  if path[-1] == PATH_WILDCARD:
+    raise ValueError(f'Path {path} must end with a field name.')
+
+  # Output the cluster enrichment to a sibling path, unless an output path is provided by the user.
   if output_path:
     cluster_output_path = normalize_path(output_path)
   else:
