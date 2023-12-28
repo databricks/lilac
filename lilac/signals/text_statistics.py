@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterable, Optional, cast
 
 from typing_extensions import override
 
-from ..schema import Field, Item, RichData, field
+from ..schema import Field, Item, field
 from ..signal import TextSignal
 
 SPACY_LANG_MODEL = 'en_core_web_sm'
@@ -72,7 +72,7 @@ class TextStatisticsSignal(TextSignal):
     self._lang.max_length = SPACY_MAX_LENGTH
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> list[Optional[Item]]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     try:
       import textacy.corpus
       from textacy import text_stats
@@ -84,7 +84,6 @@ class TextStatisticsSignal(TextSignal):
     if not self._lang:
       raise RuntimeError('Language model was not loaded.')
 
-    docs = cast(Iterable[str], docs)
     # Replace None with empty strings to avoid spacy errors.
     docs = [x or '' for x in docs]
     # See https://textacy.readthedocs.io/en/0.11.0/api_reference/text_stats.html for a list of

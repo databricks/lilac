@@ -72,7 +72,7 @@ class Signal(BaseModel):
   output_type: OutputType = None
 
   # See lilac.data.dataset.Dataset.map for definitions and semantics.
-  map_batch_size: int = -1
+  map_batch_size: Optional[int] = -1
   map_parallelism: int = 1
   map_strategy: TaskExecutionType = 'threads'
 

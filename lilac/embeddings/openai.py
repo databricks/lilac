@@ -1,5 +1,5 @@
 """OpenAI embeddings."""
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Optional
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -67,7 +67,7 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       )
 
   @override
-  def compute(self, docs: list[str]) -> list[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Compute embeddings for the given documents."""
     try:
       import openai

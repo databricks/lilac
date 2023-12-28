@@ -1,5 +1,5 @@
 """PaLM embeddings."""
-from typing import ClassVar
+from typing import ClassVar, Optional
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_fixed, wait_random_exponential
@@ -72,7 +72,7 @@ class PaLM(TextEmbeddingSignal):
         )
 
   @override
-  def compute(self, docs: list[str]) -> list[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Compute embeddings for the given documents."""
     if self._connector == 'api':
 

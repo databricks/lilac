@@ -1,6 +1,6 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
 import gc
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from typing_extensions import override
 
@@ -48,7 +48,7 @@ class GTESmall(TextEmbeddingSignal):
     self._model = setup_model_device(SentenceTransformer(self._model_name), self._model_name)
 
   @override
-  def compute(self, docs: list[str]) -> list[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Call the embedding function."""
     # SentenceTransformers can take arbitrarily large batches.
     return chunked_compute_embedding(

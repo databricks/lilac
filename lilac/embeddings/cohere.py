@@ -1,5 +1,5 @@
 """Cohere embeddings."""
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import numpy as np
 from typing_extensions import override
@@ -53,7 +53,7 @@ class Cohere(TextEmbeddingSignal):
       )
 
   @override
-  def compute(self, docs: list[str]) -> list[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Compute embeddings for the given documents."""
     cohere_input_type = 'search_document' if self.embed_input_type == 'document' else 'search_query'
 
