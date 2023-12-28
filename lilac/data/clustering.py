@@ -1,5 +1,6 @@
 """Clustering utilities."""
 import functools
+import threading
 from typing import Any, Iterator, Optional
 
 import instructor
@@ -7,9 +8,7 @@ from joblib import Parallel, delayed
 from pydantic import (
   BaseModel,
 )
-from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from ..batch_utils import group_by_sorted_key_iter
 from ..schema import (
   PATH_WILDCARD,
   Item,
@@ -106,9 +105,13 @@ def cluster(
     raise ValueError('Only embedding-based clustering is supported for now.')
 
   path = normalize_path(path)
-  # Make sure the input path ends with a field name so we can store the cluster enrichment as a sibling.
+  # Make sure the input path ends with a field name so we can store the cluster enrichment as a
+  # sibling.
   if path[-1] == PATH_WILDCARD:
-    raise ValueError(f'Path {path} must end with a field name.')
+    raise ValueError(
+      'Clustering an array of primitives is not yet supported. '
+      f'Path {path} must end with a field name.'
+    )
 
   # Output the cluster enrichment to a sibling path, unless an output path is provided by the user.
   if output_path:
@@ -125,53 +128,67 @@ def cluster(
         cluster[MEMBERSHIP_PROB] = first_span[MEMBERSHIP_PROB]
       yield cluster
 
-  dataset.transform(
-    _compute_clusters,
-    input_path=path,
-    output_path=cluster_output_path,
-    embedding=embedding,  # Map over the embedding spans instead of the text.
-    # Providing schema to avoid inferring and to flag the cluster_id as categorical so the histogram
-    # is sorted by size in the UI.
-    schema=field(fields={CLUSTER_ID: field('int32', categorical=True), MEMBERSHIP_PROB: 'float32'}),
-    overwrite=overwrite,
-  )
-
-  @retry(wait=wait_random_exponential(min=0.5, max=20), stop=stop_after_attempt(10))
-  def _compute_group_topic(
-    group: list[Item], text_column: str, cluster_column: str
-  ) -> tuple[int, Optional[str]]:
-    docs: list[tuple[str, float]] = []
-    for item in group:
-      text = item[text_column]
-      if not text:
-        continue
-      cluster_id = item[cluster_column][CLUSTER_ID]
-      if cluster_id < 0:
-        continue
-      membership_prob = item[cluster_column][MEMBERSHIP_PROB] or 0
-      if membership_prob == 0:
-        continue
-      docs.append((text, membership_prob))
-
-    # Sort by membership score.
-    sorted_docs = sorted(docs, key=lambda x: x[1], reverse=True)
-    topic = topic_fn(sorted_docs) if sorted_docs else None
-    return len(group), topic
+  clusters_exists = dataset.manifest().data_schema.has_field(cluster_output_path)
+  if not clusters_exists or overwrite:
+    # Compute the clusters.
+    dataset.transform(
+      _compute_clusters,
+      input_path=path,
+      output_path=cluster_output_path,
+      embedding=embedding,  # Map over the embedding spans instead of the text.
+      # Providing schema to avoid inferring and to flag the cluster_id as categorical so the
+      # histogram is sorted by size in the UI.
+      schema=field(
+        fields={CLUSTER_ID: field('int32', categorical=True), MEMBERSHIP_PROB: 'float32'}
+      ),
+      overwrite=overwrite,
+    )
 
   def _compute_topics(
     text_column: str, cluster_column: str, items: Iterator[Item]
   ) -> Iterator[Item]:
-    # items here are pre-sorted by cluster id so we can group neighboring items.
-    groups = group_by_sorted_key_iter(items, lambda item: item[cluster_column][CLUSTER_ID])
+    # Group items by cluster id.
+    groups: dict[int, list[tuple[str, float]]] = {}
+    cluster_locks: dict[int, threading.Lock] = {}
+    cluster_ids: list[int] = []
+    for item in items:
+      cluster_id: int = item[cluster_column][CLUSTER_ID]
+      cluster_ids.append(cluster_id)
+      text = item[text_column]
+      if not text:
+        continue
+      if cluster_id < 0 or cluster_id is None:
+        continue
+      membership_prob = item[cluster_column][MEMBERSHIP_PROB] or 0
+      if membership_prob == 0:
+        continue
+      groups.setdefault(cluster_id, []).append((text, membership_prob))
+      cluster_locks.setdefault(cluster_id, threading.Lock())
+
+    # Sort by descending membership score.
+    for group in groups.values():
+      group.sort(key=lambda text_score: text_score[1], reverse=True)
+
+    topics: dict[int, str] = {}
+
+    # @retry(wait=wait_random_exponential(min=0.5, max=20), stop=stop_after_attempt(10))
+    def _compute_topic(cluster_id: int) -> Optional[str]:
+      if cluster_id not in cluster_locks:
+        return None
+      with cluster_locks[cluster_id]:
+        if cluster_id in topics:
+          return topics[cluster_id]
+        group = groups[cluster_id]
+        if not group:
+          return None
+        topic = topic_fn(group)
+        topics[cluster_id] = topic
+        return topic
+
     parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
-    output_generator = parallel(
-      delayed(_compute_group_topic)(group, text_column, cluster_column) for group in groups
-    )
-    for group_size, topic in output_generator:
-      # Yield the same topic for each item in the group since the output needs to be the same
-      # length as the input.
-      for _ in range(group_size):
-        yield topic
+    output_topics = parallel(delayed(_compute_topic)(cluster_id) for cluster_id in cluster_ids)
+    for topic in output_topics:
+      yield topic
 
   # Now that we have the clusters, compute the topic for each cluster with another transform.
   # The transform needs to be see both the original text and the cluster enrichment, so we need
@@ -185,8 +202,6 @@ def cluster(
     input_path=ancestor_path,
     output_path=topic_output_path,
     overwrite=overwrite,
-    # Pre-sort by cluster id so we can group neighboring items that share the same cluster.
-    sort_by=(*cluster_output_path, CLUSTER_ID),
     # Providing schema to avoid inferring.
     schema=field('string'),
   )
