@@ -50,7 +50,9 @@ class GTESmall(TextEmbeddingSignal):
   @override
   def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Call the embedding function."""
-    # SentenceTransformers can take arbitrarily large batches.
+    # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
+    # The sentence transformer API actually does batching internally, so we pass map_batch_size * 16
+    # to allow the library to see all the chunks at once.
     return chunked_compute_embedding(
       self._model.encode, docs, self.map_batch_size * 16, chunker=clustering_spacy_chunker
     )

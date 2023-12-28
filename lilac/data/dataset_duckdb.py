@@ -744,7 +744,7 @@ class DatasetDuckDB(Dataset):
   def _dispatch_workers(
     self,
     pool_map: joblib.Parallel,
-    transform_fn: Union[VectorSignal, Callable[[Iterable[Item]], Iterator[Optional[Item]]]],
+    transform_fn: Union[VectorSignal, Callable[[Any], Any]],
     output_path: PathTuple,
     jsonl_cache_filepath: str,
     batch_size: Optional[int],
