@@ -76,6 +76,33 @@ TFlatBatchedInput = TypeVar('TFlatBatchedInput')
 TFlatBatchedOutput = TypeVar('TFlatBatchedOutput')
 
 
+def group_by_sorted_key_iter(
+  input: Iterator[Item], key_fn: Callable[[Item], object]
+) -> Iterator[list[Item]]:
+  """Takes a key-sorted iterator and yields each group of items sharing the same key.
+
+  Args:
+    input: An iterator of items, ordered by the key.
+    key_fn: A function that takes an item and returns a key.
+
+  Yields:
+    A list of items sharing the same key, for each group.
+  """
+  last_key: object = None
+  last_group: list[Item] = []
+  for item in input:
+    key = key_fn(item)
+    if key != last_key:
+      if last_group:
+        yield last_group
+      last_group = [item]
+      last_key = key
+    else:
+      last_group.append(item)
+  if last_group:
+    yield last_group
+
+
 def flat_batched_compute(
   input: Iterable[Iterable[TFlatBatchedInput]],
   f: Callable[[list[TFlatBatchedInput]], Iterable[TFlatBatchedOutput]],
