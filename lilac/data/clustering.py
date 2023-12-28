@@ -151,25 +151,7 @@ def cluster(
     # Group items by cluster id.
     groups: dict[int, list[tuple[str, float]]] = {}
     cluster_locks: dict[int, threading.Lock] = {}
-    cluster_ids: list[int] = []
-    for item in items:
-      cluster_id: int = item[cluster_column][CLUSTER_ID]
-      cluster_ids.append(cluster_id)
-      text = item[text_column]
-      if not text:
-        continue
-      if cluster_id < 0 or cluster_id is None:
-        continue
-      membership_prob = item[cluster_column][MEMBERSHIP_PROB] or 0
-      if membership_prob == 0:
-        continue
-      groups.setdefault(cluster_id, []).append((text, membership_prob))
-      cluster_locks.setdefault(cluster_id, threading.Lock())
-
-    # Sort by descending membership score.
-    for group in groups.values():
-      group.sort(key=lambda text_score: text_score[1], reverse=True)
-
+    delayed_compute: list[Any] = []
     topics: dict[int, str] = {}
 
     @retry(wait=wait_random_exponential(min=0.5, max=20), stop=stop_after_attempt(10))
@@ -186,10 +168,26 @@ def cluster(
         topics[cluster_id] = topic
         return topic
 
+    for item in items:
+      cluster_id: int = item[cluster_column][CLUSTER_ID]
+      delayed_compute.append(delayed(_compute_topic)(cluster_id))
+      text = item[text_column]
+      if not text:
+        continue
+      if cluster_id < 0 or cluster_id is None:
+        continue
+      membership_prob = item[cluster_column][MEMBERSHIP_PROB] or 0
+      if membership_prob == 0:
+        continue
+      groups.setdefault(cluster_id, []).append((text, membership_prob))
+      cluster_locks.setdefault(cluster_id, threading.Lock())
+
+    # Sort by descending membership score.
+    for group in groups.values():
+      group.sort(key=lambda text_score: text_score[1], reverse=True)
+
     parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
-    output_topics = parallel(delayed(_compute_topic)(cluster_id) for cluster_id in cluster_ids)
-    for topic in output_topics:
-      yield topic
+    yield from parallel(delayed_compute)
 
   # Now that we have the clusters, compute the topic for each cluster with another transform.
   # The transform needs to be see both the original text and the cluster enrichment, so we need
