@@ -31,6 +31,7 @@ from .schema import (
   SignalInputType,
   field,
 )
+from .tasks import TaskExecutionType
 
 
 def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
@@ -70,6 +71,11 @@ class Signal(BaseModel):
 
   # The output type is the logical type, and treated in a special way in the UI.
   output_type: OutputType = None
+
+  # See lilac.data.dataset.Dataset.map for definitions and semantics.
+  map_batch_size: int = -1
+  map_parallelism: int = 1
+  map_strategy: TaskExecutionType = 'threads'
 
   @model_serializer(mode='wrap', when_used='always')
   def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:

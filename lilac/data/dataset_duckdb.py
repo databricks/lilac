@@ -1027,11 +1027,13 @@ class DatasetDuckDB(Dataset):
     _consume_iterator(
       progress_bar(
         self._dispatch_workers(
-          joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
+          joblib.Parallel(
+            n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
+          ),
           signal,
           output_path,
           jsonl_cache_filepath,
-          batch_size=None,
+          batch_size=signal.map_batch_size,
           select_path=input_path,
           overwrite=overwrite,
           query_options=query_params,
@@ -1125,11 +1127,13 @@ class DatasetDuckDB(Dataset):
 
     output_items = progress_bar(
       self._dispatch_workers(
-        joblib.Parallel(n_jobs=1, backend='threading', return_as='generator'),
+        joblib.Parallel(
+          n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
+        ),
         signal,
         output_path,
         jsonl_cache_filepath,
-        batch_size=None,
+        batch_size=signal.map_batch_size,
         select_path=input_path,
         overwrite=overwrite,
         query_options=query_params,
