@@ -744,7 +744,7 @@ class DatasetDuckDB(Dataset):
   def _dispatch_workers(
     self,
     pool_map: joblib.Parallel,
-    transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterator[Optional[Item]]]],
+    transform_fn: Union[VectorSignal, Callable[[Iterable[Item]], Iterator[Optional[Item]]]],
     output_path: PathTuple,
     jsonl_cache_filepath: str,
     batch_size: Optional[int],
@@ -753,6 +753,7 @@ class DatasetDuckDB(Dataset):
     query_options: Optional[DuckDBQueryParams] = None,
     resolve_span: bool = False,
     embedding: Optional[str] = None,
+    checkpoint_progress: bool = True,
   ) -> Iterator[Item]:
     """Dispatches workers to compute the transform function.
 
@@ -854,7 +855,7 @@ class DatasetDuckDB(Dataset):
     )
 
     try:
-      if not isinstance(transform_fn, TextEmbeddingSignal):
+      if checkpoint_progress:
         with open_file(jsonl_cache_filepath, 'a') as file:
           for item in output_items:
             json.dump(item, file)
@@ -1031,7 +1032,7 @@ class DatasetDuckDB(Dataset):
           joblib.Parallel(
             n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
           ),
-          signal,
+          signal if isinstance(signal, VectorSignal) else signal.compute,
           output_path,
           jsonl_cache_filepath,
           batch_size=signal.map_batch_size,
@@ -1142,6 +1143,7 @@ class DatasetDuckDB(Dataset):
         select_path=input_path,
         overwrite=overwrite,
         query_options=query_params,
+        checkpoint_progress=False,
       )
     )
 

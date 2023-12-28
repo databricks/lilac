@@ -1,12 +1,15 @@
 """Cohere embeddings."""
 from typing import TYPE_CHECKING, ClassVar
 
+import numpy as np
 from typing_extensions import override
 
 from ..env import env
 from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
+from ..tasks import TaskExecutionType
+from .embedding import chunked_compute_embedding
 
 if TYPE_CHECKING:
   from cohere import Client
@@ -29,7 +32,7 @@ class Cohere(TextEmbeddingSignal):
   display_name: ClassVar[str] = 'Cohere Embeddings'
   map_batch_size: int = 96
   map_parallelism: int = 10
-  map_strategy = 'threads'
+  map_strategy: TaskExecutionType = 'threads'
 
   _model: 'Client'
 
@@ -53,14 +56,12 @@ class Cohere(TextEmbeddingSignal):
   def compute(self, docs: list[str]) -> list[Item]:
     """Compute embeddings for the given documents."""
     cohere_input_type = 'search_document' if self.embed_input_type == 'document' else 'search_query'
-    texts = [(i, chunk) for i, doc in enumerate(docs) for chunk in clustering_spacy_chunker(doc)]
-    output = [[] for _ in docs]
-    batches = chunked(texts, self.map_batch_size)
-    for batch in batches:
-      batch_texts = [text for _, (text, _) in batch]
-      batch_embeddings = self._model.embed(
-        batch_texts, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
+
+    def _embed_fn(docs: list[str]) -> list[np.ndarray]:
+      return self._model.embed(
+        docs, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
       ).embeddings
-      for (i, (_, (start, end))), embedding in zip(batch, batch_embeddings):
-        output[i].append(lilac_embedding(start, end, embedding))
-    return output
+
+    return chunked_compute_embedding(
+      _embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
+    )

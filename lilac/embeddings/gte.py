@@ -7,10 +7,11 @@ from typing_extensions import override
 if TYPE_CHECKING:
   from sentence_transformers import SentenceTransformer
 
-from ..schema import Item, RichData, lilac_embedding
+from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
+from .embedding import chunked_compute_embedding
 from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
 
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
@@ -29,8 +30,8 @@ class GTESmall(TextEmbeddingSignal):
   name: ClassVar[str] = 'gte-small'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (small)'
   map_batch_size: int = SENTENCE_TRANSFORMER_BATCH_SIZE
-  map_parallelism: int = -1
-  map_strategy: TaskExecutionType = 'processes'
+  map_parallelism: int = 1
+  map_strategy: TaskExecutionType = 'threads'
 
   _model_name = GTE_SMALL
   _model: 'SentenceTransformer'
@@ -47,17 +48,12 @@ class GTESmall(TextEmbeddingSignal):
     self._model = setup_model_device(SentenceTransformer(self._model_name), self._model_name)
 
   @override
-  def compute(self, docs: list[RichData]) -> list[list[Item]]:
+  def compute(self, docs: list[str]) -> list[Item]:
     """Call the embedding function."""
-    text_chunks = [
-      (i, chunk) for i, doc in enumerate(docs) for chunk in clustering_spacy_chunker(doc)
-    ]
-    output: list[list[LilacSpan]] = [[] for _ in docs]
-    texts = [text for _, (text, _) in text_chunks]
-    batch_embeddings = self._model.encode(texts)
-    for (i, (_, (start, end))), embedding in zip(text_chunks, batch_embeddings):
-      output[i].append(lilac_embedding(start, end, embedding))
-    return output
+    # SentenceTransformers can take arbitrarily large batches.
+    return chunked_compute_embedding(
+      self._model.encode, docs, self.map_batch_size * 16, chunker=clustering_spacy_chunker
+    )
 
   @override
   def teardown(self) -> None:

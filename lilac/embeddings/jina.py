@@ -1,8 +1,9 @@
 """Jina embeddings. Open-source, designed to run on device, with 8K context."""
 import gc
-from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
+from typing import TYPE_CHECKING, ClassVar
 
-from ..utils import chunks
+from ..embeddings.embedding import chunked_compute_embedding
+from ..tasks import TaskExecutionType
 from .transformer_utils import setup_model_device
 
 if TYPE_CHECKING:
@@ -12,7 +13,7 @@ import numpy as np
 from numpy.linalg import norm
 from typing_extensions import override
 
-from ..schema import Item, RichData, lilac_embedding
+from ..schema import Item
 from ..signal import TextEmbeddingSignal
 
 # See readme in https://huggingface.co/jinaai/jina-embeddings-v2-small-en
@@ -36,6 +37,9 @@ class JinaV2Small(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'jina-v2-small'
   display_name: ClassVar[str] = 'Jina V2 (small)'
+  map_batch_size: int = JINA_BATCH_SIZE
+  map_parallelism: int = 1
+  map_strategy: TaskExecutionType = 'threads'
 
   _size = 'small'
   _model: 'AutoModel'
@@ -69,16 +73,25 @@ class JinaV2Small(TextEmbeddingSignal):
       pass
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
-    docs = cast(Iterable[str], docs)
+  def compute(self, docs: list[str]) -> list[Item]:
+    """Call the embedding function."""
 
-    for batch_docs in chunks(docs, JINA_BATCH_SIZE):
-      trimmed_docs = [doc[:JINA_CONTEXT_SIZE] for doc in batch_docs]
+    # SentenceTransformers can take arbitrarily large batches.
+    def _embed_fn(docs: list[str]) -> list[np.ndarray]:
+      trimmed_docs = [doc[:JINA_CONTEXT_SIZE] for doc in docs]
       vectors = self._model.encode(trimmed_docs)
-      for doc, vector in zip(trimmed_docs, vectors):
+      embeddings = []
+      for vector in vectors:
         vector = np.array(vector)
         vector /= norm(vector)
-        yield [lilac_embedding(0, len(doc), vector)]
+        embeddings.append(vector)
+      return embeddings
+
+    return chunked_compute_embedding(
+      _embed_fn,
+      docs,
+      self.map_batch_size,
+    )
 
 
 class JinaV2Base(JinaV2Small):
