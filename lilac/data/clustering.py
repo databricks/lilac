@@ -8,6 +8,7 @@ from joblib import Parallel, delayed
 from pydantic import (
   BaseModel,
 )
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from ..schema import (
   PATH_WILDCARD,
@@ -171,7 +172,7 @@ def cluster(
 
     topics: dict[int, str] = {}
 
-    # @retry(wait=wait_random_exponential(min=0.5, max=20), stop=stop_after_attempt(10))
+    @retry(wait=wait_random_exponential(min=0.5, max=20), stop=stop_after_attempt(10))
     def _compute_topic(cluster_id: int) -> Optional[str]:
       if cluster_id not in cluster_locks:
         return None
