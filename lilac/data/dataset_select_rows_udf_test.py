@@ -9,7 +9,6 @@ from typing_extensions import override
 
 from ..concepts.concept import ExampleIn
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
-from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   ROWID,
   SPAN_KEY,
@@ -17,7 +16,7 @@ from ..schema import (
   Item,
   RichData,
   SignalInputType,
-  VectorKey,
+  SpanVector,
   field,
   lilac_embedding,
   span,
@@ -96,10 +95,9 @@ class TestEmbeddingSumSignal(VectorSignal):
 
   @override
   def vector_compute(
-    self, keys: Iterable[VectorKey], vector_index: VectorDBIndex
-  ) -> Iterator[Item]:
+    self, all_vector_spans: Iterable[list[SpanVector]]
+  ) -> Iterator[Optional[Item]]:
     # The signal just sums the values of the embedding.
-    all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
       yield vector_spans[0]['vector'].sum()
 

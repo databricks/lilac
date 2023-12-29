@@ -7,8 +7,7 @@ from sklearn.cluster import DBSCAN
 from typing_extensions import override
 
 from ..embeddings.embedding import get_embed_fn
-from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, span
+from ..schema import Field, Item, RichData, SignalInputType, SpanVector, field, span
 from ..signal import OutputType, VectorSignal
 from ..utils import DebugTimer
 
@@ -53,10 +52,7 @@ class ClusterDBSCAN(VectorSignal):
     return self._cluster_span_vectors(span_vectors)
 
   @override
-  def vector_compute(
-    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterator[Optional[Item]]:
-    span_vectors = vector_index.get(keys)
+  def vector_compute(self, span_vectors: Iterable[list[SpanVector]]) -> Iterator[Optional[Item]]:
     return self._cluster_span_vectors(span_vectors)
 
   def _cluster_span_vectors(

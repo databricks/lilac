@@ -8,14 +8,13 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from ..embeddings.vector_store import VectorDBIndex
 from ..schema import (
   EMBEDDING_KEY,
   Field,
   Item,
-  PathKey,
   RichData,
   SignalInputType,
+  SpanVector,
   field,
   lilac_embedding,
   schema,
@@ -97,9 +96,10 @@ class TestEmbeddingSumSignal(VectorSignal):
     return field('float32')
 
   @override
-  def vector_compute(self, keys: Iterable[PathKey], vector_index: VectorDBIndex) -> Iterator[Item]:
+  def vector_compute(
+    self, all_vector_spans: Iterable[list[SpanVector]]
+  ) -> Iterator[Optional[Item]]:
     # The signal just sums the values of the embedding.
-    all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
       yield float(vector_spans[0]['vector'].sum())
 

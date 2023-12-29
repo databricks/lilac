@@ -85,7 +85,7 @@ def test_semantic_similarity_compute_keys(mocker: MockerFixture) -> None:
   embed_mock = mocker.spy(TestEmbedding, 'compute')
 
   signal = SemanticSimilaritySignal(query='hello', embedding=TestEmbedding.name)
-  scores = list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index))
+  scores = list(signal.vector_compute(vector_index.get([('1',), ('2',), ('3',)])))
 
   # Embeddings should be called only 1 time for the search.
   assert embed_mock.call_count == 1

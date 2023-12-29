@@ -744,7 +744,7 @@ class DatasetDuckDB(Dataset):
   def _dispatch_workers(
     self,
     pool_map: joblib.Parallel,
-    transform_fn: Union[VectorSignal, Callable[[Any], Any]],
+    transform_fn: Callable[[Any], Any],
     output_path: PathTuple,
     jsonl_cache_filepath: str,
     batch_size: Optional[int],
@@ -815,16 +815,7 @@ class DatasetDuckDB(Dataset):
       input_values_0, input_values_1 = itertools.tee(input_values, 2)
       flatten_depth = len([part for part in select_path if part == PATH_WILDCARD])
 
-      if isinstance(transform_fn, VectorSignal):
-        embedding_signal = transform_fn
-        inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
-        vector_store = self._get_vector_db_index(embedding_signal.embedding, select_path)
-        # Step 2
-        flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
-        sparse_out = sparse_to_dense_compute(
-          flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
-        )
-      elif embedding is not None:
+      if embedding is not None:
         map_fn = transform_fn
         vector_index = self._get_vector_db_index(embedding, select_path)
         inputs_1, inputs_2 = itertools.tee(inputs_1, 2)
@@ -1032,13 +1023,14 @@ class DatasetDuckDB(Dataset):
           joblib.Parallel(
             n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
           ),
-          signal if isinstance(signal, VectorSignal) else signal.compute,
+          signal.vector_compute if isinstance(signal, VectorSignal) else signal.compute,
           output_path,
           jsonl_cache_filepath,
           batch_size=signal.map_batch_size,
           select_path=input_path,
           overwrite=overwrite,
           query_options=query_params,
+          embedding=signal.embedding if isinstance(signal, VectorSignal) else None,
         )
       )
     )
@@ -1925,7 +1917,7 @@ class DatasetDuckDB(Dataset):
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
           flat_keys = flatten_keys(df[ROWID], input)
           signal_out = sparse_to_dense_compute(
-            flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
+            flat_keys, lambda keys: embedding_signal.vector_compute(vector_store.get(keys))
           )
           df[signal_column] = list(unflatten_iter(signal_out, input))
         else:

@@ -28,6 +28,7 @@ from .schema import (
   Item,
   PathKey,
   SignalInputType,
+  SpanVector,
   field,
 )
 from .tasks import TaskExecutionType
@@ -234,14 +235,11 @@ class VectorSignal(Signal, abc.ABC):
   model_config = ConfigDict(json_schema_extra=_vector_signal_schema_extra)
 
   @abc.abstractmethod
-  def vector_compute(
-    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterator[Optional[Item]]:
+  def vector_compute(self, vector_spans: Iterable[list[SpanVector]]) -> Iterator[Optional[Item]]:
     """Compute the signal for an iterable of keys that point to documents or images.
 
     Args:
-      keys: An iterable of value ids (at row-level or lower) to lookup precomputed embeddings.
-      vector_index: The vector index to lookup pre-computed embeddings.
+      vector_spans: Precomputed embeddings over spans of a document.
 
     Returns:
       An iterable of items. Sparse signals should return "None" for skipped inputs.

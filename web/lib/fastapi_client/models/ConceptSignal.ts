@@ -9,7 +9,7 @@
 export type ConceptSignal = {
     signal_name: 'concept_score';
     output_type?: ('embedding' | 'cluster' | null);
-    map_batch_size?: number;
+    map_batch_size?: (number | null);
     map_parallelism?: number;
     map_strategy?: 'processes' | 'threads';
     /**

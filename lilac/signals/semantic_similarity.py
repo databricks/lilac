@@ -87,10 +87,7 @@ class SemanticSimilaritySignal(VectorSignal):
     return self._score_span_vectors(span_vectors)
 
   @override
-  def vector_compute(
-    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterator[Optional[Item]]:
-    span_vectors = vector_index.get(keys)
+  def vector_compute(self, span_vectors: Iterable[list[SpanVector]]) -> Iterator[Optional[Item]]:
     return self._score_span_vectors(span_vectors)
 
   @override
@@ -99,4 +96,4 @@ class SemanticSimilaritySignal(VectorSignal):
   ) -> list[tuple[PathKey, Optional[Item]]]:
     query = self._get_search_embedding()
     topk_keys = [key for key, _ in vector_index.topk(query, topk, rowids)]
-    return list(zip(topk_keys, self.vector_compute(topk_keys, vector_index)))
+    return list(zip(topk_keys, self.vector_compute(vector_index.get(topk_keys))))
