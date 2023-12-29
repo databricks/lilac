@@ -1,11 +1,10 @@
 """Compute text statistics for a document."""
-from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, Optional, cast
+from typing import TYPE_CHECKING, ClassVar, Iterable, Optional, cast
 
 from typing_extensions import override
 
-from ..schema import Field, Item, RichData, field
+from ..schema import Field, Item, field
 from ..signal import TextSignal
-from ..utils import chunks
 
 SPACY_LANG_MODEL = 'en_core_web_sm'
 SPACY_BATCH_SIZE = 128
@@ -26,6 +25,7 @@ class TextStatisticsSignal(TextSignal):
 
   name: ClassVar[str] = 'text_statistics'
   display_name: ClassVar[str] = 'Text Statistics'
+  map_batch_size: int = SPACY_BATCH_SIZE
 
   _lang: Optional['Language'] = None
 
@@ -72,7 +72,7 @@ class TextStatisticsSignal(TextSignal):
     self._lang.max_length = SPACY_MAX_LENGTH
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     try:
       import textacy.corpus
       from textacy import text_stats
@@ -84,35 +84,37 @@ class TextStatisticsSignal(TextSignal):
     if not self._lang:
       raise RuntimeError('Language model was not loaded.')
 
-    data = cast(Iterable[str], data)
-    for batch in chunks(data, SPACY_BATCH_SIZE):
-      # Replace None with empty strings to avoid spacy errors.
-      batch = [x or '' for x in batch]
-      # See https://textacy.readthedocs.io/en/0.11.0/api_reference/text_stats.html for a list of
-      # available statistics.
-      corpus = textacy.corpus.Corpus(lang=self._lang, data=batch)
-      for doc in cast(Iterable['Doc'], corpus):
-        if not doc or not doc.text.strip():
-          yield None
-          continue
-        try:
-          readability = text_stats.readability.automated_readability_index(doc)
-        except ZeroDivisionError:
-          readability = None
-        try:
-          ttr = text_stats.diversity.log_ttr(doc)
-        except ValueError:
-          ttr = None
-        num_chars = len(doc.text)
-        num_non_ascii = 0
-        for c in doc.text:
-          if ord(c) >= 128:
-            num_non_ascii += 1
-        frac_non_ascii = num_non_ascii / num_chars if num_chars else 0
+    # Replace None with empty strings to avoid spacy errors.
+    docs = [x or '' for x in docs]
+    # See https://textacy.readthedocs.io/en/0.11.0/api_reference/text_stats.html for a list of
+    # available statistics.
+    return_data: list[Optional[Item]] = []
+    corpus = textacy.corpus.Corpus(lang=self._lang, data=docs)
+    for doc in cast(Iterable['Doc'], corpus):
+      if not doc or not doc.text.strip():
+        return_data.append(None)
+        continue
+      try:
+        readability = text_stats.readability.automated_readability_index(doc)
+      except ZeroDivisionError:
+        readability = None
+      try:
+        ttr = text_stats.diversity.log_ttr(doc)
+      except ValueError:
+        ttr = None
+      num_chars = len(doc.text)
+      num_non_ascii = 0
+      for c in doc.text:
+        if ord(c) >= 128:
+          num_non_ascii += 1
+      frac_non_ascii = num_non_ascii / num_chars if num_chars else 0
 
-        yield {
+      return_data.append(
+        {
           NUM_CHARS: num_chars,
           READABILITY: readability,
           TYPE_TOKEN_RATIO: ttr,
           FRAC_NON_ASCII: frac_non_ascii,
         }
+      )
+    return return_data

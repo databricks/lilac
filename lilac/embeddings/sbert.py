@@ -1,16 +1,18 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
-from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from typing_extensions import override
+
+from ..tasks import TaskExecutionType
 
 if TYPE_CHECKING:
   from sentence_transformers import SentenceTransformer
 import gc
 
-from ..schema import Item, RichData
+from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
-from .embedding import compute_split_embeddings
+from .embedding import chunked_compute_embedding
 from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
 
 # The `all-mpnet-base-v2` model provides the best quality, while `all-MiniLM-L6-v2`` is 5 times
@@ -23,6 +25,9 @@ class SBERT(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'sbert'
   display_name: ClassVar[str] = 'SBERT Embeddings'
+  map_batch_size: int = SENTENCE_TRANSFORMER_BATCH_SIZE
+  map_parallelism: int = 1
+  map_strategy: TaskExecutionType = 'threads'
   _model: 'SentenceTransformer'
 
   @override
@@ -37,13 +42,13 @@ class SBERT(TextEmbeddingSignal):
     self._model = setup_model_device(SentenceTransformer(MINI_LM_MODEL), MINI_LM_MODEL)
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Call the embedding function."""
-    embed_fn = self._model.encode
-    split_fn = clustering_spacy_chunker if self._split else None
-    docs = cast(Iterable[str], docs)
-    yield from compute_split_embeddings(
-      docs, batch_size=SENTENCE_TRANSFORMER_BATCH_SIZE, embed_fn=embed_fn, split_fn=split_fn
+    # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
+    # The sentence transformer API actually does batching internally, so we pass map_batch_size * 16
+    # to allow the library to see all the chunks at once.
+    return chunked_compute_embedding(
+      self._model.encode, docs, self.map_batch_size * 16, chunker=clustering_spacy_chunker
     )
 
   @override

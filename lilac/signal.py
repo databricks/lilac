@@ -27,7 +27,6 @@ from .schema import (
   Field,
   Item,
   PathKey,
-  RichData,
   SignalInputType,
   field,
 )
@@ -73,7 +72,7 @@ class Signal(BaseModel):
   output_type: OutputType = None
 
   # See lilac.data.dataset.Dataset.map for definitions and semantics.
-  map_batch_size: int = -1
+  map_batch_size: Optional[int] = -1
   map_parallelism: int = 1
   map_strategy: TaskExecutionType = 'threads'
 
@@ -94,8 +93,25 @@ class Signal(BaseModel):
     """
     return None
 
-  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
-    """Compute the signal for an iterable of documents or images.
+  def compute(self, data: Any) -> Any:
+    """Compute a signal over a field.
+
+    Just like in dataset.map, if the field is a repeated field, then the repeated values will be
+    flattened and presented as a continuous stream.
+
+    A signal can choose to return None for any input, but it must always return some value, so that
+    alignment errors don't occur when Lilac attempts to unflatten repeated fields.
+
+    This function is polymorphic and its precise signature depends on the map_batch_size class var.
+
+    If batch_size = -1 (default), then we hand you the iterator stream and you choose how to process
+    the stream; the function signature is:
+      compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]
+    If batch_size > 0, then we will batch items and provide them to you in the requested batch size;
+    the function signature is:
+      compute(self, data: list[RichData]) -> list[Optional[Item]]
+    If batch_size is None, then we hand you items one by one, and the function signature is:
+      compute(self, data: RichData) -> Optional[Item]
 
     Args:
       data: An iterable of rich data to compute the signal over.

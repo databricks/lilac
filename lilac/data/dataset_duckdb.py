@@ -744,7 +744,7 @@ class DatasetDuckDB(Dataset):
   def _dispatch_workers(
     self,
     pool_map: joblib.Parallel,
-    transform_fn: Union[Signal, Callable[[Iterable[Item]], Iterator[Optional[Item]]]],
+    transform_fn: Union[VectorSignal, Callable[[Any], Any]],
     output_path: PathTuple,
     jsonl_cache_filepath: str,
     batch_size: Optional[int],
@@ -753,6 +753,7 @@ class DatasetDuckDB(Dataset):
     query_options: Optional[DuckDBQueryParams] = None,
     resolve_span: bool = False,
     embedding: Optional[str] = None,
+    checkpoint_progress: bool = True,
   ) -> Iterator[Item]:
     """Dispatches workers to compute the transform function.
 
@@ -823,12 +824,6 @@ class DatasetDuckDB(Dataset):
         sparse_out = sparse_to_dense_compute(
           flat_keys, lambda keys: embedding_signal.vector_compute(keys, vector_store)
         )
-      elif isinstance(transform_fn, Signal):
-        signal = transform_fn
-        flat_input = cast(Iterator[Optional[RichData]], flatten_iter(input_values_0, flatten_depth))
-        sparse_out = sparse_to_dense_compute(
-          flat_input, lambda x: signal.compute(cast(Iterable[RichData], x))
-        )
       elif embedding is not None:
         map_fn = transform_fn
         vector_index = self._get_vector_db_index(embedding, select_path)
@@ -836,7 +831,6 @@ class DatasetDuckDB(Dataset):
         flat_keys = flatten_keys((rowid for (rowid, _) in inputs_2), input_values_0)
         sparse_out = sparse_to_dense_compute(flat_keys, lambda keys: map_fn(vector_index.get(keys)))
       else:
-        assert not isinstance(transform_fn, Signal)
         # Step 2
         flat_input = cast(Iterator[Optional[RichData]], flatten_iter(input_values_0, flatten_depth))
         # Step 3
@@ -861,7 +855,7 @@ class DatasetDuckDB(Dataset):
     )
 
     try:
-      if not isinstance(transform_fn, TextEmbeddingSignal):
+      if checkpoint_progress:
         with open_file(jsonl_cache_filepath, 'a') as file:
           for item in output_items:
             json.dump(item, file)
@@ -981,7 +975,15 @@ class DatasetDuckDB(Dataset):
     task_id: Optional[TaskId] = None,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
-      return self.compute_embedding(signal.name, path, overwrite=overwrite, task_id=task_id)
+      return self.compute_embedding(
+        signal.name,
+        path,
+        filters=filters,
+        limit=limit,
+        include_deleted=include_deleted,
+        overwrite=overwrite,
+        task_id=task_id,
+      )
 
     input_path = normalize_path(path)
 
@@ -1030,7 +1032,7 @@ class DatasetDuckDB(Dataset):
           joblib.Parallel(
             n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
           ),
-          signal,
+          signal if isinstance(signal, VectorSignal) else signal.compute,
           output_path,
           jsonl_cache_filepath,
           batch_size=signal.map_batch_size,
@@ -1108,6 +1110,10 @@ class DatasetDuckDB(Dataset):
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
 
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
+    output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
+    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
+
+    assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
 
     jsonl_cache_filepath = _jsonl_cache_filepath(
       namespace=self.namespace,
@@ -1130,20 +1136,16 @@ class DatasetDuckDB(Dataset):
         joblib.Parallel(
           n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
         ),
-        signal,
+        signal.compute,
         output_path,
         jsonl_cache_filepath,
         batch_size=signal.map_batch_size,
         select_path=input_path,
         overwrite=overwrite,
         query_options=query_params,
+        checkpoint_progress=False,
       )
     )
-
-    output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
-    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
-
-    assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
 
     write_embeddings_to_disk(
       vector_store=self.vector_store,

@@ -1,15 +1,16 @@
 """OpenAI embeddings."""
-from typing import Any, ClassVar, Iterable, Iterator, cast
+from typing import Any, ClassVar, Optional
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from typing_extensions import override
 
 from ..env import env
-from ..schema import Item, RichData
+from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
-from .embedding import compute_split_embeddings
+from ..tasks import TaskExecutionType
+from .embedding import chunked_compute_embedding
 
 API_NUM_PARALLEL_REQUESTS = 10
 API_OPENAI_BATCH_SIZE = 128
@@ -31,6 +32,9 @@ class OpenAIEmbedding(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'openai'
   display_name: ClassVar[str] = 'OpenAI Embeddings'
+  map_batch_size: int = API_OPENAI_BATCH_SIZE
+  map_parallelism: int = API_NUM_PARALLEL_REQUESTS
+  map_strategy: TaskExecutionType = 'threads'
 
   @override
   def setup(self) -> None:
@@ -63,7 +67,7 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       )
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Compute embeddings for the given documents."""
     try:
       import openai
@@ -88,12 +92,6 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       )
       return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
 
-    docs = cast(Iterable[str], docs)
-    split_fn = clustering_spacy_chunker if self._split else None
-    yield from compute_split_embeddings(
-      docs,
-      AZURE_OPENAI_BATCH_SIZE,
-      embed_fn,
-      split_fn,
-      num_parallel_requests=(AZURE_NUM_PARALLEL_REQUESTS),
+    return chunked_compute_embedding(
+      embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
     )

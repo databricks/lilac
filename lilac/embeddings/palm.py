@@ -1,15 +1,16 @@
 """PaLM embeddings."""
-from typing import ClassVar, Iterable, Iterator, cast
+from typing import ClassVar, Optional
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_fixed, wait_random_exponential
 from typing_extensions import override
 
 from ..env import env
-from ..schema import Item, RichData
+from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
-from .embedding import compute_split_embeddings
+from ..tasks import TaskExecutionType
+from .embedding import chunked_compute_embedding
 
 PALM_BATCH_SIZE = 1  # PaLM API only supports batch size 1.
 API_NUM_PARALLEL_REQUESTS = 256  # Because batch size is 1, we can send many requests in parallel.
@@ -29,6 +30,9 @@ class PaLM(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'palm'
   display_name: ClassVar[str] = 'PaLM Embeddings'
+  map_batch_size: int = PALM_BATCH_SIZE
+  map_parallelism: int = API_NUM_PARALLEL_REQUESTS
+  map_strategy: TaskExecutionType = 'threads'
 
   @override
   def setup(self) -> None:
@@ -68,7 +72,7 @@ class PaLM(TextEmbeddingSignal):
         )
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Compute embeddings for the given documents."""
     if self._connector == 'api':
 
@@ -78,7 +82,8 @@ class PaLM(TextEmbeddingSignal):
         response = self._model(model=API_EMBEDDING_MODEL, text=texts[0])
         return [np.array(response['embedding'], dtype=np.float32)]
 
-    elif self._connector == 'vertex':
+    else:
+      assert self._connector == 'vertex'
 
       @retry(wait=wait_fixed(5), stop=stop_after_attempt(15))
       def embed_fn(texts: list[str]) -> list[np.ndarray]:
@@ -86,8 +91,6 @@ class PaLM(TextEmbeddingSignal):
         response = self._model.get_embeddings([texts[0]])[0].values
         return [np.array(response, dtype=np.float32)]
 
-    docs = cast(Iterable[str], docs)
-    split_fn = clustering_spacy_chunker if self._split else None
-    yield from compute_split_embeddings(
-      docs, PALM_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=self._num_parallel_requests
+    return chunked_compute_embedding(
+      embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
     )

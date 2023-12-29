@@ -1,20 +1,19 @@
 """Cohere embeddings."""
-from typing import TYPE_CHECKING, ClassVar, Iterable, Iterator, cast
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import numpy as np
 from typing_extensions import override
 
 from ..env import env
-from ..schema import Item, RichData
+from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
-from .embedding import compute_split_embeddings
+from ..tasks import TaskExecutionType
+from .embedding import chunked_compute_embedding
 
 if TYPE_CHECKING:
   from cohere import Client
 
-NUM_PARALLEL_REQUESTS = 10
-COHERE_BATCH_SIZE = 96
 COHERE_EMBED_MODEL = 'embed-english-light-v3.0'
 
 
@@ -31,6 +30,9 @@ class Cohere(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'cohere'
   display_name: ClassVar[str] = 'Cohere Embeddings'
+  map_batch_size: int = 96
+  map_parallelism: int = 10
+  map_strategy: TaskExecutionType = 'threads'
 
   _model: 'Client'
 
@@ -51,19 +53,15 @@ class Cohere(TextEmbeddingSignal):
       )
 
   @override
-  def compute(self, docs: Iterable[RichData]) -> Iterator[Item]:
+  def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Compute embeddings for the given documents."""
+    cohere_input_type = 'search_document' if self.embed_input_type == 'document' else 'search_query'
 
-    def embed_fn(texts: list[str]) -> list[np.ndarray]:
-      cohere_input_type = (
-        'search_document' if self.embed_input_type == 'document' else 'search_query'
-      )
+    def _embed_fn(docs: list[str]) -> list[np.ndarray]:
       return self._model.embed(
-        texts, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
+        docs, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
       ).embeddings
 
-    docs = cast(Iterable[str], docs)
-    split_fn = clustering_spacy_chunker if self._split else None
-    yield from compute_split_embeddings(
-      docs, COHERE_BATCH_SIZE, embed_fn, split_fn, num_parallel_requests=NUM_PARALLEL_REQUESTS
+    return chunked_compute_embedding(
+      _embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
     )
