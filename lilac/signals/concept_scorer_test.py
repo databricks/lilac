@@ -160,7 +160,7 @@ def test_concept_model_vector_score(
     },
   )
 
-  scores = cast(list[Item], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index)))
+  scores = cast(list[Item], list(signal.vector_compute(vector_index.get([('1',), ('2',), ('3',)]))))
   assert scores[0][0]['score'] > 0.5  # '1' is in the concept.
   assert scores[1][0]['score'] < 0.5  # '2' is not in the concept.
   assert (
@@ -251,7 +251,7 @@ def test_concept_model_draft(
     vector_store, {('1',): [[1.0, 0.0, 0.0]], ('2',): [[0.9, 0.1, 0.0]], ('3',): [[0.1, 0.9, 0.0]]}
   )
 
-  scores = cast(list[Item], list(signal.vector_compute([('1',), ('2',), ('3',)], vector_index)))
+  scores = cast(list[Item], list(signal.vector_compute(vector_index.get([('1',), ('2',), ('3',)]))))
   assert scores[0][0]['score'] > 0.5
   assert scores[1][0]['score'] > 0.5
   assert scores[2][0]['score'] < 0.5
@@ -260,7 +260,7 @@ def test_concept_model_draft(
   vector_index = make_vector_index(
     vector_store, {('1',): [[1.0, 0.0, 0.0]], ('2',): [[0.9, 0.1, 0.0]], ('3',): [[0.1, 0.2, 0.3]]}
   )
-  draft_scores = draft_signal.vector_compute([('1',), ('2',), ('3',)], vector_index)
+  draft_scores = draft_signal.vector_compute(vector_index.get([('1',), ('2',), ('3',)]))
   assert draft_scores != scores
 
 

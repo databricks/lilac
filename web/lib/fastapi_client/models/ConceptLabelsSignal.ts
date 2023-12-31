@@ -7,14 +7,13 @@
  * Computes spans where text is labeled for the concept, either positive or negative.
  */
 export type ConceptLabelsSignal = {
-    signal_name: 'concept_labels';
-    output_type?: ('embedding' | 'cluster' | null);
-    map_batch_size?: number;
-    map_parallelism?: number;
-    map_strategy?: 'processes' | 'threads';
-    namespace: string;
-    concept_name: string;
-    version?: (number | null);
-    draft?: string;
+  signal_name: 'concept_labels';
+  output_type?: 'embedding' | 'cluster' | null;
+  map_batch_size?: number | null;
+  map_parallelism?: number;
+  map_strategy?: 'processes' | 'threads';
+  namespace: string;
+  concept_name: string;
+  version?: number | null;
+  draft?: string;
 };
-

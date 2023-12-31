@@ -90,10 +90,7 @@ class ConceptSignal(VectorSignal):
     return self._score_span_vectors(span_vectors)
 
   @override
-  def vector_compute(
-    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterator[Optional[Item]]:
-    span_vectors = vector_index.get(keys)
+  def vector_compute(self, span_vectors: Iterable[list[SpanVector]]) -> Iterator[Optional[Item]]:
     return self._score_span_vectors(span_vectors)
 
   @override
@@ -104,7 +101,7 @@ class ConceptSignal(VectorSignal):
     query: np.ndarray = concept_model.coef(self.draft).astype(np.float32)
     query /= np.linalg.norm(query)
     topk_keys = [key for key, _ in vector_index.topk(query, topk, rowids)]
-    return list(zip(topk_keys, self.vector_compute(topk_keys, vector_index)))
+    return list(zip(topk_keys, self.vector_compute(vector_index.get(topk_keys))))
 
   @override
   def key(self, is_computed_signal: Optional[bool] = False) -> str:

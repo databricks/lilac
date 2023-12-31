@@ -6,8 +6,7 @@ from pydantic import Field as PyField
 from typing_extensions import override
 
 from ..embeddings.embedding import get_embed_fn
-from ..embeddings.vector_store import VectorDBIndex
-from ..schema import Field, Item, PathKey, RichData, SignalInputType, SpanVector, field, span
+from ..schema import Field, Item, RichData, SignalInputType, SpanVector, field, span
 from ..signal import OutputType, VectorSignal
 from ..utils import DebugTimer
 
@@ -64,10 +63,7 @@ class ClusterHDBScan(VectorSignal):
     )
 
   @override
-  def vector_compute(
-    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
-  ) -> Iterator[Optional[Item]]:
-    span_vectors = vector_index.get(keys)
+  def vector_compute(self, span_vectors: Iterable[list[SpanVector]]) -> Iterator[Optional[Item]]:
     return cluster_span_vectors(
       span_vectors, self.min_cluster_size, self.umap_n_components, self.umap_random_state
     )

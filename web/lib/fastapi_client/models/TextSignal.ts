@@ -7,10 +7,9 @@
  * An interface for signals that compute over text.
  */
 export type TextSignal = {
-    signal_name: string;
-    output_type?: ('embedding' | 'cluster' | null);
-    map_batch_size?: number;
-    map_parallelism?: number;
-    map_strategy?: 'processes' | 'threads';
+  signal_name: string;
+  output_type?: 'embedding' | 'cluster' | null;
+  map_batch_size?: number | null;
+  map_parallelism?: number;
+  map_strategy?: 'processes' | 'threads';
 };
-

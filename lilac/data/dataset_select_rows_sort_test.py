@@ -11,9 +11,9 @@ from ..schema import (
   ROWID,
   Field,
   Item,
-  PathKey,
   RichData,
   SignalInputType,
+  SpanVector,
   VectorKey,
   field,
   lilac_embedding,
@@ -470,9 +470,8 @@ class TopKSignal(VectorSignal):
 
   @override
   def vector_compute(
-    self, keys: Iterable[PathKey], vector_index: VectorDBIndex
+    self, all_vector_spans: Iterable[list[SpanVector]]
   ) -> Iterator[Optional[Item]]:
-    all_vector_spans = vector_index.get(keys)
     for vector_spans in all_vector_spans:
       embeddings = np.array([vector_span['vector'] for vector_span in vector_spans])
       scores = embeddings.dot(self._query).reshape(-1)
