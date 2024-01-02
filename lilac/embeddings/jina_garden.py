@@ -45,5 +45,5 @@ class JinaV2SmallGarden(TextEmbeddingSignal):
     for batch in jina_batch.remote_gen({'gzipped_docs': gzipped_docs}):
       for vector in batch:
         vector /= norm(vector)
-        yield lilac_embedding(start=0, end=doc_lengths[index], embedding=vector)
+        yield [lilac_embedding(start=0, end=doc_lengths[index], embedding=vector)]
         index += 1
