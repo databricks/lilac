@@ -1,7 +1,10 @@
 """Registers all available default signals."""
+import modal.config
+
 from ..embeddings.cohere import Cohere
 from ..embeddings.gte import GTEBase, GTESmall, GTETiny
 from ..embeddings.jina import JinaV2Base, JinaV2Small
+from ..embeddings.jina_garden import JinaV2SmallGarden
 from ..embeddings.openai import OpenAIEmbedding
 from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
@@ -15,6 +18,12 @@ from .near_dup import NearDuplicateSignal
 from .ner import SpacyNER
 from .pii import PIISignal
 from .text_statistics import TextStatisticsSignal
+
+
+def has_garden_credentials() -> bool:
+  """Returns whether the user has Garden credentials."""
+  config = modal.config.Config().to_dict()
+  return 'token_secret' in config and 'token_id' in config
 
 
 def register_default_signals() -> None:
@@ -47,3 +56,6 @@ def register_default_signals() -> None:
 
   register_signal(JinaV2Small)
   register_signal(JinaV2Base)
+
+  if has_garden_credentials():
+    register_signal(JinaV2SmallGarden)

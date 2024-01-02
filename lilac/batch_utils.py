@@ -1,5 +1,8 @@
 """Utils for the python server."""
+import gzip
 import itertools
+import json
+from io import BytesIO
 from typing import Any, Callable, Generator, Iterable, Iterator, TypeVar, Union, cast
 
 from .schema import Item
@@ -116,4 +119,10 @@ def flat_batched_compute(
   return unflatten(batched_outputs, input_2)
 
 
-TBatchSpanVectorOutput = TypeVar('TBatchSpanVectorOutput', bound=Item)
+def compress_docs(docs: list[str]) -> bytes:
+  """Compress a list of documents using gzip."""
+  buffer = BytesIO()
+  # Gzip compress the data and write it to the buffer
+  with gzip.GzipFile(fileobj=buffer, mode='wb') as f:
+    f.write(json.dumps(docs).encode('utf-8'))
+  return buffer.getvalue()
