@@ -2297,7 +2297,7 @@ class DatasetDuckDB(Dataset):
       # Normalize `FilterLike` to `Filter`.
       if not isinstance(filter, Filter):
         if len(filter) == 3:
-          path, op, value = filter  # type: ignore
+          path, op, value = filter
         elif len(filter) == 2:
           path, op = filter  # type: ignore
           value = None
