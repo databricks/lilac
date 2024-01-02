@@ -7,9 +7,10 @@
  * Interface for signals to implement. A signal can score documents and a dataset column.
  */
 export type Signal = {
-  signal_name: string;
-  output_type?: 'embedding' | 'cluster' | null;
-  map_batch_size?: number | null;
-  map_parallelism?: number;
-  map_strategy?: 'processes' | 'threads';
+    signal_name: string;
+    output_type?: ('embedding' | 'cluster' | null);
+    map_batch_size?: (number | null);
+    map_parallelism?: number;
+    map_strategy?: 'processes' | 'threads';
 };
+

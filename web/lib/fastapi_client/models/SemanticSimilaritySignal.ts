@@ -10,27 +10,19 @@
  * a similarity score between them.
  */
 export type SemanticSimilaritySignal = {
-  signal_name: 'semantic_similarity';
-  output_type?: 'embedding' | 'cluster' | null;
-  map_batch_size?: number | null;
-  map_parallelism?: number;
-  map_strategy?: 'processes' | 'threads';
-  /**
-   * The name of the pre-computed embedding.
-   */
-  embedding:
-    | 'cohere'
-    | 'sbert'
-    | 'openai'
-    | 'palm'
-    | 'gte-tiny'
-    | 'gte-small'
-    | 'gte-base'
-    | 'jina-v2-small'
-    | 'jina-v2-base';
-  query: string;
-  /**
-   * The input type of the query, used for the query embedding.
-   */
-  query_type?: 'question' | 'document';
+    signal_name: 'semantic_similarity';
+    output_type?: ('embedding' | 'cluster' | null);
+    map_batch_size?: (number | null);
+    map_parallelism?: number;
+    map_strategy?: 'processes' | 'threads';
+    /**
+     * The name of the pre-computed embedding.
+     */
+    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base';
+    query: string;
+    /**
+     * The input type of the query, used for the query embedding.
+     */
+    query_type?: 'question' | 'document';
 };
+
