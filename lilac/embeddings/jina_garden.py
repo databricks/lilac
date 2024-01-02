@@ -43,7 +43,7 @@ class JinaV2SmallGarden(TextEmbeddingSignal):
     index = 0
     jina_batch = modal.Function.lookup('jina-batch', 'embed')
     for batch in jina_batch.remote_gen({'gzipped_docs': gzipped_docs}):
+      batch /= norm(batch, axis=1, keepdims=True)
       for vector in batch:
-        vector /= norm(vector)
         yield [lilac_embedding(start=0, end=doc_lengths[index], embedding=vector)]
         index += 1
