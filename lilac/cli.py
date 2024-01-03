@@ -40,7 +40,11 @@ def start(project_dir: str, host: str, port: int, load: bool) -> None:
     if value == 'n':
       exit()
 
-  start_server(host=host, port=port, open=True, project_dir=project_dir, load=load)
+  server = start_server(host=host, port=port, open=True, project_dir=project_dir, load=load)
+  # Block the server.
+  server.thread.join()
+
+  print('blocked server')
 
 
 @click.command()
