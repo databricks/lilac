@@ -64,13 +64,7 @@ def test_signal_serialization() -> None:
   signal = TestSignal(query='test')
 
   # The class variables should not be included.
-  assert signal.model_dump(exclude_none=True) == {
-    'signal_name': 'test_signal',
-    'query': 'test',
-    'map_batch_size': -1,
-    'map_parallelism': 1,
-    'map_strategy': 'threads',
-  }
+  assert signal.model_dump(exclude_none=True) == {'signal_name': 'test_signal', 'query': 'test'}
 
 
 def test_get_signal_cls() -> None:
