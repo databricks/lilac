@@ -2798,7 +2798,6 @@ class DatasetDuckDB(Dataset):
   def cluster(
     self,
     path: Path,
-    embedding: Optional[str] = None,
     output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
@@ -2806,9 +2805,7 @@ class DatasetDuckDB(Dataset):
     remote: bool = False,
   ) -> None:
     topic_fn = topic_fn or summarize_instructions
-    return cluster(
-      self, path, embedding, output_path, min_cluster_size, topic_fn, overwrite, remote
-    )
+    return cluster(self, path, output_path, min_cluster_size, topic_fn, overwrite, remote)
 
   @override
   def to_json(

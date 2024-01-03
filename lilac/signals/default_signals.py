@@ -9,7 +9,6 @@ from ..embeddings.openai import OpenAIEmbedding
 from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
 from ..signal import register_signal
-from .cluster_hdbscan import ClusterHDBScan
 from .concept_labels import ConceptLabelsSignal
 from .concept_scorer import ConceptSignal
 from .lang_detection import LangDetectionSignal
@@ -38,7 +37,6 @@ def register_default_signals() -> None:
   register_signal(SpacyNER)
   register_signal(NearDuplicateSignal)
   register_signal(LangDetectionSignal)
-  register_signal(ClusterHDBScan)
   register_signal(MarkdownCodeBlockSignal)
 
   # Embeddings.

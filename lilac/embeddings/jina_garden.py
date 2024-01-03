@@ -6,8 +6,7 @@ import modal
 from numpy.linalg import norm
 from typing_extensions import override
 
-from lilac.batch_utils import compress_docs
-
+from ..batch_utils import compress_docs
 from ..schema import Item, lilac_embedding
 from ..signal import TextEmbeddingSignal
 from ..tasks import TaskExecutionType

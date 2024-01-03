@@ -1,7 +1,6 @@
 """Signals enrich a document with additional metadata."""
 
 from ..signal import Signal, SignalInputType, TextEmbeddingSignal, TextSignal, register_signal
-from .cluster_hdbscan import ClusterHDBScan
 from .concept_scorer import ConceptSignal
 from .default_signals import register_default_signals
 from .lang_detection import LangDetectionSignal
@@ -24,5 +23,4 @@ __all__ = [
   'SpacyNER',
   'PIISignal',
   'ConceptSignal',
-  'ClusterHDBScan',
 ]

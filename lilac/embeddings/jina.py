@@ -1,6 +1,6 @@
 """Jina embeddings. Open-source, designed to run on device, with 8K context."""
 import gc
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, cast
 
 from ..embeddings.embedding import chunked_compute_embedding
 from ..tasks import TaskExecutionType
@@ -42,7 +42,7 @@ class JinaV2Small(TextEmbeddingSignal):
   map_strategy: TaskExecutionType = 'threads'
 
   _size = 'small'
-  _model: 'AutoModel'
+  _model: Optional['AutoModel'] = None
 
   @override
   def setup(self) -> None:
@@ -61,25 +61,28 @@ class JinaV2Small(TextEmbeddingSignal):
 
   @override
   def teardown(self) -> None:
+    if self._model is None:
+      return
     self._model.cpu()
     del self._model
-    gc.collect()
-
     try:
       import torch
 
       torch.cuda.empty_cache()
     except ImportError:
       pass
+    gc.collect()
 
   @override
   def compute(self, docs: list[str]) -> list[Item]:
     """Call the embedding function."""
+    if self._model is None:
+      raise ValueError('The signal is not initialized. Call setup() first.')
 
     # SentenceTransformers can take arbitrarily large batches.
     def _embed_fn(docs: list[str]) -> list[np.ndarray]:
       trimmed_docs = [doc[:JINA_CONTEXT_SIZE] for doc in docs]
-      vectors = self._model.encode(trimmed_docs)
+      vectors = cast(Any, self._model).encode(trimmed_docs)
       embeddings = []
       for vector in vectors:
         vector = np.array(vector)
