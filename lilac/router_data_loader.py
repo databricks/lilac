@@ -7,6 +7,7 @@ poetry run python -m lilac.datasets.loader \
   --output_dir=./data/ \
   --config_path=./datasets/the_movies_dataset.json
 """
+from threading import Thread
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -89,10 +90,15 @@ async def load(
     type=TaskType.DATASET_LOAD,
     description=f'Loader: {source.name}. \n Config: {source}',
   )
-  process_source(
-    get_project_dir(),
-    DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
-    task_id,
-  )
+
+  def run():
+    process_source(
+      get_project_dir(),
+      DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
+      task_id,
+    )
+
+  thread = Thread(target=run)
+  thread.start()
 
   return LoadDatasetResponse(task_id=task_id)
