@@ -1,6 +1,7 @@
 """Compute clusters for a dataset."""
 from typing import ClassVar, Iterable, Iterator, Optional
 
+import modal
 import numpy as np
 from pydantic import Field as PyField
 from typing_extensions import override
@@ -74,14 +75,11 @@ def cluster_span_vectors(
   min_cluster_size: int = MIN_CLUSTER_SIZE,
   umap_n_components: int = UMAP_N_COMPONENTS,
   umap_random_state: Optional[int] = None,
+  remote: bool = False,
 ) -> Iterator[list[Item]]:
   """Cluster span vectors with HDBSCAN."""
   # Try to import the cuml version of UMAP, which is much faster than the sklearn version.
   # if CUDA is available.
-  try:
-    from cuml import UMAP  # type: ignore
-  except ImportError:
-    from umap import UMAP
 
   all_spans: list[list[tuple[int, int]]] = []
   all_vectors: list[np.ndarray] = []
@@ -91,43 +89,57 @@ def cluster_span_vectors(
       for vector in vectors:
         all_vectors.append(vector['vector'])
 
-  # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
-  # For details on hyperparameters, see:
-  # https://umap-learn.readthedocs.io/en/latest/clustering.html
   all_vectors = np.array(all_vectors)
-  dim = all_vectors[0].size
-  with DebugTimer(
-    f'UMAP: Reducing dim from {dim} to {umap_n_components} of {len(all_vectors)} vectors'
-  ):
-    n_neighbors = min(30, len(all_vectors) - 1)
-    if umap_n_components < dim and umap_n_components < len(all_vectors):
-      reducer = UMAP(
-        n_components=umap_n_components,
-        n_neighbors=n_neighbors,
-        min_dist=0.0,
-        random_state=umap_random_state,
-        n_jobs=-1,
-      )
-      all_vectors = reducer.fit_transform(all_vectors)
 
-  # Try to import the cuml version of HDBSCAN, which is much faster than the sklearn version.
-  # if CUDA is available.
-  try:
-    from cuml.cluster.hdbscan import HDBSCAN  # type: ignore
-  except ImportError:
-    from sklearn.cluster import HDBSCAN
+  cluster_labels: list[tuple[int, float]]
+  if remote:
+    remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster')
+    response = remote_fn.remote({'embeddings': all_vectors})
+    cluster_labels = []
+    for cluster in response['clusters']:
+      cluster_labels.append((cluster['cluster_id'], cluster['membership_prob']))
+  else:
+    # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
+    # For details on hyperparameters, see:
+    # https://umap-learn.readthedocs.io/en/latest/clustering.html
+    try:
+      from cuml import UMAP  # type: ignore
+    except ImportError:
+      from umap import UMAP
 
-  with DebugTimer('HDBSCAN: Clustering'):
-    min_cluster_size = min(min_cluster_size, len(all_vectors))
-    hdbscan = HDBSCAN(min_cluster_size=min_cluster_size, n_jobs=-1)
-    hdbscan.fit(all_vectors)
+    dim = all_vectors[0].size
+    with DebugTimer(
+      f'UMAP: Reducing dim from {dim} to {umap_n_components} of {len(all_vectors)} vectors'
+    ):
+      n_neighbors = min(30, len(all_vectors) - 1)
+      if umap_n_components < dim and umap_n_components < len(all_vectors):
+        reducer = UMAP(
+          n_components=umap_n_components,
+          n_neighbors=n_neighbors,
+          min_dist=0.0,
+          random_state=umap_random_state,
+          n_jobs=-1,
+        )
+        all_vectors = reducer.fit_transform(all_vectors)
+
+    # Try to import the cuml version of HDBSCAN, which is much faster than the sklearn version.
+    # if CUDA is available.
+    try:
+      from cuml.cluster.hdbscan import HDBSCAN  # type: ignore
+    except ImportError:
+      from sklearn.cluster import HDBSCAN
+
+    with DebugTimer('HDBSCAN: Clustering'):
+      min_cluster_size = min(min_cluster_size, len(all_vectors))
+      hdbscan = HDBSCAN(min_cluster_size=min_cluster_size, n_jobs=-1)
+      hdbscan.fit(all_vectors)
+      cluster_labels = list(zip(hdbscan.labels_, hdbscan.probabilities_))
 
   span_index = 0
   for spans in all_spans:
     span_clusters: list[Item] = []
     for text_span in spans:
-      cluster_id = int(hdbscan.labels_[span_index])
-      membership_prob = float(hdbscan.probabilities_[span_index])
+      cluster_id, membership_prob = cluster_labels[span_index]
       start, end = text_span
       metadata = {CLUSTER_ID: cluster_id, MEMBERSHIP_PROB: membership_prob}
       if cluster_id < 0:

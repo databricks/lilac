@@ -16,7 +16,7 @@ JINA_CONTEXT_SIZE = 8192
 
 
 class JinaV2SmallGarden(TextEmbeddingSignal):
-  """Jina V2 Embeddings with 8K context, hosted on Garden.
+  """Jina V2 Embeddings with 8K context, hosted on Lilac Garden.
 
   Each document is truncated to 8K characters, and the embeddings are computed on the truncated
   document.

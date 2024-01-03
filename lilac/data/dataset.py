@@ -451,6 +451,7 @@ class Dataset(abc.ABC):
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
+    remote: bool = False,
   ) -> None:
     """Compute clusters for a field of the dataset.
 
@@ -463,6 +464,7 @@ class Dataset(abc.ABC):
         (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
         for a given cluster of docs. It defaults to a function that summarizes user's instructions.
       overwrite: Whether to overwrite an existing output.
+      remote: Whether to run the clustering remotely on Lilac Garden.
 
     """
     pass

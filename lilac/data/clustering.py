@@ -100,6 +100,7 @@ def cluster(
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_instructions,
   overwrite: bool = False,
+  remote: bool = False,
 ) -> None:
   """Compute clusters for a field of the dataset."""
   if not embedding:
@@ -122,7 +123,7 @@ def cluster(
     cluster_output_path = get_sibling_output_path(path, CLUSTER_FIELD_NAME)
 
   def _compute_clusters(span_vectors: Iterator[list[SpanVector]]) -> Iterator[Item]:
-    for x in cluster_span_vectors(span_vectors, min_cluster_size):
+    for x in cluster_span_vectors(span_vectors, min_cluster_size, remote):
       first_span = x[0]
       cluster = {CLUSTER_ID: first_span[CLUSTER_ID]}
       if MEMBERSHIP_PROB in first_span:
