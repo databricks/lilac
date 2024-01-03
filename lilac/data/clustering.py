@@ -1,6 +1,7 @@
 """Clustering utilities."""
 import functools
 import gc
+import random
 import threading
 from typing import Any, Iterator, Optional
 
@@ -39,7 +40,8 @@ CLUSTER_FIELD_NAME = 'cluster'
 CLUSTER_ID = 'cluster_id'
 MEMBERSHIP_PROB = 'membership_prob'
 MIN_CLUSTER_SIZE = 5
-UMAP_N_COMPONENTS = 5
+UMAP_DIM = 5
+UMAP_SEED = 42
 
 
 @functools.cache
@@ -182,6 +184,8 @@ def cluster(
 
     # Sort by descending membership score.
     for group in groups.values():
+      # Shuffle the group to avoid biasing the topic function.
+      random.shuffle(group)
       group.sort(key=lambda text_score: text_score[1], reverse=True)
 
     parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
@@ -213,7 +217,7 @@ def _cluster(
   if remote:
     remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
     response = remote_fn({'docs': list(docs)})
-    return response['clusters']
+    yield from response['clusters']
 
   with DebugTimer('Computing embeddings'):
     jina = JinaV2Small()
@@ -237,13 +241,15 @@ def _cluster(
     from umap import UMAP
 
   dim = all_vectors[0].size
-  with DebugTimer(
-    f'UMAP: Reducing dim from {dim} to {UMAP_N_COMPONENTS} of {len(all_vectors)} vectors'
-  ):
+  with DebugTimer(f'UMAP: Reducing dim from {dim} to {UMAP_DIM} of {len(all_vectors)} vectors'):
     n_neighbors = min(30, len(all_vectors) - 1)
-    if UMAP_N_COMPONENTS < dim and UMAP_N_COMPONENTS < len(all_vectors):
+    if UMAP_DIM < dim and UMAP_DIM < len(all_vectors):
       reducer = UMAP(
-        n_components=UMAP_N_COMPONENTS, n_neighbors=n_neighbors, min_dist=0.0, n_jobs=-1
+        n_components=UMAP_DIM,
+        n_neighbors=n_neighbors,
+        min_dist=0.0,
+        n_jobs=-1,
+        random_state=UMAP_SEED,
       )
       all_vectors = reducer.fit_transform(all_vectors)
 

@@ -374,12 +374,20 @@ class Dataset(abc.ABC):
 
   def config(self) -> DatasetConfig:
     """Return the dataset config for this dataset."""
+    manifest = self.manifest()
     project_config = read_project_config(get_project_dir())
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
       raise ValueError(
         f'Dataset "{self.namespace}/{self.dataset_name}" not found in project config.'
       )
+
+    # Filter out invalid media paths.
+    if dataset_config.settings and dataset_config.settings.ui.media_paths:
+      dataset_config.settings.ui.media_paths = [
+        p for p in dataset_config.settings.ui.media_paths if manifest.data_schema.has_field(p)
+      ]
+
     return dataset_config
 
   def settings(self) -> DatasetSettings:
