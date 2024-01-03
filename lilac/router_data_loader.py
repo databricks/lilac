@@ -91,7 +91,7 @@ async def load(
     description=f'Loader: {source.name}. \n Config: {source}',
   )
 
-  def run():
+  def run() -> None:
     process_source(
       get_project_dir(),
       DatasetConfig(namespace=options.namespace, name=options.dataset_name, source=source),
