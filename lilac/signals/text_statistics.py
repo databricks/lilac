@@ -25,7 +25,7 @@ class TextStatisticsSignal(TextSignal):
 
   name: ClassVar[str] = 'text_statistics'
   display_name: ClassVar[str] = 'Text Statistics'
-  map_batch_size: int = SPACY_BATCH_SIZE
+  map_batch_size: ClassVar[int] = SPACY_BATCH_SIZE
 
   _lang: Optional['Language'] = None
 
