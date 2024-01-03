@@ -41,7 +41,7 @@
   export let totalNumRows: number | undefined = undefined;
   export let updateSequentialRowId: ((direction: 'previous' | 'next') => void) | undefined =
     undefined;
-  export let nextRowId: string | undefined;
+  export let nextRowId: string | undefined = undefined;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();

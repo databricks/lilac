@@ -88,7 +88,7 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
       columns: [],
       combine_columns: true
     },
-    showDeleted: false,
+    viewTrash: false,
     schemaCollapsed: true,
     insightsOpen: false,
     compareColumns: [],

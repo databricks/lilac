@@ -16,6 +16,7 @@ import type {
   UnaryFilter
 } from '../fastapi_client';
 import {
+  DELETED_LABEL_KEY,
   PATH_WILDCARD,
   SPAN_KEY,
   VALUE_KEY,
@@ -259,7 +260,7 @@ export function isLabelField(field: LilacField): boolean {
 export function getSchemaLabels(schema: LilacSchema | LilacField): string[] {
   return childFields(schema)
     .map(f => f.label)
-    .filter(l => l != null && l !== '__deleted__') as string[];
+    .filter(l => l != null && l !== DELETED_LABEL_KEY) as string[];
 }
 
 export function getRowLabels(node: LilacValueNode): string[] {

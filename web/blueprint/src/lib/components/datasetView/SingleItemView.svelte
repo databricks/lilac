@@ -1,8 +1,8 @@
 <script lang="ts">
-  import {querySelectRowsSchema, querySettings} from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
-  import {getHighlightedFields, getMediaFields} from '$lib/view_utils';
-  import {L, ROWID, type SelectRowsResponse} from '$lilac';
+  import { querySelectRowsSchema, querySettings } from '$lib/queries/datasetQueries';
+  import { getDatasetViewContext, getSelectRowsSchemaOptions } from '$lib/stores/datasetViewStore';
+  import { getHighlightedFields, getMediaFields } from '$lib/view_utils';
+  import { L, ROWID, type SelectRowsResponse } from '$lilac';
   import FilterPanel from './FilterPanel.svelte';
   import PrefetchRowItem from './PrefetchRowItem.svelte';
   import RowItem from './RowItem.svelte';
@@ -40,7 +40,7 @@
       if (nextIndex >= rows.length) {
         nextIndex = 0;
       }
-      nextRowId = L.value(rows[nextIndex][ROWID], 'string');
+      nextRowId = L.value(rows[nextIndex][ROWID], 'string') as string;
     }
   }
 
