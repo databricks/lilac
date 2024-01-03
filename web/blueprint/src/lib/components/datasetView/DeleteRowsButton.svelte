@@ -44,21 +44,27 @@
     );
   }
 
+  // Disable when no rows are selected and no searches or filters are applied to avoid accidentally
+  // deleting everything.
+  $: disabled = rowIds == null && searches == null && filters == null;
+
   let modalOpen = false;
 </script>
 
-<button
-  use:hoverTooltip={{
-    text: rowIds != null && rowIds.length === 1 ? 'Delete row' : 'Delete rows'
-  }}
-  class="h-8 rounded border border-gray-300 bg-white hover:border-red-500 hover:bg-transparent"
-  on:click={() => {
-    modalOpen = true;
-  }}
+<div
+  use:hoverTooltip={{text: rowIds != null && rowIds.length === 1 ? 'Delete row' : 'Delete rows'}}
 >
-  <TrashCan />
-</button>
-
+  <button
+    {disabled}
+    class:opacity-30={disabled}
+    class="h-8 rounded border border-gray-300 bg-white hover:border-red-500 hover:bg-transparent"
+    on:click={() => {
+      modalOpen = true;
+    }}
+  >
+    <TrashCan />
+  </button>
+</div>
 <Modal
   size="xs"
   open={modalOpen}

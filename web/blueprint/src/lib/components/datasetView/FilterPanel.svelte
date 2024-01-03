@@ -11,6 +11,7 @@
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import ConceptView from '../concepts/ConceptView.svelte';
+  import DeleteRowsButton from './DeleteRowsButton.svelte';
   import EditLabel from './EditLabel.svelte';
   import FilterPill from './FilterPill.svelte';
   import GroupByPanel from './GroupByPanel.svelte';
@@ -84,6 +85,11 @@
           disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
           labelsQuery={{searches, filters}}
           helperText={'Remove label from all items in the current filter'}
+        />
+        <DeleteRowsButton
+          numRows={numRowsInQuery}
+          searches={$datasetViewStore.query.searches}
+          filters={$datasetViewStore.query.filters}
         />
       </div>
     </div>
