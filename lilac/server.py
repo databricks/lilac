@@ -238,8 +238,6 @@ def start_server(
       `LILAC_PROJECT_DIR` is not defined, will start in the current directory.
     load: Whether to load from the lilac.yml when the server boots up. This will diff the config
       with the fields that are computed and compute them when the server boots up.
-    block: Whether to block the main thread. Always `False` when running in a notebook. Defaults to
-      `True` when running from the command line.
   """
   create_project_and_set_env(project_dir)
 
