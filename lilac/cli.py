@@ -44,8 +44,6 @@ def start(project_dir: str, host: str, port: int, load: bool) -> None:
   # Block the server.
   server.thread.join()
 
-  print('blocked server')
-
 
 @click.command()
 @click.argument('project_dir', default='')
