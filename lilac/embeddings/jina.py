@@ -37,9 +37,9 @@ class JinaV2Small(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'jina-v2-small'
   display_name: ClassVar[str] = 'Jina V2 (small)'
-  map_batch_size: int = JINA_BATCH_SIZE
-  map_parallelism: int = 1
-  map_strategy: TaskExecutionType = 'threads'
+  map_batch_size: ClassVar[int] = JINA_BATCH_SIZE
+  map_parallelism: ClassVar[int] = 1
+  map_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   _size = 'small'
   _model: Optional['AutoModel'] = None

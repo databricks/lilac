@@ -29,9 +29,9 @@ class GTESmall(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'gte-small'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (small)'
-  map_batch_size: int = SENTENCE_TRANSFORMER_BATCH_SIZE
-  map_parallelism: int = 1
-  map_strategy: TaskExecutionType = 'threads'
+  map_batch_size: ClassVar[int] = SENTENCE_TRANSFORMER_BATCH_SIZE
+  map_parallelism: ClassVar[int] = 1
+  map_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   _model_name = GTE_SMALL
   _model: 'SentenceTransformer'

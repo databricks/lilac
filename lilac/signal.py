@@ -70,12 +70,12 @@ class Signal(BaseModel):
   input_type: ClassVar[SignalInputType]
 
   # The output type is the logical type, and treated in a special way in the UI.
-  output_type: OutputType = None
+  output_type: ClassVar[OutputType] = None
 
   # See lilac.data.dataset.Dataset.map for definitions and semantics.
-  map_batch_size: Optional[int] = -1
-  map_parallelism: int = 1
-  map_strategy: TaskExecutionType = 'threads'
+  map_batch_size: ClassVar[Optional[int]] = -1
+  map_parallelism: ClassVar[int] = 1
+  map_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   @model_serializer(mode='wrap', when_used='always')
   def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:
@@ -187,7 +187,7 @@ class TextEmbeddingSignal(TextSignal):
   embed_input_type: EmbeddingInputType = PydanticField(
     title='Embedding Input Type', default='document', description='The input type to the embedding.'
   )
-  output_type: OutputType = 'embedding'
+  output_type: ClassVar[OutputType] = 'embedding'
 
   _split = True
 

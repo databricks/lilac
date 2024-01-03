@@ -23,8 +23,8 @@ class JinaV2SmallGarden(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'jina-v2-small-garden'
   display_name: ClassVar[str] = 'Jina V2 (small) on Garden'
-  map_batch_size: int = -1
-  map_strategy: TaskExecutionType = 'threads'
+  map_batch_size: ClassVar[int] = -1
+  map_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   @override
   def compute(self, docs: Iterator[str]) -> Iterator[Item]:

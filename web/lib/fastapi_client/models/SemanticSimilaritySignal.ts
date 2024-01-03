@@ -11,10 +11,6 @@
  */
 export type SemanticSimilaritySignal = {
     signal_name: 'semantic_similarity';
-    output_type?: ('embedding' | 'cluster' | null);
-    map_batch_size?: (number | null);
-    map_parallelism?: number;
-    map_strategy?: 'processes' | 'threads';
     /**
      * The name of the pre-computed embedding.
      */

@@ -32,9 +32,9 @@ class OpenAIEmbedding(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'openai'
   display_name: ClassVar[str] = 'OpenAI Embeddings'
-  map_batch_size: int = API_OPENAI_BATCH_SIZE
-  map_parallelism: int = API_NUM_PARALLEL_REQUESTS
-  map_strategy: TaskExecutionType = 'threads'
+  map_batch_size: ClassVar[int] = API_OPENAI_BATCH_SIZE
+  map_parallelism: ClassVar[int] = API_NUM_PARALLEL_REQUESTS
+  map_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   @override
   def setup(self) -> None:

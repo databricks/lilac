@@ -30,9 +30,9 @@ class Cohere(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'cohere'
   display_name: ClassVar[str] = 'Cohere Embeddings'
-  map_batch_size: int = 96
-  map_parallelism: int = 10
-  map_strategy: TaskExecutionType = 'threads'
+  map_batch_size: ClassVar[int] = 96
+  map_parallelism: ClassVar[int] = 10
+  map_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   _model: 'Client'
 

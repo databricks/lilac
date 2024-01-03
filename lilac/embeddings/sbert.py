@@ -25,9 +25,9 @@ class SBERT(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'sbert'
   display_name: ClassVar[str] = 'SBERT Embeddings'
-  map_batch_size: int = SENTENCE_TRANSFORMER_BATCH_SIZE
-  map_parallelism: int = 1
-  map_strategy: TaskExecutionType = 'threads'
+  map_batch_size: ClassVar[int] = SENTENCE_TRANSFORMER_BATCH_SIZE
+  map_parallelism: ClassVar[int] = 1
+  map_strategy: ClassVar[TaskExecutionType] = 'threads'
   _model: 'SentenceTransformer'
 
   @override
