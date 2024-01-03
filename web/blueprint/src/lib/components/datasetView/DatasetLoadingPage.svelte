@@ -150,7 +150,13 @@
         <div>
           {#if firstRowId != null}
             <div class="text-xl text-gray-700">Preview</div>
-            <RowItem rowId={firstRowId} {mediaFields} {highlightedFields} />
+            <RowItem
+              rowId={firstRowId}
+              index={0}
+              totalNumRows={$firstRow?.data?.total_num_rows}
+              {mediaFields}
+              {highlightedFields}
+            />
           {/if}
         </div>
         <div class="dataset-link mt-8">

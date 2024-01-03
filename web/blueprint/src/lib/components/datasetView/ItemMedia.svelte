@@ -66,7 +66,7 @@
   }
 
   $: valueNodes = row != null ? getValueNodes(row, rootPath!) : [];
-  $: isLeaf = pathIsMatching(mediaPath, rootPath);
+  $: isLeaf = pathIsMatching(mediaPath, rootPath) && valueNodes.length === 1;
 
   // Get the list of next root paths for children of a repeated node.
   $: nextRootPaths = valueNodes.map(v => {
@@ -95,8 +95,8 @@
 
   $: displayPath = getDisplayPath(pathForDisplay);
 
-  $: valueNode = valueNodes[0];
-  $: value = L.value(valueNode) as string;
+  $: value = L.value(valueNodes[0]) as string;
+
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Get slots for the view. These are custom UI renderings that are a function of dataset formats.
