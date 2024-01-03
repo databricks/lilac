@@ -111,8 +111,6 @@
     }
   }
 
-  $: console.log(labelFields);
-
   function downloadUrl(): string {
     return `/api/v1/datasets/serve_dataset?filepath=${$exportDataset.data}`;
   }
