@@ -140,6 +140,8 @@ def cluster_span_vectors(
     span_clusters: list[Item] = []
     for text_span in spans:
       cluster_id, membership_prob = cluster_labels[span_index]
+      cluster_id = int(cluster_id)
+      membership_prob = float(membership_prob)
       start, end = text_span
       metadata = {CLUSTER_ID: cluster_id, MEMBERSHIP_PROB: membership_prob}
       if cluster_id < 0:
