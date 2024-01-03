@@ -1,7 +1,6 @@
 <script lang="ts">
   import {
     infiniteQuerySelectRows,
-    queryDatasetManifest,
     queryDatasetSchema,
     querySelectRowsSchema,
     querySettings
@@ -25,8 +24,6 @@
   import RowItem from './RowItem.svelte';
 
   const datasetViewStore = getDatasetViewContext();
-
-  $: manifest = queryDatasetManifest($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
