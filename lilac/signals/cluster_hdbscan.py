@@ -78,9 +78,6 @@ def cluster_span_vectors(
   remote: bool = False,
 ) -> Iterator[list[Item]]:
   """Cluster span vectors with HDBSCAN."""
-  # Try to import the cuml version of UMAP, which is much faster than the sklearn version.
-  # if CUDA is available.
-
   all_spans: list[list[tuple[int, int]]] = []
   all_vectors: list[np.ndarray] = []
   with DebugTimer('HDBSCAN: Reading from vector store'):
@@ -102,6 +99,9 @@ def cluster_span_vectors(
     # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
     # For details on hyperparameters, see:
     # https://umap-learn.readthedocs.io/en/latest/clustering.html
+
+    # Try to import the cuml version of UMAP, which is much faster than the sklearn version.
+    # if CUDA is available.
     try:
       from cuml import UMAP  # type: ignore
     except ImportError:
