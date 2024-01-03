@@ -153,6 +153,7 @@ class SelectRowsOptions(BaseModel):
   limit: Optional[int] = None
   offset: Optional[int] = None
   combine_columns: Optional[bool] = None
+  include_deleted: bool = False
 
 
 class SelectRowsSchemaOptions(BaseModel):
@@ -203,6 +204,7 @@ def select_rows(
     limit=options.limit,
     offset=options.offset,
     combine_columns=options.combine_columns or False,
+    include_deleted=options.include_deleted,
     user=user,
   )
 
@@ -422,6 +424,68 @@ def remove_labels(
   dataset = get_dataset(namespace, dataset_name)
   return dataset.remove_labels(
     name=options.label_name,
+    row_ids=options.row_ids,
+    searches=options.searches,
+    filters=sanitized_filters,
+  )
+
+
+class DeleteRowsOptions(BaseModel):
+  """The request for the delete rows endpoint."""
+
+  row_ids: Sequence[str] = []
+  searches: Sequence[SearchPy] = []
+  filters: Sequence[Filter] = []
+
+
+@router.delete('/{namespace}/{dataset_name}/delete_rows', response_model_exclude_none=True)
+def delete_rows(
+  namespace: str,
+  dataset_name: str,
+  options: DeleteRowsOptions,
+  user: Annotated[Optional[UserInfo], Depends(get_session_user)],
+) -> int:
+  """Add a label to the dataset."""
+  if not get_user_access(user).dataset.delete_rows:
+    raise HTTPException(401, 'User does not have access to delete rows on this dataset.')
+
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+
+  dataset = get_dataset(namespace, dataset_name)
+  return dataset.delete_rows(
+    row_ids=options.row_ids,
+    searches=options.searches,
+    filters=sanitized_filters,
+  )
+
+
+class RestoreRowsOptions(BaseModel):
+  """The request for the restore rows endpoint."""
+
+  row_ids: Sequence[str] = []
+  searches: Sequence[SearchPy] = []
+  filters: Sequence[Filter] = []
+
+
+@router.post('/{namespace}/{dataset_name}/restore_rows', response_model_exclude_none=True)
+def restore_rows(
+  namespace: str,
+  dataset_name: str,
+  options: RestoreRowsOptions,
+  user: Annotated[Optional[UserInfo], Depends(get_session_user)],
+) -> int:
+  """Add a label to the dataset."""
+  if not get_user_access(user).dataset.delete_rows:
+    raise HTTPException(401, 'User does not have access to restore rows on this dataset.')
+
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+
+  dataset = get_dataset(namespace, dataset_name)
+  return dataset.restore_rows(
     row_ids=options.row_ids,
     searches=options.searches,
     filters=sanitized_filters,

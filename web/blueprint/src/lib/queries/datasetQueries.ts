@@ -93,6 +93,20 @@ export const deleteSignalMutation = createApiMutation(DatasetsService.deleteSign
   }
 });
 
+export const deleteRowsMutation = createApiMutation(DatasetsService.deleteRows, {
+  onSuccess: () => {
+    queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+  }
+});
+export const restoreRowsMutation = createApiMutation(DatasetsService.restoreRows, {
+  onSuccess: () => {
+    queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
+    queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+  }
+});
 export const queryDatasetStats = createApiQuery(DatasetsService.getStats, DATASETS_TAG);
 
 export function queryBatchStats(
@@ -152,7 +166,8 @@ function getRowMetadataBatcher(
           searches: selectRowsOptions.searches,
           columns: [PATH_WILDCARD, ROWID],
           combine_columns: true,
-          limit: rowIds.length
+          limit: rowIds.length,
+          include_deleted: true
         });
         return selectRowsResponse.rows;
       },

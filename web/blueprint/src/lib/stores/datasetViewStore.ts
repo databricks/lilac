@@ -1,4 +1,5 @@
 import {
+  DELETED_LABEL_KEY,
   ROWID,
   isColumn,
   pathIncludes,
@@ -47,6 +48,8 @@ export interface DatasetViewState {
   // Maps a path to whether the stats are expanded.
   expandedStats: {[path: string]: boolean};
   query: SelectRowsOptions;
+  // True when we are viewing deleted rows.
+  viewTrash: boolean;
 
   // Whether the group by view is active.
   groupBy?: GroupByState;
@@ -85,6 +88,7 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
       columns: [],
       combine_columns: true
     },
+    showDeleted: false,
     schemaCollapsed: true,
     insightsOpen: false,
     compareColumns: [],
@@ -248,6 +252,12 @@ export function createDatasetViewStore(
         state.selection = undefined;
         return state;
       }),
+    showTrash: (show: boolean) =>
+      update(state => {
+        state.rowId = undefined;
+        state.viewTrash = show;
+        return state;
+      }),
     deleteSignal: (signalPath: Path) =>
       update(state => {
         state.query.filters = state.query.filters?.filter(f => !pathIncludes(signalPath, f.path));
@@ -358,6 +368,18 @@ export function getSelectRowsOptions(
   implicitSortByRowId?: boolean
 ): SelectRowsOptions {
   const columns = ['*', ROWID, ...(viewState.query.columns ?? [])];
+  // If we're viewing the trash, add the deleted label filter.
+  if (viewState.viewTrash) {
+    return {
+      include_deleted: true,
+      filters: [{path: DELETED_LABEL_KEY, op: 'exists'}],
+      limit: viewState.query.limit,
+      offset: viewState.query.offset,
+      combine_columns: viewState.query.combine_columns,
+      columns
+    };
+  }
+
   // Deep clone the query so we don't mutate the original.
   const options: SelectRowsOptions = JSON.parse(JSON.stringify(viewState.query));
   // If we are not sorting explicitly, and not searching for a concept or semantic, sort by rowid

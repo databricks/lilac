@@ -14,5 +14,6 @@ export type DatasetUserAccess = {
     create_label_type: boolean;
     edit_labels: boolean;
     label_all: boolean;
+    delete_rows: boolean;
 };
 

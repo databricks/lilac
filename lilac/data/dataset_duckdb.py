@@ -2163,9 +2163,10 @@ class DatasetDuckDB(Dataset):
           [(x,) for x in remove_row_ids],
         )
         conn.commit()
-        count = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
-        if count == 0:
-          delete_file(labels_filepath)
+        if name != DELETED_LABEL_NAME:
+          count = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
+          if count == 0:
+            delete_file(labels_filepath)
 
     if remove_row_ids and name == DELETED_LABEL_NAME:
       self.stats.cache_clear()

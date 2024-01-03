@@ -65,7 +65,7 @@
   $: writableStore.set(itemScrollContainer);
 </script>
 
-<FilterPanel {totalNumRows} manifest={$manifest.data} />
+<FilterPanel numRowsInQuery={totalNumRows} />
 
 {#if $rows.isError}
   <InlineNotification

@@ -259,7 +259,7 @@ export function isLabelField(field: LilacField): boolean {
 export function getSchemaLabels(schema: LilacSchema | LilacField): string[] {
   return childFields(schema)
     .map(f => f.label)
-    .filter(l => l != null) as string[];
+    .filter(l => l != null && l !== '__deleted__') as string[];
 }
 
 export function getRowLabels(node: LilacValueNode): string[] {

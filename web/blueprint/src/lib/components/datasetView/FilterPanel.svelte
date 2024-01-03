@@ -5,10 +5,11 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {conceptLink} from '$lib/utils';
   import {getSearches} from '$lib/view_utils';
-  import {formatValue, type Search, type SearchType, type WebManifest} from '$lilac';
+  import {type Search, type SearchType} from '$lilac';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
-  import {ArrowUpRight, Filter, TagGroup, TagNone} from 'carbon-icons-svelte';
+  import {ArrowUpRight, Filter, TagGroup, TagNone, TrashCan} from 'carbon-icons-svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
+  import RemovableTag from '../common/RemovableTag.svelte';
   import ConceptView from '../concepts/ConceptView.svelte';
   import EditLabel from './EditLabel.svelte';
   import FilterPill from './FilterPill.svelte';
@@ -17,8 +18,7 @@
   import SearchPill from './SearchPill.svelte';
   import SortPill from './SortPill.svelte';
 
-  export let totalNumRows: number | undefined;
-  export let manifest: WebManifest | undefined;
+  export let numRowsInQuery: number | undefined;
 
   let datasetViewStore = getDatasetViewContext();
   const authInfo = queryAuthInfo();
@@ -67,19 +67,9 @@
 <div class="relative mx-5 my-2 flex items-center justify-between">
   <div class="flex w-full justify-between gap-x-6 gap-y-2">
     <div class="flex w-full flex-row gap-x-4">
-      <!-- Number of results. -->
-      <div class="flex items-center rounded border border-neutral-200 bg-neutral-50 p-2">
-        {#if totalNumRows && manifest}
-          {#if totalNumRows == manifest.dataset_manifest.num_items}
-            {formatValue(totalNumRows)} rows
-          {:else}
-            {formatValue(totalNumRows)} of {formatValue(manifest.dataset_manifest.num_items)} rows
-          {/if}
-        {/if}
-      </div>
       <div class="flex items-center gap-x-2">
         <EditLabel
-          {totalNumRows}
+          totalNumRows={numRowsInQuery}
           icon={TagGroup}
           disabled={!canLabelAll}
           disabledMessage={!canLabelAll ? 'User does not have access to label all.' : ''}
@@ -87,7 +77,7 @@
           helperText={'Label all items in the current filter'}
         />
         <EditLabel
-          {totalNumRows}
+          totalNumRows={numRowsInQuery}
           remove
           icon={TagNone}
           disabled={!canLabelAll}
@@ -101,6 +91,19 @@
       <!-- Filters -->
       <div class="flex items-center gap-x-1 rounded border border-neutral-300 px-2">
         <div><Filter /></div>
+        {#if $datasetViewStore.viewTrash}
+          <div class="flex flex-grow flex-row gap-x-4">
+            <div class="filter-group rounded bg-slate-50 px-2 shadow-sm">
+              <RemovableTag
+                interactive
+                type="red"
+                on:remove={() => datasetViewStore.showTrash(false)}
+              >
+                <div class="flex flex-row gap-x-1">Trash <TrashCan /></div>
+              </RemovableTag>
+            </div>
+          </div>
+        {/if}
         {#if searches.length > 0 || (filters && filters.length > 0)}
           <div class="flex flex-grow flex-row gap-x-4">
             <!-- Search groups -->

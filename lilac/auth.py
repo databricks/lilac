@@ -31,6 +31,8 @@ class DatasetUserAccess(BaseModel):
   edit_labels: bool
   # Whether the user can use the label all feature.
   label_all: bool
+  # Whether the user can delete rows.
+  delete_rows: bool
 
 
 class ConceptUserAccess(BaseModel):
@@ -114,6 +116,7 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
         create_label_type=False,
         edit_labels=bool(env('LILAC_AUTH_USER_EDIT_LABELS', False)),
         label_all=not bool(env('LILAC_AUTH_USER_DISABLE_LABEL_ALL', False)),
+        delete_rows=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     )
@@ -129,6 +132,7 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
       create_label_type=True,
       edit_labels=True,
       label_all=True,
+      delete_rows=True,
     ),
     concept=ConceptUserAccess(delete_any_concept=True),
   )

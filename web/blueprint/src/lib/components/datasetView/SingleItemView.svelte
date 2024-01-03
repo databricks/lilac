@@ -1,9 +1,5 @@
 <script lang="ts">
-  import {
-    queryDatasetManifest,
-    querySelectRowsSchema,
-    querySettings
-  } from '$lib/queries/datasetQueries';
+  import {querySelectRowsSchema, querySettings} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {getHighlightedFields, getMediaFields} from '$lib/view_utils';
   import {L, ROWID, type SelectRowsResponse} from '$lilac';
@@ -27,7 +23,6 @@
 
   $: rows = rowsResponse?.rows;
 
-  $: manifest = queryDatasetManifest($store.namespace, $store.datasetName);
   $: firstRowId = rows && rows.length > 0 ? L.value(rows[0][ROWID], 'string') : undefined;
   $: rowId = $store.rowId || firstRowId;
 
@@ -36,6 +31,18 @@
     rowId != null && rows != null
       ? rows.findIndex(row => L.value(row[ROWID], 'string') === rowId)
       : undefined;
+
+  // Compute the next row id for the next button.
+  let nextRowId: string;
+  $: {
+    if (index != null && rows != null) {
+      let nextIndex = index + 1;
+      if (nextIndex >= rows.length) {
+        nextIndex = 0;
+      }
+      nextRowId = L.value(rows[nextIndex][ROWID], 'string');
+    }
+  }
 
   // Double the limit of select rows if the row id was not found.
   $: rowIdWasNotFound = rows != null && index != null && (index === -1 || index >= rows.length);
@@ -54,7 +61,7 @@
     if (index == null) {
       return;
     }
-    const newIndex = direction === 'next' ? index + 1 : Math.max(index - 1, 0);
+    let newIndex = direction === 'next' ? index + 1 : Math.max(index - 1, 0);
     const newRowId = L.value(nextRowsResponse?.rows[newIndex]?.[ROWID], 'string');
     if (newRowId != null) {
       store.setRowId(newRowId);
@@ -71,7 +78,7 @@
   }
 </script>
 
-<FilterPanel totalNumRows={rowsResponse?.total_num_rows} manifest={$manifest.data} />
+<FilterPanel numRowsInQuery={rowsResponse?.total_num_rows} />
 
 <SingleItemSelectRows {limit} bind:rowsResponse />
 <SingleItemSelectRows limit={limit * 2} bind:rowsResponse={nextRowsResponse} />
@@ -86,6 +93,7 @@
     {index}
     totalNumRows={rowsResponse?.total_num_rows}
     {rowId}
+    {nextRowId}
     {mediaFields}
     {highlightedFields}
     {updateSequentialRowId}

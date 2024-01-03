@@ -3,6 +3,7 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {getDisplayPath} from '$lib/view_utils';
   import {
+    DELETED_LABEL_KEY,
     childFields,
     isLabelField,
     isSignalField,
@@ -103,6 +104,14 @@
       includeOnlyLabels[index] = false;
     }
   }
+
+  $: {
+    if (excludeLabels.length === 0) {
+      excludeLabels = labelFields.map(f => f.label === DELETED_LABEL_KEY);
+    }
+  }
+
+  $: console.log(labelFields);
 
   function downloadUrl(): string {
     return `/api/v1/datasets/serve_dataset?filepath=${$exportDataset.data}`;

@@ -26,10 +26,12 @@
   import {SkeletonText} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight, Tag} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
+  import DeleteRowsButton from './DeleteRowsButton.svelte';
   import EditLabel from './EditLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
   import ItemMetadata from './ItemMetadata.svelte';
   import LabelPill from './LabelPill.svelte';
+  import RestoreRowsButton from './RestoreRowsButton.svelte';
 
   export let rowId: string | undefined | null;
   export let mediaFields: LilacField[];
@@ -39,6 +41,7 @@
   export let totalNumRows: number | undefined = undefined;
   export let updateSequentialRowId: ((direction: 'previous' | 'next') => void) | undefined =
     undefined;
+  export let nextRowId: string | undefined;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
@@ -145,7 +148,7 @@
       <div class="flex w-1/3 flex-row">
         <!-- Right 1/3 -->
         <div
-          class="flex w-full flex-row items-center gap-x-2 gap-y-2 pl-2"
+          class="flex w-full flex-row flex-wrap items-center gap-x-2 gap-y-2 pl-2"
           class:opacity-50={disableLabels}
         >
           {#each schemaLabels || [] as label}
@@ -226,8 +229,21 @@
           {/if}
         </div>
       </div>
-      <div class="flex w-1/3 flex-row">
+      <div class="flex w-1/3 flex-row items-center justify-end pr-2">
         <!-- Right 1/3 -->
+        {#if rowId != null}
+          {#if !$datasetViewStore.viewTrash}
+            <DeleteRowsButton
+              rowIds={[rowId]}
+              on:deleted={() => (nextRowId != null ? datasetViewStore.setRowId(nextRowId) : null)}
+            />
+          {:else}
+            <RestoreRowsButton
+              rowIds={[rowId]}
+              on:restore={() => (nextRowId != null ? datasetViewStore.setRowId(nextRowId) : null)}
+            />
+          {/if}
+        {/if}
       </div>
     </div>
   </div>

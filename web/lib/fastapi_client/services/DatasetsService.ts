@@ -7,11 +7,13 @@ import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
 import type { DatasetSettings } from '../models/DatasetSettings';
+import type { DeleteRowsOptions } from '../models/DeleteRowsOptions';
 import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
 import type { ExportOptions } from '../models/ExportOptions';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
 import type { RemoveLabelsOptions } from '../models/RemoveLabelsOptions';
+import type { RestoreRowsOptions } from '../models/RestoreRowsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
 import type { SelectGroupsResult } from '../models/SelectGroupsResult';
 import type { SelectRowsOptions } from '../models/SelectRowsOptions';
@@ -420,6 +422,64 @@ export class DatasetsService {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/labels',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Delete Rows
+     * Add a label to the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static deleteRows(
+        namespace: string,
+        datasetName: string,
+        requestBody: DeleteRowsOptions,
+    ): CancelablePromise<number> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/delete_rows',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Restore Rows
+     * Add a label to the dataset.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns number Successful Response
+     * @throws ApiError
+     */
+    public static restoreRows(
+        namespace: string,
+        datasetName: string,
+        requestBody: RestoreRowsOptions,
+    ): CancelablePromise<number> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/restore_rows',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,
