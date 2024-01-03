@@ -374,12 +374,20 @@ class Dataset(abc.ABC):
 
   def config(self) -> DatasetConfig:
     """Return the dataset config for this dataset."""
+    manifest = self.manifest()
     project_config = read_project_config(get_project_dir())
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
       raise ValueError(
         f'Dataset "{self.namespace}/{self.dataset_name}" not found in project config.'
       )
+
+    # Filter out invalid media paths.
+    if dataset_config.settings and dataset_config.settings.ui.media_paths:
+      dataset_config.settings.ui.media_paths = [
+        p for p in dataset_config.settings.ui.media_paths if manifest.data_schema.has_field(p)
+      ]
+
     return dataset_config
 
   def settings(self) -> DatasetSettings:
@@ -446,23 +454,23 @@ class Dataset(abc.ABC):
   def cluster(
     self,
     path: Path,
-    embedding: Optional[str] = None,
     output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
+    remote: bool = False,
   ) -> None:
     """Compute clusters for a field of the dataset.
 
     Args:
       path: The path to the text field to cluster.
-      embedding: The pre-computed embedding to use.
       output_path: The name of the output path to write to. Defaults to the input path + ".cluster".
       min_cluster_size: The minimum number of docs in a cluster.
       topic_fn: A function that returns a topic summary for each cluster. It takes a list of
         (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
         for a given cluster of docs. It defaults to a function that summarizes user's instructions.
       overwrite: Whether to overwrite an existing output.
+      remote: Whether to run the clustering remotely on Lilac Garden.
 
     """
     pass

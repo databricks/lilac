@@ -192,7 +192,8 @@ def test_settings(make_test_data: TestDataMaker) -> None:
   # Settings can only be updated through the public method for updating settings.
   dataset.update_settings(DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)])))
 
-  expected_settings = DatasetSettings(ui=DatasetUISettings(media_paths=[('str',)]))
+  # The updated media path doesn't exist, so it should be ignored.
+  expected_settings = DatasetSettings(ui=DatasetUISettings(media_paths=[]))
   assert dataset.settings() == expected_settings
   assert dataset.config() == DatasetConfig(
     namespace='test_namespace', name='test_dataset', source=TestSource(), settings=expected_settings

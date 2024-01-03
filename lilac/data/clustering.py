@@ -1,27 +1,33 @@
 """Clustering utilities."""
 import functools
+import gc
+import random
 import threading
 from typing import Any, Iterator, Optional
 
 import instructor
+import modal
+import numpy as np
 from joblib import Parallel, delayed
 from pydantic import (
   BaseModel,
 )
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
+from lilac.embeddings.jina import JinaV2Small
+
 from ..schema import (
+  EMBEDDING_KEY,
   PATH_WILDCARD,
   Item,
   Path,
-  SpanVector,
   field,
   normalize_path,
 )
 from ..signal import (
   TopicFn,
 )
-from ..signals.cluster_hdbscan import CLUSTER_ID, MEMBERSHIP_PROB, cluster_span_vectors
+from ..utils import DebugTimer
 from .dataset import Dataset
 from .dataset_utils import get_common_ancestor, get_sibling_output_path
 
@@ -31,6 +37,11 @@ _NUM_THREADS = 32
 
 TOPIC_FIELD_NAME = 'topic'
 CLUSTER_FIELD_NAME = 'cluster'
+CLUSTER_ID = 'cluster_id'
+MEMBERSHIP_PROB = 'membership_prob'
+MIN_CLUSTER_SIZE = 5
+UMAP_DIM = 5
+UMAP_SEED = 42
 
 
 @functools.cache
@@ -76,6 +87,7 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
     response_model=Title,
     temperature=0.0,
     top_p=0.1,
+    max_tokens=50,
     messages=[
       {
         'role': 'system',
@@ -95,16 +107,13 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
 def cluster(
   dataset: Dataset,
   path: Path,
-  embedding: Optional[str] = None,
   output_path: Optional[Path] = None,
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_instructions,
   overwrite: bool = False,
+  remote: bool = False,
 ) -> None:
   """Compute clusters for a field of the dataset."""
-  if not embedding:
-    raise ValueError('Only embedding-based clustering is supported for now.')
-
   path = normalize_path(path)
   # Make sure the input path ends with a field name so we can store the cluster enrichment as a
   # sibling.
@@ -121,22 +130,13 @@ def cluster(
     # The sibling output path is the same as the input path, but with a different suffix.
     cluster_output_path = get_sibling_output_path(path, CLUSTER_FIELD_NAME)
 
-  def _compute_clusters(span_vectors: Iterator[list[SpanVector]]) -> Iterator[Item]:
-    for x in cluster_span_vectors(span_vectors, min_cluster_size):
-      first_span = x[0]
-      cluster = {CLUSTER_ID: first_span[CLUSTER_ID]}
-      if MEMBERSHIP_PROB in first_span:
-        cluster[MEMBERSHIP_PROB] = first_span[MEMBERSHIP_PROB]
-      yield cluster
-
   clusters_exists = dataset.manifest().data_schema.has_field(cluster_output_path)
   if not clusters_exists or overwrite:
     # Compute the clusters.
     dataset.transform(
-      _compute_clusters,
+      functools.partial(_cluster, min_cluster_size=min_cluster_size, remote=remote),
       input_path=path,
       output_path=cluster_output_path,
-      embedding=embedding,  # Map over the embedding spans instead of the text.
       # Providing schema to avoid inferring and to flag the cluster_id as categorical so the
       # histogram is sorted by size in the UI.
       schema=field(
@@ -154,7 +154,7 @@ def cluster(
     delayed_compute: list[Any] = []
     topics: dict[int, str] = {}
 
-    @retry(wait=wait_random_exponential(min=0.5, max=20), stop=stop_after_attempt(10))
+    @retry(wait=wait_random_exponential(min=0.5, max=60), stop=stop_after_attempt(10))
     def _compute_topic(cluster_id: int) -> Optional[str]:
       if cluster_id not in cluster_locks:
         return None
@@ -184,6 +184,8 @@ def cluster(
 
     # Sort by descending membership score.
     for group in groups.values():
+      # Shuffle the group to avoid biasing the topic function.
+      random.shuffle(group)
       group.sort(key=lambda text_score: text_score[1], reverse=True)
 
     parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
@@ -204,3 +206,71 @@ def cluster(
     # Providing schema to avoid inferring.
     schema=field('string'),
   )
+
+
+def _cluster(
+  docs: Iterator[str],
+  min_cluster_size: int = MIN_CLUSTER_SIZE,
+  remote: bool = False,
+) -> Iterator[Item]:
+  """Cluster dcs with HDBSCAN."""
+  if remote:
+    remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
+    response = remote_fn({'docs': list(docs)})
+    yield from response['clusters']
+
+  with DebugTimer('Computing embeddings'):
+    jina = JinaV2Small()
+    jina.setup()
+    response = jina.compute(list(docs))
+    jina.teardown()
+
+  all_vectors = np.array([r[0][EMBEDDING_KEY] for r in response], dtype=np.float32)
+  del response, docs
+  gc.collect()
+
+  # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
+  # For details on hyperparameters, see:
+  # https://umap-learn.readthedocs.io/en/latest/clustering.html
+
+  # Try to import the cuml version of UMAP, which is much faster than the sklearn version.
+  # if CUDA is available.
+  try:
+    from cuml import UMAP  # type: ignore
+  except ImportError:
+    from umap import UMAP
+
+  dim = all_vectors[0].size
+  with DebugTimer(f'UMAP: Reducing dim from {dim} to {UMAP_DIM} of {len(all_vectors)} vectors'):
+    n_neighbors = min(30, len(all_vectors) - 1)
+    if UMAP_DIM < dim and UMAP_DIM < len(all_vectors):
+      reducer = UMAP(
+        n_components=UMAP_DIM,
+        n_neighbors=n_neighbors,
+        min_dist=0.0,
+        n_jobs=-1,
+        random_state=UMAP_SEED,
+      )
+      all_vectors = reducer.fit_transform(all_vectors)
+
+  gc.collect()
+
+  # Try to import the cuml version of HDBSCAN, which is much faster than the sklearn version.
+  # if CUDA is available.
+  try:
+    from cuml.cluster.hdbscan import HDBSCAN  # type: ignore
+  except ImportError:
+    from sklearn.cluster import HDBSCAN
+
+  with DebugTimer('HDBSCAN: Clustering'):
+    min_cluster_size = min(min_cluster_size, len(all_vectors))
+    hdbscan = HDBSCAN(min_cluster_size=min_cluster_size, n_jobs=-1)
+    hdbscan.fit(all_vectors)
+
+  for cluster_id, membership_prob in zip(hdbscan.labels_, hdbscan.probabilities_):
+    cluster_id = int(cluster_id)
+    membership_prob = float(membership_prob)
+    item = {CLUSTER_ID: cluster_id, MEMBERSHIP_PROB: membership_prob}
+    if cluster_id < 0:
+      item = {CLUSTER_ID: -1}
+    yield item

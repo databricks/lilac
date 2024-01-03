@@ -83,12 +83,6 @@
       '/namespace': EmptyComponent,
       '/concept_name': SelectConcept,
       '/embedding': SelectEmbedding
-    },
-    cluster_dbscan: {
-      '/embedding': SelectEmbedding
-    },
-    cluster_hdbscan: {
-      '/embedding': SelectEmbedding
     }
   };
 

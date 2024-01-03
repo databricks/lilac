@@ -46,6 +46,7 @@ def test_auth_admin(mocker: MockerFixture) -> None:
         create_label_type=True,
         edit_labels=True,
         label_all=True,
+        delete_rows=True,
       ),
       concept=ConceptUserAccess(delete_any_concept=True),
     ),
@@ -81,6 +82,7 @@ def test_auth_nonadmin(mocker: MockerFixture) -> None:
         create_label_type=False,
         edit_labels=False,
         label_all=True,
+        delete_rows=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     ),
@@ -118,6 +120,7 @@ def test_auth_nonadmin_edit_labels(mocker: MockerFixture) -> None:
         # Users can edit labels (add and remove) but not create label types.
         edit_labels=True,
         label_all=True,
+        delete_rows=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     ),
@@ -157,6 +160,7 @@ def test_auth_nonadmin_label_all(mocker: MockerFixture) -> None:
         edit_labels=True,
         # Users cannot use the label all feature.
         label_all=False,
+        delete_rows=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     ),

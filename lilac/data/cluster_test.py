@@ -30,7 +30,6 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
     'Can you simplify this text',
   ]
   dataset = make_test_data([{'text': t} for t in texts])
-  dataset.compute_embedding('jina-v2-small', 'text')
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
     if 'summar' in docs[0][0]:
@@ -39,7 +38,7 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
       return 'simplification'
     return 'other'
 
-  dataset.cluster('text', 'jina-v2-small', min_cluster_size=2, topic_fn=topic_fn)
+  dataset.cluster('text', min_cluster_size=2, topic_fn=topic_fn)
 
   rows = list(dataset.select_rows(['text', 'text_cluster'], combine_columns=True))
   assert rows == [
@@ -69,7 +68,6 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
     [{'text': 'Can you simplify this text'}, {'text': '1224123531451345'}],
   ]
   dataset = make_test_data([{'texts': t} for t in texts])
-  dataset.compute_embedding('jina-v2-small', 'texts.*.text')
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
     if 'summar' in docs[0][0]:
@@ -78,7 +76,7 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       return 'simplification'
     return 'other'
 
-  dataset.cluster('texts.*.text', 'jina-v2-small', min_cluster_size=2, topic_fn=topic_fn)
+  dataset.cluster('texts.*.text', min_cluster_size=2, topic_fn=topic_fn)
 
   rows = list(dataset.select_rows(['texts'], combine_columns=True))
   assert rows == [
@@ -120,9 +118,8 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
 def test_path_ending_with_repeated_errors(make_test_data: TestDataMaker) -> None:
   texts: list[list[str]] = [['a', 'b'], ['c'], ['d']]
   dataset = make_test_data([{'texts': t} for t in texts])
-  dataset.compute_embedding('jina-v2-small', 'texts.*')
 
   with pytest.raises(
     ValueError, match=re.escape("Path ('texts', '*') must end with a field name.")
   ):
-    dataset.cluster('texts.*', 'jina-v2-small')
+    dataset.cluster('texts.*')
