@@ -146,7 +146,7 @@ interface BatchMetadataRequest {
   selectRowsOptions: SelectRowsOptions;
 }
 // Create a cache of the batcher so we reuse the same batcher for the same dataset and options.
-const ROW_METADATA_BATCH_WINDOW_MS = 10;
+const ROW_METADATA_BATCH_WINDOW_MS = 30;
 const batchedRowMetadataCache: Record<
   string,
   Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0]>
