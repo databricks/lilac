@@ -2,12 +2,21 @@
 
 Lilac projects can be deployed to HuggingFace spaces out of the box.
 
-You can either use our Python API / CLI, or Duplicate our public space.
+You can either use our Deployer UI, our Python API / CLI, or Duplicate our public space.
 
-The accompanying IPython notebook can be found
-[here](https://github.com/lilacai/lilac/blob/main/notebooks/MigrateEmbedding.ipynb).
+## Option 1: Use the Lilac Deployer UI 🚀
 
-## Option 1: Deploy from Python / CLI
+[Visit the Lilac Deployer UI 🚀](https://huggingface.co/spaces/lilacai/lilac_deployer?dataset=imdb)
+
+There are two pages in the deployer UI.
+
+1. Select your HuggingFace dataset to read, config, splits, and read tokens.
+2. Select your HuggingFace space to write to. You will need a HuggingFace write token which you can
+   get from your [HuggingFace settings](https://huggingface.co/settings/tokens).
+
+This will create a HuggingFace space, reading your HuggingFace dataset upon bootup.
+
+## Option 2: Deploy from Python / CLI
 
 This requires:
 
@@ -15,6 +24,9 @@ This requires:
 - Have the `huggingface_hub` pip package installed.
 
 ### Python
+
+The accompanying IPython notebook can be found
+[here](https://github.com/lilacai/lilac/blob/main/notebooks/DeployToHuggingFace.ipynb).
 
 #### Deploy a project
 
@@ -77,7 +89,7 @@ If you only want to deploy a subset of datasets, you can pass:
 If you only want to deploy a subset of concepts, you can pass:
 `--concept local/concept1 --concept local/concept1`
 
-## Option 2: Duplicate the HuggingFace demo
+## Option 3: Duplicate the HuggingFace demo
 
 Lilac hosts a [HuggingFace spaces demo](https://lilacai-lilac.hf.space/) so you can try Lilac before
 installing it.
