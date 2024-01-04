@@ -171,10 +171,11 @@ def cluster(
 
     for item in items:
       cluster_info = item[cluster_column]
+      cluster_id: int
       if not cluster_info or CLUSTER_ID not in cluster_info:
         cluster_id = -1
       else:
-        cluster_id: int = cluster_info[CLUSTER_ID]
+        cluster_id = cluster_info[CLUSTER_ID]
       delayed_compute.append(delayed(_compute_topic)(cluster_id))
       text = item[text_column]
       if not text:
