@@ -16,6 +16,7 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from lilac.embeddings.jina import JinaV2Small
 
+from ..batch_utils import compress_docs
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
@@ -33,7 +34,7 @@ from .dataset_utils import get_common_ancestor, get_sibling_output_path
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 5
-_NUM_THREADS = 32
+_NUM_THREADS = 16
 
 TOPIC_FIELD_NAME = 'topic'
 CLUSTER_FIELD_NAME = 'cluster'
@@ -154,7 +155,7 @@ def cluster(
     delayed_compute: list[Any] = []
     topics: dict[int, str] = {}
 
-    @retry(wait=wait_random_exponential(min=0.5, max=60), stop=stop_after_attempt(10))
+    @retry(wait=wait_random_exponential(multiplier=0.5, max=60), stop=stop_after_attempt(10))
     def _compute_topic(cluster_id: int) -> Optional[str]:
       if cluster_id not in cluster_locks:
         return None
@@ -169,24 +170,33 @@ def cluster(
         return topic
 
     for item in items:
-      cluster_id: int = item[cluster_column][CLUSTER_ID]
+      cluster_info = item[cluster_column]
+      if not cluster_info or CLUSTER_ID not in cluster_info:
+        cluster_id = -1
+      else:
+        cluster_id: int = cluster_info[CLUSTER_ID]
       delayed_compute.append(delayed(_compute_topic)(cluster_id))
       text = item[text_column]
       if not text:
         continue
+      if not cluster_info:
+        continue
       if cluster_id < 0 or cluster_id is None:
         continue
-      membership_prob = item[cluster_column][MEMBERSHIP_PROB] or 0
+      membership_prob = cluster_info[MEMBERSHIP_PROB] or 0
       if membership_prob == 0:
         continue
       groups.setdefault(cluster_id, []).append((text, membership_prob))
       cluster_locks.setdefault(cluster_id, threading.Lock())
 
     # Sort by descending membership score.
-    for group in groups.values():
+    for cluster_id, group in groups.items():
+      # Remove any duplicate texts in the group.
+      group = list(set(group))
       # Shuffle the group to avoid biasing the topic function.
       random.shuffle(group)
       group.sort(key=lambda text_score: text_score[1], reverse=True)
+      groups[cluster_id] = group
 
     parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
     yield from parallel(delayed_compute)
@@ -216,7 +226,8 @@ def _cluster(
   """Cluster dcs with HDBSCAN."""
   if remote:
     remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
-    response = remote_fn({'docs': list(docs)})
+    gzipped_docs = compress_docs(list(docs))
+    response = remote_fn({'gzipped_docs': gzipped_docs})
     yield from response['clusters']
 
   with DebugTimer('Computing embeddings'):
