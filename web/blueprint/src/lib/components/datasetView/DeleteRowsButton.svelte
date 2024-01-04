@@ -1,5 +1,6 @@
 <script lang="ts">
   import {deleteRowsMutation} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import type {DeleteRowsOptions} from '$lilac';
   import {Modal} from 'carbon-components-svelte';
@@ -11,6 +12,10 @@
   export let searches: DeleteRowsOptions['searches'] | undefined = undefined;
   export let filters: DeleteRowsOptions['filters'] | undefined = undefined;
   export let numRows: number | undefined = undefined;
+  export let modalOpen = false;
+
+  const authInfo = queryAuthInfo();
+  $: canDeleteRows = $authInfo.data?.access.dataset.delete_rows;
 
   const dispatch = createEventDispatcher();
 
@@ -46,19 +51,24 @@
 
   // Disable when no rows are selected and no searches or filters are applied to avoid accidentally
   // deleting everything.
-  $: disabled = rowIds == null && searches == null && filters == null;
-
-  let modalOpen = false;
+  $: disabled = !canDeleteRows || (rowIds == null && searches == null && filters == null);
 </script>
 
 <div
-  use:hoverTooltip={{text: rowIds != null && rowIds.length === 1 ? 'Delete row' : 'Delete rows'}}
+  use:hoverTooltip={{
+    text: canDeleteRows
+      ? rowIds != null && rowIds.length === 1
+        ? 'Delete row'
+        : 'Delete rows'
+      : 'User does not have access to delete rows.'
+  }}
 >
   <button
     {disabled}
     class:opacity-30={disabled}
     class="h-8 rounded border border-gray-300 bg-white hover:border-red-500 hover:bg-transparent"
     on:click={() => {
+      if (disabled) return;
       modalOpen = true;
     }}
   >
@@ -67,7 +77,7 @@
 </div>
 <Modal
   size="xs"
-  open={modalOpen}
+  open={modalOpen && !disabled}
   modalHeading="Delete rows"
   primaryButtonText="Confirm"
   secondaryButtonText="Cancel"

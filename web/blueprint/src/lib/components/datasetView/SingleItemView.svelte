@@ -69,11 +69,14 @@
     }
   }
 
+  let openDeleteModal = false;
   function onKeyDown(key: KeyboardEvent) {
     if (key.code === 'ArrowLeft') {
       updateSequentialRowId('previous');
     } else if (key.code === 'ArrowRight') {
       updateSequentialRowId('next');
+    } else if (key.code === 'Delete' || key.code === 'Backspace') {
+      openDeleteModal = true;
     }
   }
 </script>
@@ -97,6 +100,7 @@
     {mediaFields}
     {highlightedFields}
     {updateSequentialRowId}
+    bind:openDeleteModal
   />
 </div>
 <svelte:window on:keydown={onKeyDown} />

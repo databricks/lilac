@@ -42,6 +42,7 @@
   export let updateSequentialRowId: ((direction: 'previous' | 'next') => void) | undefined =
     undefined;
   export let nextRowId: string | undefined = undefined;
+  export let openDeleteModal = false;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
@@ -143,6 +144,10 @@
   <div class="sticky top-0 z-10 flex w-full flex-row justify-between bg-white">
     <div
       class="mx-4 flex w-full rounded-t-lg border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
+      class:bg-violet-200={!$datasetViewStore.viewTrash}
+      class:bg-opacity-70={!$datasetViewStore.viewTrash}
+      class:bg-red-500={$datasetViewStore.viewTrash}
+      class:bg-opacity-20={$datasetViewStore.viewTrash}
     >
       <!-- Left arrow -->
       <div class="flex w-1/3 flex-row">
@@ -155,7 +160,7 @@
             <div class:opacity-50={labelsInProgress.has(label)}>
               <LabelPill
                 {label}
-                disabled={labelsInProgress.has(label)}
+                disabled={labelsInProgress.has(label) || disableLabels}
                 active={rowLabels.includes(label)}
                 on:click={() => {
                   if (rowLabels.includes(label)) {
@@ -234,6 +239,7 @@
         {#if rowId != null}
           {#if !$datasetViewStore.viewTrash}
             <DeleteRowsButton
+              bind:modalOpen={openDeleteModal}
               rowIds={[rowId]}
               on:deleted={() => (nextRowId != null ? datasetViewStore.setRowId(nextRowId) : null)}
             />
