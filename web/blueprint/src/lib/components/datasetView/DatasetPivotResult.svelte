@@ -12,14 +12,14 @@
   import {datasetLink} from '$lib/utils';
   import {ROWID, type BinaryFilter, type Path, type UnaryFilter} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
-  import {createEventDispatcher, onDestroy, onMount} from 'svelte';
+  import {createEventDispatcher} from 'svelte';
 
   export let filter: BinaryFilter | UnaryFilter;
   export let path: Path;
   export let numRowsInQuery: number | undefined;
   // When true, queries will be issued. This allows us to progressively load without spamming the
   // server.
-  export let shouldLoad: boolean = false;
+  export let shouldLoad = false;
 
   let isExpanded = true;
 
@@ -43,8 +43,6 @@
       )
     : null;
   $: numRowsInGroup = $rowsQuery?.data?.total_num_rows;
-
-  let inView = false;
 
   $: countQuery = shouldLoad
     ? querySelectGroups($store.namespace, $store.datasetName, {
@@ -73,33 +71,12 @@
     if (total == null) return '0';
     return ((count / total) * 100).toFixed(2);
   }
-
-  let root: HTMLDivElement;
-
-  // Only issue the queries when the element is in view to avoid spamming the server.
-  let observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        inView = true;
-        observer.disconnect();
-      }
-    });
-  });
-
-  onMount(() => {
-    observer.observe(root);
-  });
-
-  onDestroy(() => {
-    observer.disconnect();
-  });
 </script>
 
 <div
   class="flex flex-row flex-wrap"
   class:max-h-screen={!isExpanded}
   class:text-preview-overlay={!isExpanded}
-  bind:this={root}
 >
   {#if $countQuery?.isFetching}
     <SkeletonText />
