@@ -91,7 +91,7 @@ def _dataset_page():
   if ds_builder:
     st.session_state.ds_loaded = True
     st.session_state.ds_error = None
-    st.session_state.ds_dataset_name = ds_builder.info.dataset_name
+    st.session_state.ds_dataset_name = hf_dataset_name
     st.session_state.ds_description = ds_builder.info.description
     st.session_state.ds_features = ds_builder.info.features
     st.session_state.ds_splits = ds_builder.info.splits
