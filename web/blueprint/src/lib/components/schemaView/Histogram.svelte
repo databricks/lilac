@@ -44,12 +44,14 @@
       class="flex items-center p-0 text-left text-xs text-black hover:bg-gray-200"
       on:click={() => dispatch('row-click', {value})}
     >
-      <div title={groupName} class="w-48 flex-none truncate px-2">{groupName}</div>
+      <div title={groupName} class="histogram-label histogram-bar w-48 flex-none truncate px-2">
+        {groupName}
+      </div>
       <div class="w-36 border-l border-gray-300 pl-2">
         <div
           title={formattedCount}
           style:width={barWidth}
-          class="histogram-bar my-px bg-indigo-200 pl-2 text-xs leading-5"
+          class="histogram-label histogram-bar my-px bg-indigo-200 pl-2 text-xs leading-5"
         >
           {formattedCount}
         </div>
@@ -57,3 +59,9 @@
     </button>
   {/each}
 </div>
+
+<style>
+  .histogram-label {
+    font-family: 'inconsolata variable';
+  }
+</style>

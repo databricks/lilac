@@ -1588,7 +1588,6 @@ class DatasetDuckDB(Dataset):
       # Replace any NaT with None and pd.Timestamp to native datetime objects.
       counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
 
-    print('counts', counts, 'bins', named_bins)
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(
