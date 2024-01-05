@@ -33,7 +33,7 @@
     <div class="text-lg text-gray-700">Label shortcuts</div>
     <div class="text-sm text-gray-500">
       <p>
-        Keyboard shortcuts for labeling rows. Key codes are standard browser <a
+        Keyboard shortcuts for toggling a label on a row. Key codes are standard browser <a
           href="https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code">key codes</a
         >.
       </p>
