@@ -112,11 +112,25 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       'texts': [
         {
           'text': 'Can you summarize this article',
-          'text__cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
+          'text__cluster': {
+            'cluster_id': 0,
+            'cluster_membership_prob': 1.0,
+            'cluster_title': 'summarization',
+            'category_id': -1,
+            'category_membership_prob': None,
+            'category_title': None,
+          },
         },
         {
           'text': 'Can you rewrite this in a simpler way',
-          'text__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
+          'text__cluster': {
+            'cluster_id': 1,
+            'cluster_membership_prob': 1.0,
+            'cluster_title': 'simplification',
+            'category_id': -1,
+            'category_membership_prob': None,
+            'category_title': None,
+          },
         },
       ]
     },
@@ -124,7 +138,14 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       'texts': [
         {
           'text': 'Can you provide a short summary of the following text',
-          'text__cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
+          'text__cluster': {
+            'cluster_id': 0,
+            'cluster_membership_prob': 1.0,
+            'cluster_title': 'summarization',
+            'category_id': -1,
+            'category_membership_prob': None,
+            'category_title': None,
+          },
         }
       ],
     },
@@ -132,11 +153,25 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       'texts': [
         {
           'text': 'Can you simplify this text',
-          'text__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
+          'text__cluster': {
+            'cluster_id': 1,
+            'cluster_membership_prob': 1.0,
+            'cluster_title': 'simplification',
+            'category_id': -1,
+            'category_membership_prob': None,
+            'category_title': None,
+          },
         },
         {
           'text': '1224123531451345',
-          'text__cluster': {'cluster_id': -1, 'membership_prob': None, 'topic': None},
+          'text__cluster': {
+            'cluster_id': -1,
+            'cluster_membership_prob': None,
+            'cluster_title': None,
+            'category_id': None,
+            'category_membership_prob': None,
+            'category_title': None,
+          },
         },
       ],
     },
