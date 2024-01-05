@@ -27,6 +27,7 @@
   import {SkeletonText} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight, Tag} from 'carbon-icons-svelte';
   import {slide} from 'svelte/transition';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import DeleteRowsButton from './DeleteRowsButton.svelte';
   import EditLabel from './EditLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
@@ -193,7 +194,15 @@
           class:opacity-50={disableLabels}
         >
           {#each schemaLabels || [] as label}
-            <div class:opacity-50={labelsInProgress.has(label)}>
+            <div
+              class:opacity-50={labelsInProgress.has(label)}
+              use:hoverTooltip={{
+                text:
+                  labelKeyboardShortcuts[label] != null
+                    ? `Keyboard: ${labelKeyboardShortcuts[label]}`
+                    : ''
+              }}
+            >
               <LabelPill
                 {label}
                 disabled={labelsInProgress.has(label) || disableLabels}
