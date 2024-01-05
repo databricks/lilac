@@ -36,10 +36,16 @@ _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 5
 _NUM_THREADS = 16
 
-TOPIC_FIELD_NAME = 'topic'
-CLUSTER_FIELD_NAME = 'cluster'
 CLUSTER_ID = 'cluster_id'
-MEMBERSHIP_PROB = 'membership_prob'
+CLUSTER_MEMBERSHIP_PROB = 'cluster_membership_prob'
+CLUSTER_TITLE = 'cluster_title'
+
+CATEROGY_ID = 'category_id'
+CATEGORY_MEMBERSHIP_PROB = 'category_membership_prob'
+CATEGORY_TITLE = 'category_title'
+
+FIELD_SUFFIX = 'cluster'
+
 MIN_CLUSTER_SIZE = 5
 UMAP_DIM = 5
 UMAP_SEED = 42
@@ -105,6 +111,37 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
   return title.title
 
 
+class Category(BaseModel):
+  """A 4-5 word category."""
+
+  category: str
+
+
+def summarize_topics(ranked_docs: list[tuple[str, float]]) -> str:
+  """Summarize a list of topics in a category."""
+  # Get the top 5 documents.
+  docs = [doc for doc, _ in ranked_docs[:5]]
+  input = '\n'.join(docs)
+  category = _openai_client().chat.completions.create(
+    model='gpt-3.5-turbo-1106',
+    response_model=Category,
+    temperature=0.0,
+    top_p=0.1,
+    max_tokens=50,
+    messages=[
+      {
+        'role': 'system',
+        'content': (
+          'Create a short category name for the titles below. For example, for "translating '
+          'english to polish" and "translating korean to english", output "Translation"'
+        ),
+      },
+      {'role': 'user', 'content': input},
+    ],
+  )
+  return category.category
+
+
 def cluster(
   dataset: Dataset,
   path: Path,
@@ -113,6 +150,7 @@ def cluster(
   topic_fn: TopicFn = summarize_instructions,
   overwrite: bool = False,
   remote: bool = False,
+  supertopic: bool = False,
 ) -> None:
   """Compute clusters for a field of the dataset."""
   path = normalize_path(path)
@@ -129,7 +167,7 @@ def cluster(
     cluster_output_path = normalize_path(output_path)
   else:
     # The sibling output path is the same as the input path, but with a different suffix.
-    cluster_output_path = get_sibling_output_path(path, CLUSTER_FIELD_NAME)
+    cluster_output_path = get_sibling_output_path(path, FIELD_SUFFIX)
 
   clusters_exists = dataset.manifest().data_schema.has_field(cluster_output_path)
   if not clusters_exists or overwrite:
@@ -141,7 +179,7 @@ def cluster(
       # Providing schema to avoid inferring and to flag the cluster_id as categorical so the
       # histogram is sorted by size in the UI.
       schema=field(
-        fields={CLUSTER_ID: field('int32', categorical=True), MEMBERSHIP_PROB: 'float32'}
+        fields={CLUSTER_ID: field('int32', categorical=True), CLUSTER_MEMBERSHIP_PROB: 'float32'}
       ),
       overwrite=overwrite,
     )
@@ -184,7 +222,7 @@ def cluster(
         continue
       if cluster_id < 0 or cluster_id is None:
         continue
-      membership_prob = cluster_info[MEMBERSHIP_PROB] or 0
+      membership_prob = cluster_info[CLUSTER_MEMBERSHIP_PROB] or 0
       if membership_prob == 0:
         continue
       groups.setdefault(cluster_id, []).append((text, membership_prob))
@@ -208,15 +246,85 @@ def cluster(
   ancestor_path, text_column, cluster_column = get_common_ancestor(path, cluster_output_path)
 
   # Output the topic as a child of the cluster enrichment.
-  topic_output_path = (*cluster_output_path, TOPIC_FIELD_NAME)
-  dataset.transform(
-    functools.partial(_compute_topics, text_column, cluster_column),
-    input_path=ancestor_path,
-    output_path=topic_output_path,
+  topic_output_path = (*cluster_output_path, CLUSTER_TITLE)
+
+  topics_exist = dataset.manifest().data_schema.has_field(topic_output_path)
+  if not topics_exist or overwrite:
+    dataset.transform(
+      functools.partial(_compute_topics, text_column, cluster_column),
+      input_path=ancestor_path,
+      output_path=topic_output_path,
+      overwrite=overwrite,
+      # Providing schema to avoid inferring.
+      schema=field('string'),
+    )
+
+  if supertopic:
+    return
+
+  # Cluster the topics into supertopics.
+  topic_cluster_output_path = get_sibling_output_path(topic_output_path, FIELD_SUFFIX)
+  cluster(
+    dataset,
+    topic_output_path,
+    output_path=topic_cluster_output_path,
+    topic_fn=summarize_topics,
     overwrite=overwrite,
-    # Providing schema to avoid inferring.
-    schema=field('string'),
+    remote=remote,
+    supertopic=True,
   )
+
+  # At this point we have something like this in output_path:
+  # {
+  #   'cluster_id': 0,
+  #   'membership_prob': 1.0,
+  #   'topic': '...',
+  #   'topic__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': '...'}
+  # }
+  # and we want to flatten it to:
+  # {
+  #   'cluster_id': 0,
+  #   'membership_prob': 1.0,
+  #   'topic': '...',
+  #   'super_cluster_id': 1,
+  #   'super_cluster_membership_prob': 1.0,
+  #   'super_topic': '...',
+  # }
+  CLUSTER_FIELD = topic_cluster_output_path[-1]
+
+  def flatten_cluster_info(item: Item) -> Item:
+    if CLUSTER_FIELD not in item:
+      return item
+    return {
+      CLUSTER_ID: item[CLUSTER_ID],
+      CLUSTER_MEMBERSHIP_PROB: item[CLUSTER_MEMBERSHIP_PROB],
+      CLUSTER_TITLE: item[CLUSTER_TITLE],
+      CATEROGY_ID: item[CLUSTER_FIELD][CLUSTER_ID],
+      CATEGORY_MEMBERSHIP_PROB: item[CLUSTER_FIELD][CLUSTER_MEMBERSHIP_PROB],
+      CATEGORY_TITLE: item[CLUSTER_FIELD][CLUSTER_TITLE],
+    }
+
+  dataset.map(
+    flatten_cluster_info,
+    cluster_output_path,
+    cluster_output_path,
+    overwrite=True,
+    schema=field(
+      fields={
+        CLUSTER_ID: field('int32', categorical=True),
+        CLUSTER_MEMBERSHIP_PROB: 'float32',
+        CLUSTER_TITLE: 'string',
+        CATEROGY_ID: field('int32', categorical=True),
+        CATEGORY_MEMBERSHIP_PROB: 'float32',
+        CATEGORY_TITLE: 'string',
+      },
+    ),
+  )
+
+  # Delete the topic cluster enrichment.
+  dataset.delete_column(topic_cluster_output_path)
+  # Delete the category generated by the topic clustering.
+  dataset.delete_column((*topic_cluster_output_path, CLUSTER_TITLE))
 
 
 def _cluster(
@@ -224,7 +332,7 @@ def _cluster(
   min_cluster_size: int = MIN_CLUSTER_SIZE,
   remote: bool = False,
 ) -> Iterator[Item]:
-  """Cluster dcs with HDBSCAN."""
+  """Cluster docs with HDBSCAN."""
   if remote:
     remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
     gzipped_docs = compress_docs(list(docs))
@@ -282,7 +390,7 @@ def _cluster(
   for cluster_id, membership_prob in zip(hdbscan.labels_, hdbscan.probabilities_):
     cluster_id = int(cluster_id)
     membership_prob = float(membership_prob)
-    item = {CLUSTER_ID: cluster_id, MEMBERSHIP_PROB: membership_prob}
+    item = {CLUSTER_ID: cluster_id, CLUSTER_MEMBERSHIP_PROB: membership_prob}
     if cluster_id < 0:
       item = {CLUSTER_ID: -1}
     yield item

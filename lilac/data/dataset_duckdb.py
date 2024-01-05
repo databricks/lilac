@@ -1174,6 +1174,39 @@ class DatasetDuckDB(Dataset):
     log(f'Wrote embedding index to {output_dir}')
 
   @override
+  def delete_column(self, path: Path) -> None:
+    path = normalize_path(path)
+
+    # Sanity checks.
+    manifest = self.manifest()
+    if not manifest.data_schema.has_field(path):
+      raise ValueError(f'Cannot delete path: {path}. It does not exist')
+    field = manifest.data_schema.get_field(path)
+
+    if field.signal:
+      return self.delete_signal(path)
+
+    if not field.map:
+      raise ValueError(f'Cannot delete path: {path} since it was not created by dataset.map()')
+
+    jsonl_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=path,
+      project_dir=self.project_dir,
+    )
+    if os.path.exists(jsonl_cache_filepath):
+      delete_file(jsonl_cache_filepath)
+
+    parquet_filepath = _get_parquet_filepath(dataset_path=self.dataset_path, output_path=path)
+    delete_file(parquet_filepath)
+
+    parquet_dir = os.path.dirname(parquet_filepath)
+    prefix = '.'.join(path)
+    map_manifest_filepath = os.path.join(parquet_dir, f'{prefix}.{MAP_MANIFEST_SUFFIX}')
+    delete_file(map_manifest_filepath)
+
+  @override
   def delete_signal(self, signal_path: Path) -> None:
     signal_path = normalize_path(signal_path)
 
@@ -2774,7 +2807,7 @@ class DatasetDuckDB(Dataset):
     with open_file(map_manifest_filepath, 'w') as f:
       f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
-    log(f'Wrote map output to {parquet_filepath}')
+    log(f'Wrote map output to {parquet_dir}')
 
     # Promote any new string columns as media fields if the length is above a threshold.
     for path, field in map_schema.leafs.items():
