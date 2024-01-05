@@ -3,13 +3,14 @@
   import {
     DATASETS_TAG,
     deleteDatasetMutation,
+    queryDatasetSchema,
     queryDatasets,
     querySettings,
     updateDatasetSettingsMutation
   } from '$lib/queries/datasetQueries';
   import {queryClient} from '$lib/queries/queryClient';
   import {datasetIdentifier} from '$lib/utils';
-  import type {DatasetSettings} from '$lilac';
+  import {getSchemaLabels, type DatasetSettings} from '$lilac';
   import {
     ComboBox,
     ComposedModal,
@@ -22,6 +23,7 @@
   import CommandSelectList from '../commands/selectors/CommandSelectList.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import DatasetSettingsFields from './DatasetSettingsFields.svelte';
+  import DatasetSettingsKeyboardShortcuts from './DatasetSettingsKeyboardShortcuts.svelte';
 
   export let namespace: string;
   export let name: string;
@@ -52,7 +54,7 @@
 
   $: identifier = datasetIdentifier(namespace, name);
 
-  let settingsPage: 'fields' | 'tags' | 'administration' = 'fields';
+  let settingsPage: 'fields' | 'tags' | 'keyboard_shortcuts' | 'administration' = 'fields';
 
   function parseSettings(settings: DatasetSettings | undefined): DatasetSettings | null {
     if (settings == null) return null;
@@ -102,6 +104,9 @@
     }
     newSettings.tags = newSettings.tags.filter(t => t !== tag);
   }
+
+  $: schema = queryDatasetSchema(namespace, name);
+  $: labels = $schema.data && getSchemaLabels($schema.data);
 </script>
 
 <ComposedModal {open} on:submit={submit} on:close={() => (open = false)}>
@@ -116,6 +121,7 @@
               value: 'fields'
             },
             {title: 'Tags', value: 'tags'},
+            {title: 'Keyboard shortcuts', value: 'keyboard_shortcuts'},
             {title: 'Administration', value: 'administration'}
           ]}
           item={settingsPage}
@@ -156,6 +162,8 @@
               placeholder={'Add a tag'}
             />
           </div>
+        {:else if settingsPage === 'keyboard_shortcuts'}
+          <DatasetSettingsKeyboardShortcuts bind:newSettings {labels} />
         {:else if settingsPage === 'administration'}
           <div class="flex flex-col gap-y-6">
             <section class="flex flex-col gap-y-1">

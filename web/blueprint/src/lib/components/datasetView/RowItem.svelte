@@ -4,6 +4,7 @@
     queryDatasetSchema,
     queryRowMetadata,
     querySelectRowsSchema,
+    querySettings,
     removeLabelsMutation
   } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
@@ -42,13 +43,18 @@
   export let updateSequentialRowId: ((direction: 'previous' | 'next') => void) | undefined =
     undefined;
   export let nextRowId: string | undefined = undefined;
-  export let openDeleteModal = false;
+  export let settingsOpen = false;
+
+  let openDeleteModal = false;
 
   const datasetViewStore = getDatasetViewContext();
   const notificationStore = getNotificationsContext();
 
   $: namespace = $datasetViewStore.namespace;
   $: datasetName = $datasetViewStore.datasetName;
+
+  $: settingsQuery = querySettings(namespace, datasetName);
+  $: itemsViewType = $settingsQuery.data?.ui?.view_type || 'single_item';
 
   const authInfo = queryAuthInfo();
   $: canEditLabels = $authInfo.data?.access.dataset.edit_labels;
@@ -102,6 +108,9 @@
     labelsInProgress = labelsInProgress;
     $addLabels!.mutate([namespace, datasetName, addLabelsOptions], {
       onSuccess: numRows => {
+        // Don't show a notification for a single label.
+        if (numRows === 1) return;
+
         const message =
           addLabelsOptions.row_ids != null
             ? `Document id: ${addLabelsOptions.row_ids}`
@@ -128,7 +137,9 @@
     labelsInProgress = labelsInProgress;
 
     $removeLabels!.mutate([namespace, datasetName, body], {
-      onSuccess: () => {
+      onSuccess: numRows => {
+        if (numRows === 1) return;
+
         notificationStore.addNotification({
           kind: 'success',
           title: `Removed label "${body.label_name}"`,
@@ -136,6 +147,31 @@
         });
       }
     });
+  }
+
+  $: labelKeyboardShortcuts = $settingsQuery.data?.ui?.label_keyboard_shortcuts || {};
+
+  function onKeyDown(key: KeyboardEvent) {
+    // Keyboard shortcuts are disabled in scroll-view and when settings are open.
+    console.log(settingsOpen);
+    if (itemsViewType !== 'single_item' || settingsOpen) {
+      return;
+    }
+
+    if (key.code === 'Delete' || key.code === 'Backspace') {
+      openDeleteModal = true;
+    } else {
+      // Find the key code in the label keyboard shortcuts.
+      for (const label of Object.keys(labelKeyboardShortcuts)) {
+        if (labelKeyboardShortcuts[label] === key.code) {
+          if (rowLabels.includes(label)) {
+            removeLabel(label);
+          } else {
+            addLabel(label);
+          }
+        }
+      }
+    }
   }
 </script>
 
@@ -294,3 +330,4 @@
     {/if}
   </div>
 </div>
+<svelte:window on:keydown={onKeyDown} />

@@ -159,7 +159,7 @@
       {:else if itemsViewType == 'scroll'}
         <ScrollView />
       {:else if itemsViewType == 'single_item'}
-        <SingleItemView />
+        <SingleItemView {settingsOpen} />
       {/if}
     </div>
   </div>

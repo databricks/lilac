@@ -8,6 +8,9 @@
   import RowItem from './RowItem.svelte';
   import SingleItemSelectRows from './SingleItemSelectRows.svelte';
 
+  // True when the settings modal is open. Used to disable keyboard shortcuts.
+  export let settingsOpen = false;
+
   const store = getDatasetViewContext();
   const DEFAULT_LIMIT_SELECT_ROW_IDS = 5;
 
@@ -69,14 +72,11 @@
     }
   }
 
-  let openDeleteModal = false;
   function onKeyDown(key: KeyboardEvent) {
     if (key.code === 'ArrowLeft') {
       updateSequentialRowId('previous');
     } else if (key.code === 'ArrowRight') {
       updateSequentialRowId('next');
-    } else if (key.code === 'Delete' || key.code === 'Backspace') {
-      openDeleteModal = true;
     }
   }
 </script>
@@ -100,7 +100,7 @@
     {mediaFields}
     {highlightedFields}
     {updateSequentialRowId}
-    bind:openDeleteModal
+    {settingsOpen}
   />
 </div>
 <svelte:window on:keydown={onKeyDown} />
