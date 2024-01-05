@@ -1,33 +1,33 @@
 <script lang="ts">
   import {
-      addLabelsMutation,
-      queryDatasetSchema,
-      queryRowMetadata,
-      querySelectRowsSchema,
-      querySettings,
-      removeLabelsMutation
+    addLabelsMutation,
+    queryDatasetSchema,
+    queryRowMetadata,
+    querySelectRowsSchema,
+    querySettings,
+    removeLabelsMutation
   } from '$lib/queries/datasetQueries';
-  import { queryAuthInfo } from '$lib/queries/serverQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {
-      getDatasetViewContext,
-      getSelectRowsOptions,
-      getSelectRowsSchemaOptions
+    getDatasetViewContext,
+    getSelectRowsOptions,
+    getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
-  import { getNotificationsContext } from '$lib/stores/notificationsStore';
-  import { SIDEBAR_TRANSITION_TIME_MS } from '$lib/view_utils';
+  import {getNotificationsContext} from '$lib/stores/notificationsStore';
+  import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import {
-      formatValue,
-      getRowLabels,
-      getSchemaLabels,
-      serializePath,
-      type AddLabelsOptions,
-      type LilacField,
-      type RemoveLabelsOptions
+    formatValue,
+    getRowLabels,
+    getSchemaLabels,
+    serializePath,
+    type AddLabelsOptions,
+    type LilacField,
+    type RemoveLabelsOptions
   } from '$lilac';
-  import { SkeletonText } from 'carbon-components-svelte';
-  import { ChevronLeft, ChevronRight, Tag } from 'carbon-icons-svelte';
-  import { slide } from 'svelte/transition';
-  import { hoverTooltip } from '../common/HoverTooltip';
+  import {SkeletonText} from 'carbon-components-svelte';
+  import {ChevronLeft, ChevronRight, Tag} from 'carbon-icons-svelte';
+  import {slide} from 'svelte/transition';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import DeleteRowsButton from './DeleteRowsButton.svelte';
   import EditLabel from './EditLabel.svelte';
   import ItemMedia from './ItemMedia.svelte';
