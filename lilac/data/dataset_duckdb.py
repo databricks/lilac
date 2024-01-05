@@ -1588,6 +1588,7 @@ class DatasetDuckDB(Dataset):
       # Replace any NaT with None and pd.Timestamp to native datetime objects.
       counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
 
+    print('counts', counts, 'bins', named_bins)
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
   def _topk_udf_to_sort_by(
@@ -3313,11 +3314,19 @@ def _normalize_bins(bins: Optional[Union[Sequence[Bin], Sequence[float]]]) -> Op
 def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
   min_val = cast(float, stats.min_val)
   max_val = cast(float, stats.max_val)
+  value_range = max_val - min_val
+  # Select a round ndigits as a function of the value range. We offset it by 2 to allow for some
+  # decimal places as a function of the range.
+  round_ndigits = -1 * round(math.log10(value_range)) + 3
   bin_width = (max_val - min_val) / num_bins
-  bins: list[Bin] = []
+  bins: list = []
+  last_end_val = None
   for i in range(num_bins):
-    start = None if i == 0 else min_val + i * bin_width
     end = None if i == num_bins - 1 else min_val + (i + 1) * bin_width
+    if end:
+      end = round(end, round_ndigits)
+    start = last_end_val
+    last_end_val = end
     bins.append((str(i), start, end))
   return bins
 

@@ -7,6 +7,12 @@
   export let bins: Record<string, [number | null, number | null]> | null;
   $: maxCount = Math.max(...counts.map(([_, count]) => count));
 
+  // Sort the counts by the index of their value in the named bins.
+  $: binKeys = bins != null ? (Object.keys(bins) as LeafValue[]) : [];
+  $: sortedCounts = counts
+    .slice()
+    .sort(([aValue], [bValue]) => binKeys.indexOf(aValue) - binKeys.indexOf(bValue));
+
   function formatValueOrBin(value: LeafValue): string {
     if (value == null) {
       return formatValue(value);
@@ -29,7 +35,7 @@
 </script>
 
 <div class="histogram">
-  {#each counts as [value, count]}
+  {#each sortedCounts as [value, count]}
     {@const groupName = formatValueOrBin(value)}
     {@const barWidth = `${(count / maxCount) * 100}%`}
     {@const formattedCount = formatValue(count)}
