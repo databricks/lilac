@@ -28,6 +28,7 @@
     TableOfContents
   } from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
+  import DatasetPivotViewer from './DatasetPivotViewer.svelte';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import ExportModal from './ExportModal.svelte';
   import SingleItemView from './SingleItemView.svelte';
@@ -39,7 +40,7 @@
   const datasetViewStore = getDatasetViewContext();
 
   $: settingsQuery = querySettings(namespace, datasetName);
-  $: viewType = $settingsQuery.data?.ui?.view_type || 'single_item';
+  $: itemsViewType = $settingsQuery.data?.ui?.view_type || 'single_item';
 
   $: schemaCollapsed = $datasetViewStore.schemaCollapsed;
   function toggleSchemaCollapsed() {
@@ -153,10 +154,12 @@
       <SchemaView />
     </div>
     <div class="h-full w-2/3 flex-grow py-1">
-      {#if viewType == 'scroll'}
+      {#if $datasetViewStore.viewPivot}
+        <DatasetPivotViewer />
+      {:else if itemsViewType == 'scroll'}
         <ScrollView />
-      {:else if viewType == 'single_item'}
-        <SingleItemView />
+      {:else if itemsViewType == 'single_item'}
+        <SingleItemView {settingsOpen} />
       {/if}
     </div>
   </div>

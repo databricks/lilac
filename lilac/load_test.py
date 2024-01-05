@@ -111,7 +111,7 @@ def test_load_config_obj(tmp_path: pathlib.Path) -> None:
   )
 
   # Load the project config from a config object.
-  load(config=project_config, execution_type='threads')
+  load(config=project_config)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -141,7 +141,7 @@ def test_load_project_config_yml(tmp_path: pathlib.Path) -> None:
   with open(config_path, 'w') as f:
     f.write(project_config_yml)
 
-  load(config=config_path, execution_type='threads')
+  load(config=config_path)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -172,7 +172,7 @@ def test_load_config_yml_outside_project(tmp_path: pathlib.Path) -> None:
   with open(config_path, 'w') as f:
     f.write(project_config_yml)
 
-  load(config=config_path, execution_type='threads')
+  load(config=config_path)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -204,7 +204,7 @@ def test_load_signals(tmp_path: pathlib.Path) -> None:
   )
 
   # Load the project config from a config object.
-  load(config=project_config, execution_type='threads')
+  load(config=project_config)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -245,7 +245,7 @@ def test_load_embeddings(tmp_path: pathlib.Path) -> None:
   )
 
   # Load the project config from a config object.
-  load(config=project_config, execution_type='threads')
+  load(config=project_config)
 
   dataset = get_dataset('namespace', 'test')
 
@@ -293,14 +293,14 @@ def test_load_twice_no_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureF
   )
 
   # Load the project config from a config object.
-  load(config=project_config, execution_type='threads')
+  load(config=project_config)
 
   assert 'Computing signal' in capsys.readouterr().out
 
   first_manifest = get_dataset('namespace', 'test').manifest()
 
   # Load the project again, make sure signals and embeddings are not computed again.
-  load(config=project_config, execution_type='threads')
+  load(config=project_config)
 
   second_manifest = get_dataset('namespace', 'test').manifest()
   assert first_manifest == second_manifest
@@ -327,13 +327,13 @@ def test_load_twice_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixt
   )
 
   # Load the project config from a config object.
-  load(config=project_config, execution_type='threads')
+  load(config=project_config)
   assert 'Computing signal' in capsys.readouterr().out
 
   first_manifest = get_dataset('namespace', 'test').manifest()
 
   # Load the project again, make sure signals and embeddings are not computed again.
-  load(config=project_config, overwrite=True, execution_type='threads')
+  load(config=project_config, overwrite=True)
 
   assert (
     'Signal  TestSignal({"signal_name":"test_signal"}) already exists'

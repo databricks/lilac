@@ -27,6 +27,11 @@ export interface GroupByState {
   value: LeafValue;
 }
 
+export interface PivotState {
+  outerPath?: Path;
+  innerPath?: Path;
+}
+
 export interface ColumnComparisonState {
   column: Path;
   compareToColumn: Path;
@@ -48,8 +53,13 @@ export interface DatasetViewState {
   // Maps a path to whether the stats are expanded.
   expandedStats: {[path: string]: boolean};
   query: SelectRowsOptions;
+
+  // TODO(nsthorat): Generalize this to a dataset view once we add a third.
   // True when we are viewing deleted rows.
   viewTrash: boolean;
+  // True when we are viewing the pivot table view.
+  viewPivot: boolean;
+  pivot?: PivotState;
 
   // Whether the group by view is active.
   groupBy?: GroupByState;
@@ -89,6 +99,7 @@ export function defaultDatasetViewState(namespace: string, datasetName: string):
       combine_columns: true
     },
     viewTrash: false,
+    viewPivot: false,
     schemaCollapsed: true,
     insightsOpen: false,
     compareColumns: [],

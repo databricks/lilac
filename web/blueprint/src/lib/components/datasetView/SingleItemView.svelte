@@ -8,6 +8,9 @@
   import RowItem from './RowItem.svelte';
   import SingleItemSelectRows from './SingleItemSelectRows.svelte';
 
+  // True when the settings modal is open. Used to disable keyboard shortcuts.
+  export let settingsOpen = false;
+
   const store = getDatasetViewContext();
   const DEFAULT_LIMIT_SELECT_ROW_IDS = 5;
 
@@ -97,6 +100,7 @@
     {mediaFields}
     {highlightedFields}
     {updateSequentialRowId}
+    {settingsOpen}
   />
 </div>
 <svelte:window on:keydown={onKeyDown} />

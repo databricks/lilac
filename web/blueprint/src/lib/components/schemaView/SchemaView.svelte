@@ -3,7 +3,7 @@
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {DELETED_LABEL_KEY, ROWID, formatValue} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
-  import {TrashCan, View} from 'carbon-icons-svelte';
+  import {TrashCan, View, ViewOff} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RestoreRowsButton from '../datasetView/RestoreRowsButton.svelte';
   import SchemaField from './SchemaField.svelte';
@@ -47,7 +47,7 @@
   <!-- Deleted rows. -->
   {#if numDeletedRows}
     <div
-      class="flex w-full flex-row items-center justify-between gap-x-2 border-b border-gray-300 bg-red-500 bg-opacity-10 p-2 px-4"
+      class="flex w-full flex-row items-center justify-between gap-x-2 border-b border-gray-300 bg-red-500 bg-opacity-20 p-2 px-4"
     >
       <div class="flex flex-row items-center gap-x-6">
         <div>
@@ -61,8 +61,14 @@
         <button
           use:hoverTooltip={{text: 'Show deleted rows'}}
           class="border border-gray-300 bg-white hover:border-gray-500"
-          on:click={() => datasetViewStore.showTrash(!$datasetViewStore.viewTrash)}><View /></button
+          on:click={() => datasetViewStore.showTrash(!$datasetViewStore.viewTrash)}
         >
+          {#if $datasetViewStore.viewTrash}
+            <ViewOff />
+          {:else}
+            <View />
+          {/if}
+        </button>
         <RestoreRowsButton numRows={numDeletedRows} />
       </div>
     </div>

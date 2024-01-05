@@ -47,7 +47,7 @@
   }
 </script>
 
-<div class="relative z-50 h-8">
+<div class="relative h-8">
   <div
     use:hoverTooltip={{
       text: disabled ? disabledMessage : ''

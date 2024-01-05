@@ -1,5 +1,6 @@
 <script lang="ts">
   import {restoreRowsMutation} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import type {DeleteRowsOptions} from '$lilac';
   import {Modal} from 'carbon-components-svelte';
@@ -11,6 +12,9 @@
   export let searches: DeleteRowsOptions['searches'] | undefined = undefined;
   export let filters: DeleteRowsOptions['filters'] | undefined = undefined;
   export let numRows: number | undefined = undefined;
+
+  const authInfo = queryAuthInfo();
+  $: canRestoreRows = $authInfo.data?.access.dataset.delete_rows;
 
   const dispatch = createEventDispatcher();
 
@@ -47,21 +51,31 @@
   let modalOpen = false;
 </script>
 
-<button
+<div
+  class="ml-2 inline-block"
   use:hoverTooltip={{
-    text: rowIds != null && rowIds.length === 1 ? 'Restore deleted row' : 'Restore deleted rows'
-  }}
-  class="rounded border border-gray-300 bg-white hover:border-gray-500 hover:bg-transparent"
-  on:click={() => {
-    modalOpen = true;
+    text: canRestoreRows
+      ? rowIds != null && rowIds.length === 1
+        ? 'Restore deleted row'
+        : 'Restore deleted rows'
+      : 'User does not have access to restore rows.'
   }}
 >
-  <Undo />
-</button>
+  <button
+    class:opacity-30={!canRestoreRows}
+    disabled={!canRestoreRows}
+    class="rounded border border-gray-300 bg-white hover:border-gray-500 hover:bg-transparent"
+    on:click={() => {
+      modalOpen = true;
+    }}
+  >
+    <Undo />
+  </button>
+</div>
 
 <Modal
   size="xs"
-  open={modalOpen}
+  open={modalOpen && canRestoreRows}
   modalHeading="Restore rows"
   primaryButtonText="Confirm"
   secondaryButtonText="Cancel"

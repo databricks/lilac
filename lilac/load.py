@@ -22,7 +22,6 @@ from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
 from .tasks import (
-  TaskExecutionType,
   TaskId,
   TaskType,
   get_task_manager,
@@ -34,7 +33,6 @@ def load(
   project_dir: Optional[Union[str, pathlib.Path]] = None,
   config: Optional[Union[str, pathlib.Path, Config]] = None,
   overwrite: bool = False,
-  execution_type: TaskExecutionType = 'processes',
 ) -> None:
   """Load a project from a project configuration.
 
