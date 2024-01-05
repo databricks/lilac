@@ -290,7 +290,6 @@ function invalidateQueriesLabelEdit(
   const schemaLabels = getSchemaLabels(schema);
   const labelExists = schemaLabels.includes(options.label_name);
 
-  console.log('label exists = ', labelExists);
   if (!labelExists) {
     queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
     queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);

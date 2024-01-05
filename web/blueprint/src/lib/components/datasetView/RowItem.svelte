@@ -154,7 +154,6 @@
 
   function onKeyDown(key: KeyboardEvent) {
     // Keyboard shortcuts are disabled in scroll-view and when settings are open.
-    console.log(settingsOpen);
     if (itemsViewType !== 'single_item' || settingsOpen) {
       return;
     }
