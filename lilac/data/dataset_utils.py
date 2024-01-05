@@ -370,7 +370,7 @@ def get_sibling_output_path(path: PathTuple, suffix: str) -> PathTuple:
   for i, path_part in enumerate(path):
     if path_part != PATH_WILDCARD:
       index = i
-  return (*path[:index], f'{path[index]}_{suffix}', *path[index + 1 :])
+  return (*path[:index], f'{path[index]}__{suffix}', *path[index + 1 :])
 
 
 def get_common_ancestor(path1: PathTuple, path2: PathTuple) -> tuple[PathTuple, str, str]:

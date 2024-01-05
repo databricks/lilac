@@ -609,8 +609,10 @@ class DatasetDuckDB(Dataset):
       self._vector_indices[index_key] = vector_index
       return vector_index
 
-  def _get_cache_len(self, cache_filepath: str) -> int:
+  def _get_cache_len(self, cache_filepath: str, overwrite: bool) -> int:
     """Returns the number of lines in a cache file."""
+    if overwrite:
+      return 0
     try:
       with open_file(cache_filepath, 'r') as f:
         return len(f.readlines())
@@ -619,10 +621,10 @@ class DatasetDuckDB(Dataset):
 
   def _select_iterable_values(
     self,
+    jsonl_cache_filepath: str,
     select_path: Optional[PathTuple] = None,
     resolve_span: bool = False,
     query_options: Optional[DuckDBQueryParams] = None,
-    cache_exclude_path: Optional[str] = None,
   ) -> Iterator[tuple[str, Item]]:
     """Returns an iterable of (rowid, item), discluding results in the cache filepath."""
     manifest = self.manifest()
@@ -685,8 +687,9 @@ class DatasetDuckDB(Dataset):
     # map function.
     anti_join = ''
     cache_view = 't_cache_view'
-    if cache_exclude_path:
-      with open_file(cache_exclude_path, 'r') as f:
+
+    if os.path.exists(jsonl_cache_filepath):
+      with open_file(jsonl_cache_filepath, 'r') as f:
         # Read the first line of the file
         first_line = f.readline()
       if first_line.strip():
@@ -694,7 +697,7 @@ class DatasetDuckDB(Dataset):
           f"""
           CREATE OR REPLACE VIEW {cache_view} as (
             SELECT {ROWID} FROM read_json_auto(
-              '{cache_exclude_path}',
+              '{jsonl_cache_filepath}',
               IGNORE_ERRORS=true,
               hive_partitioning=false,
               format='newline_delimited')
@@ -773,17 +776,15 @@ class DatasetDuckDB(Dataset):
     if overwrite and os.path.exists(jsonl_cache_filepath):
       delete_file(jsonl_cache_filepath)
 
-    use_jsonl_cache = not overwrite and os.path.exists(jsonl_cache_filepath)
-
     # TODO: figure out where the resuming offset should be calculated and passed to
     # the progress bar offset parameter.
 
     # Step 1
     rows = self._select_iterable_values(
+      jsonl_cache_filepath=jsonl_cache_filepath,
       select_path=select_path,
       resolve_span=resolve_span,
       query_options=query_options,
-      cache_exclude_path=jsonl_cache_filepath if use_jsonl_cache else None,
     )
 
     # Step 4/5
@@ -1009,7 +1010,7 @@ class DatasetDuckDB(Dataset):
     )
 
     query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
-    offset = self._get_cache_len(jsonl_cache_filepath)
+    offset = self._get_cache_len(jsonl_cache_filepath, overwrite=overwrite)
     estimated_len = self.count(query_params)
 
     if task_id is not None:
@@ -1115,7 +1116,7 @@ class DatasetDuckDB(Dataset):
     )
 
     query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
-    offset = self._get_cache_len(jsonl_cache_filepath)
+    offset = self._get_cache_len(jsonl_cache_filepath, overwrite=overwrite)
     estimated_len = self.count(query_params)
 
     if task_id is not None:
@@ -2664,17 +2665,6 @@ class DatasetDuckDB(Dataset):
           field = manifest.data_schema.get_field(output_path)
           if field.map is None:
             raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
-          # Delete the parquet file and map manifest.
-          prefix = '.'.join(output_path)
-          parquet_filepath = os.path.join(
-            self.dataset_path, get_parquet_filename(prefix, shard_index=0, num_shards=1)
-          )
-          if os.path.exists(parquet_filepath):
-            delete_file(parquet_filepath)
-
-          map_manifest_filepath = os.path.join(self.dataset_path, f'{prefix}.{MAP_MANIFEST_SUFFIX}')
-          if os.path.exists(map_manifest_filepath):
-            delete_file(map_manifest_filepath)
         else:
           raise ValueError(
             f'Cannot map to path "{output_path}" which already exists in the dataset. '
@@ -2704,7 +2694,7 @@ class DatasetDuckDB(Dataset):
       sort_order=sort_order,
     )
 
-    offset = self._get_cache_len(jsonl_cache_filepath)
+    offset = self._get_cache_len(jsonl_cache_filepath, overwrite=overwrite)
     estimated_len = self.count(query_params)
     if task_id is not None:
       progress_bar = get_progress_bar(task_id, offset=offset, estimated_len=estimated_len)

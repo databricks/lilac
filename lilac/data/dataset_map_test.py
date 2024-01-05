@@ -654,6 +654,50 @@ def test_map_overwrite(
   )
 
 
+def test_map_overwrite_where_input_is_output(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'a'}, {'text': 'b'}])
+
+  def prefix_text(text: str) -> str:
+    return '_' + text
+
+  dataset.map(prefix_text, input_path='text', output_path='prefixed_text', overwrite=True)
+  rows = list(dataset.select_rows(['prefixed_text']))
+  assert rows == [{'prefixed_text': '_a'}, {'prefixed_text': '_b'}]
+
+  # Overwrite prefixed_text by adding another prefix.
+  dataset.map(prefix_text, input_path='prefixed_text', output_path='prefixed_text', overwrite=True)
+  rows = list(dataset.select_rows(['prefixed_text']))
+  assert rows == [{'prefixed_text': '__a'}, {'prefixed_text': '__b'}]
+
+  def prefix_text_in_row(row: Item) -> str:
+    return '_' + row['prefixed_text']
+
+  # Overwrite prefixed_text by adding yet another prefix, this time iterating over the entire row.
+  dataset.map(prefix_text_in_row, output_path='prefixed_text', overwrite=True)
+  rows = list(dataset.select_rows(['prefixed_text']))
+  assert rows == [{'prefixed_text': '___a'}, {'prefixed_text': '___b'}]
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': 'string',
+        'prefixed_text': field(
+          dtype='string',
+          map=MapInfo(
+            fn_name='prefix_text_in_row',
+            fn_source=inspect.getsource(prefix_text_in_row),
+            date_created=TEST_TIME,
+          ),
+        ),
+      }
+    ),
+    num_items=2,
+    source=TestSource(),
+  )
+
+
 @pytest.mark.parametrize('num_jobs', [-1, 1, 2])
 @pytest.mark.parametrize('execution_type', TEST_EXECUTION_TYPES)
 def test_map_output_path_returns_iterable(

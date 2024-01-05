@@ -40,23 +40,23 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
 
   dataset.cluster('text', min_cluster_size=2, topic_fn=topic_fn)
 
-  rows = list(dataset.select_rows(['text', 'text_cluster'], combine_columns=True))
+  rows = list(dataset.select_rows(['text', 'text__cluster'], combine_columns=True))
   assert rows == [
     {
       'text': 'Can you summarize this article',
-      'text_cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
+      'text__cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
     },
     {
       'text': 'Can you rewrite this in a simpler way',
-      'text_cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
+      'text__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
     },
     {
       'text': 'Can you provide a short summary of the following text',
-      'text_cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
+      'text__cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
     },
     {
       'text': 'Can you simplify this text',
-      'text_cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
+      'text__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
     },
   ]
 
@@ -84,11 +84,11 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       'texts': [
         {
           'text': 'Can you summarize this article',
-          'text_cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
+          'text__cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
         },
         {
           'text': 'Can you rewrite this in a simpler way',
-          'text_cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
+          'text__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
         },
       ]
     },
@@ -96,7 +96,7 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       'texts': [
         {
           'text': 'Can you provide a short summary of the following text',
-          'text_cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
+          'text__cluster': {'cluster_id': 0, 'membership_prob': 1.0, 'topic': 'summarization'},
         }
       ],
     },
@@ -104,11 +104,11 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       'texts': [
         {
           'text': 'Can you simplify this text',
-          'text_cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
+          'text__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': 'simplification'},
         },
         {
           'text': '1224123531451345',
-          'text_cluster': {'cluster_id': -1, 'membership_prob': None, 'topic': None},
+          'text__cluster': {'cluster_id': -1, 'membership_prob': None, 'topic': None},
         },
       ],
     },
