@@ -20,6 +20,13 @@ Once committing the tag, we can see that the row has a new label:
 
 <img src="../_static/dataset/dataset_add_label_row_tagged.png"></img>
 
+#### Keyboard shortcuts
+
+In the [dataset settings](../datasets/dataset_configure.md) menu, you can also configure keyboard
+shortcuts to toggle labels on individual rows.
+
+This allows you use the arrow keys to arrow through rows, and quickly label with custom shortcuts.
+
 ### Label multiple rows
 
 Labeling individual rows can be time-consuming, so Lilac provides a "Label all" feature, which
@@ -32,15 +39,12 @@ and click on the first histogram:
 
 We can see that we're in the cut of the dataset with 50,335 rows, about half of our dataset.
 
-<img src="../_static/dataset/dataset_add_label_label_all_button.png"></img>
+<img src="../_static/dataset/dataset_add_label_all_button.png"></img>
 
-Now, we can click "Label all", attach a label, and all 50,335 rows will be labeled.
+Now, we can click the button with multiple tags, attach a label, and all 50,335 rows will be
+labeled.
 
 <img width=480 src="../_static/dataset/dataset_add_label_all_short.png"></img>
-
-Once we click the label, the results in view will have that label:
-
-<img src="../_static/dataset/dataset_add_label_short_labels.png"></img>
 
 ### Filtering rows with the label
 

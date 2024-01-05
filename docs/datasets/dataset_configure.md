@@ -45,6 +45,18 @@ items.
 You can choose which embedding to use as the default for the current dataset across all users. This
 embedding will be used to perform semantic and concept search.
 
+### Tags
+
+For projects with many datasets, tags can be used to organize datasets into groups that can be
+organized on the left-hand-side.
+
+### Keyboard shortcuts for fast labeling
+
+The settings modal also lets you configure keyboard shortcuts to toggle labels on a row to enable
+fast labeling.
+
+<img src="../_static/dataset/dataset_settings_keyboard_shortcuts.png"></img>
+
 ## From Python
 
 You can provide [`DatasetSettings`](#lilac.DatasetSettings) when you create a new dataset via
