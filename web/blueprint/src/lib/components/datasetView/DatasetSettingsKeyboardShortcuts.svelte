@@ -20,10 +20,10 @@
     if (newSettings.ui == null) {
       newSettings.ui = {};
     }
-    if (newSettings.ui.label_keyboard_shortcuts == null) {
-      newSettings.ui.label_keyboard_shortcuts = {};
+    if (newSettings.ui.label_to_keycode == null) {
+      newSettings.ui.label_to_keycode = {};
     }
-    newSettings.ui.label_keyboard_shortcuts[labels[activeSetLabelIndex]] = key.code;
+    newSettings.ui.label_to_keycode[labels[activeSetLabelIndex]] = key.code;
     activeSetLabelIndex = undefined;
   }
 </script>
@@ -69,7 +69,7 @@
               disabled
               type="text"
               class="h-8 w-16 rounded border border-neutral-200 px-2 text-center"
-              value={newSettings?.ui?.label_keyboard_shortcuts?.[label] || ''}
+              value={newSettings?.ui?.label_to_keycode?.[label] || ''}
             />
           </td>
         </tr>

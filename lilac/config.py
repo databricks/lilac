@@ -90,7 +90,7 @@ class DatasetUISettings(BaseModel):
   model_config = ConfigDict(extra='forbid')
   view_type: Literal['scroll', 'single_item'] = 'single_item'
   # Maps a label to a keycode.
-  label_keyboard_shortcuts: dict[str, str] = {}
+  label_to_keycode: dict[str, str] = {}
 
   @field_validator('media_paths', mode='before')
   @classmethod

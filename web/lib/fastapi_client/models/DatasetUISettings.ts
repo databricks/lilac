@@ -10,6 +10,6 @@ export type DatasetUISettings = {
     media_paths?: Array<Array<string>>;
     markdown_paths?: Array<Array<string>>;
     view_type?: 'scroll' | 'single_item';
-    label_keyboard_shortcuts?: Record<string, string>;
+    label_to_keycode?: Record<string, string>;
 };
 

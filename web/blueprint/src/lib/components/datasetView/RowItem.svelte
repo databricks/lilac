@@ -150,7 +150,7 @@
     });
   }
 
-  $: labelKeyboardShortcuts = $settingsQuery.data?.ui?.label_keyboard_shortcuts || {};
+  $: labelKeyboardShortcuts = $settingsQuery.data?.ui?.label_to_keycode || {};
 
   function onKeyDown(key: KeyboardEvent) {
     // Keyboard shortcuts are disabled in scroll-view and when settings are open.
