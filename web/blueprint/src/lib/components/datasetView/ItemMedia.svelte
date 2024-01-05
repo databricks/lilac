@@ -52,6 +52,8 @@
   // The showPath is a subset of the path that will be displayed for this node.
   export let showPath: Path | undefined = undefined;
   export let isFetching: boolean | undefined = undefined;
+  // When true, hides the left hand side controls.
+  export let hideControls = false;
 
   // Choose the root path which is up to the point of the next repeated value.
   $: firstRepeatedIndex = mediaPath.findIndex(p => p === PATH_WILDCARD);
@@ -208,7 +210,10 @@
 
 <div class="flex w-full flex-row gap-x-4 p-2">
   {#if isLeaf}
-    <div class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36">
+    <div
+      class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36"
+      class:hidden={hideControls}
+    >
       <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
           <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
@@ -324,6 +329,7 @@
         {#each nextRootPaths as nextRootPath}
           <div class="m-2 rounded border border-neutral-100">
             <svelte:self
+              {hideControls}
               rootPath={nextRootPath.rootPath}
               showPath={nextRootPath.showPath}
               {row}

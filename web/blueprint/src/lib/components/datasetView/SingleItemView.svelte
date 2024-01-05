@@ -2,11 +2,16 @@
   import {querySelectRowsSchema, querySettings} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {getHighlightedFields, getMediaFields} from '$lib/view_utils';
-  import {L, ROWID, type SelectRowsResponse} from '$lilac';
+  import {L, ROWID, type SelectRowsOptions, type SelectRowsResponse} from '$lilac';
   import FilterPanel from './FilterPanel.svelte';
   import PrefetchRowItem from './PrefetchRowItem.svelte';
   import RowItem from './RowItem.svelte';
   import SingleItemSelectRows from './SingleItemSelectRows.svelte';
+
+  // When defined, allows the caller to specify the select rows options. When not defined, defaults
+  // to the select rows options from the store.
+  export let selectRowsOptions: SelectRowsOptions | undefined = undefined;
+  export let hideControls = false;
 
   // True when the settings modal is open. Used to disable keyboard shortcuts.
   export let settingsOpen = false;
@@ -81,10 +86,12 @@
   }
 </script>
 
-<FilterPanel numRowsInQuery={rowsResponse?.total_num_rows} />
+{#if !hideControls}
+  <FilterPanel numRowsInQuery={rowsResponse?.total_num_rows} />
+{/if}
 
-<SingleItemSelectRows {limit} bind:rowsResponse />
-<SingleItemSelectRows limit={limit * 2} bind:rowsResponse={nextRowsResponse} />
+<SingleItemSelectRows {selectRowsOptions} {limit} bind:rowsResponse />
+<SingleItemSelectRows {selectRowsOptions} limit={limit * 2} bind:rowsResponse={nextRowsResponse} />
 
 <!-- Prefetch both the current and the next page of responses, to minimize the loading bar. -->
 {#each nextRowsResponse?.rows || [] as row}
@@ -101,6 +108,7 @@
     {highlightedFields}
     {updateSequentialRowId}
     {settingsOpen}
+    hideControls
   />
 </div>
 <svelte:window on:keydown={onKeyDown} />
