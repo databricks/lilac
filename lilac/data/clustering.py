@@ -112,13 +112,13 @@ def summarize_instructions(ranked_docs: list[tuple[str, float]]) -> str:
 
 
 class Category(BaseModel):
-  """A 4-5 word category."""
+  """A short category title."""
 
   category: str
 
 
-def summarize_topics(ranked_docs: list[tuple[str, float]]) -> str:
-  """Summarize a list of topics in a category."""
+def _generate_category(ranked_docs: list[tuple[str, float]]) -> str:
+  """Summarize a list of titles in a category."""
   # Get the top 5 documents.
   docs = [doc for doc, _ in ranked_docs[:5]]
   input = '\n'.join(docs)
@@ -150,7 +150,7 @@ def cluster(
   topic_fn: TopicFn = summarize_instructions,
   overwrite: bool = False,
   remote: bool = False,
-  supertopic: bool = False,
+  category: bool = False,
 ) -> None:
   """Compute clusters for a field of the dataset."""
   path = normalize_path(path)
@@ -184,27 +184,27 @@ def cluster(
       overwrite=overwrite,
     )
 
-  def _compute_topics(
+  def _compute_titles(
     text_column: str, cluster_column: str, items: Iterator[Item]
   ) -> Iterator[Item]:
     # Group items by cluster id.
     groups: dict[int, list[tuple[str, float]]] = {}
     cluster_locks: dict[int, threading.Lock] = {}
     delayed_compute: list[Any] = []
-    topics: dict[int, str] = {}
+    titles: dict[int, str] = {}
 
     @retry(wait=wait_random_exponential(multiplier=0.5, max=60), stop=stop_after_attempt(10))
-    def _compute_topic(cluster_id: int) -> Optional[str]:
+    def _compute_title(cluster_id: int) -> Optional[str]:
       if cluster_id not in cluster_locks:
         return None
       with cluster_locks[cluster_id]:
-        if cluster_id in topics:
-          return topics[cluster_id]
+        if cluster_id in titles:
+          return titles[cluster_id]
         group = groups[cluster_id]
         if not group:
           return None
         topic = topic_fn(group)
-        topics[cluster_id] = topic
+        titles[cluster_id] = topic
         return topic
 
     for item in items:
@@ -214,7 +214,7 @@ def cluster(
         cluster_id = -1
       else:
         cluster_id = cluster_info[CLUSTER_ID]
-      delayed_compute.append(delayed(_compute_topic)(cluster_id))
+      delayed_compute.append(delayed(_compute_title)(cluster_id))
       text = item[text_column]
       if not text:
         continue
@@ -245,52 +245,54 @@ def cluster(
   # to map over the ancestor path.
   ancestor_path, text_column, cluster_column = get_common_ancestor(path, cluster_output_path)
 
-  # Output the topic as a child of the cluster enrichment.
-  topic_output_path = (*cluster_output_path, CLUSTER_TITLE)
+  # Output the title as a child of the cluster enrichment.
+  title_output_path = (*cluster_output_path, CLUSTER_TITLE)
 
-  topics_exist = dataset.manifest().data_schema.has_field(topic_output_path)
-  if not topics_exist or overwrite:
+  titles_exist = dataset.manifest().data_schema.has_field(title_output_path)
+  if not titles_exist or overwrite:
     dataset.transform(
-      functools.partial(_compute_topics, text_column, cluster_column),
+      functools.partial(_compute_titles, text_column, cluster_column),
       input_path=ancestor_path,
-      output_path=topic_output_path,
+      output_path=title_output_path,
       overwrite=overwrite,
       # Providing schema to avoid inferring.
       schema=field('string'),
     )
 
-  if supertopic:
+  if category:
     return
 
-  # Cluster the topics into supertopics.
-  topic_cluster_output_path = get_sibling_output_path(topic_output_path, FIELD_SUFFIX)
+  # Cluster the titles into categories.
+  category_cluster_output_path = get_sibling_output_path(title_output_path, FIELD_SUFFIX)
   cluster(
     dataset,
-    topic_output_path,
-    output_path=topic_cluster_output_path,
-    topic_fn=summarize_topics,
+    title_output_path,
+    output_path=category_cluster_output_path,
+    topic_fn=_generate_category,
     overwrite=overwrite,
     remote=remote,
-    supertopic=True,
+    category=True,
   )
 
   # At this point we have something like this in output_path:
   # {
   #   'cluster_id': 0,
-  #   'membership_prob': 1.0,
-  #   'topic': '...',
-  #   'topic__cluster': {'cluster_id': 1, 'membership_prob': 1.0, 'topic': '...'}
+  #   'cluster_membership_prob': 1.0,
+  #   'cluster_title': '...',
+  #   'cluster_title__cluster': {
+  #      'cluster_id': 1, 'cluster_membership_prob': 1.0, 'cluster_title': '...'
+  #   }
   # }
   # and we want to flatten it to:
   # {
   #   'cluster_id': 0,
-  #   'membership_prob': 1.0,
-  #   'topic': '...',
-  #   'super_cluster_id': 1,
-  #   'super_cluster_membership_prob': 1.0,
-  #   'super_topic': '...',
+  #   'cluster_membership_prob': 1.0,
+  #   'cluster_title': '...',
+  #   'category_id': 1,
+  #   'category_membership_prob': 1.0,
+  #   'category_title': '...',
   # }
-  CLUSTER_FIELD = topic_cluster_output_path[-1]
+  CLUSTER_FIELD = category_cluster_output_path[-1]
 
   def flatten_cluster_info(item: Item) -> Item:
     if CLUSTER_FIELD not in item:
@@ -321,10 +323,10 @@ def cluster(
     ),
   )
 
-  # Delete the topic cluster enrichment.
-  dataset.delete_column(topic_cluster_output_path)
-  # Delete the category generated by the topic clustering.
-  dataset.delete_column((*topic_cluster_output_path, CLUSTER_TITLE))
+  # Delete the caterogy clusters.
+  dataset.delete_column(category_cluster_output_path)
+  # Delete the category titles.
+  dataset.delete_column((*category_cluster_output_path, CLUSTER_TITLE))
 
 
 def _cluster(
