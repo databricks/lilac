@@ -6,7 +6,8 @@ import pytest
 
 from ..embeddings.jina import JinaV2Small
 from ..signal import clear_signal_registry, register_signal
-from .dataset_test_utils import TestDataMaker
+from .dataset import MetadataSearch
+from .dataset_test_utils import TestDataMaker, enriched_item
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -87,6 +88,55 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
       },
     },
   ]
+
+  rows = dataset.select_rows(
+    ['text__cluster'],
+    searches=[
+      MetadataSearch(path='text__cluster.cluster_title', op='equals', value='summarization')
+    ],
+    combine_columns=True,
+  )
+  assert list(rows) == [
+    {
+      'text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': enriched_item(
+          'summarization',
+          {
+            'metadata_search(op=equals,value=summarization)': True,
+          },
+        ),
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': enriched_item(
+          'summarization',
+          {
+            'metadata_search(op=equals,value=summarization)': True,
+          },
+        ),
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+  ]
+
+  rows = dataset.select_rows(
+    ['text__cluster'],
+    searches=[
+      MetadataSearch(path='text__cluster.category_title', op='equals', value='non_existent')
+    ],
+    combine_columns=True,
+  )
+  assert list(rows) == []
 
 
 def test_nested_clusters(make_test_data: TestDataMaker) -> None:

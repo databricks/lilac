@@ -323,6 +323,8 @@ def cluster(
     ),
   )
 
+  # Delete the cluster titles.
+  dataset.delete_column(title_output_path)
   # Delete the caterogy clusters.
   dataset.delete_column(category_cluster_output_path)
   # Delete the category titles.
