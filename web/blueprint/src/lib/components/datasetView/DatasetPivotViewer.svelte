@@ -113,7 +113,7 @@
 </script>
 
 <div class="h-full">
-  <div class="mx-10 mb-4 flex w-96 flex-row gap-x-4">
+  <div class="-px-3 mx-16 mb-4 flex w-96 flex-row gap-x-4">
     <Select
       size={'sm'}
       labelText="Outer field"
@@ -156,7 +156,7 @@
           })}
           {@const percentage = getPercentage(outerCount.count)}
           <div class="mb-4 flex w-full flex-col px-4">
-            <div class="text-preview-overlay sticky top-0 z-50 mx-6">
+            <div class="text-preview-overlay sticky top-0 z-50 mx-11">
               <div class="absolute left-0 top-0 z-10 h-full w-full bg-white" />
               <div
                 class="absolute left-0 top-0 z-10 h-full w-full bg-blue-100"
@@ -201,6 +201,8 @@
                     ? {path: outerLeafPath, op: 'not_exists'}
                     : {path: outerLeafPath, op: 'equals', value: outerCount.name}}
                   path={innerLeafPath}
+                  parentPath={outerLeafPath}
+                  parentValue={outerCount.name}
                   {numRowsInQuery}
                 />
               {/if}

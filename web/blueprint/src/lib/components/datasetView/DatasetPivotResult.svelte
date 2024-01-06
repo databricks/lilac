@@ -12,12 +12,16 @@
   import Carousel from 'svelte-carousel';
 
   import {datasetLink} from '$lib/utils';
-  import {ROWID, type BinaryFilter, type Path, type UnaryFilter} from '$lilac';
+  import {ROWID, serializePath, type BinaryFilter, type Path, type UnaryFilter} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
+  import {ChevronLeft, ChevronRight, Information} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
 
   export let filter: BinaryFilter | UnaryFilter;
   export let path: Path;
+  export let parentPath: Path;
+  export let parentValue: string;
   export let numRowsInQuery: number | undefined;
   // When true, queries will be issued. This allows us to progressively load without spamming the
   // server.
@@ -76,7 +80,7 @@
 </script>
 
 <div
-  class="-mx-3 flex flex-row flex-wrap"
+  class="flex flex-row flex-wrap"
   class:max-h-screen={!isExpanded}
   class:text-preview-overlay={!isExpanded}
 >
@@ -84,28 +88,46 @@
     <SkeletonText />
   {/if}
   {#if counts.length > 0}
-    <Carousel particlesToShow="6" particlesToScroll="6" swiping={false}>
+    <Carousel
+      particlesToShow="6"
+      particlesToScroll="6"
+      swiping={false}
+      let:showPrevPage
+      let:showNextPage
+    >
+      <div slot="prev" class="flex items-center">
+        <button class="mx-1" on:click={() => showPrevPage()}><ChevronLeft /></button>
+      </div>
+      <div slot="next" class="flex items-center">
+        <button class="mx-1" on:click={() => showNextPage()}><ChevronRight /></button>
+      </div>
       {#each counts as count}
         {@const groupPercentage = getPercentage(count.count, numRowsInGroup)}
         {@const totalPercentage = getPercentage(count.count, numRowsInQuery)}
-        <div class="min-w-64 md:1/2 p-1 lg:w-1/6">
+        <div class="min-w-64 md:1/2 h-full p-1 lg:w-1/6">
           <div
-            class="flex w-full max-w-sm flex-col rounded-lg border border-gray-200 bg-white p-6 shadow"
+            class="flex h-full w-full max-w-sm flex-col justify-between gap-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow"
           >
-            <div class="relative flex w-full items-center">
-              <div class="relative left-0 top-0 z-10 flex h-full flex-row items-center">
-                <div class="py-1 text-lg font-medium leading-none tracking-tight text-gray-900">
+            <div class="flex w-full flex-col">
+              <div class="h-24">
+                <div class="card-title text-lg font-medium leading-6 tracking-tight text-gray-900">
                   {count.name}
                 </div>
               </div>
-            </div>
-            <div class="h-16">
-              <p class="font-normal text-gray-700">
-                {groupPercentage}% of group
-              </p>
-              <p class="font-normal text-gray-700">
-                {totalPercentage}% of total
-              </p>
+              <div
+                class="flex flex-row items-center gap-x-2 font-normal leading-none text-gray-700"
+              >
+                <div class="leading-2 text-lg">{groupPercentage}%</div>
+                <div
+                  use:hoverTooltip={{
+                    text:
+                      `${groupPercentage}% of ${serializePath(parentPath)}="${parentValue}"\n` +
+                      `${totalPercentage}% of total`
+                  }}
+                >
+                  <Information />
+                </div>
+              </div>
             </div>
             <a
               href={datasetLink($store.namespace, $store.datasetName, {
@@ -148,5 +170,13 @@
   .text-preview-overlay {
     mask-image: linear-gradient(to top, transparent, white 100px);
     z-index: 0 !important;
+  }
+  .card-title {
+    width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    background: #fff;
   }
 </style>
