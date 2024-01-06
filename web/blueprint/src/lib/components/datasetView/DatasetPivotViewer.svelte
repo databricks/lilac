@@ -11,13 +11,11 @@
   } from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
   import {
-    L,
     ROWID,
     childFields,
     deserializePath,
     isSignalField,
     serializePath,
-    valueAtPath,
     type Path
   } from '$lilac';
   import {Select, SelectItem, SkeletonText} from 'carbon-components-svelte';
@@ -48,7 +46,6 @@
     $selectRowsSchema.data?.schema
   );
   $: numRowsInQuery = $rowsQuery.data?.total_num_rows;
-  $: rowIds = $rowsQuery.data?.rows.map(row => L.value(valueAtPath(row, [ROWID])!, 'string')!);
 
   // Get the total count for the dataset.
 
