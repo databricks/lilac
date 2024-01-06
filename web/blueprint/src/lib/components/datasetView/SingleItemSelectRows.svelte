@@ -9,10 +9,6 @@
   export let limit: number;
   export let rowsResponse: SelectRowsResponse | undefined = undefined;
 
-  // When defined, allows the caller to specify the select rows options. When not defined, defaults
-  // to the select rows options from the store.
-  export let selectRowsOptions: SelectRowsOptions | undefined = undefined;
-
   const store = getDatasetViewContext();
 
   $: selectRowsSchema = querySelectRowsSchema(
@@ -20,8 +16,7 @@
     $store.datasetName,
     getSelectRowsSchemaOptions($store)
   );
-  $: selectOptions =
-    selectRowsOptions || getSelectRowsOptions($store, true /* implicitSortByRowID */);
+  $: selectOptions = getSelectRowsOptions($store, true /* implicitSortByRowID */);
   $: rowsQuery = querySelectRows(
     $store.namespace,
     $store.datasetName,

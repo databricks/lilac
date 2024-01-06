@@ -2,8 +2,7 @@
   import {
     querySelectGroups,
     querySelectRows,
-    querySelectRowsSchema,
-    querySettings
+    querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
   import {
     getDatasetViewContext,
@@ -11,7 +10,6 @@
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {getHighlightedFields, getMediaFields} from '$lib/view_utils';
   import {
     L,
     ROWID,
@@ -29,12 +27,6 @@
   let innerLeafPath: Path | undefined = undefined; // ['prompt_cluster', 'topic'];
 
   const store = getDatasetViewContext();
-
-  $: settings = querySettings($store.namespace, $store.datasetName);
-  $: mediaFields = $settings.data
-    ? getMediaFields($selectRowsSchema?.data?.schema, $settings.data)
-    : [];
-  $: highlightedFields = getHighlightedFields($store.query, $selectRowsSchema?.data);
 
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
@@ -210,11 +202,6 @@
           </div>
         {/each}
       </div>
-      <!-- <div class="h-full w-1/2 overflow-y-scroll">
-        {#if rowIds}
-          <SingleItemView selectRowsOptions={selectOptions} hideControls />
-        {/if}
-      </div> -->
     {/if}
   </div>
 </div>

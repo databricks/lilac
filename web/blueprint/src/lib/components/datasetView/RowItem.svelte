@@ -45,8 +45,6 @@
     undefined;
   export let nextRowId: string | undefined = undefined;
   export let settingsOpen = false;
-  // When true, hides the controls on the left.
-  export let hideControls = false;
 
   let openDeleteModal = false;
 
@@ -312,7 +310,6 @@
           {#each mediaFields as mediaField (serializePath(mediaField.path))}
             <div class="flex w-full flex-col">
               <ItemMedia
-                {hideControls}
                 mediaPath={mediaField.path}
                 {row}
                 field={mediaField}
