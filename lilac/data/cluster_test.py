@@ -89,14 +89,16 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
     },
   ]
 
-  rows = dataset.select_rows(
-    ['text__cluster'],
-    searches=[
-      MetadataSearch(path='text__cluster.cluster_title', op='equals', value='summarization')
-    ],
-    combine_columns=True,
+  rows = list(
+    dataset.select_rows(
+      ['text__cluster'],
+      searches=[
+        MetadataSearch(path='text__cluster.cluster_title', op='equals', value='summarization')
+      ],
+      combine_columns=True,
+    )
   )
-  assert list(rows) == [
+  assert rows == [
     {
       'text__cluster': {
         'cluster_id': 0,
@@ -129,14 +131,16 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
     },
   ]
 
-  rows = dataset.select_rows(
-    ['text__cluster'],
-    searches=[
-      MetadataSearch(path='text__cluster.category_title', op='equals', value='non_existent')
-    ],
-    combine_columns=True,
+  rows = list(
+    dataset.select_rows(
+      ['text__cluster'],
+      searches=[
+        MetadataSearch(path='text__cluster.category_title', op='equals', value='non_existent')
+      ],
+      combine_columns=True,
+    )
   )
-  assert list(rows) == []
+  assert rows == []
 
 
 def test_nested_clusters(make_test_data: TestDataMaker) -> None:
