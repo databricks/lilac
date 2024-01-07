@@ -419,9 +419,11 @@ export function getSelectRowsOptions(
 }
 
 export function getSelectRowsSchemaOptions(
-  datasetViewStore: DatasetViewState
+  datasetViewStore: DatasetViewState,
+  selectRowsOptions?: SelectRowsOptions
 ): SelectRowsSchemaOptions {
-  const options = getSelectRowsOptions(datasetViewStore, true /* implicitSortByRowId */);
+  const options =
+    selectRowsOptions || getSelectRowsOptions(datasetViewStore, true /* implicitSortByRowId */);
   return {
     columns: options.columns,
     searches: options.searches,

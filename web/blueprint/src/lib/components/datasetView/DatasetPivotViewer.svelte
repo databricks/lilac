@@ -101,8 +101,8 @@
   export let loadIndex = 0;
 </script>
 
-<div class="h-full overflow-y-scroll">
-  <div class="mx-4 mb-4 flex w-96 flex-row gap-x-4">
+<div class="h-full">
+  <div class="-px-3 mx-16 mb-4 flex w-96 flex-row gap-x-4">
     <Select
       size={'sm'}
       labelText="Outer field"
@@ -128,71 +128,77 @@
     </Select>
   </div>
 
-  {#if $outerCountQuery == null || $outerCountQuery.isFetching || outerLeafPath == null}
-    <SkeletonText />
-  {:else}
-    <div class="flex h-full w-full flex-col">
-      {#each outerCounts as outerCount, i}
-        {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
-          ...$store,
-          viewPivot: false,
-          pivot: undefined,
-          query: {
-            ...$store.query
-          },
-          groupBy: {path: outerLeafPath, value: outerCount.name}
-        })}
-        {@const percentage = getPercentage(outerCount.count)}
-        <div class=" mb-4 flex w-full flex-col px-4">
-          <div class="text-preview-overlay sticky top-0 z-50">
-            <div class="absolute left-0 top-0 z-10 h-full w-full bg-white" />
-            <div
-              class="absolute left-0 top-0 z-10 h-full w-full bg-blue-100"
-              style={`width: ${percentage}%`}
-            />
-            <div class="relative left-0 top-0 z-50 py-2 leading-none tracking-tight text-gray-900">
-              <span class="mx-2 text-2xl"
-                >{outerCount.name}
-                <a class="inline-block" href={groupLink}>
-                  <svg
-                    class="ms-2 h-3 w-3 rtl:rotate-[270deg]"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 18 18"
-                  >
-                    <path
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M15 11v4.833A1.166 1.166 0 0 1 13.833 17H2.167A1.167 1.167 0 0 1 1 15.833V4.167A1.166 1.166 0 0 1 2.167 3h4.618m4.447-2H17v5.768M9.111 8.889l7.778-7.778"
-                    />
-                  </svg>
-                </a>
-              </span>
-              <span class="ml-2 text-lg">({percentage}%)</span>
+  <div class="flex h-full flex-row">
+    {#if $outerCountQuery == null || $outerCountQuery.isFetching || outerLeafPath == null}
+      <SkeletonText />
+    {:else}
+      <div class="flex h-full w-full flex-col overflow-y-scroll">
+        {#each outerCounts as outerCount, i}
+          {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
+            ...$store,
+            viewPivot: false,
+            pivot: undefined,
+            query: {
+              ...$store.query
+            },
+            groupBy: {path: outerLeafPath, value: outerCount.name}
+          })}
+          {@const percentage = getPercentage(outerCount.count)}
+          <div class="mb-4 flex w-full flex-col px-4">
+            <div class="text-preview-overlay sticky top-0 z-50 mx-11">
+              <div class="absolute left-0 top-0 z-10 h-full w-full bg-white" />
+              <div
+                class="absolute left-0 top-0 z-10 h-full w-full bg-blue-100"
+                style={`width: ${percentage}%`}
+              />
+              <div
+                class="relative left-0 top-0 z-50 py-2 leading-none tracking-tight text-gray-900"
+              >
+                <span class="mx-2 text-2xl"
+                  >{outerCount.name}
+                  <a class="inline-block" href={groupLink}>
+                    <svg
+                      class="ms-2 h-3 w-3 rtl:rotate-[270deg]"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 18 18"
+                    >
+                      <path
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 11v4.833A1.166 1.166 0 0 1 13.833 17H2.167A1.167 1.167 0 0 1 1 15.833V4.167A1.166 1.166 0 0 1 2.167 3h4.618m4.447-2H17v5.768M9.111 8.889l7.778-7.778"
+                      />
+                    </svg>
+                  </a>
+                </span>
+                <span class="ml-2 text-lg">({percentage}%)</span>
+              </div>
+            </div>
+            <div>
+              {#if innerLeafPath && innerLeafPath.length > 0}
+                <DatasetPivotResult
+                  shouldLoad={loadIndex >= i}
+                  on:load={() => {
+                    // Serially load in the order of results on the page so we don't overwhelm the
+                    // server.
+                    loadIndex = i + 1;
+                  }}
+                  filter={outerCount.name == null
+                    ? {path: outerLeafPath, op: 'not_exists'}
+                    : {path: outerLeafPath, op: 'equals', value: outerCount.name}}
+                  path={innerLeafPath}
+                  parentPath={outerLeafPath}
+                  parentValue={outerCount.name}
+                  {numRowsInQuery}
+                />
+              {/if}
             </div>
           </div>
-          <div>
-            {#if innerLeafPath && innerLeafPath.length > 0}
-              <DatasetPivotResult
-                shouldLoad={loadIndex >= i}
-                on:load={() => {
-                  // Serially load in the order of results on the page so we don't overwhelm the
-                  // server.
-                  loadIndex = i + 1;
-                }}
-                filter={outerCount.name == null
-                  ? {path: outerLeafPath, op: 'not_exists'}
-                  : {path: outerLeafPath, op: 'equals', value: outerCount.name}}
-                path={innerLeafPath}
-                {numRowsInQuery}
-              />
-            {/if}
-          </div>
-        </div>
-      {/each}
-    </div>
-  {/if}
+        {/each}
+      </div>
+    {/if}
+  </div>
 </div>
