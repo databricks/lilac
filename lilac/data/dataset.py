@@ -523,6 +523,15 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def delete_column(self, path: Path) -> None:
+    """Delete a computed column from the dataset.
+
+    Args:
+      path: The path of the computed column.
+    """
+    pass
+
+  @abc.abstractmethod
   def select_groups(
     self,
     leaf_path: Path,

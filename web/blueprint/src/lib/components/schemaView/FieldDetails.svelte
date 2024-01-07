@@ -88,7 +88,7 @@
             </span>
             <span>Total count</span>
           </td>
-          <td>{formatValue(stats.total_count)}</td>
+          <td class="stats-label">{formatValue(stats.total_count)}</td>
         </tr>
         <tr>
           <td>
@@ -99,7 +99,7 @@
             </span>
             <span>Unique values</span>
           </td>
-          <td>~{formatValue(stats.approx_count_distinct)}</td>
+          <td class="stats-label">~{formatValue(stats.approx_count_distinct)}</td>
         </tr>
         {#if stats.avg_text_length}
           <tr>
@@ -109,7 +109,7 @@
               </span>
               <span>Average text length</span>
             </td>
-            <td>{formatValue(stats.avg_text_length)}</td>
+            <td class="stats-label">{formatValue(stats.avg_text_length)}</td>
           </tr>
         {/if}
         {#if stats.min_val && stats.max_val}
@@ -120,7 +120,8 @@
               </span>
               <span>Range</span>
             </td>
-            <td>{formatValue(stats.min_val)} .. {formatValue(stats.max_val)}</td>
+            <td class="stats-label">{formatValue(stats.min_val)} .. {formatValue(stats.max_val)}</td
+            >
           </tr>
         {/if}
       </tbody>
@@ -148,5 +149,8 @@
   }
   .stats-table td:last-child {
     @apply truncate py-2 pl-2;
+  }
+  .stats-label {
+    font-family: 'inconsolata variable';
   }
 </style>
