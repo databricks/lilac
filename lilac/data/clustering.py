@@ -3,7 +3,7 @@ import functools
 import gc
 import random
 import threading
-from typing import Any, Iterator, Optional
+from typing import Any, Callable, Iterator, Optional, Union
 
 import instructor
 import modal
@@ -22,6 +22,7 @@ from ..schema import (
   PATH_WILDCARD,
   Item,
   Path,
+  PathTuple,
   field,
   normalize_path,
 )
@@ -144,7 +145,7 @@ def _generate_category(ranked_docs: list[tuple[str, float]]) -> str:
 
 def cluster(
   dataset: Dataset,
-  path: Path,
+  input: Union[Path, Callable[[Item], str]],
   output_path: Optional[Path] = None,
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_instructions,
@@ -153,21 +154,33 @@ def cluster(
   category: bool = False,
 ) -> None:
   """Compute clusters for a field of the dataset."""
-  path = normalize_path(path)
-  # Make sure the input path ends with a field name so we can store the cluster enrichment as a
-  # sibling.
-  if path[-1] == PATH_WILDCARD:
-    raise ValueError(
-      'Clustering an array of primitives is not yet supported. '
-      f'Path {path} must end with a field name.'
-    )
+  path: Optional[PathTuple] = None
+  if not callable(input):
+    path = normalize_path(input)
+    # Make sure the input path ends with a field name so we can store the cluster enrichment as a
+    # sibling.
+    if path[-1] == PATH_WILDCARD:
+      raise ValueError(
+        'Clustering an array of primitives is not yet supported. '
+        f'Path {path} must end with a field name.'
+      )
+  elif not output_path:
+    raise ValueError('output_path must be provided if input is a function.')
 
   # Output the cluster enrichment to a sibling path, unless an output path is provided by the user.
   if output_path:
     cluster_output_path = normalize_path(output_path)
-  else:
+  elif path:
     # The sibling output path is the same as the input path, but with a different suffix.
     cluster_output_path = get_sibling_output_path(path, FIELD_SUFFIX)
+  else:
+    raise ValueError('input must be provided.')
+
+  if not path:
+    assert callable(input), 'input must be a function at this point'
+    path = (*cluster_output_path[:-1], '__temp_cluster_text__')
+    # Since input is a function, map over the dataset to make a temporary column with that text.
+    dataset.map(input, output_path=path)
 
   clusters_exists = dataset.manifest().data_schema.has_field(cluster_output_path)
   if not clusters_exists or overwrite:
@@ -322,7 +335,9 @@ def cluster(
       },
     ),
   )
-
+  # Delete the temporary text column.
+  if callable(input):
+    dataset.delete_column(path)
   # Delete the cluster titles.
   dataset.delete_column(title_output_path)
   # Delete the caterogy clusters.

@@ -453,7 +453,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def cluster(
     self,
-    path: Path,
+    input: Union[Path, Callable[[Item], str]],
     output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
@@ -463,7 +463,8 @@ class Dataset(abc.ABC):
     """Compute clusters for a field of the dataset.
 
     Args:
-      path: The path to the text field to cluster.
+      input: The path to the text field to cluster, or a function that returns a string for each row
+        in the dataset.
       output_path: The name of the output path to write to. Defaults to the input path + ".cluster".
       min_cluster_size: The minimum number of docs in a cluster.
       topic_fn: A function that returns a topic summary for each cluster. It takes a list of
