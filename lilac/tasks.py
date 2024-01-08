@@ -3,7 +3,7 @@
 import functools
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import (
   Any,
@@ -119,6 +119,11 @@ class TaskManager:
     """Report the progress of a task."""
     task = self._tasks[task_id]
     task.total_progress = progress
+    elapsed_sec = (datetime.now() - datetime.fromisoformat(task.start_timestamp)).total_seconds()
+    ex_per_sec = progress / elapsed_sec if elapsed_sec else 0
+    # 1748/1748 [elapsed 00:16<00:00, 106.30 ex/s]
+    elapsed = pretty_timedelta(timedelta(seconds=elapsed_sec))
+    task.details = f'{progress:,}/{task.total_len:,} [{elapsed} {ex_per_sec:,.2f} ex/s]'
 
   def set_task_error(self, task_id: TaskId, error: str) -> None:
     """Mark a task as errored."""
@@ -175,8 +180,9 @@ def get_progress_bar(
     try:
       for item in tqdm(it, initial=progress, total=task_info.total_len, desc=task_info.description):
         progress += 1
+        if progress % 100 == 0:
+          task_manager.report_task_progress(task_id, progress)
         yield item
-        task_manager.report_task_progress(task_id, progress)
     except Exception as e:
       task_manager.set_task_error(task_id, str(e))
       raise e
