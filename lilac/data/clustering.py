@@ -167,6 +167,8 @@ def cluster(
   elif not output_path:
     raise ValueError('output_path must be provided if input is a function.')
 
+  schema = dataset.manifest().data_schema
+
   # Output the cluster enrichment to a sibling path, unless an output path is provided by the user.
   if output_path:
     cluster_output_path = normalize_path(output_path)
@@ -179,10 +181,12 @@ def cluster(
   if not path:
     assert callable(input), 'input must be a function at this point'
     path = (*cluster_output_path[:-1], '__temp_cluster_text__')
-    # Since input is a function, map over the dataset to make a temporary column with that text.
-    dataset.map(input, output_path=path)
+    temp_path_exists = schema.has_field(path)
+    if not temp_path_exists or overwrite:
+      # Since input is a function, map over the dataset to make a temporary column with that text.
+      dataset.map(input, output_path=path, overwrite=overwrite)
 
-  clusters_exists = dataset.manifest().data_schema.has_field(cluster_output_path)
+  clusters_exists = schema.has_field(cluster_output_path)
   if not clusters_exists or overwrite:
     # Compute the clusters.
     dataset.transform(
@@ -261,7 +265,7 @@ def cluster(
   # Output the title as a child of the cluster enrichment.
   title_output_path = (*cluster_output_path, CLUSTER_TITLE)
 
-  titles_exist = dataset.manifest().data_schema.has_field(title_output_path)
+  titles_exist = schema.has_field(title_output_path)
   if not titles_exist or overwrite:
     dataset.transform(
       functools.partial(_compute_titles, text_column, cluster_column),
