@@ -59,6 +59,14 @@
   let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
 
+  const HIDDEN_PROPERTIES = [
+    // Hide the signal name as it's just used for type coersion.
+    '/signal_name',
+    // Hide the embedding input type from the compute embedding menu as we're always computing
+    // document level embeddings.
+    '/embed_input_type'
+  ];
+
   // Set the signal values if we are editing a signal
   if (
     (command.command === Command.EditPreviewConcept ||
@@ -182,7 +190,7 @@
               bind:value={signalPropertyValues[signalInfo?.name]}
               bind:validationErrors={errors}
               showDescription={false}
-              hiddenProperties={['/signal_name']}
+              hiddenProperties={HIDDEN_PROPERTIES}
               customComponents={customComponents[signalInfo?.name]}
             />
           {/key}

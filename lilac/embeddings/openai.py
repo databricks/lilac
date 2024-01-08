@@ -1,5 +1,5 @@
 """OpenAI embeddings."""
-from typing import Any, ClassVar, Optional
+from typing import ClassVar, Optional
 
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_random_exponential
@@ -86,11 +86,11 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       # See https://github.com/search?q=repo%3Aopenai%2Fopenai-python+replace+newlines&type=code
       texts = [text.replace('\n', ' ') for text in texts]
 
-      response: Any = client.embeddings.create(
+      response = client.embeddings.create(
         input=texts,
         model=API_EMBEDDING_MODEL,
       )
-      return [np.array(embedding['embedding'], dtype=np.float32) for embedding in response['data']]
+      return [np.array(embedding.embedding, dtype=np.float32) for embedding in response.data]
 
     return chunked_compute_embedding(
       embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
