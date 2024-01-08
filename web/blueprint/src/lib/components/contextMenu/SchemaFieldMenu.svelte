@@ -12,6 +12,7 @@
     isSignalField,
     isSignalRootField,
     isSortableField,
+    isStringField,
     serializePath,
     type LilacField
   } from '$lilac';
@@ -45,7 +46,7 @@
   $: computedEmbeddings = getComputedEmbeddings($schema.data, field.path);
 
   $: isPreview = isPreviewSignal($selectRowsSchema?.data || null, field.path);
-  $: canComputeSignal = !isSignal && isSortableField(field) && !isPreview;
+  $: canComputeSignal = !isSignal && isStringField(field) && !isPreview;
   $: hasMenu =
     !isPreview &&
     (isSortableField(field) || isFilterableField(field) || canComputeSignal || isDeletable);
@@ -81,6 +82,27 @@
             path: field.path
           })}
       />
+    {/if}
+    {#if canComputeSignal}
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: !canComputeSignals
+            ? 'User does not have access to compute clusters over this dataset.'
+            : ''
+        }}
+      >
+        <OverflowMenuItem
+          text="Cluster"
+          disabled={!canComputeSignals}
+          on:click={() =>
+            openClusterModal({
+              namespace,
+              datasetName,
+              input: field?.path
+            })}
+        />
+      </div>
     {/if}
     {#if canComputeSignal}
       <div
@@ -146,27 +168,6 @@
               namespace,
               datasetName,
               path: field?.path
-            })}
-        />
-      </div>
-    {/if}
-    {#if canComputeSignal}
-      <div
-        class="w-full"
-        use:hoverTooltip={{
-          text: !canComputeSignals
-            ? 'User does not have access to compute clusters over this dataset.'
-            : ''
-        }}
-      >
-        <OverflowMenuItem
-          text="Compute clusters"
-          disabled={!canComputeSignals}
-          on:click={() =>
-            openClusterModal({
-              namespace,
-              datasetName,
-              input: field?.path
             })}
         />
       </div>

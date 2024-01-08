@@ -81,6 +81,18 @@ export const computeSignalMutation = createApiMutation(DatasetsService.computeSi
     });
   }
 });
+export const clusterMutation = createApiMutation(DatasetsService.cluster, {
+  onSuccess: resp => {
+    queryClient.invalidateQueries([TASKS_TAG]);
+
+    watchTask(resp.task_id, () => {
+      queryClient.invalidateQueries([DATASETS_TAG, 'getManifest']);
+      queryClient.invalidateQueries([DATASETS_TAG, 'selectRowsSchema']);
+      queryClient.invalidateQueries([DATASETS_TAG, 'selectRows']);
+      queryClient.invalidateQueries([DATASETS_CONFIG_TAG]);
+    });
+  }
+});
 
 export const deleteDatasetMutation = createApiMutation(DatasetsService.deleteDataset);
 

@@ -17,6 +17,7 @@
 </script>
 
 <script lang="ts">
+  import {clusterMutation} from '$lib/queries/datasetQueries';
   import type {Path} from '$lilac';
   import {
     ComposedModal,
@@ -28,19 +29,22 @@
   import FieldSelect from './commands/selectors/FieldSelect.svelte';
   $: options = $store;
 
+  const clusterQuery = clusterMutation();
+
   function close() {
     store.set(null);
   }
   function submit() {
     if (!options) return;
-    // $signalMutation.mutate([
-    //   command.namespace,
-    //   command.datasetName,
-    //   {
-    //     leaf_path: path || [],
-    //     signal
-    //   }
-    // ]);
+    $clusterQuery.mutate([
+      options.namespace,
+      options.datasetName,
+      {
+        input: options.input,
+        remote: options.remote,
+        output_path: options.output_path
+      }
+    ]);
     close();
   }
 </script>
@@ -57,8 +61,15 @@
           labelText="Field"
         />
       </div>
-      <div>
-        <Toggle labelA={'False'} labelB={'True'} labelText="Remote" bind:toggled={options.remote} />
+      <div class="mt-8">
+        <div class="label text-s mb-2 font-medium text-gray-700">Remote</div>
+        <Toggle
+          labelA={'False'}
+          labelB={'True'}
+          labelText="Remote"
+          bind:toggled={options.remote}
+          hideLabel
+        />
       </div>
     </ModalBody>
     <ModalFooter

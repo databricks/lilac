@@ -108,6 +108,13 @@ export function isSortableField(field: LilacField) {
   return field.dtype && !(['embedding', 'binary', 'map'] as string[]).includes(field.dtype.type);
 }
 
+export function isStringField(field: LilacField) {
+  if (field.repeated_field) {
+    return isStringField(field.repeated_field);
+  }
+  return field.dtype?.type === 'string' || field.dtype?.type === 'string_span';
+}
+
 export function isFilterableField(field: LilacField) {
   return field.dtype && !(['embedding', 'binary'] as string[]).includes(field.dtype.type);
 }
