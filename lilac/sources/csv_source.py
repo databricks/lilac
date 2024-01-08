@@ -18,9 +18,12 @@ LINE_NUMBER_COLUMN = '__line_number__'
 
 
 class CSVSource(Source):
-  """CSV data loader
+  r"""CSV or TSV data loader
 
-  CSV files can live locally as a filepath, point to an external URL, or live on S3, GCS, or R2.
+  CSV or TSV files can live locally as a filepath, point to an external URL, or live on S3, GCS, or
+  R2.
+
+  For TSV files, use `\t` as the delimiter.
 
   For more details on authorizing access to S3, GCS or R2, see:
   https://duckdb.org/docs/guides/import/s3_import.html
@@ -33,7 +36,7 @@ class CSVSource(Source):
     'Paths can be local, point to an HTTP(s) url, or live on GCS, S3 or R2.'
   )
   delim: Optional[str] = Field(
-    default=',', description='The CSV file delimiter to use. For TSV files, use `\t`.'
+    default=',', description='The CSV file delimiter to use. For TSV files, use `\\t`.'
   )
   header: Optional[bool] = Field(default=True, description='Whether the CSV file has a header row.')
   names: list[str] = Field(
