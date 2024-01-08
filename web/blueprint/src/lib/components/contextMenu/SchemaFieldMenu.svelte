@@ -17,6 +17,7 @@
   } from '$lilac';
   import {Modal, OverflowMenu, OverflowMenuItem} from 'carbon-components-svelte';
   import {InProgress} from 'carbon-icons-svelte';
+  import {openClusterModal} from '../ComputeClusterModal.svelte';
   import {Command, triggerCommand} from '../commands/Commands.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
@@ -150,17 +151,27 @@
       </div>
     {/if}
     {#if canComputeSignal}
-      <OverflowMenuItem
-        text="Preview signal"
-        on:click={() =>
-          triggerCommand({
-            command: Command.PreviewConcept,
-            namespace,
-            datasetName,
-            path: field?.path
-          })}
-      />
+      <div
+        class="w-full"
+        use:hoverTooltip={{
+          text: !canComputeSignals
+            ? 'User does not have access to compute clusters over this dataset.'
+            : ''
+        }}
+      >
+        <OverflowMenuItem
+          text="Compute clusters"
+          disabled={!canComputeSignals}
+          on:click={() =>
+            openClusterModal({
+              namespace,
+              datasetName,
+              input: field?.path
+            })}
+        />
+      </div>
     {/if}
+
     {#if isDeletable}
       <div
         class="w-full"

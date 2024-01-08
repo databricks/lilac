@@ -10,6 +10,7 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 export type { AddLabelsOptions } from './models/AddLabelsOptions';
 export type { AuthenticationInfo } from './models/AuthenticationInfo';
 export type { BinaryFilter } from './models/BinaryFilter';
+export type { ClusterOptions } from './models/ClusterOptions';
 export type { Column } from './models/Column';
 export type { ComputeSignalOptions } from './models/ComputeSignalOptions';
 export type { ComputeSignalResponse } from './models/ComputeSignalResponse';

@@ -70,6 +70,29 @@ def compute_signal(
   return ComputeSignalResponse(task_id=task_id)
 
 
+class ClusterOptions(BaseModel):
+  """The request for the cluster endpoint."""
+
+  input: Path
+  output_path: Optional[Path] = None
+  remote: bool = False
+
+
+@router.post('/{namespace}/{dataset_name}/cluster')
+def cluster(
+  namespace: str,
+  dataset_name: str,
+  options: ClusterOptions,
+  user: Annotated[Optional[UserInfo], Depends(get_session_user)],
+) -> None:
+  """Compute clusters over an input path."""
+  if not get_user_access(user).dataset.compute_signals:
+    raise HTTPException(401, 'User does not have access to compute clusters over this dataset.')
+
+  dataset = get_dataset(namespace, dataset_name)
+  dataset.cluster(options.input, options.output_path, remote=options.remote)
+
+
 class DeleteSignalOptions(BaseModel):
   """The request for the delete signal endpoint."""
 

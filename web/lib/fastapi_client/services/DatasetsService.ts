@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AddLabelsOptions } from '../models/AddLabelsOptions';
+import type { ClusterOptions } from '../models/ClusterOptions';
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
@@ -509,6 +510,35 @@ export class DatasetsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/compute_signal',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Cluster
+     * Compute clusters over an input path.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static cluster(
+        namespace: string,
+        datasetName: string,
+        requestBody: ClusterOptions,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/cluster',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,

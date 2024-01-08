@@ -28,6 +28,7 @@
     TableOfContents
   } from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
+  import ComputeClusterModal from '../ComputeClusterModal.svelte';
   import DatasetPivotViewer from './DatasetPivotViewer.svelte';
   import DatasetSettingsModal from './DatasetSettingsModal.svelte';
   import ExportModal from './ExportModal.svelte';
@@ -212,6 +213,7 @@
       {/if}
     </Modal>
   {/if}
+  <ComputeClusterModal />
 </Page>
 
 <style lang="postcss">
