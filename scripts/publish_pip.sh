@@ -13,6 +13,12 @@
 
 set -e # Fail if any of the commands below fail.
 
+# Load environment flags from .env.local before running poetry or gh scripts. This catches issues
+# where local environment flags are incompatible with the scripts.
+set -o allexport
+source .env.local
+set +o allexport
+
 VERSION_TYPE="$1"
 if [[ $VERSION_TYPE == "" ]]; then
   VERSION_TYPE="patch"
@@ -29,10 +35,6 @@ gh auth status || exit 1
 # Make sure the user is logged in and can see the cloud builds.
 echo "Checking Google Cloud authentication..."
 gcloud builds list --project lilac-386213 || exit 1
-
-set -o allexport
-source .env.local
-set +o allexport
 
 if [[ -z "${PYPI_TOKEN}" ]]; then
   echo 'Please set the PYPI_TOKEN variable in your .env.local file'
