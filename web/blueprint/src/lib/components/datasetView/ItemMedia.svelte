@@ -232,7 +232,7 @@
 {#if isLeaf}
   <div class="flex w-full flex-row gap-x-4" class:border={isRepeated}>
     <div
-      class="relative mr-4 flex w-28 flex-row rounded border-neutral-200 px-4 py-2 font-mono font-medium text-neutral-500 md:w-36"
+      class="relative mr-4 flex w-28 flex-row rounded border-neutral-200 p-2 font-mono font-medium text-neutral-500 md:w-36"
     >
       <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
