@@ -240,3 +240,160 @@ def test_path_ending_with_repeated_errors(make_test_data: TestDataMaker) -> None
     ValueError, match=re.escape("Path ('texts', '*') must end with a field name.")
   ):
     dataset.cluster('texts.*')
+
+
+def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
+  texts: list[list[str]] = [
+    ['Can you summarize this article'],
+    ['Can you rewrite this in a simpler way'],
+    ['Can you provide a short summary of the following text'],
+    ['Can you simplify this text'],
+  ]
+  dataset = make_test_data([{'texts': t} for t in texts])
+
+  def topic_fn(docs: list[tuple[str, float]]) -> str:
+    if 'summar' in docs[0][0]:
+      return 'summarization'
+    elif 'simpl' in docs[0][0]:
+      return 'simplification'
+    return 'other'
+
+  with pytest.raises(ValueError, match='output_path must be provided if input is a function'):
+    dataset.cluster(lambda row: '\n'.join(row['texts']), min_cluster_size=2, topic_fn=topic_fn)
+
+  dataset.cluster(
+    lambda row: '\n'.join(row['texts']),
+    output_path='cluster',
+    min_cluster_size=2,
+    topic_fn=topic_fn,
+  )
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'texts': ['Can you summarize this article'],
+      'cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'texts': ['Can you rewrite this in a simpler way'],
+      'cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'texts': ['Can you provide a short summary of the following text'],
+      'cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'texts': ['Can you simplify this text'],
+      'cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+  ]
+
+
+def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) -> None:
+  texts: list[list[str]] = [
+    ['Can you summarize this article'],
+    ['Can you rewrite this in a simpler way'],
+    ['Can you provide a short summary of the following text'],
+    ['Can you simplify this text'],
+  ]
+  dataset = make_test_data([{'texts': t, 'info': {'dummy': True}} for t in texts])
+
+  def topic_fn(docs: list[tuple[str, float]]) -> str:
+    if 'summar' in docs[0][0]:
+      return 'summarization'
+    elif 'simpl' in docs[0][0]:
+      return 'simplification'
+    return 'other'
+
+  dataset.cluster(
+    lambda row: '\n'.join(row['texts']),
+    output_path=('info', 'cluster'),
+    min_cluster_size=2,
+    topic_fn=topic_fn,
+  )
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'texts': ['Can you summarize this article'],
+      'info': {
+        'dummy': True,
+        'cluster': {
+          'cluster_id': 0,
+          'cluster_membership_prob': 1.0,
+          'cluster_title': 'summarization',
+          'category_id': -1,
+          'category_membership_prob': None,
+          'category_title': None,
+        },
+      },
+    },
+    {
+      'texts': ['Can you rewrite this in a simpler way'],
+      'info': {
+        'dummy': True,
+        'cluster': {
+          'cluster_id': 1,
+          'cluster_membership_prob': 1.0,
+          'cluster_title': 'simplification',
+          'category_id': -1,
+          'category_membership_prob': None,
+          'category_title': None,
+        },
+      },
+    },
+    {
+      'texts': ['Can you provide a short summary of the following text'],
+      'info': {
+        'dummy': True,
+        'cluster': {
+          'cluster_id': 0,
+          'cluster_membership_prob': 1.0,
+          'cluster_title': 'summarization',
+          'category_id': -1,
+          'category_membership_prob': None,
+          'category_title': None,
+        },
+      },
+    },
+    {
+      'texts': ['Can you simplify this text'],
+      'info': {
+        'dummy': True,
+        'cluster': {
+          'cluster_id': 1,
+          'cluster_membership_prob': 1.0,
+          'cluster_title': 'simplification',
+          'category_id': -1,
+          'category_membership_prob': None,
+          'category_title': None,
+        },
+      },
+    },
+  ]
