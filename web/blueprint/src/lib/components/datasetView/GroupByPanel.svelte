@@ -27,6 +27,7 @@
     leaf_path: groupBy.path,
     sort_by: sortBy as GroupsSortBy,
     sort_order: sortOrder as SortOrder,
+    filters: $store.query.filters,
     // Explicitly set the limit to null to get all the groups, not just the top 100.
     limit: null
   });
