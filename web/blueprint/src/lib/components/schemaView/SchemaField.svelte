@@ -324,7 +324,6 @@
       <button
         use:hoverTooltip={{text: 'View clusters'}}
         class="my-1"
-        class:bg-slate-300={expandedStats}
         on:click={() => {
           datasetViewStore.openPivotViewer(
             [...field.path, CLUSTER_CATEGORY_FIELD],
