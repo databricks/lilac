@@ -19,6 +19,7 @@
 
 <script lang="ts">
   import {clusterMutation} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import type {Path} from '$lilac';
   import {
     ComposedModal,
@@ -28,9 +29,13 @@
     Toggle
   } from 'carbon-components-svelte';
   import FieldSelect from './commands/selectors/FieldSelect.svelte';
+  import {hoverTooltip} from './common/HoverTooltip';
   $: options = $store;
 
   const clusterQuery = clusterMutation();
+  const authInfo = queryAuthInfo();
+
+  $: canComputeRemotely = $authInfo.data?.access.dataset.execute_remotely;
 
   function close() {
     store.set(null);
@@ -65,7 +70,21 @@
       </div>
       <div class="mt-8">
         <div class="label text-s mb-2 font-medium text-gray-700">Remote</div>
-        <Toggle labelA={'False'} labelB={'True'} bind:toggled={options.remote} hideLabel />
+        <div
+          class="w-20"
+          use:hoverTooltip={{
+            text: !canComputeRemotely ? 'Sign up for Lilac Garden to enable this feature.' : ''
+          }}
+        >
+          <Toggle
+            disabled={!canComputeRemotely}
+            labelA={'False'}
+            labelB={'True'}
+            bind:toggled={options.remote}
+            hideLabel
+          />
+        </div>
+        <div class="text-sm text-gray-600">Accelerated computation on Lilac Garden.</div>
       </div>
       <div class="mt-8">
         <div class="label text-s mb-2 font-medium text-gray-700">Overwrite</div>
