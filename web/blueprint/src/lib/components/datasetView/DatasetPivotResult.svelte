@@ -20,7 +20,6 @@
 
   export let filter: BinaryFilter | UnaryFilter;
   export let path: Path;
-  export let parentPath: Path;
   export let parentValue: string;
   export let numRowsInQuery: number | undefined;
   // When true, queries will be issued. This allows us to progressively load without spamming the

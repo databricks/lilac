@@ -192,7 +192,6 @@
                     ? {path: outerLeafPath, op: 'not_exists'}
                     : {path: outerLeafPath, op: 'equals', value: outerCount.name}}
                   path={innerLeafPath}
-                  parentPath={outerLeafPath}
                   parentValue={outerCount.name}
                   {numRowsInQuery}
                 />
