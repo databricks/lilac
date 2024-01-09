@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+import modal.config
 from fastapi import Request
 from pydantic import BaseModel, ValidationError
 
@@ -33,6 +34,8 @@ class DatasetUserAccess(BaseModel):
   label_all: bool
   # Whether the user can delete rows.
   delete_rows: bool
+  # Whether the user can execute jobs remotely.
+  execute_remotely: bool
 
 
 class ConceptUserAccess(BaseModel):
@@ -72,6 +75,16 @@ class AuthenticationInfo(BaseModel):
   auth_enabled: bool
   # The HuggingFace space ID if the server is running on a HF space.
   huggingface_space_id: Optional[str] = None
+
+
+def has_garden_credentials() -> bool:
+  """Returns whether the user has Garden credentials."""
+  config = modal.config.Config().to_dict()
+  return (
+    'token_secret' in config
+    and 'token_id' in config
+    and 'lilacai' in modal.config.config_profiles()
+  )
 
 
 def get_session_user(request: Request) -> Optional[UserInfo]:
@@ -117,6 +130,7 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
         edit_labels=bool(env('LILAC_AUTH_USER_EDIT_LABELS', False)),
         label_all=not bool(env('LILAC_AUTH_USER_DISABLE_LABEL_ALL', False)),
         delete_rows=False,
+        execute_remotely=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     )
@@ -133,6 +147,7 @@ def get_user_access(user_info: Optional[UserInfo]) -> UserAccess:
       edit_labels=True,
       label_all=True,
       delete_rows=True,
+      execute_remotely=has_garden_credentials(),
     ),
     concept=ConceptUserAccess(delete_any_concept=True),
   )

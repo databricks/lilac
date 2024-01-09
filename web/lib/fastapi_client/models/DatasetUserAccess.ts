@@ -15,5 +15,6 @@ export type DatasetUserAccess = {
     edit_labels: boolean;
     label_all: boolean;
     delete_rows: boolean;
+    execute_remotely: boolean;
 };
 

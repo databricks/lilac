@@ -22,6 +22,11 @@ def test_auth_admin(mocker: MockerFixture) -> None:
   mocker.patch.dict(os.environ, {'LILAC_AUTH_ENABLED': 'True'})
   mocker.patch.dict(os.environ, {'LILAC_AUTH_ADMIN_EMAILS': 'test@test.com,test2@test2.com'})
 
+  @mocker.patch('modal.config.Config')
+  class Config:
+    def to_dict(self) -> dict:
+      return {}
+
   # Override the session user so we make them an admin.
   def admin_user() -> UserInfo:
     return UserInfo(
@@ -47,6 +52,7 @@ def test_auth_admin(mocker: MockerFixture) -> None:
         edit_labels=True,
         label_all=True,
         delete_rows=True,
+        execute_remotely=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=True),
     ),
@@ -83,6 +89,7 @@ def test_auth_nonadmin(mocker: MockerFixture) -> None:
         edit_labels=False,
         label_all=True,
         delete_rows=False,
+        execute_remotely=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     ),
@@ -121,6 +128,7 @@ def test_auth_nonadmin_edit_labels(mocker: MockerFixture) -> None:
         edit_labels=True,
         label_all=True,
         delete_rows=False,
+        execute_remotely=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     ),
@@ -161,6 +169,7 @@ def test_auth_nonadmin_label_all(mocker: MockerFixture) -> None:
         # Users cannot use the label all feature.
         label_all=False,
         delete_rows=False,
+        execute_remotely=False,
       ),
       concept=ConceptUserAccess(delete_any_concept=False),
     ),
