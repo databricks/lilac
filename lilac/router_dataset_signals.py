@@ -107,13 +107,18 @@ def cluster(
   task_name = f'[{namespace}/{dataset_name}] Clustering "{path_str}"'
   task_id = get_task_manager().task_id(name=task_name)
   dataset = get_dataset(namespace, dataset_name)
-  dataset.cluster(
-    options.input,
-    options.output_path,
-    remote=options.remote,
-    overwrite=options.overwrite,
-    task_id=task_id,
-  )
+
+  def run() -> None:
+    dataset.cluster(
+      options.input,
+      options.output_path,
+      remote=options.remote,
+      overwrite=options.overwrite,
+      task_id=task_id,
+    )
+
+  thread = Thread(target=run, daemon=True)
+  thread.start()
   return ClusterResponse(task_id=task_id)
 
 
