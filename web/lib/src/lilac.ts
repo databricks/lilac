@@ -1,6 +1,7 @@
 import type {JSONSchema7} from 'json-schema';
 import type {
   BinaryFilter,
+  ClusterInfo,
   ConceptSearch,
   DataType,
   Field,
@@ -264,10 +265,26 @@ export function isMapRootField(field: LilacField) {
   return field.map != null;
 }
 
+/** If a field is produced by a map, it returns the map information. Otherwise returns null. */
+export function getClusterInfo(field: LilacField): ClusterInfo | null {
+  if (field.cluster) {
+    return field.cluster;
+  }
+  if (field.parent) {
+    return getClusterInfo(field.parent);
+  }
+  return null;
+}
+
+/** Determine if a field is produced by a clusterer. */
+export function isClusterField(field: LilacField): boolean {
+  return getClusterInfo(field) != null;
+}
+
 /** True if the field was the root field produced by a map. */
 export function isClusterRootField(field: LilacField) {
   // TODO(smilkov): Add a special bit to the field to indicate that it is a cluster root field.
-  return field.map?.fn_name === 'flatten_cluster_info';
+  return field.cluster != null;
 }
 
 /** If a field is produced by a label, returns the label name. Otherwise returns null. */

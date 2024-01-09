@@ -8,6 +8,7 @@
     PATH_WILDCARD,
     VALUE_KEY,
     childFields,
+    isClusterField,
     isClusterRootField,
     isLabelField,
     isMapField,
@@ -50,6 +51,7 @@
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
   $: isMap = isMapField(field);
+  $: isCluster = isClusterField(field);
   $: isClusterRoot = isClusterRootField(field);
   $: isLabel = isLabelField(field);
   $: isSourceField = !isSignal && !isLabel;
@@ -176,9 +178,9 @@
 <div class="border-gray-300" class:border-b={isSourceField}>
   <div
     class="flex w-full flex-row items-center gap-x-2 border-gray-300 px-4 hover:bg-gray-100"
-    class:bg-blue-50={isSignal}
+    class:bg-blue-50={isSignal || isCluster}
     class:bg-emerald-100={isPreview}
-    class:bg-orange-50={isMap}
+    class:bg-orange-50={isMap && !isCluster}
     class:b={isLabel}
     class:hover:bg-blue-100={isSignal}
   >
