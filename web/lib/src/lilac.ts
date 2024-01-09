@@ -6,6 +6,7 @@ import type {
   Field,
   KeywordSearch,
   ListFilter,
+  MapInfo,
   MetadataSearch,
   Schema,
   SelectRowsSchemaResult,
@@ -240,6 +241,33 @@ export function getSignalInfo(field: LilacField): Signal | null {
 /** True if the field was the root field produced by a signal. */
 export function isSignalRootField(field: LilacField) {
   return field.signal != null;
+}
+
+/** Determine if a field is produced by a map. */
+export function isMapField(field: LilacField): boolean {
+  return getMapInfo(field) != null;
+}
+
+/** If a field is produced by a map, it returns the map information. Otherwise returns null. */
+export function getMapInfo(field: LilacField): MapInfo | null {
+  if (field.map) {
+    return field.map;
+  }
+  if (field.parent) {
+    return getMapInfo(field.parent);
+  }
+  return null;
+}
+
+/** True if the field was the root field produced by a map. */
+export function isMapRootField(field: LilacField) {
+  return field.map != null;
+}
+
+/** True if the field was the root field produced by a map. */
+export function isClusterRootField(field: LilacField) {
+  // TODO(smilkov): Add a special bit to the field to indicate that it is a cluster root field.
+  return field.map?.fn_name === 'flatten_cluster_info';
 }
 
 /** If a field is produced by a label, returns the label name. Otherwise returns null. */

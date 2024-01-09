@@ -352,6 +352,14 @@ export function createDatasetViewStore(
         state.compareColumns = state.compareColumns.filter(c => !pathIsEqual(c.column, path));
         return state;
       });
+    },
+    openPivotViewer(outerPath: Path, innerPath: Path) {
+      update(state => {
+        state.schemaCollapsed = true;
+        state.viewPivot = true;
+        state.pivot = {outerPath: outerPath, innerPath: innerPath};
+        return state;
+      });
     }
   };
 
