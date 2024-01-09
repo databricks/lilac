@@ -29,6 +29,7 @@ from ..schema import (
 from ..signal import (
   TopicFn,
 )
+from ..tasks import TaskId, TaskInfo, get_task_manager
 from ..utils import DebugTimer
 from .dataset import Dataset
 from .dataset_utils import get_common_ancestor, get_sibling_output_path
@@ -152,8 +153,13 @@ def cluster(
   overwrite: bool = False,
   remote: bool = False,
   category: bool = False,
+  task_id: Optional[TaskId] = None,
 ) -> None:
   """Compute clusters for a field of the dataset."""
+  task_manager = get_task_manager()
+  task_info: Optional[TaskInfo] = None
+  if task_id:
+    task_info = task_manager.get_task_info(task_id)
   path: Optional[PathTuple] = None
   if not callable(input):
     path = normalize_path(input)
@@ -184,10 +190,16 @@ def cluster(
     temp_path_exists = schema.has_field(path)
     if not temp_path_exists or overwrite:
       # Since input is a function, map over the dataset to make a temporary column with that text.
+      if task_info:
+        task_info.message = 'Extracting text from items'
       dataset.map(input, output_path=path, overwrite=overwrite)
 
   clusters_exists = schema.has_field(cluster_output_path)
   if not clusters_exists or overwrite:
+    if task_info:
+      task_info.message = 'Computing super clusters' if category else 'Computing clusters'
+      task_info.total_progress = 0
+      task_info.total_len = None
     # Compute the clusters.
     dataset.transform(
       functools.partial(_cluster, min_cluster_size=min_cluster_size, remote=remote),
@@ -231,6 +243,7 @@ def cluster(
         cluster_id = -1
       else:
         cluster_id = cluster_info[CLUSTER_ID]
+      cluster_locks.setdefault(cluster_id, threading.Lock())
       delayed_compute.append(delayed(_compute_title)(cluster_id))
       text = item[text_column]
       if not text:
@@ -243,7 +256,6 @@ def cluster(
       if membership_prob == 0:
         continue
       groups.setdefault(cluster_id, []).append((text, membership_prob))
-      cluster_locks.setdefault(cluster_id, threading.Lock())
 
     # Sort by descending membership score.
     for cluster_id, group in groups.items():
@@ -255,7 +267,10 @@ def cluster(
       groups[cluster_id] = group
 
     parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
-    yield from parallel(delayed_compute)
+    for i, item in enumerate(parallel(delayed_compute)):
+      if task_info:
+        task_info.total_progress = i
+      yield item
 
   # Now that we have the clusters, compute the topic for each cluster with another transform.
   # The transform needs to be see both the original text and the cluster enrichment, so we need
@@ -267,6 +282,11 @@ def cluster(
 
   titles_exist = schema.has_field(title_output_path)
   if not titles_exist or overwrite:
+    if task_info:
+      task_info.message = 'Computing category titles' if category else 'Computing titles'
+      task_info.total_progress = 0
+      task_info.total_len = dataset.stats(path).total_count
+
     dataset.transform(
       functools.partial(_compute_titles, text_column, cluster_column),
       input_path=ancestor_path,
@@ -289,6 +309,7 @@ def cluster(
     overwrite=overwrite,
     remote=remote,
     category=True,
+    task_id=task_id,
   )
 
   # At this point we have something like this in output_path:
@@ -348,6 +369,9 @@ def cluster(
   dataset.delete_column(category_cluster_output_path)
   # Delete the category titles.
   dataset.delete_column((*category_cluster_output_path, CLUSTER_TITLE))
+
+  if task_id:
+    task_manager.set_completed(task_id)
 
 
 def _cluster(

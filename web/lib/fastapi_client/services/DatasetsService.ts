@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { AddLabelsOptions } from '../models/AddLabelsOptions';
 import type { ClusterOptions } from '../models/ClusterOptions';
+import type { ClusterResponse } from '../models/ClusterResponse';
 import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
@@ -528,14 +529,14 @@ export class DatasetsService {
      * @param namespace
      * @param datasetName
      * @param requestBody
-     * @returns any Successful Response
+     * @returns ClusterResponse Successful Response
      * @throws ApiError
      */
     public static cluster(
         namespace: string,
         datasetName: string,
         requestBody: ClusterOptions,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<ClusterResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/cluster',

@@ -115,19 +115,19 @@ class TaskManager:
     self._tasks[task_id] = new_task
     return task_id
 
-  def report_task_progress(self, task_id: TaskId, progress: int) -> None:
+  def report_progress(self, task_id: TaskId, progress: int) -> None:
     """Report the progress of a task."""
     task = self._tasks[task_id]
     task.total_progress = progress
 
-  def set_task_error(self, task_id: TaskId, error: str) -> None:
+  def set_error(self, task_id: TaskId, error: str) -> None:
     """Mark a task as errored."""
     task = self._tasks[task_id]
     task.status = TaskStatus.ERROR
     task.error = error
     task.end_timestamp = datetime.now().isoformat()
 
-  def set_task_completed(self, task_id: TaskId) -> None:
+  def set_completed(self, task_id: TaskId) -> None:
     """Mark a task completed."""
     end_timestamp = datetime.now().isoformat()
     task = self._tasks[task_id]
@@ -176,10 +176,10 @@ def get_progress_bar(
       for item in tqdm(it, initial=progress, total=task_info.total_len, desc=task_info.description):
         progress += 1
         yield item
-        task_manager.report_task_progress(task_id, progress)
+        task_manager.report_progress(task_id, progress)
     except Exception as e:
-      task_manager.set_task_error(task_id, str(e))
+      task_manager.set_error(task_id, str(e))
       raise e
-    task_manager.set_task_completed(task_id)
+    task_manager.set_completed(task_id)
 
   return progress_reporter

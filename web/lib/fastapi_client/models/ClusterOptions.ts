@@ -10,5 +10,6 @@ export type ClusterOptions = {
     input: (Array<string> | string);
     output_path?: (Array<string> | string | null);
     remote?: boolean;
+    overwrite?: boolean;
 };
 

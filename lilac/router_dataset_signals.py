@@ -76,6 +76,13 @@ class ClusterOptions(BaseModel):
   input: Path
   output_path: Optional[Path] = None
   remote: bool = False
+  overwrite: bool = False
+
+
+class ClusterResponse(BaseModel):
+  """Response of the cluster endpoint."""
+
+  task_id: TaskId
 
 
 @router.post('/{namespace}/{dataset_name}/cluster')
@@ -84,13 +91,23 @@ def cluster(
   dataset_name: str,
   options: ClusterOptions,
   user: Annotated[Optional[UserInfo], Depends(get_session_user)],
-) -> None:
+) -> ClusterResponse:
   """Compute clusters over an input path."""
   if not get_user_access(user).dataset.compute_signals:
     raise HTTPException(401, 'User does not have access to compute clusters over this dataset.')
 
+  path_str = '.'.join(map(str, options.input))
+  task_name = f'[{namespace}/{dataset_name}] Clustering "{path_str}"'
+  task_id = get_task_manager().task_id(name=task_name)
   dataset = get_dataset(namespace, dataset_name)
-  dataset.cluster(options.input, options.output_path, remote=options.remote)
+  dataset.cluster(
+    options.input,
+    options.output_path,
+    remote=options.remote,
+    overwrite=options.overwrite,
+    task_id=task_id,
+  )
+  return ClusterResponse(task_id=task_id)
 
 
 class DeleteSignalOptions(BaseModel):

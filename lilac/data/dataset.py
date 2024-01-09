@@ -459,6 +459,7 @@ class Dataset(abc.ABC):
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
     remote: bool = False,
+    task_id: Optional[TaskId] = None,
   ) -> None:
     """Compute clusters for a field of the dataset.
 
@@ -472,6 +473,8 @@ class Dataset(abc.ABC):
         for a given cluster of docs. It defaults to a function that summarizes user's instructions.
       overwrite: Whether to overwrite an existing output.
       remote: Whether to run the clustering remotely on Lilac Garden.
+      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
+        of the task.
 
     """
     pass

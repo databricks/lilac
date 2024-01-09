@@ -7,6 +7,7 @@
     input: Path;
     output_path?: Path;
     remote?: boolean;
+    overwrite?: boolean;
   };
 
   export function openClusterModal(options: ClusterOptions) {
@@ -42,7 +43,8 @@
       {
         input: options.input,
         remote: options.remote,
-        output_path: options.output_path
+        output_path: options.output_path,
+        overwrite: options.overwrite
       }
     ]);
     close();
@@ -63,13 +65,11 @@
       </div>
       <div class="mt-8">
         <div class="label text-s mb-2 font-medium text-gray-700">Remote</div>
-        <Toggle
-          labelA={'False'}
-          labelB={'True'}
-          labelText="Remote"
-          bind:toggled={options.remote}
-          hideLabel
-        />
+        <Toggle labelA={'False'} labelB={'True'} bind:toggled={options.remote} hideLabel />
+      </div>
+      <div class="mt-8">
+        <div class="label text-s mb-2 font-medium text-gray-700">Overwrite</div>
+        <Toggle labelA={'False'} labelB={'True'} bind:toggled={options.overwrite} hideLabel />
       </div>
     </ModalBody>
     <ModalFooter

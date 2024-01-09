@@ -2827,9 +2827,12 @@ class DatasetDuckDB(Dataset):
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
     remote: bool = False,
+    task_id: Optional[TaskId] = None,
   ) -> None:
     topic_fn = topic_fn or summarize_instructions
-    return cluster(self, input, output_path, min_cluster_size, topic_fn, overwrite, remote)
+    return cluster(
+      self, input, output_path, min_cluster_size, topic_fn, overwrite, remote, task_id=task_id
+    )
 
   @override
   def to_json(

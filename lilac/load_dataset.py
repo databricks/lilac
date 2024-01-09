@@ -131,7 +131,7 @@ def process_source(
     update_project_dataset_settings(config.namespace, config.name, settings, project_dir)
 
   if task_id is not None:
-    get_task_manager().set_task_completed(task_id)
+    get_task_manager().set_completed(task_id)
 
   log(f'Dataset "{config.name}" written to {output_dir}')
 
