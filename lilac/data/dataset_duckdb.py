@@ -1020,16 +1020,22 @@ class DatasetDuckDB(Dataset):
     else:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
 
+    n_jobs = 1 if remote else signal.map_parallelism
+    prefer = 'threads' if remote else signal.map_strategy
+    compute_fn = (
+      signal.compute_remote
+      if remote
+      else (signal.vector_compute if isinstance(signal, VectorSignal) else signal.compute)
+    )
+    batch_size = -1 if remote else signal.map_batch_size
     _consume_iterator(
       progress_bar(
         self._dispatch_workers(
-          joblib.Parallel(
-            n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
-          ),
-          signal.vector_compute if isinstance(signal, VectorSignal) else signal.compute,
+          joblib.Parallel(n_jobs=n_jobs, prefer=prefer, return_as='generator'),
+          compute_fn,
           output_path,
           jsonl_cache_filepath,
-          batch_size=signal.map_batch_size,
+          batch_size=batch_size,
           select_path=input_path,
           overwrite=overwrite,
           query_options=query_params,
