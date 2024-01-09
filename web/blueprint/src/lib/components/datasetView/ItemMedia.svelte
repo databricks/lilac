@@ -17,9 +17,11 @@
     L,
     PATH_WILDCARD,
     formatValue,
+    getField,
     getValueNodes,
     pathIsEqual,
     pathIsMatching,
+    pathMatchesPrefix,
     petals,
     type DataTypeCasted,
     type LilacField,
@@ -47,40 +49,65 @@
   export let row: LilacValueNode | undefined | null = undefined;
   export let field: LilacField;
   export let highlightedFields: LilacField[];
+  export let mediaFields: LilacField[];
   // The root path contains the sub-path up to the point of this leaf.
   export let rootPath: Path | undefined = undefined;
-  // The showPath is a subset of the path that will be displayed for this node.
-  export let showPath: Path | undefined = undefined;
   export let isFetching: boolean | undefined = undefined;
 
-  // Choose the root path which is up to the point of the next repeated value.
-  $: firstRepeatedIndex = mediaPath.findIndex(p => p === PATH_WILDCARD);
+  let childPathParts: string[];
+  // Find all the children path parts that match a media field.
   $: {
+    const childPathPartsSet = new Set<string>();
+
     if (rootPath == null) {
-      if (firstRepeatedIndex != -1) {
-        rootPath = mediaPath.slice(0, firstRepeatedIndex + 1);
-      } else {
-        rootPath = mediaPath;
+      for (const field of mediaFields) {
+        const pathPart = field.path[0];
+        childPathPartsSet.add(pathPart);
       }
+    } else {
+      for (const field of mediaFields) {
+        if (!pathMatchesPrefix(field.path, rootPath)) continue;
+        const lastMediaPath = field.path[rootPath.length];
+        if (lastMediaPath == null) continue;
+
+        const subPath = [...rootPath, field.path[rootPath.length]];
+        const valueNodes = getValueNodes(row!, subPath);
+        for (const childNode of valueNodes) {
+          const childPath = L.path(childNode)![rootPath.length];
+          if (childPath != null) {
+            childPathPartsSet.add(childPath);
+          }
+        }
+      }
+    }
+    childPathParts = Array.from(childPathPartsSet);
+  }
+  $: isLeaf = childPathParts.length === 0;
+
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+
+  $: isRepeatedParent = pathIsRepeated(rootPath?.slice(0, -1));
+  $: isRepeated = pathIsRepeated(rootPath);
+  function pathIsRepeated(path?: Path | null) {
+    return $schema.data != null && path != null
+      ? getField($schema.data, path)?.repeated_field != null
+      : false;
+  }
+
+  let displayPath: string;
+  $: {
+    if (rootPath != null) {
+      if (isRepeatedParent) {
+        displayPath = getDisplayPath(rootPath.slice(-2));
+      } else {
+        displayPath = rootPath[rootPath.length - 1];
+      }
+    } else {
+      displayPath = '';
     }
   }
 
   $: valueNodes = row != null ? getValueNodes(row, rootPath!) : [];
-  $: isLeaf = pathIsMatching(mediaPath, rootPath) && valueNodes.length === 1;
-
-  // Get the list of next root paths for children of a repeated node.
-  $: nextRootPaths = valueNodes.map(v => {
-    const path = L.path(v)!;
-    const nextRepeatedIdx = mediaPath.findIndex((p, i) => p === PATH_WILDCARD && i >= path.length);
-    const showPath = mediaPath.slice(nextRepeatedIdx).filter(p => p !== PATH_WILDCARD);
-    return {
-      rootPath: [
-        ...path,
-        ...mediaPath.slice(path.length, nextRepeatedIdx === -1 ? undefined : nextRepeatedIdx)
-      ],
-      showPath
-    };
-  });
 
   // The child component will communicate this back upwards to this component.
   let textIsOverBudget = false;
@@ -90,10 +117,6 @@
 
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
-
-  $: pathForDisplay = showPath != null ? showPath : rootPath!;
-
-  $: displayPath = getDisplayPath(pathForDisplay);
 
   $: value = L.value(valueNodes[0]) as string;
 
@@ -128,7 +151,6 @@
       ? L.value(getValueNodes(row, resolveRepeatedIndices(titlePath))[0])
       : null;
 
-  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   // Compare media paths should contain media paths with resolved path wildcards as sometimes the
   // user wants to compare items in an array.
   // NOTE: We do not use media paths here to allow the user to compare to a field they didn't
@@ -163,6 +185,7 @@
   $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
 
   function findSimilar(searchText: DataTypeCasted) {
+    if (rootPath == null) return;
     let embedding = computedEmbeddings[0];
 
     if ($settings.data?.preferred_embedding != null) {
@@ -178,7 +201,7 @@
       }
     }
     datasetViewStore.addSearch({
-      path: field.path,
+      path: rootPath,
       type: 'semantic',
       query: searchText as string,
       query_type: 'document',
@@ -206,12 +229,14 @@
   $: markdown = userPreview !== undefined ? userPreview : datasetSettingsMarkdown;
 </script>
 
-<div class="flex w-full flex-row gap-x-4 p-2">
-  {#if isLeaf}
-    <div class="relative mr-4 flex w-28 flex-row font-mono font-medium text-neutral-500 md:w-36">
+{#if isLeaf}
+  <div class="flex w-full flex-row gap-x-4" class:border={isRepeated}>
+    <div
+      class="relative mr-4 flex w-28 flex-row rounded border-neutral-200 px-2 font-mono font-medium text-neutral-500 md:w-36"
+    >
       <div class="z-100 sticky top-16 flex w-full flex-col gap-y-2 self-start">
         {#if displayPath != '' && titleValue == null}
-          <div title={displayPath} class="mx-2 mt-2 w-full flex-initial truncate">
+          <div title={displayPath} class="m-2 w-full flex-initial truncate">
             {displayPath}
           </div>
         {/if}
@@ -314,26 +339,35 @@
         {/if}
       </div>
     </div>
-  {:else}
-    <!-- Repeated values will render <ItemMedia> again. -->
-    <div class="my-2 flex w-full flex-col rounded border border-neutral-200">
-      <div class="m-2 flex flex-col gap-y-2">
-        <div title={displayPath} class="mx-2 my-2 truncate font-mono font-medium text-neutral-500">
-          {displayPath}
-        </div>
-        {#each nextRootPaths as nextRootPath}
-          <div class="m-2 rounded border border-neutral-100">
-            <svelte:self
-              rootPath={nextRootPath.rootPath}
-              showPath={nextRootPath.showPath}
-              {row}
-              {field}
-              {highlightedFields}
-              {mediaPath}
-            />
-          </div>
-        {/each}
+  </div>
+{:else}
+  <!-- Repeated values will render <ItemMedia> again. -->
+  <div class="flex flex-col">
+    {#if !isRepeated && displayPath}
+      <div title={displayPath} class="mx-4 my-2 truncate font-mono font-medium text-neutral-500">
+        {displayPath}
       </div>
-    </div>
-  {/if}
-</div>
+    {/if}
+    {#each childPathParts as childPathPart, i}
+      {@const childPath = [...(rootPath || []), childPathPart]}
+      {@const childIsRepeated = pathIsRepeated(childPath)}
+      {@const borderColor =
+        rootPath && rootPath.length > 1 ? 'border-neutral-200' : 'border-neutral-300'}
+      <div
+        class={borderColor}
+        class:mx-4={!isRepeated && displayPath}
+        class:m-2={!childIsRepeated}
+        class:border-b={i < childPathParts.length - 1}
+      >
+        <svelte:self
+          rootPath={[...(rootPath || []), childPathPart]}
+          {mediaFields}
+          {row}
+          {field}
+          {highlightedFields}
+          {mediaPath}
+        />
+      </div>
+    {/each}
+  </div>
+{/if}

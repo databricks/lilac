@@ -19,7 +19,6 @@
     formatValue,
     getRowLabels,
     getSchemaLabels,
-    serializePath,
     type AddLabelsOptions,
     type LilacField,
     type RemoveLabelsOptions
@@ -306,18 +305,17 @@
         {#if $rowQuery?.isFetching}
           <SkeletonText class="w-20" />
         {/if}
-        {#if mediaFields.length > 0}
-          {#each mediaFields as mediaField (serializePath(mediaField.path))}
-            <div class="flex w-full flex-col">
-              <ItemMedia
-                mediaPath={mediaField.path}
-                {row}
-                field={mediaField}
-                {highlightedFields}
-                isFetching={$rowQuery?.isFetching}
-              />
-            </div>
-          {/each}
+        {#if mediaFields.length > 0 && row != null}
+          <div class="flex w-full flex-col">
+            <ItemMedia
+              mediaPath={[]}
+              {mediaFields}
+              {row}
+              field={mediaFields[0]}
+              {highlightedFields}
+              isFetching={$rowQuery?.isFetching}
+            />
+          </div>
         {/if}
       </div>
     </div>
