@@ -93,7 +93,7 @@
         }}
       >
         <OverflowMenuItem
-          text="Cluster"
+          text="Compute clusters"
           disabled={!canComputeSignals}
           on:click={() =>
             openClusterModal({

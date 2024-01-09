@@ -53,7 +53,7 @@
 
 {#if options}
   <ComposedModal open on:submit={submit} on:close={close}>
-    <ModalHeader title="Cluster" />
+    <ModalHeader title="Compute clusters" />
     <ModalBody hasForm>
       <div class="max-w-2xl">
         <FieldSelect
