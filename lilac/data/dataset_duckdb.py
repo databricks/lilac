@@ -2780,19 +2780,20 @@ class DatasetDuckDB(Dataset):
 
     assert parquet_filepath is not None
 
-    map_field_root = map_schema.get_field(output_path)
-
-    map_source: str = ''
-    try:
-      map_source = inspect.getsource(map_fn)
-    except Exception:
-      pass
-    map_field_root.map = MapInfo(
-      fn_name=map_fn_name,
-      input_path=input_path,
-      fn_source=map_source,
-      date_created=datetime.now(),
-    )
+    # Only add the map column if this map wasn't called by our clustering pipeline.
+    if not schema or not schema.cluster:
+      map_field_root = map_schema.get_field(output_path)
+      map_source: str = ''
+      try:
+        map_source = inspect.getsource(map_fn)
+      except Exception:
+        pass
+      map_field_root.map = MapInfo(
+        fn_name=map_fn_name,
+        input_path=input_path,
+        fn_source=map_source,
+        date_created=datetime.now(),
+      )
 
     parquet_dir = os.path.dirname(parquet_filepath)
     prefix = '.'.join(output_path)

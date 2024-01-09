@@ -5,9 +5,25 @@ from typing import ClassVar, Iterable, Iterator
 import pytest
 
 from ..embeddings.jina import JinaV2Small
+from ..schema import ClusterInfo, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
-from .dataset import MetadataSearch
-from .dataset_test_utils import TestDataMaker, enriched_item
+from ..source import register_source
+from .clustering import (
+  CATEGORY_MEMBERSHIP_PROB,
+  CATEGORY_TITLE,
+  CATEROGY_ID,
+  CLUSTER_ID,
+  CLUSTER_MEMBERSHIP_PROB,
+  CLUSTER_TITLE,
+)
+from .dataset import DatasetManifest, MetadataSearch
+from .dataset_test_utils import (
+  TEST_DATASET_NAME,
+  TEST_NAMESPACE,
+  TestDataMaker,
+  TestSource,
+  enriched_item,
+)
 
 
 class TestSignal(TextSignal):
@@ -22,6 +38,7 @@ class TestSignal(TextSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
+  register_source(TestSource)
   register_signal(JinaV2Small)
   register_signal(TestSignal)
 
@@ -150,6 +167,29 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
     )
   )
   assert rows == []
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': 'string',
+        'text__cluster': field(
+          fields={
+            CLUSTER_ID: field('int32', categorical=True),
+            CLUSTER_MEMBERSHIP_PROB: 'float32',
+            CLUSTER_TITLE: 'string',
+            CATEROGY_ID: field('int32', categorical=True),
+            CATEGORY_MEMBERSHIP_PROB: 'float32',
+            CATEGORY_TITLE: 'string',
+          },
+          cluster=ClusterInfo(min_cluster_size=2, remote=False),
+        ),
+      }
+    ),
+    num_items=4,
+    source=TestSource(),
+  )
 
 
 def test_nested_clusters(make_test_data: TestDataMaker) -> None:

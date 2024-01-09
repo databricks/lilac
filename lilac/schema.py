@@ -239,6 +239,13 @@ class MapInfo(BaseModel):
   date_created: datetime
 
 
+class ClusterInfo(BaseModel):
+  """Holds information about clustering operation that was run on a dataset."""
+
+  min_cluster_size: Optional[int] = None
+  remote: Optional[bool] = None
+
+
 class MapType(DataType):
   """The map dtype parameterized by the key and value types."""
 
@@ -271,6 +278,7 @@ class Field(BaseModel):
   # Maps a named bin to a tuple of (start, end) values.
   bins: Optional[list[Bin]] = None
   categorical: Optional[bool] = None
+  cluster: Optional[ClusterInfo] = None
 
   @field_validator('fields')
   @classmethod
@@ -427,6 +435,7 @@ def field(
   categorical: Optional[bool] = None,
   label: Optional[str] = None,
   map: Optional[MapInfo] = None,
+  cluster: Optional[ClusterInfo] = None,
 ) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(fields or {}, dtype)
@@ -434,6 +443,8 @@ def field(
     field.signal = signal
   if map:
     field.map = map
+  if cluster:
+    field.cluster = cluster
   if label:
     field.label = label
   if dtype:

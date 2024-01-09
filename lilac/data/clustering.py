@@ -20,6 +20,7 @@ from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
   VALUE_KEY,
+  ClusterInfo,
   Item,
   Path,
   PathTuple,
@@ -360,6 +361,7 @@ def cluster(
         CATEGORY_MEMBERSHIP_PROB: 'float32',
         CATEGORY_TITLE: 'string',
       },
+      cluster=ClusterInfo(min_cluster_size=min_cluster_size, remote=remote),
     ),
   )
   # Delete the temporary text column.
