@@ -22,6 +22,7 @@
   import {getNavigationContext} from '$lib/stores/navigationStore';
   import type {AppPage} from '$lib/stores/urlHashStore';
   import {ChevronDown, ChevronUp} from 'carbon-icons-svelte';
+  import {slide} from 'svelte/transition';
   import NavigationExpandable from './NavigationExpandable.svelte';
 
   export let title: string;
@@ -55,7 +56,7 @@
   </button>
 
   {#if expanded}
-    <div>
+    <div transition:slide>
       {#if isFetching}
         <SkeletonText />
       {:else}
