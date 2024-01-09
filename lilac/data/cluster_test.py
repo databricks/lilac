@@ -7,7 +7,7 @@ import pytest
 from ..embeddings.jina import JinaV2Small
 from ..schema import ClusterInfo, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
-from ..source import register_source
+from ..source import clear_source_registry, register_source
 from .clustering import (
   CATEGORY_MEMBERSHIP_PROB,
   CATEGORY_TITLE,
@@ -38,6 +38,7 @@ class TestSignal(TextSignal):
 def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
+  clear_source_registry()
   register_source(TestSource)
   register_signal(JinaV2Small)
   register_signal(TestSignal)
@@ -47,6 +48,7 @@ def setup_teardown() -> Iterable[None]:
 
   # Teardown.
   clear_signal_registry()
+  clear_source_registry()
 
 
 def test_simple_clusters(make_test_data: TestDataMaker) -> None:

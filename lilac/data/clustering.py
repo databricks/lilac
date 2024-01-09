@@ -246,8 +246,6 @@ def cluster(
         cluster_id = cluster_info[CLUSTER_ID]
       delayed_compute.append(delayed(_compute_title)(cluster_id))
       text = item[text_column]
-      if VALUE_KEY in text:
-        text = text[VALUE_KEY]
       if not text:
         continue
       if not cluster_info:
@@ -257,6 +255,8 @@ def cluster(
       membership_prob = cluster_info[CLUSTER_MEMBERSHIP_PROB] or 0
       if membership_prob == 0:
         continue
+      if VALUE_KEY in text:
+        text = text[VALUE_KEY]
       cluster_locks.setdefault(cluster_id, threading.Lock())
       groups.setdefault(cluster_id, []).append((text, membership_prob))
 
