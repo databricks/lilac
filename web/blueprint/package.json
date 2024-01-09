@@ -45,6 +45,7 @@
   "dependencies": {
     "@fontsource-variable/inconsolata": "~5.0.16",
     "@monaco-editor/loader": "~1.4.0",
+    "@tanstack/svelte-query": "^4.36.1",
     "@yornaath/batshit": "^0.8.0",
     "carbon-components-svelte": "^0.74.0",
     "carbon-icons-svelte": "^11.4.0",
@@ -53,7 +54,6 @@
     "json-schema-library": "^7.4.7",
     "monaco-editor": "~0.45.0",
     "svelte-bootstrap-icons": "^2.3.1",
-    "svelte-carousel": "~1.0.25",
     "svelte-infinite-scroll": "^2.0.1",
     "svelte-markdown": "^0.2.3"
   }
