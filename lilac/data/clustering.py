@@ -243,7 +243,6 @@ def cluster(
         cluster_id = -1
       else:
         cluster_id = cluster_info[CLUSTER_ID]
-      cluster_locks.setdefault(cluster_id, threading.Lock())
       delayed_compute.append(delayed(_compute_title)(cluster_id))
       text = item[text_column]
       if not text:
@@ -255,6 +254,7 @@ def cluster(
       membership_prob = cluster_info[CLUSTER_MEMBERSHIP_PROB] or 0
       if membership_prob == 0:
         continue
+      cluster_locks.setdefault(cluster_id, threading.Lock())
       groups.setdefault(cluster_id, []).append((text, membership_prob))
 
     # Sort by descending membership score.
