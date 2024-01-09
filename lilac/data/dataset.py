@@ -56,7 +56,6 @@ from ..signal import (
   Signal,
   TextEmbeddingSignal,
   TopicFn,
-  get_signal_by_type,
   resolve_signal,
 )
 from ..signals.concept_scorer import ConceptSignal
@@ -435,6 +434,7 @@ class Dataset(abc.ABC):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
+    remote: bool = False,
   ) -> None:
     """Compute a signal for a column.
 
@@ -447,6 +447,7 @@ class Dataset(abc.ABC):
       overwrite: Whether to overwrite an existing signal computed at this path.
       task_id: The TaskManager `task_id` for this process run. This is used to update
         the progress of the task.
+      remote: Whether to run the computation remotely on Lilac Garden.
     """
     pass
 
@@ -479,6 +480,7 @@ class Dataset(abc.ABC):
     """
     pass
 
+  @abc.abstractmethod
   def compute_embedding(
     self,
     embedding: str,
@@ -488,10 +490,10 @@ class Dataset(abc.ABC):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
+    remote: bool = False,
   ) -> None:
     """Compute an embedding for a given field path."""
-    signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
-    self.compute_signal(signal, path, filters, limit, include_deleted, overwrite, task_id)
+    pass
 
   def compute_concept(
     self,
