@@ -12,7 +12,7 @@
   import Carousel from 'svelte-carousel';
 
   import {datasetLink} from '$lib/utils';
-  import {ROWID, serializePath, type BinaryFilter, type Path, type UnaryFilter} from '$lilac';
+  import {ROWID, type BinaryFilter, type Path, type UnaryFilter} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight, Information} from 'carbon-icons-svelte';
   import {createEventDispatcher} from 'svelte';
@@ -53,7 +53,9 @@
   $: countQuery = shouldLoad
     ? querySelectGroups($store.namespace, $store.datasetName, {
         leaf_path: path,
-        filters
+        filters,
+        // Explicitly set the limit to null to get all the groups, not just the top 100.
+        limit: null
       })
     : null;
   $: counts = ($countQuery?.data?.counts || []).map(([name, count]) => ({
@@ -120,9 +122,7 @@
                 <div class="leading-2 text-lg">{groupPercentage}%</div>
                 <div
                   use:hoverTooltip={{
-                    text:
-                      `${groupPercentage}% of ${serializePath(parentPath)}="${parentValue}"\n` +
-                      `${totalPercentage}% of total`
+                    text: `${groupPercentage}% of ${parentValue}\n` + `${totalPercentage}% of total`
                   }}
                 >
                   <Information />

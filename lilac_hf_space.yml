@@ -1,16 +1,4 @@
 datasets:
-  - name: imdb
-    namespace: lilac
-    settings:
-      tags: [machine-learning]
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-    source:
-      source_name: huggingface
-      dataset_name: imdb
-
   - namespace: lilac
     name: glaive
     source:
@@ -39,38 +27,6 @@ datasets:
     source:
       source_name: huggingface
       dataset_name: OpenAssistant/oasst1
-
-  - name: wikitext-2-raw-v1
-    namespace: lilac
-    settings:
-      tags: [machine-learning]
-      ui:
-        media_paths:
-          - text
-      preferred_embedding: 'gte-small'
-
-    source:
-      config_name: wikitext-2-raw-v1
-      dataset_name: wikitext
-      source_name: huggingface
-
-  - name: textbook_quality_programming
-    namespace: lilac
-    source:
-      dataset_name: vikp/textbook_quality_programming
-      source_name: huggingface
-    settings:
-      tags: [machine-learning]
-      ui:
-        media_paths:
-          - - outline
-            - '*'
-          - - concepts
-            - '*'
-          - markdown
-        markdown_paths:
-          - markdown
-      preferred_embedding: gte-small
 
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
@@ -109,94 +65,13 @@ datasets:
       dataset_name: Open-Orca/OpenOrca
       sample_size: 100000
 
-  - name: opus100-en-es-validation
-    namespace: lilac
-    settings:
-      tags: [machine-learning]
-      ui:
-        media_paths:
-          - [translation, es]
-          - [translation, en]
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: en-es
-      dataset_name: opus100
-      source_name: huggingface
-      split: validation
-
-  # Science datasets
-  - name: science-qa-derek-thomas
-    namespace: lilac
-    settings:
-      tags: [science]
-      ui:
-        media_paths: [lecture]
-      preferred_embedding: 'gte-small'
-    source:
-      dataset_name: derek-thomas/ScienceQA
-      source_name: huggingface
-
-  # Business datasets.
-  - name: enron-emails
-    namespace: lilac
-    settings:
-      tags: [business]
-      ui:
-        media_paths: [text]
-      preferred_embedding: 'gte-small'
-    source:
-      config_name: enron_emails
-      dataset_name: EleutherAI/pile
-      sample_size: 100000
-      source_name: huggingface
-
-  # Other datasets.
-  - name: the_movies_dataset
-    namespace: lilac
-    settings:
-      tags: [other]
-      ui:
-        media_paths: [overview]
-      preferred_embedding: 'gte-small'
-    source:
-      filepaths:
-        [
-          'https://storage.googleapis.com/lilac-data/datasets/the_movies_dataset/the_movies_dataset.csv'
-        ]
-      source_name: csv
-
 signals:
   - signal_name: pii
   - signal_name: text_statistics
-  - signal_name: near_dup
   - signal_name: lang_detection
   - signal_name: concept_score
     namespace: lilac
-    concept_name: negative-sentiment
-    embedding: gte-small
-  - signal_name: concept_score
-    namespace: lilac
-    concept_name: non-english
-    embedding: gte-small
-  - signal_name: concept_score
-    namespace: lilac
-    concept_name: positive-sentiment
-    embedding: gte-small
-  - signal_name: concept_score
-    namespace: lilac
     concept_name: profanity
-    embedding: gte-small
-  - signal_name: concept_score
-    namespace: lilac
-    concept_name: question
-    embedding: gte-small
-  - signal_name: concept_score
-    namespace: lilac
-    concept_name: source-code
-    embedding: gte-small
-  - signal_name: concept_score
-    namespace: lilac
-    concept_name: toxicity
     embedding: gte-small
 
 concept_model_cache_embeddings:

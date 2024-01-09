@@ -53,7 +53,9 @@
     outerLeafPath != null
       ? querySelectGroups($store.namespace, $store.datasetName, {
           leaf_path: outerLeafPath,
-          filters: selectOptions.filters
+          filters: selectOptions.filters,
+          // Explicitly set the limit to null to get all the groups, not just the top 100.
+          limit: null
         })
       : null;
   $: outerCounts = ($outerCountQuery?.data?.counts || []).map(([name, count]) => ({
