@@ -98,7 +98,7 @@ async def load(
       task_id,
     )
 
-  thread = Thread(target=run)
+  thread = Thread(target=run, daemon=True)
   thread.start()
 
   return LoadDatasetResponse(task_id=task_id)

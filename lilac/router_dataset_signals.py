@@ -1,4 +1,5 @@
 """Routing endpoints for running signals on datasets."""
+from threading import Thread
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -58,14 +59,20 @@ def compute_signal(
     name=f'[{namespace}/{dataset_name}] Compute signal "{options.signal.name}" on "{path_str}"',
     description=f'Config: {options.signal}',
   )
+
   dataset = get_dataset(namespace, dataset_name)
-  dataset.compute_signal(
-    signal,
-    options.leaf_path,
-    # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
-    overwrite=isinstance(options.signal, TextEmbeddingSignal),
-    task_id=task_id,
-  )
+
+  def run() -> None:
+    dataset.compute_signal(
+      signal,
+      options.leaf_path,
+      # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
+      overwrite=isinstance(options.signal, TextEmbeddingSignal),
+      task_id=task_id,
+    )
+
+  thread = Thread(target=run, daemon=True)
+  thread.start()
 
   return ComputeSignalResponse(task_id=task_id)
 
