@@ -29,9 +29,9 @@ class GTESmall(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'gte-small'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (small)'
-  map_batch_size: ClassVar[int] = SENTENCE_TRANSFORMER_BATCH_SIZE
-  map_parallelism: ClassVar[int] = 1
-  map_strategy: ClassVar[TaskExecutionType] = 'threads'
+  local_batch_size: ClassVar[int] = SENTENCE_TRANSFORMER_BATCH_SIZE
+  local_parallelism: ClassVar[int] = 1
+  local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   _model_name = GTE_SMALL
   _model: 'SentenceTransformer'
@@ -51,10 +51,10 @@ class GTESmall(TextEmbeddingSignal):
   def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Call the embedding function."""
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
-    # The sentence transformer API actually does batching internally, so we pass map_batch_size * 16
-    # to allow the library to see all the chunks at once.
+    # The sentence transformer API actually does batching internally, so we pass
+    # local_batch_size * 16 to allow the library to see all the chunks at once.
     return chunked_compute_embedding(
-      self._model.encode, docs, self.map_batch_size * 16, chunker=clustering_spacy_chunker
+      self._model.encode, docs, self.local_batch_size * 16, chunker=clustering_spacy_chunker
     )
 
   @override
