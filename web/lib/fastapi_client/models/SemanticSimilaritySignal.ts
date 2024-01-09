@@ -12,9 +12,13 @@
 export type SemanticSimilaritySignal = {
     signal_name: 'semantic_similarity';
     /**
+     * Accelerate computation on Lilac Garden
+     */
+    remote?: boolean;
+    /**
      * The name of the pre-computed embedding.
      */
-    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base' | 'jina-v2-small-garden';
+    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base';
     query: string;
     /**
      * The input type of the query, used for the query embedding.

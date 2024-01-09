@@ -14,12 +14,13 @@ from pydantic import (
 )
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from lilac.embeddings.jina import JinaV2Small
-
 from ..batch_utils import compress_docs
+from ..embeddings.jina import JinaV2Small
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
+  VALUE_KEY,
+  ClusterInfo,
   Item,
   Path,
   PathTuple,
@@ -254,6 +255,8 @@ def cluster(
       membership_prob = cluster_info[CLUSTER_MEMBERSHIP_PROB] or 0
       if membership_prob == 0:
         continue
+      if VALUE_KEY in text:
+        text = text[VALUE_KEY]
       cluster_locks.setdefault(cluster_id, threading.Lock())
       groups.setdefault(cluster_id, []).append((text, membership_prob))
 
@@ -358,6 +361,7 @@ def cluster(
         CATEGORY_MEMBERSHIP_PROB: 'float32',
         CATEGORY_TITLE: 'string',
       },
+      cluster=ClusterInfo(min_cluster_size=min_cluster_size, remote=remote),
     ),
   )
   # Delete the temporary text column.

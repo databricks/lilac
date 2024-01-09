@@ -9,9 +9,13 @@
 export type ConceptSignal = {
     signal_name: 'concept_score';
     /**
+     * Accelerate computation on Lilac Garden
+     */
+    remote?: boolean;
+    /**
      * The name of the pre-computed embedding.
      */
-    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base' | 'jina-v2-small-garden';
+    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base';
     namespace: string;
     concept_name: string;
     version?: (number | null);

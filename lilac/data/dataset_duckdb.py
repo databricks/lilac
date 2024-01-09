@@ -965,6 +965,7 @@ class DatasetDuckDB(Dataset):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
+    remote: bool = False,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
       return self.compute_embedding(
@@ -975,6 +976,7 @@ class DatasetDuckDB(Dataset):
         include_deleted=include_deleted,
         overwrite=overwrite,
         task_id=task_id,
+        remote=remote,
       )
 
     input_path = normalize_path(path)
@@ -1018,16 +1020,22 @@ class DatasetDuckDB(Dataset):
     else:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
 
+    n_jobs = 1 if remote else signal.local_parallelism
+    prefer = 'threads' if remote else signal.local_strategy
+    compute_fn = (
+      signal.compute_remote
+      if remote
+      else (signal.vector_compute if isinstance(signal, VectorSignal) else signal.compute)
+    )
+    batch_size = -1 if remote else signal.local_batch_size
     _consume_iterator(
       progress_bar(
         self._dispatch_workers(
-          joblib.Parallel(
-            n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
-          ),
-          signal.vector_compute if isinstance(signal, VectorSignal) else signal.compute,
+          joblib.Parallel(n_jobs=n_jobs, prefer=prefer, return_as='generator'),
+          compute_fn,
           output_path,
           jsonl_cache_filepath,
-          batch_size=signal.map_batch_size,
+          batch_size=batch_size,
           select_path=input_path,
           overwrite=overwrite,
           query_options=query_params,
@@ -1080,6 +1088,7 @@ class DatasetDuckDB(Dataset):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
+    remote: bool = False,
   ) -> None:
     input_path = normalize_path(path)
     add_project_embedding_config(
@@ -1124,15 +1133,18 @@ class DatasetDuckDB(Dataset):
     else:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
 
+    n_jobs = 1 if remote else signal.local_parallelism
+    prefer = 'threads' if remote else signal.local_strategy
+    compute_fn = signal.compute_remote if remote else signal.compute
+    batch_size = -1 if remote else signal.local_batch_size
+
     output_items = progress_bar(
       self._dispatch_workers(
-        joblib.Parallel(
-          n_jobs=signal.map_parallelism, prefer=signal.map_strategy, return_as='generator'
-        ),
-        signal.compute,
+        joblib.Parallel(n_jobs=n_jobs, prefer=prefer, return_as='generator'),
+        compute_fn,
         output_path,
         jsonl_cache_filepath,
-        batch_size=signal.map_batch_size,
+        batch_size=batch_size,
         select_path=input_path,
         overwrite=overwrite,
         query_options=query_params,
@@ -2780,19 +2792,20 @@ class DatasetDuckDB(Dataset):
 
     assert parquet_filepath is not None
 
-    map_field_root = map_schema.get_field(output_path)
-
-    map_source: str = ''
-    try:
-      map_source = inspect.getsource(map_fn)
-    except Exception:
-      pass
-    map_field_root.map = MapInfo(
-      fn_name=map_fn_name,
-      input_path=input_path,
-      fn_source=map_source,
-      date_created=datetime.now(),
-    )
+    # Only add the map column if this map wasn't called by our clustering pipeline.
+    if not schema or not schema.cluster:
+      map_field_root = map_schema.get_field(output_path)
+      map_source: str = ''
+      try:
+        map_source = inspect.getsource(map_fn)
+      except Exception:
+        pass
+      map_field_root.map = MapInfo(
+        fn_name=map_fn_name,
+        input_path=input_path,
+        fn_source=map_source,
+        date_created=datetime.now(),
+      )
 
     parquet_dir = os.path.dirname(parquet_filepath)
     prefix = '.'.join(output_path)

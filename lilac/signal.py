@@ -41,6 +41,9 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
   """
   if hasattr(signal, 'display_name'):
     schema['title'] = signal.display_name
+  schema['runs_remote'] = signal.runs_remote
+  if not signal.runs_remote and 'remote' in schema['properties']:
+    del schema['properties']['remote']
 
   signal_prop: dict[str, Any]
   if hasattr(signal, 'name'):
@@ -73,9 +76,13 @@ class Signal(BaseModel):
   output_type: ClassVar[OutputType] = None
 
   # See lilac.data.dataset.Dataset.map for definitions and semantics.
-  map_batch_size: ClassVar[Optional[int]] = -1
-  map_parallelism: ClassVar[int] = 1
-  map_strategy: ClassVar[TaskExecutionType] = 'threads'
+  local_batch_size: ClassVar[Optional[int]] = -1
+  local_parallelism: ClassVar[int] = 1
+  local_strategy: ClassVar[TaskExecutionType] = 'threads'
+
+  runs_remote: ClassVar[bool] = False
+
+  remote: bool = PydanticField(default=False, description='Accelerate computation on Lilac Garden')
 
   @model_serializer(mode='wrap', when_used='always')
   def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:
@@ -103,7 +110,7 @@ class Signal(BaseModel):
     A signal can choose to return None for any input, but it must always return some value, so that
     alignment errors don't occur when Lilac attempts to unflatten repeated fields.
 
-    This function is polymorphic and its precise signature depends on the map_batch_size class var.
+    This function is polymorphic and its signature depends on the local_batch_size class var.
 
     If batch_size = -1 (default), then we hand you the iterator stream and you choose how to process
     the stream; the function signature is:
@@ -121,6 +128,14 @@ class Signal(BaseModel):
 
     Returns:
       An iterable of items. Sparse signals should return "None" for skipped inputs.
+    """
+    raise NotImplementedError
+
+  def compute_remote(self, data: Iterator[Any]) -> Iterator[Any]:
+    """Compute a signal over a field, but on a remote machine.
+
+    This method gets an iterator of the entire data, and should return an iterator of the same
+    length, with the processed results.
     """
     raise NotImplementedError
 

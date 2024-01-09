@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
+import type { ClusterInfo } from './ClusterInfo';
 import type { DataType } from './DataType';
 import type { MapInfo } from './MapInfo';
 import type { MapType } from './MapType';
@@ -19,5 +20,6 @@ export type Field = {
     map?: (MapInfo | null);
     bins?: (Array<any[]> | null);
     categorical?: (boolean | null);
+    cluster?: (ClusterInfo | null);
 };
 

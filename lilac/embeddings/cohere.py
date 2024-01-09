@@ -30,9 +30,9 @@ class Cohere(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'cohere'
   display_name: ClassVar[str] = 'Cohere Embeddings'
-  map_batch_size: ClassVar[int] = 96
-  map_parallelism: ClassVar[int] = 10
-  map_strategy: ClassVar[TaskExecutionType] = 'threads'
+  local_batch_size: ClassVar[int] = 96
+  local_parallelism: ClassVar[int] = 10
+  local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   _model: 'Client'
 
@@ -63,5 +63,5 @@ class Cohere(TextEmbeddingSignal):
       ).embeddings
 
     return chunked_compute_embedding(
-      _embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
+      _embed_fn, docs, self.local_batch_size, chunker=clustering_spacy_chunker
     )

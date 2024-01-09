@@ -69,6 +69,7 @@ def compute_signal(
       # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
       overwrite=isinstance(options.signal, TextEmbeddingSignal),
       task_id=task_id,
+      remote=signal.remote,
     )
 
   thread = Thread(target=run, daemon=True)

@@ -32,9 +32,9 @@ class OpenAIEmbedding(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'openai'
   display_name: ClassVar[str] = 'OpenAI Embeddings'
-  map_batch_size: ClassVar[int] = API_OPENAI_BATCH_SIZE
-  map_parallelism: ClassVar[int] = API_NUM_PARALLEL_REQUESTS
-  map_strategy: ClassVar[TaskExecutionType] = 'threads'
+  local_batch_size: ClassVar[int] = API_OPENAI_BATCH_SIZE
+  local_parallelism: ClassVar[int] = API_NUM_PARALLEL_REQUESTS
+  local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   @override
   def setup(self) -> None:
@@ -93,5 +93,5 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       return [np.array(embedding.embedding, dtype=np.float32) for embedding in response.data]
 
     return chunked_compute_embedding(
-      embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
+      embed_fn, docs, self.local_batch_size, chunker=clustering_spacy_chunker
     )

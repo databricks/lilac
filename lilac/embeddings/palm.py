@@ -30,9 +30,9 @@ class PaLM(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'palm'
   display_name: ClassVar[str] = 'PaLM Embeddings'
-  map_batch_size: ClassVar[int] = PALM_BATCH_SIZE
-  map_parallelism: ClassVar[int] = API_NUM_PARALLEL_REQUESTS
-  map_strategy: ClassVar[TaskExecutionType] = 'threads'
+  local_batch_size: ClassVar[int] = PALM_BATCH_SIZE
+  local_parallelism: ClassVar[int] = API_NUM_PARALLEL_REQUESTS
+  local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   @override
   def setup(self) -> None:
@@ -92,5 +92,5 @@ class PaLM(TextEmbeddingSignal):
         return [np.array(response, dtype=np.float32)]
 
     return chunked_compute_embedding(
-      embed_fn, docs, self.map_batch_size, chunker=clustering_spacy_chunker
+      embed_fn, docs, self.local_batch_size, chunker=clustering_spacy_chunker
     )
