@@ -1,13 +1,21 @@
 """Unit tests for dataset.cluster()."""
 import re
-from typing import Iterable
+from typing import ClassVar, Iterable, Iterator
 
 import pytest
 
 from ..embeddings.jina import JinaV2Small
-from ..signal import clear_signal_registry, register_signal
+from ..signal import TextSignal, clear_signal_registry, register_signal
 from .dataset import MetadataSearch
 from .dataset_test_utils import TestDataMaker, enriched_item
+
+
+class TestSignal(TextSignal):
+  name: ClassVar[str] = 'test_signal'
+
+  def compute(self, data: Iterator[str]) -> Iterator[int]:
+    for text_content in data:
+      yield len(text_content)
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -15,6 +23,7 @@ def setup_teardown() -> Iterable[None]:
   # Setup.
   clear_signal_registry()
   register_signal(JinaV2Small)
+  register_signal(TestSignal)
 
   # Unit test runs.
   yield
@@ -394,6 +403,77 @@ def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) 
           'category_membership_prob': None,
           'category_title': None,
         },
+      },
+    },
+  ]
+
+
+def test_clusters_on_enriched_text(make_test_data: TestDataMaker) -> None:
+  texts: list[str] = [
+    'Can you summarize this article',
+    'Can you rewrite this in a simpler way',
+    'Can you provide a short summary of the following text',
+    'Can you simplify this text',
+  ]
+  dataset = make_test_data([{'text': t} for t in texts])
+
+  def topic_fn(docs: list[tuple[str, float]]) -> str:
+    if 'summar' in docs[0][0]:
+      return 'summarization'
+    elif 'simpl' in docs[0][0]:
+      return 'simplification'
+    return 'other'
+
+  signal = TestSignal()
+  dataset.compute_signal(signal, 'text')
+  dataset.cluster('text', min_cluster_size=2, topic_fn=topic_fn)
+
+  rows = list(dataset.select_rows(['text', 'text__cluster'], combine_columns=True))
+  assert rows == [
+    {
+      'text': enriched_item('Can you summarize this article', {'test_signal': 30}),
+      'text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'text': enriched_item('Can you rewrite this in a simpler way', {'test_signal': 37}),
+      'text__cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'text': enriched_item(
+        'Can you provide a short summary of the following text', {'test_signal': 53}
+      ),
+      'text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'text': enriched_item('Can you simplify this text', {'test_signal': 26}),
+      'text__cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
       },
     },
   ]

@@ -14,12 +14,12 @@ from pydantic import (
 )
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from lilac.embeddings.jina import JinaV2Small
-
 from ..batch_utils import compress_docs
+from ..embeddings.jina import JinaV2Small
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
+  VALUE_KEY,
   Item,
   Path,
   PathTuple,
@@ -245,6 +245,8 @@ def cluster(
         cluster_id = cluster_info[CLUSTER_ID]
       delayed_compute.append(delayed(_compute_title)(cluster_id))
       text = item[text_column]
+      if VALUE_KEY in text:
+        text = text[VALUE_KEY]
       if not text:
         continue
       if not cluster_info:
