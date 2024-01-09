@@ -77,6 +77,8 @@ class Signal(BaseModel):
   map_parallelism: ClassVar[int] = 1
   map_strategy: ClassVar[TaskExecutionType] = 'threads'
 
+  runs_remote: ClassVar[bool] = False
+
   @model_serializer(mode='wrap', when_used='always')
   def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:
     """Serialize the model to a dictionary."""
@@ -121,6 +123,14 @@ class Signal(BaseModel):
 
     Returns:
       An iterable of items. Sparse signals should return "None" for skipped inputs.
+    """
+    raise NotImplementedError
+
+  def compute_remote(self, data: Iterator[Any]) -> Iterator[Any]:
+    """Compute a signal over a field, but on a remote machine.
+
+    This method gets an iterator of the entire data, and should return an iterator of the same
+    length, with the processed results.
     """
     raise NotImplementedError
 
