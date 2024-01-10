@@ -8,7 +8,7 @@ from .batch_utils import (
   flat_batched_compute,
   flatten,
   flatten_iter,
-  flatten_iter_path,
+  flatten_path_iter,
   unflatten,
   unflatten_iter,
 )
@@ -105,28 +105,28 @@ def test_deep_unflatten_np() -> None:
   np.testing.assert_array_equal(result[1], [np.array([2, 2]), np.array([3, 3])])
 
 
-def test_flatten_iter_path() -> None:
+def test_flatten_path_iter() -> None:
   input = [
     {'names': [{'first': 'John', 'last': 'Doe'}, {'first': 'Jane', 'last': 'Doe'}]},
     {'names': [{'first': 'Blake', 'last': 'Smith'}, {'first': 'Rob', 'last': 'Smith'}]},
   ]
-  result = list(flatten_iter_path(input, path=('*', 'names', '*', 'first')))
+  result = list(flatten_path_iter(input, path=('*', 'names', '*', 'first')))
   assert result == ['John', 'Jane', 'Blake', 'Rob']
 
-  result = list(flatten_iter_path(input, path=('*', 'names', '*')))
+  result = list(flatten_path_iter(input, path=('*', 'names', '*')))
   assert result == [
     {'first': 'John', 'last': 'Doe'},
     {'first': 'Jane', 'last': 'Doe'},
     {'first': 'Blake', 'last': 'Smith'},
     {'first': 'Rob', 'last': 'Smith'},
   ]
-  result = list(flatten_iter_path(input, path=('*', 'names')))
+  result = list(flatten_path_iter(input, path=('*', 'names')))
   assert result == [
     [{'first': 'John', 'last': 'Doe'}, {'first': 'Jane', 'last': 'Doe'}],
     [{'first': 'Blake', 'last': 'Smith'}, {'first': 'Rob', 'last': 'Smith'}],
   ]
 
-  result = list(flatten_iter_path(input, path=tuple('*')))
+  result = list(flatten_path_iter(input, path=tuple('*')))
   assert result == [
     {'names': [{'first': 'John', 'last': 'Doe'}, {'first': 'Jane', 'last': 'Doe'}]},
     {'names': [{'first': 'Blake', 'last': 'Smith'}, {'first': 'Rob', 'last': 'Smith'}]},

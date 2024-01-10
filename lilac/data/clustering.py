@@ -14,7 +14,7 @@ from pydantic import (
 )
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from ..batch_utils import compress_docs, flatten_iter_path
+from ..batch_utils import compress_docs, flatten_path_iter
 from ..embeddings.jina import JinaV2Small
 from ..schema import (
   EMBEDDING_KEY,
@@ -177,7 +177,9 @@ def cluster(
         break
       else:
         index = i
-    *parent, sibling = path[: index + 1]
+
+    parent = path[:index]
+    sibling = '_'.join([p for p in path[index:] if p != PATH_WILDCARD])
     cluster_output_path = (*parent, f'{sibling}__{FIELD_SUFFIX}')
   else:
     raise ValueError('input must be provided.')
@@ -192,7 +194,7 @@ def cluster(
       task_info.message = 'Extracting text from items'
 
     def flatten_input(item: Item) -> str:
-      texts = flatten_iter_path(item, cast(PathTuple, input_path))
+      texts = flatten_path_iter(item, cast(PathTuple, input_path))
       # Filter out Nones
       texts = (t for t in texts if t)
       # Deal with enriched items.

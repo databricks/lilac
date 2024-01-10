@@ -1,4 +1,9 @@
 import {
+  CATEGORY_MEMBERSHIP_PROB,
+  CLUSTER_CATEGORY_FIELD,
+  CLUSTER_MEMBERSHIP_PROB,
+  CLUSTER_PARENT_SUFFIX,
+  CLUSTER_TITLE_FIELD,
   DELETED_LABEL_KEY,
   ROWID,
   isColumn,
@@ -378,12 +383,6 @@ export function getDatasetViewContext() {
   return getContext<DatasetViewStore>(DATASET_VIEW_CONTEXT);
 }
 
-const _CLUSTER_PARENT_SUFFIX = '__cluster';
-const _CLUSTER_FIELD_NAME = 'cluster_title';
-const _CATEGORY_FIELD_NAME = 'category_title';
-const _CLUSTER_MEMBERSHIP_PROB = 'cluster_membership_prob';
-const _CATEGORY_MEMBERSHIP_PROB = 'category_membership_prob';
-
 /**
  * Get the options to pass to the selectRows API call
  * based on the current state of the dataset view store
@@ -415,13 +414,13 @@ export function getSelectRowsOptions(
     if (
       options.sort_by == null &&
       parentFieldName != null &&
-      parentFieldName.endsWith(_CLUSTER_PARENT_SUFFIX) &&
-      (fieldName == _CLUSTER_FIELD_NAME || fieldName == _CATEGORY_FIELD_NAME)
+      parentFieldName.endsWith(CLUSTER_PARENT_SUFFIX) &&
+      (fieldName == CLUSTER_TITLE_FIELD || fieldName == CLUSTER_CATEGORY_FIELD)
     ) {
       const membershipProbPath = groupByPath
         .slice(0, -1)
         .concat(
-          fieldName == _CLUSTER_FIELD_NAME ? _CLUSTER_MEMBERSHIP_PROB : _CATEGORY_MEMBERSHIP_PROB
+          fieldName == CLUSTER_TITLE_FIELD ? CLUSTER_MEMBERSHIP_PROB : CATEGORY_MEMBERSHIP_PROB
         );
       options.sort_by = [membershipProbPath];
     }

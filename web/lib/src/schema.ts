@@ -19,6 +19,12 @@ export const VALUE_KEY = '__value__';
 export const SPAN_KEY = '__span__';
 export const DELETED_LABEL_KEY = '__deleted__';
 
+export const CLUSTER_PARENT_SUFFIX = '__cluster';
+export const CLUSTER_TITLE_FIELD = 'cluster_title';
+export const CLUSTER_CATEGORY_FIELD = 'category_title';
+export const CLUSTER_MEMBERSHIP_PROB = 'cluster_membership_prob';
+export const CATEGORY_MEMBERSHIP_PROB = 'category_membership_prob';
+
 export const SIGNAL_INPUT_TYPE_TO_VALID_DTYPES: Record<
   Exclude<SignalInputType, 'any'>,
   DataType[]

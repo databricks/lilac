@@ -24,7 +24,7 @@ def flatten_iter(input: Union[Iterator, Iterable], max_depth: int = -1) -> Itera
     yield from _flatten_iter(elem, max_depth)
 
 
-def flatten_iter_path(input: Union[Iterator, Iterable, dict], path: PathTuple) -> Iterator:
+def flatten_path_iter(input: Union[Iterator, Iterable, dict], path: PathTuple) -> Iterator:
   """Flattens a nested object along the provided path."""
   if not path:
     yield input
@@ -33,11 +33,11 @@ def flatten_iter_path(input: Union[Iterator, Iterable, dict], path: PathTuple) -
   rest = path[1:]
   if path_part == PATH_WILDCARD:
     for elem in cast(Iterator, input):
-      yield from flatten_iter_path(elem, rest)
+      yield from flatten_path_iter(elem, rest)
   elif path_part not in input:
     return
   else:
-    yield from flatten_iter_path(cast(dict, input)[path_part], rest)
+    yield from flatten_path_iter(cast(dict, input)[path_part], rest)
 
 
 def _unflatten_iter(

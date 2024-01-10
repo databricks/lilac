@@ -223,10 +223,10 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
 
   dataset.cluster('texts.*.text', min_cluster_size=2, topic_fn=topic_fn)
 
-  rows = list(dataset.select_rows(['texts__cluster'], combine_columns=True))
+  rows = list(dataset.select_rows(['texts_text__cluster'], combine_columns=True))
   assert rows == [
     {
-      'texts__cluster': {
+      'texts_text__cluster': {
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
@@ -236,7 +236,7 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       },
     },
     {
-      'texts__cluster': {
+      'texts_text__cluster': {
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
@@ -246,7 +246,7 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       },
     },
     {
-      'texts__cluster': {
+      'texts_text__cluster': {
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
@@ -256,7 +256,7 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       },
     },
     {
-      'texts__cluster': {
+      'texts_text__cluster': {
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
