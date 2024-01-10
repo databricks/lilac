@@ -244,6 +244,7 @@ class ClusterInfo(BaseModel):
 
   min_cluster_size: Optional[int] = None
   remote: Optional[bool] = None
+  input_path: Optional[PathTuple] = None
 
 
 class MapType(DataType):

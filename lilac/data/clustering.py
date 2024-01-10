@@ -3,7 +3,7 @@ import functools
 import gc
 import random
 import threading
-from typing import Any, Callable, Iterator, Optional, Union
+from typing import Any, Callable, Iterator, Optional, Union, cast
 
 import instructor
 import modal
@@ -14,7 +14,7 @@ from pydantic import (
 )
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
-from ..batch_utils import compress_docs
+from ..batch_utils import compress_docs, flatten_iter_path
 from ..embeddings.jina import JinaV2Small
 from ..schema import (
   EMBEDDING_KEY,
@@ -33,7 +33,7 @@ from ..signal import (
 from ..tasks import TaskId, TaskInfo, get_task_manager
 from ..utils import DebugTimer
 from .dataset import Dataset
-from .dataset_utils import get_common_ancestor, get_sibling_output_path
+from .dataset_utils import get_callable_name, get_common_ancestor, get_sibling_output_path
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 5
@@ -164,13 +164,6 @@ def cluster(
   path: Optional[PathTuple] = None
   if not callable(input):
     path = normalize_path(input)
-    # Make sure the input path ends with a field name so we can store the cluster enrichment as a
-    # sibling.
-    if path[-1] == PATH_WILDCARD:
-      raise ValueError(
-        'Clustering an array of primitives is not yet supported. '
-        f'Path {path} must end with a field name.'
-      )
   elif not output_path:
     raise ValueError('output_path must be provided if input is a function.')
 
@@ -181,19 +174,36 @@ def cluster(
     cluster_output_path = normalize_path(output_path)
   elif path:
     # The sibling output path is the same as the input path, but with a different suffix.
-    cluster_output_path = get_sibling_output_path(path, FIELD_SUFFIX)
+    index = 0
+    for i, path_part in enumerate(path):
+      if path_part == PATH_WILDCARD:
+        break
+      else:
+        index = i
+    *parent, sibling = path[: index + 1]
+    cluster_output_path = (*parent, f'{sibling}__{FIELD_SUFFIX}')
   else:
     raise ValueError('input must be provided.')
 
-  if not path:
-    assert callable(input), 'input must be a function at this point'
-    path = (*cluster_output_path[:-1], '__temp_cluster_text__')
-    temp_path_exists = schema.has_field(path)
-    if not temp_path_exists or overwrite:
-      # Since input is a function, map over the dataset to make a temporary column with that text.
-      if task_info:
-        task_info.message = 'Extracting text from items'
-      dataset.map(input, output_path=path, overwrite=overwrite)
+  # Extract the text from the input path into a temporary column.
+  input_path = path
+  path = (*cluster_output_path[:-1], '__temp_cluster_text__')
+  temp_path_exists = schema.has_field(path)
+  if not temp_path_exists or overwrite:
+    # Since input is a function, map over the dataset to make a temporary column with that text.
+    if task_info:
+      task_info.message = 'Extracting text from items'
+
+    def flatten_input(item: Item) -> str:
+      texts = flatten_iter_path(item, cast(PathTuple, input_path))
+      # Filter out Nones
+      texts = (t for t in texts if t)
+      # Deal with enriched items.
+      texts = (t[VALUE_KEY] if VALUE_KEY in t else t for t in texts)
+      return '\n'.join(texts)
+
+    map_fn = input if callable(input) else flatten_input
+    dataset.map(map_fn, output_path=path, overwrite=overwrite)
 
   clusters_exists = schema.has_field(cluster_output_path)
   if not clusters_exists or overwrite:
@@ -255,8 +265,6 @@ def cluster(
       membership_prob = cluster_info[CLUSTER_MEMBERSHIP_PROB] or 0
       if membership_prob == 0:
         continue
-      if VALUE_KEY in text:
-        text = text[VALUE_KEY]
       cluster_locks.setdefault(cluster_id, threading.Lock())
       groups.setdefault(cluster_id, []).append((text, membership_prob))
 
@@ -298,6 +306,9 @@ def cluster(
       # Providing schema to avoid inferring.
       schema=field('string'),
     )
+
+  # Delete the temporary text column.
+  dataset.delete_column(path)
 
   if category:
     return
@@ -361,12 +372,13 @@ def cluster(
         CATEGORY_MEMBERSHIP_PROB: 'float32',
         CATEGORY_TITLE: 'string',
       },
-      cluster=ClusterInfo(min_cluster_size=min_cluster_size, remote=remote),
+      cluster=ClusterInfo(
+        min_cluster_size=min_cluster_size,
+        remote=remote,
+        input_path=(get_callable_name(input),) if callable(input) else input_path,
+      ),
     ),
   )
-  # Delete the temporary text column.
-  if callable(input):
-    dataset.delete_column(path)
   # Delete the cluster titles.
   dataset.delete_column(title_output_path)
   # Delete the caterogy clusters.
