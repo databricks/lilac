@@ -549,6 +549,12 @@ class DatasetDuckDB(Dataset):
       dataset_format=dataset_format,
     )
 
+  def _clear_joint_table_cache(self):
+    """Clears the cache for the joint table."""
+    self._recompute_joint_table.cache_clear()
+    if env('USE_TABLE_INDEX', default=False):
+      self.con.execute('DROP TABLE IF EXISTS mtime_cache')
+
   def _add_map_keys_to_schema(self, path: PathTuple, field: Field, merged_schema: Schema) -> None:
     """Adds the keys of a map to the schema."""
     value_column = 'key'
@@ -1238,6 +1244,7 @@ class DatasetDuckDB(Dataset):
     prefix = '.'.join(path)
     map_manifest_filepath = os.path.join(parquet_dir, f'{prefix}.{MAP_MANIFEST_SUFFIX}')
     delete_file(map_manifest_filepath)
+    self._clear_joint_table_cache()
 
   @override
   def delete_signal(self, signal_path: Path) -> None:
@@ -1272,6 +1279,7 @@ class DatasetDuckDB(Dataset):
 
     output_dir = os.path.join(self.dataset_path, _signal_dir(signal_path))
     shutil.rmtree(output_dir, ignore_errors=True)
+    self._clear_joint_table_cache()
 
   def _validate_filters(
     self, filters: Sequence[Filter], col_aliases: dict[str, PathTuple], manifest: DatasetManifest
