@@ -63,7 +63,7 @@
           limit: null
         })
       : null;
-  $: groups = ($outerCountQuery?.data?.counts || []).map(([name, count], i) => {
+  $: groups = ($outerCountQuery?.data?.counts || []).map(([name, count]) => {
     const textHighlights = getSearchHighlighting(name, searchText);
     const hasMatchingSearch = textHighlights.some(x => x.isBold);
     return {
