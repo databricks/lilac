@@ -5,7 +5,7 @@ import json
 from io import BytesIO
 from typing import Any, Callable, Generator, Iterable, Iterator, TypeVar, Union, cast
 
-from .schema import Item
+from .schema import PATH_WILDCARD, Item, PathTuple
 from .utils import chunks, is_primitive
 
 
@@ -22,6 +22,22 @@ def flatten_iter(input: Union[Iterator, Iterable], max_depth: int = -1) -> Itera
   """Flattens a deeply nested iterator. Primitives and dictionaries are not flattened."""
   for elem in input:
     yield from _flatten_iter(elem, max_depth)
+
+
+def flatten_path_iter(input: Union[Iterator, Iterable, dict], path: PathTuple) -> Iterator:
+  """Flattens a nested object along the provided path."""
+  if not path:
+    yield input
+    return
+  path_part = path[0]
+  rest = path[1:]
+  if path_part == PATH_WILDCARD:
+    for elem in cast(Iterator, input):
+      yield from flatten_path_iter(elem, rest)
+  elif path_part not in input:
+    return
+  else:
+    yield from flatten_path_iter(cast(dict, input)[path_part], rest)
 
 
 def _unflatten_iter(
@@ -123,6 +139,6 @@ def compress_docs(docs: list[str]) -> bytes:
   """Compress a list of documents using gzip."""
   buffer = BytesIO()
   # Gzip compress the data and write it to the buffer
-  with gzip.GzipFile(fileobj=buffer, mode='wb') as f:
+  with gzip.GzipFile(fileobj=buffer, mode='wb', compresslevel=6) as f:
     f.write(json.dumps(docs).encode('utf-8'))
   return buffer.getvalue()

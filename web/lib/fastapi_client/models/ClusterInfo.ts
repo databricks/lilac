@@ -9,5 +9,6 @@
 export type ClusterInfo = {
     min_cluster_size?: (number | null);
     remote?: (boolean | null);
+    input_path?: (Array<string> | null);
 };
 

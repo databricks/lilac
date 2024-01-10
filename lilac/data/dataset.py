@@ -471,7 +471,7 @@ class Dataset(abc.ABC):
       min_cluster_size: The minimum number of docs in a cluster.
       topic_fn: A function that returns a topic summary for each cluster. It takes a list of
         (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
-        for a given cluster of docs. It defaults to a function that summarizes user's instructions.
+        for a given cluster of docs. It defaults to a function that summarizes user's requests.
       overwrite: Whether to overwrite an existing output.
       remote: Whether to run the clustering remotely on Lilac Garden.
       task_id: The TaskManager `task_id` for this process run. This is used to update the progress

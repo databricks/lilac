@@ -1,4 +1,9 @@
 import {
+  CATEGORY_MEMBERSHIP_PROB,
+  CLUSTER_CATEGORY_FIELD,
+  CLUSTER_MEMBERSHIP_PROB,
+  CLUSTER_PARENT_SUFFIX,
+  CLUSTER_TITLE_FIELD,
   DELETED_LABEL_KEY,
   ROWID,
   isColumn,
@@ -402,6 +407,33 @@ export function getSelectRowsOptions(
 
   // Deep clone the query so we don't mutate the original.
   const options: SelectRowsOptions = JSON.parse(JSON.stringify(viewState.query));
+
+  if (viewState.groupBy?.value != null) {
+    const groupByPath = viewState.groupBy.path;
+    const fieldName = groupByPath.at(-1);
+    const parentFieldName = groupByPath.at(-2);
+    if (
+      options.sort_by == null &&
+      parentFieldName != null &&
+      parentFieldName.endsWith(CLUSTER_PARENT_SUFFIX) &&
+      (fieldName == CLUSTER_TITLE_FIELD || fieldName == CLUSTER_CATEGORY_FIELD)
+    ) {
+      const membershipProbPath = groupByPath
+        .slice(0, -1)
+        .concat(
+          fieldName == CLUSTER_TITLE_FIELD ? CLUSTER_MEMBERSHIP_PROB : CATEGORY_MEMBERSHIP_PROB
+        );
+      options.sort_by = [membershipProbPath];
+    }
+    options.searches = options.searches || [];
+    options.searches.push({
+      path: groupByPath,
+      op: 'equals',
+      value: viewState.groupBy.value,
+      type: 'metadata'
+    } as MetadataSearch);
+  }
+
   // If we are not sorting explicitly, and not searching for a concept or semantic, sort by rowid
   // to get stable results.
   if (implicitSortByRowId) {
@@ -411,15 +443,6 @@ export function getSelectRowsOptions(
     ) {
       options.sort_by = [ROWID];
     }
-  }
-  if (viewState.groupBy?.value != null) {
-    options.searches = options.searches || [];
-    options.searches.push({
-      path: viewState.groupBy.path,
-      op: 'equals',
-      value: viewState.groupBy.value,
-      type: 'metadata'
-    } as MetadataSearch);
   }
   return {
     ...options,

@@ -5,6 +5,8 @@
   import {computeSignalMutation, querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {querySignals} from '$lib/queries/signalQueries';
   import {
+    CLUSTER_CATEGORY_FIELD,
+    CLUSTER_TITLE_FIELD,
     PATH_WILDCARD,
     VALUE_KEY,
     childFields,
@@ -56,9 +58,6 @@
   $: isCluster = clusterInfo != null;
   $: isLabel = isLabelField(field);
   $: isSourceField = !isSignal && !isLabel;
-
-  const CLUSTER_CATEGORY_FIELD = 'category_title';
-  const CLUSTER_TITLE_FIELD = 'cluster_title';
 
   const signalMutation = computeSignalMutation();
   const datasetViewStore = getDatasetViewContext();

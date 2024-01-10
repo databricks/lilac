@@ -1,5 +1,4 @@
 """Unit tests for dataset.cluster()."""
-import re
 from typing import ClassVar, Iterable, Iterator
 
 import pytest
@@ -185,7 +184,7 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
             CATEGORY_MEMBERSHIP_PROB: 'float32',
             CATEGORY_TITLE: 'string',
           },
-          cluster=ClusterInfo(min_cluster_size=2, remote=False),
+          cluster=ClusterInfo(min_cluster_size=2, remote=False, input_path=('text',)),
         ),
       }
     ),
@@ -196,9 +195,22 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
 
 def test_nested_clusters(make_test_data: TestDataMaker) -> None:
   texts: list[list[dict[str, str]]] = [
-    [{'text': 'Can you summarize this article'}, {'text': 'Can you rewrite this in a simpler way'}],
-    [{'text': 'Can you provide a short summary of the following text'}],
-    [{'text': 'Can you simplify this text'}, {'text': '1224123531451345'}],
+    [  # Cluster 1
+      {'text': 'Can you summarize this article'},
+      {'text': 'Can you provide a short summary of the following text'},
+    ],
+    [  # Cluster 2
+      {'text': 'Can you rewrite this in a simpler way'},
+      {'text': 'Can you simplify this text'},
+    ],
+    [  # Cluster 1
+      {'text': 'Can you give a summary of the article'},
+      {'text': 'Write a short overview of the following text'},
+    ],
+    [  # Cluster 2
+      {'text': 'Can you write a simpler version'},
+      {'text': 'Give me simplified version of this text'},
+    ],
   ]
   dataset = make_test_data([{'texts': t} for t in texts])
 
@@ -211,86 +223,99 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
 
   dataset.cluster('texts.*.text', min_cluster_size=2, topic_fn=topic_fn)
 
-  rows = list(dataset.select_rows(['texts'], combine_columns=True))
+  rows = list(dataset.select_rows(['texts_text__cluster'], combine_columns=True))
   assert rows == [
     {
-      'texts': [
-        {
-          'text': 'Can you summarize this article',
-          'text__cluster': {
-            'cluster_id': 0,
-            'cluster_membership_prob': 1.0,
-            'cluster_title': 'summarization',
-            'category_id': -1,
-            'category_membership_prob': None,
-            'category_title': None,
-          },
-        },
-        {
-          'text': 'Can you rewrite this in a simpler way',
-          'text__cluster': {
-            'cluster_id': 1,
-            'cluster_membership_prob': 1.0,
-            'cluster_title': 'simplification',
-            'category_id': -1,
-            'category_membership_prob': None,
-            'category_title': None,
-          },
-        },
-      ]
+      'texts_text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
     },
     {
-      'texts': [
-        {
-          'text': 'Can you provide a short summary of the following text',
-          'text__cluster': {
-            'cluster_id': 0,
-            'cluster_membership_prob': 1.0,
-            'cluster_title': 'summarization',
-            'category_id': -1,
-            'category_membership_prob': None,
-            'category_title': None,
-          },
-        }
-      ],
+      'texts_text__cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
     },
     {
-      'texts': [
-        {
-          'text': 'Can you simplify this text',
-          'text__cluster': {
-            'cluster_id': 1,
-            'cluster_membership_prob': 1.0,
-            'cluster_title': 'simplification',
-            'category_id': -1,
-            'category_membership_prob': None,
-            'category_title': None,
-          },
-        },
-        {
-          'text': '1224123531451345',
-          'text__cluster': {
-            'cluster_id': -1,
-            'cluster_membership_prob': None,
-            'cluster_title': None,
-            'category_id': None,
-            'category_membership_prob': None,
-            'category_title': None,
-          },
-        },
-      ],
+      'texts_text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'texts_text__cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
     },
   ]
 
 
-def test_path_ending_with_repeated_errors(make_test_data: TestDataMaker) -> None:
-  texts: list[list[str]] = [['a', 'b'], ['c'], ['d']]
+def test_path_ending_with_repeated(make_test_data: TestDataMaker) -> None:
+  texts: list[list[str]] = [['hello', 'teacher'], ['professor'], ['hi']]
   dataset = make_test_data([{'texts': t} for t in texts])
 
-  with pytest.raises(
-    ValueError, match=re.escape("Path ('texts', '*') must end with a field name.")
-  ):
-    dataset.cluster('texts.*')
+  def topic_fn(docs: list[tuple[str, float]]) -> str:
+    if 'hello' in docs[0][0]:
+      return 'a_cluster'
+    elif 'teacher' in docs[0][0]:
+      return 'b_cluster'
+    return 'other'
+
+  dataset.cluster('texts.*', min_cluster_size=2, topic_fn=topic_fn)
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'texts': ['hello', 'teacher'],
+      'texts__cluster': {
+        'cluster_id': -1,
+        'cluster_membership_prob': None,
+        'cluster_title': None,
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'texts': ['professor'],
+      'texts__cluster': {
+        'cluster_id': -1,
+        'cluster_membership_prob': None,
+        'cluster_title': None,
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'texts': ['hi'],
+      'texts__cluster': {
+        'cluster_id': -1,
+        'cluster_membership_prob': None,
+        'cluster_title': None,
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+  ]
 
 
 def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
