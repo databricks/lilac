@@ -106,7 +106,9 @@
   }
   $: {
     if (isClusterRoot && fieldTitle) {
-      fieldTitle = 'Clusters of ' + clusterInfo;
+      // Find the cluster field name by finding the last value in input path that is not PATH_WILDCARD.
+      const clusterFieldName = clusterInfo?.input_path?.find(p => p !== PATH_WILDCARD);
+      fieldTitle = `Clusters of "${clusterFieldName}"`;
     }
   }
 
@@ -325,7 +327,7 @@
     {#if isClusterRoot}
       <button
         use:hoverTooltip={{text: 'View clusters'}}
-        class="my-1"
+        class="my-2 rounded border border-neutral-300 p-1 transition"
         on:click={() => {
           datasetViewStore.openPivotViewer(
             [...field.path, CLUSTER_CATEGORY_FIELD],
@@ -333,7 +335,7 @@
           );
         }}
       >
-        <div class="rounded border border-neutral-300 p-1 transition"><ArrowUpRight /></div>
+        <ArrowUpRight />
       </button>
     {/if}
     <SchemaFieldMenu {field} />

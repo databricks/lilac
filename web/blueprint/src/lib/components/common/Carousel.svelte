@@ -37,9 +37,9 @@
       >
     </div>
 
-    <div class="flex grow flex-row">
+    <div class="flex h-full grow flex-row">
       {#each itemsVisible as item}
-        <div style={`width: ${100 / pageSize}%`}>
+        <div style={`width: ${100 / pageSize}%`} class="mx-1 h-full">
           <slot name="item" {item} />
         </div>
       {/each}
@@ -55,7 +55,7 @@
     </div>
   </div>
   <div class="mx-auto px-16">
-    <div class="my-1 flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1">
+    <div class="mt-4 flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1">
       {#if pages.length > 1}
         {#each pages as _, i}
           {@const isCurrentPage = i === currentPage}

@@ -63,10 +63,22 @@
           limit: null
         })
       : null;
-  $: outerCounts = ($outerCountQuery?.data?.counts || []).map(([name, count]) => ({
-    name,
-    count
-  }));
+  $: groups = ($outerCountQuery?.data?.counts || []).map(([name, count], i) => {
+    const textHighlights = getSearchHighlighting(name, searchText);
+    const hasMatchingSearch = textHighlights.some(x => x.isBold);
+    return {
+      name,
+      count,
+      percentage: getPercentage(count),
+      textHighlights,
+      hasMatchingSearch
+    };
+  });
+
+  $: noResults =
+    groupCounts.length === groups.length &&
+    groupCounts.every(count => count === 0) &&
+    !groups.some(group => group.hasMatchingSearch);
 
   function getPercentage(count: number) {
     if (numRowsInQuery == null) return '';
@@ -134,6 +146,7 @@
 
   function clearSearch() {
     inputSearchText = undefined;
+    loadIndex = 0;
     search();
   }
 </script>
@@ -197,7 +210,7 @@
       <SkeletonText />
     {:else}
       <div class="flex w-full flex-col">
-        {#each outerCounts as outerCount, i}
+        {#each groups as group, i}
           {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
             ...$store,
             viewPivot: false,
@@ -205,53 +218,59 @@
             query: {
               ...$store.query
             },
-            groupBy: {path: outerLeafPath, value: outerCount.name}
+            groupBy: {path: outerLeafPath, value: group.name}
           })}
-          {@const percentage = getPercentage(outerCount.count)}
-          {@const textHighlights = getSearchHighlighting(outerCount.name, searchText)}
+
           {@const shouldShow =
-            (groupCounts[i] != null && groupCounts[i] > 0) || textHighlights.some(x => x.isBold)}
-          <div class="flex w-full flex-col" class:mb-4={shouldShow} class:px-4={shouldShow}>
-            <div class="text-preview-overlay sticky top-0 z-50 mx-11" class:hidden={!shouldShow}>
-              <div class="absolute left-0 top-0 z-10 h-full w-full bg-white" />
-              <div
-                class="absolute left-0 top-0 z-10 h-full w-full bg-blue-100"
-                style={`width: ${percentage}%`}
-              />
-              <div
-                class="relative left-0 top-0 z-50 py-2 leading-none tracking-tight text-gray-900"
-              >
-                <span class="mx-2 text-2xl">
-                  {#each textHighlights as highlight}
-                    {#if highlight.isBold}
-                      <span class="font-bold">{highlight.text}</span>
-                    {:else}
-                      <span>{highlight.text}</span>
-                    {/if}
-                  {/each}
-                  <a class="inline-block" href={groupLink}>
-                    <svg
-                      class="ms-2 h-3 w-3 rtl:rotate-[270deg]"
-                      aria-hidden="true"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 18 18"
-                    >
-                      <path
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 11v4.833A1.166 1.166 0 0 1 13.833 17H2.167A1.167 1.167 0 0 1 1 15.833V4.167A1.166 1.166 0 0 1 2.167 3h4.618m4.447-2H17v5.768M9.111 8.889l7.778-7.778"
-                      />
-                    </svg>
-                  </a>
+            (groupCounts[i] != null && groupCounts[i] > 0) || group.hasMatchingSearch}
+          <div
+            class="flex w-full flex-row"
+            class:mb-4={shouldShow}
+            class:px-4={shouldShow}
+            class:mb-10={shouldShow}
+          >
+            <div
+              class="mx-11 flex w-48 flex-col items-center justify-center gap-y-4 py-1"
+              class:hidden={!shouldShow}
+            >
+              <div class="mx-2 whitespace-break-spaces text-center text-2xl">
+                {#each group.textHighlights as highlight}
+                  {#if highlight.isBold}<span class="font-bold">{highlight.text}</span>
+                  {:else}<span>{highlight.text}</span>{/if}
+                {/each}
+              </div>
+              <div class="flex flex-col font-light">
+                <span class="ml-2 text-xl text-neutral-800">
+                  {group.percentage}%
                 </span>
-                <span class="ml-2 text-lg">({percentage}%)</span>
+                <span class="ml-2 text-neutral-500">
+                  {group.count} rows
+                </span>
+              </div>
+              <div class="">
+                <a class="flex flex-row" href={groupLink}>
+                  Explore
+                  <svg
+                    class="ms-2 h-3 w-3 rtl:rotate-[270deg]"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 18 18"
+                  >
+                    <path
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 11v4.833A1.166 1.166 0 0 1 13.833 17H2.167A1.167 1.167 0 0 1 1 15.833V4.167A1.166 1.166 0 0 1 2.167 3h4.618m4.447-2H17v5.768M9.111 8.889l7.778-7.778"
+                    />
+                  </svg>
+                </a>
               </div>
             </div>
-            <div>
-              {#if innerLeafPath && innerLeafPath.length > 0}
+
+            {#if innerLeafPath && innerLeafPath.length > 0}
+              {#key searchText}
                 <DatasetPivotResult
                   shouldLoad={loadIndex >= i}
                   on:load={({detail}) => {
@@ -259,20 +278,27 @@
                     // server.
                     loadIndex = i + 1;
                     groupCounts[i] = detail.count;
+                    groupCounts = groupCounts;
                   }}
-                  filter={outerCount.name == null
+                  filter={group.name == null
                     ? {path: outerLeafPath, op: 'not_exists'}
-                    : {path: outerLeafPath, op: 'equals', value: outerCount.name}}
+                    : {path: outerLeafPath, op: 'equals', value: group.name}}
                   path={innerLeafPath}
-                  parentValue={outerCount.name}
+                  parentValue={group.name}
                   {numRowsInQuery}
-                  {searchText}
+                  searchText={//
+                  // When the parent matches the text, we don't pass the search
+                  // text to the child for filtering so it shows all results.
+                  !group.hasMatchingSearch ? searchText : undefined}
                 />
-              {/if}
-            </div>
+              {/key}
+            {/if}
           </div>
         {/each}
       </div>
+    {/if}
+    {#if noResults}
+      <div class="mx-20 mt-8 w-full text-lg text-gray-600">No results.</div>
     {/if}
   </div>
 </div>
