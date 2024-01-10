@@ -223,12 +223,7 @@
 
           {@const shouldShow =
             (groupCounts[i] != null && groupCounts[i] > 0) || group.hasMatchingSearch}
-          <div
-            class="flex w-full flex-row"
-            class:mb-4={shouldShow}
-            class:px-4={shouldShow}
-            class:mb-10={shouldShow}
-          >
+          <div class="flex w-full flex-row" class:px-4={shouldShow} class:mb-10={shouldShow}>
             <div
               class="mx-11 flex w-48 flex-col items-center justify-center gap-y-4 py-1"
               class:hidden={!shouldShow}
