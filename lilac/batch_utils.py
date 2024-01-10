@@ -25,7 +25,7 @@ def flatten_iter(input: Union[Iterator, Iterable], max_depth: int = -1) -> Itera
 
 
 def flatten_iter_path(input: Union[Iterator, Iterable, dict], path: PathTuple) -> Iterator:
-  """Flattens a nested iterable."""
+  """Flattens a nested object along the provided path."""
   if not path:
     yield input
     return
