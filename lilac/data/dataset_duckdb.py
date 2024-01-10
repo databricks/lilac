@@ -184,6 +184,9 @@ BINARY_OP_TO_SQL: dict[BinaryOp, str] = {
   'less_equal': '<=',
 }
 
+USE_TABLE_INDEX = True
+DUCKDB_CACHE_FILE = 'duckdb_cache.db'
+
 
 class MapFnJobRequest(BaseModel):
   """The job information passed to worker for a map function."""
@@ -319,8 +322,10 @@ class DatasetDuckDB(Dataset):
     self._signal_manifests: list[SignalManifest] = []
     self._map_manifests: list[MapManifest] = []
     self._label_schemas: dict[str, Schema] = {}
-    self.con = duckdb.connect(database=':memory:')
-    # self.con.execute("SET memory_limit='2GB';")
+    if USE_TABLE_INDEX:
+      self.con = duckdb.connect(database=os.path.join(self.dataset_path, DUCKDB_CACHE_FILE))
+    else:
+      self.con = duckdb.connect(database=':memory:')
 
     # Maps a path and embedding to the vector index. This is lazily generated as needed.
     self._vector_indices: dict[tuple[PathKey, str], VectorDBIndex] = {}
@@ -397,7 +402,6 @@ class DatasetDuckDB(Dataset):
   # the results are invalidated.
   @functools.lru_cache(maxsize=1)
   def _recompute_joint_table(self, latest_mtime_micro_sec: int) -> DatasetManifest:
-    del latest_mtime_micro_sec  # This is used as the cache key.
     merged_schema = self._source_manifest.data_schema.model_copy(deep=True)
     self._signal_manifests = []
     self._label_schemas = {}
@@ -501,10 +505,23 @@ class DatasetDuckDB(Dataset):
       [SOURCE_VIEW_NAME]
       + [f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
     )
-    sql_cmd = f"""
-      CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})
-    """
-    self.con.execute(sql_cmd)
+    if USE_TABLE_INDEX:
+      self.con.execute(
+        """CREATE TABLE IF NOT EXISTS mtime_cache AS
+         (SELECT CAST(0 AS bigint) AS mtime);"""
+      )
+      db_mtime = self.con.execute('SELECT mtime FROM mtime_cache').fetchone()[0]  # type: ignore
+      if db_mtime < latest_mtime_micro_sec:
+        self.con.execute('UPDATE mtime_cache SET mtime = ?', (latest_mtime_micro_sec,))
+        self.con.execute(f'CREATE OR REPLACE TABLE t AS (SELECT {select_sql} FROM {join_sql})')
+        self.con.execute('CREATE INDEX row_idx ON t ("__rowid__")')
+        # If not checkpointed, the index will sometimes not be flushed to disk and be recomputed.
+        self.con.execute('CHECKPOINT')
+    else:
+      sql_cmd = f"""
+        CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})
+      """
+      self.con.execute(sql_cmd)
     # Get the total size of the table.
     size_query = 'SELECT COUNT() as count FROM t'
     size_query_result = cast(Any, self._query(size_query)[0])
@@ -554,6 +571,8 @@ class DatasetDuckDB(Dataset):
     # re-computing the manifest and the joined view.
     with self._manifest_lock:
       all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
+      all_dataset_files = (f for f in all_dataset_files if DUCKDB_CACHE_FILE not in f)
+      all_dataset_files = (f for f in all_dataset_files if os.path.isfile(f))
       latest_mtime = max(map(os.path.getmtime, all_dataset_files))
       latest_mtime_micro_sec = int(latest_mtime * 1e6)
       return self._recompute_joint_table(latest_mtime_micro_sec)
@@ -2527,6 +2546,17 @@ class DatasetDuckDB(Dataset):
           wrapped_filter_val = [f"'{part}'" for part in filter_list_val]
           filter_val = f'({", ".join(wrapped_filter_val)})'
           filter_query = f'{select_str} IN {filter_val}'
+
+          # Optimization for "rowid IN (...)" queries - there is an index on rowid, but
+          # duckdb does a full index scan when the IN clause is present, instead of the hash join.
+          # So, we insert a range clause to limit the extent of the index scan. This optimization
+          # works well because nearly all of our queries are sorted by rowid, meaning that min/max
+          # will narrow down the index scan to a small range.
+          if USE_TABLE_INDEX and ROWID in select_str:
+            min_row, max_row = min(filter_list_val), max(filter_list_val)
+            filter_query += f" AND {ROWID} BETWEEN '{min_row}' AND '{max_row}'"
+            # wrap in parens to isolate from other filters, just in case?
+            filter_query = f'({filter_query})'
         else:
           raise ValueError(f'List op: {f.op} is not yet supported')
       else:
