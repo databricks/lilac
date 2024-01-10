@@ -32,17 +32,23 @@ class OpenAIEmbedding(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'openai'
   display_name: ClassVar[str] = 'OpenAI Embeddings'
-  local_batch_size: ClassVar[int] = API_OPENAI_BATCH_SIZE
-  local_parallelism: ClassVar[int] = API_NUM_PARALLEL_REQUESTS
+  local_batch_size: ClassVar[int] = None
+  local_parallelism: ClassVar[int] = None
   local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   @override
   def setup(self) -> None:
     api_key = env('OPENAI_API_KEY')
-    api_type = env('OPENAI_API_TYPE')
-    api_version = env('OPENAI_API_VERSION')
-    if not api_key:
-      raise ValueError('`OPENAI_API_KEY` environment variable not set.')
+    azure_api_key = env('AZURE_OPENAI_KEY')
+    azure_api_version = env('AZURE_OPENAI_VERSION')
+    azure_api_endpoint = env('AZURE_OPENAI_ENDPOINT')
+
+    if not api_key and not azure_api_key:
+      raise ValueError('`OPENAI_API_KEY` or `AZURE_OPENAI_KEY` environment variables not set, please set one.')
+    if api_key and azure_api_key:
+      raise ValueError(
+        'Both `OPENAI_API_KEY` and `AZURE_OPENAI_KEY` environment variables are set, please set only one.')
+
     try:
       import openai
 
@@ -51,34 +57,28 @@ class OpenAIEmbedding(TextEmbeddingSignal):
         'Could not import the "openai" python package. '
         'Please install it with `pip install openai`.'
       )
+
     else:
-      openai.api_key = api_key
 
-      if api_type:
-        openai.api_type = api_type
-        openai.api_version = api_version
+      if api_key:
+        self._client = openai.OpenAI(api_key=api_key)
+        self._azure = False
+        OpenAIEmbedding.local_batch_size = API_OPENAI_BATCH_SIZE
+        OpenAIEmbedding.local_parallelism = API_NUM_PARALLEL_REQUESTS
 
-    try:
-      openai.models.list()
-    except openai.AuthenticationError:
-      raise ValueError(
-        'Your `OPENAI_API_KEY` environment variable need to be completed with '
-        '`OPENAI_API_TYPE`, `OPENAI_API_VERSION`, `OPENAI_API_ENGINE_EMBEDDING`'
-      )
+      elif azure_api_key:
+        self._client = openai.AzureOpenAI(
+          api_key=azure_api_key,
+          api_version=azure_api_version,
+          azure_endpoint=azure_api_endpoint
+        )
+        self._azure = True
+        OpenAIEmbedding.local_batch_size = AZURE_OPENAI_BATCH_SIZE
+        OpenAIEmbedding.local_parallelism = AZURE_NUM_PARALLEL_REQUESTS
 
   @override
   def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Compute embeddings for the given documents."""
-    try:
-      import openai
-
-    except ImportError:
-      raise ImportError(
-        'Could not import the "openai" python package. '
-        'Please install it with `pip install openai`.'
-      )
-
-    client = openai.OpenAI()
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(10))
     def embed_fn(texts: list[str]) -> list[np.ndarray]:
@@ -86,9 +86,9 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       # See https://github.com/search?q=repo%3Aopenai%2Fopenai-python+replace+newlines&type=code
       texts = [text.replace('\n', ' ') for text in texts]
 
-      response = client.embeddings.create(
+      response = self._client.embeddings.create(
         input=texts,
-        model=API_EMBEDDING_MODEL,
+        model=API_EMBEDDING_MODEL if not self._azure else env('AZURE_OPENAI_EMBEDDING_MODEL'),
       )
       return [np.array(embedding.embedding, dtype=np.float32) for embedding in response.data]
 
