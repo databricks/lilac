@@ -549,7 +549,7 @@ class DatasetDuckDB(Dataset):
       dataset_format=dataset_format,
     )
 
-  def _clear_joint_table_cache(self):
+  def _clear_joint_table_cache(self) -> None:
     """Clears the cache for the joint table."""
     self._recompute_joint_table.cache_clear()
     if env('USE_TABLE_INDEX', default=False):
