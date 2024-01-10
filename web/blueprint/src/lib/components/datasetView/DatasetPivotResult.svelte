@@ -11,7 +11,8 @@
   } from '$lib/stores/datasetViewStore';
 
   import {datasetLink} from '$lib/utils';
-  import {ROWID, type BinaryFilter, type Path, type UnaryFilter} from '$lilac';
+  import {getSearchHighlighting} from '$lib/view_utils';
+  import {ROWID, type BinaryFilter, type Path, type StringFilter, type UnaryFilter} from '$lilac';
   import {SkeletonText} from 'carbon-components-svelte';
   import {Information} from 'carbon-icons-svelte';
   import {createEventDispatcher, onDestroy, onMount} from 'svelte';
@@ -22,6 +23,7 @@
   export let path: Path;
   export let parentValue: string;
   export let numRowsInQuery: number | undefined;
+  export let searchText: string | undefined;
   // When true, queries will be issued. This allows us to progressively load without spamming the
   // server.
   export let shouldLoad = false;
@@ -73,7 +75,10 @@
     shouldLoad && isOnScreen
       ? querySelectGroups($store.namespace, $store.datasetName, {
           leaf_path: path,
-          filters,
+          filters: [
+            ...filters,
+            ...(searchText ? [{path, op: 'ilike', value: searchText} as StringFilter] : [])
+          ],
           // Explicitly set the limit to null to get all the groups, not just the top 100.
           limit: null
         })
@@ -91,7 +96,7 @@
       $countQuery?.data != null &&
       $countQuery?.isFetching === false
     ) {
-      dispatch('load');
+      dispatch('load', {count: counts.length});
     }
   }
 
@@ -118,13 +123,21 @@
         {@const count = groupResultFromItem(item)}
         {@const groupPercentage = getPercentage(count.count, numRowsInGroup)}
         {@const totalPercentage = getPercentage(count.count, numRowsInQuery)}
+        {@const textHighlights = getSearchHighlighting(count.name, searchText)}
         <div class="min-w-64 md:1/2 h-full flex-grow p-1">
           <div
             class="flex h-full w-full max-w-sm flex-col justify-between gap-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow"
           >
             <div class="flex w-full flex-col">
               <div class="h-24">
-                <div class="card-title text-lg font-medium leading-6 tracking-tight text-gray-900">
+                <div class="card-title text-lg font-normal leading-6 tracking-tight text-gray-900">
+                  {#each textHighlights as highlight}
+                    {#if highlight.isBold}
+                      <span class="font-bold">{highlight.text}</span>
+                    {:else}
+                      <span>{highlight.text}</span>
+                    {/if}
+                  {/each}
                   {count.name}
                 </div>
               </div>
@@ -142,6 +155,7 @@
               </div>
             </div>
             <a
+              target="_blank"
               href={datasetLink($store.namespace, $store.datasetName, {
                 ...$store,
                 viewPivot: false,
@@ -154,7 +168,7 @@
               })}
               class="inline-flex items-center text-blue-600 hover:underline"
             >
-              Browse
+              Explore
               <svg
                 class="ms-2.5 h-3 w-3 rtl:rotate-[270deg]"
                 aria-hidden="true"

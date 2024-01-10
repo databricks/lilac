@@ -30,7 +30,7 @@
   <div class="flex w-full flex-row">
     <div class="flex flex-shrink items-center">
       <button
-        disabled={prevPageDisabled}
+        class:invisible={prevPageDisabled}
         class:opacity-50={prevPageDisabled}
         class="mx-1"
         on:click={() => showPrevPage()}><ChevronLeft /></button
@@ -47,7 +47,7 @@
 
     <div class="flex flex-shrink items-center">
       <button
-        disabled={nextPageDisabled}
+        class:invisible={nextPageDisabled}
         class:opacity-50={nextPageDisabled}
         class="mx-1"
         on:click={() => showNextPage()}><ChevronRight /></button
@@ -56,19 +56,21 @@
   </div>
   <div class="mx-auto px-16">
     <div class="my-1 flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1">
-      {#each pages as _, i}
-        {@const isCurrentPage = i === currentPage}
-        {@const sizePx = isCurrentPage ? 10 : 8}
-        <button
-          class="mx-0.5 rounded-full p-0"
-          style={`width: ${sizePx}px; height: ${sizePx}px;`}
-          class:bg-blue-300={isCurrentPage}
-          class:outline-blue-400={isCurrentPage}
-          class:outline={isCurrentPage}
-          class:bg-neutral-300={!isCurrentPage}
-          on:click={() => (currentPage = i)}
-        />
-      {/each}
+      {#if pages.length > 1}
+        {#each pages as _, i}
+          {@const isCurrentPage = i === currentPage}
+          {@const sizePx = isCurrentPage ? 10 : 8}
+          <button
+            class="mx-0.5 rounded-full p-0"
+            style={`width: ${sizePx}px; height: ${sizePx}px;`}
+            class:bg-blue-300={isCurrentPage}
+            class:outline-blue-400={isCurrentPage}
+            class:outline={isCurrentPage}
+            class:bg-neutral-300={!isCurrentPage}
+            on:click={() => (currentPage = i)}
+          />
+        {/each}
+      {/if}
     </div>
   </div>
 </div>

@@ -8,7 +8,7 @@
     PATH_WILDCARD,
     VALUE_KEY,
     childFields,
-    isClusterField,
+    getClusterInfo,
     isClusterRootField,
     isLabelField,
     isMapField,
@@ -51,8 +51,9 @@
   $: isSignal = isSignalField(field);
   $: isSignalRoot = isSignalRootField(field);
   $: isMap = isMapField(field);
-  $: isCluster = isClusterField(field);
   $: isClusterRoot = isClusterRootField(field);
+  $: clusterInfo = getClusterInfo(field);
+  $: isCluster = clusterInfo != null;
   $: isLabel = isLabelField(field);
   $: isSourceField = !isSignal && !isLabel;
 
@@ -106,7 +107,7 @@
   }
   $: {
     if (isClusterRoot && fieldTitle) {
-      fieldTitle = 'Clusters';
+      fieldTitle = 'Clusters of ' + clusterInfo;
     }
   }
 
@@ -333,7 +334,7 @@
           );
         }}
       >
-        <div class="transition"><ArrowUpRight /></div>
+        <div class="rounded border border-neutral-300 p-1 transition"><ArrowUpRight /></div>
       </button>
     {/if}
     <SchemaFieldMenu {field} />

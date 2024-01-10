@@ -30,6 +30,7 @@ export interface GroupByState {
 export interface PivotState {
   outerPath?: Path;
   innerPath?: Path;
+  searchText?: string;
 }
 
 export interface ColumnComparisonState {
