@@ -113,7 +113,7 @@ from ..utils import (
   open_file,
 )
 from . import dataset
-from .clustering import cluster, summarize_instructions
+from .clustering import cluster, summarize_request
 from .dataset import (
   BINARY_OPS,
   DELETED_LABEL_NAME,
@@ -2708,8 +2708,10 @@ class DatasetDuckDB(Dataset):
       if manifest.data_schema.has_field(output_path):
         if overwrite:
           field = manifest.data_schema.get_field(output_path)
-          if field.map is None:
-            raise ValueError(f'{output_path} is not a map column so it cannot be overwritten.')
+          if field.map is None and field.cluster is None:
+            raise ValueError(
+              f'{output_path} is not a map/cluster column and cannot be overwritten.'
+            )
         else:
           raise ValueError(
             f'Cannot map to path "{output_path}" which already exists in the dataset. '
@@ -2842,7 +2844,7 @@ class DatasetDuckDB(Dataset):
     remote: bool = False,
     task_id: Optional[TaskId] = None,
   ) -> None:
-    topic_fn = topic_fn or summarize_instructions
+    topic_fn = topic_fn or summarize_request
     return cluster(
       self, input, output_path, min_cluster_size, topic_fn, overwrite, remote, task_id=task_id
     )

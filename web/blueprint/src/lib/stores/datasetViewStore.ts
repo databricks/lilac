@@ -378,6 +378,12 @@ export function getDatasetViewContext() {
   return getContext<DatasetViewStore>(DATASET_VIEW_CONTEXT);
 }
 
+const _CLUSTER_PARENT_SUFFIX = '__cluster';
+const _CLUSTER_FIELD_NAME = 'cluster_title';
+const _CATEGORY_FIELD_NAME = 'category_title';
+const _CLUSTER_MEMBERSHIP_PROB = 'cluster_membership_prob';
+const _CATEGORY_MEMBERSHIP_PROB = 'category_membership_prob';
+
 /**
  * Get the options to pass to the selectRows API call
  * based on the current state of the dataset view store
@@ -401,6 +407,33 @@ export function getSelectRowsOptions(
 
   // Deep clone the query so we don't mutate the original.
   const options: SelectRowsOptions = JSON.parse(JSON.stringify(viewState.query));
+
+  if (viewState.groupBy?.value != null) {
+    const groupByPath = viewState.groupBy.path;
+    const fieldName = groupByPath.at(-1);
+    const parentFieldName = groupByPath.at(-2);
+    if (
+      options.sort_by == null &&
+      parentFieldName != null &&
+      parentFieldName.endsWith(_CLUSTER_PARENT_SUFFIX) &&
+      (fieldName == _CLUSTER_FIELD_NAME || fieldName == _CATEGORY_FIELD_NAME)
+    ) {
+      const membershipProbPath = groupByPath
+        .slice(0, -1)
+        .concat(
+          fieldName == _CLUSTER_FIELD_NAME ? _CLUSTER_MEMBERSHIP_PROB : _CATEGORY_MEMBERSHIP_PROB
+        );
+      options.sort_by = [membershipProbPath];
+    }
+    options.searches = options.searches || [];
+    options.searches.push({
+      path: groupByPath,
+      op: 'equals',
+      value: viewState.groupBy.value,
+      type: 'metadata'
+    } as MetadataSearch);
+  }
+
   // If we are not sorting explicitly, and not searching for a concept or semantic, sort by rowid
   // to get stable results.
   if (implicitSortByRowId) {
@@ -410,15 +443,6 @@ export function getSelectRowsOptions(
     ) {
       options.sort_by = [ROWID];
     }
-  }
-  if (viewState.groupBy?.value != null) {
-    options.searches = options.searches || [];
-    options.searches.push({
-      path: viewState.groupBy.path,
-      op: 'equals',
-      value: viewState.groupBy.value,
-      type: 'metadata'
-    } as MetadataSearch);
   }
   return {
     ...options,
