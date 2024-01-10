@@ -44,10 +44,12 @@ class OpenAIEmbedding(TextEmbeddingSignal):
     azure_api_endpoint = env('AZURE_OPENAI_ENDPOINT')
 
     if not api_key and not azure_api_key:
-      raise ValueError('`OPENAI_API_KEY` or `AZURE_OPENAI_KEY` environment variables not set, please set one.')
+      raise ValueError('`OPENAI_API_KEY` or `AZURE_OPENAI_KEY` '
+                       'environment variables not set, please set one.')
     if api_key and azure_api_key:
       raise ValueError(
-        'Both `OPENAI_API_KEY` and `AZURE_OPENAI_KEY` environment variables are set, please set only one.')
+        'Both `OPENAI_API_KEY` and `AZURE_OPENAI_KEY` '
+        'environment variables are set, please set only one.')
 
     try:
       import openai
