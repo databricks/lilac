@@ -10,7 +10,7 @@ Args:
   --hf_space: The huggingface space. Defaults to env.HF_STAGING_DEMO_REPO. Should be formatted like
     `SPACE_ORG/SPACE_NAME`.
   --dataset: [Repeated] The name of a dataset to upload. When not defined, no datasets are uploaded.
-  --concept: [Repeated] The name of a concept to upload. When not defined, no local concepts are
+--concept: [Repeated] The name of a concept to upload. When not defined, no local concepts are
     uploaded.
   --skip_ts_build: Skip building the web server TypeScript. Useful to speed up the build if you are
     only changing python or data.

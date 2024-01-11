@@ -7,6 +7,7 @@ import click
 
 from . import __version__
 from .concepts.db_concept import DISK_CONCEPT_DB
+from .data.dataset_storage_utils import download
 from .deploy import deploy_project
 from .env import env, get_project_dir
 from .hf_docker_start import hf_docker_start
@@ -209,6 +210,44 @@ def deploy_project_command(
 
 
 @click.command()
+@click.argument(
+  'url_or_repo',
+  required=True,
+)
+@click.option(
+  '--project_dir',
+  help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
+  type=str,
+)
+@click.option(
+  '--dataset_namespace',
+  help='The local namespace to use. Defaults to "local".',
+  type=str,
+  default='local',
+)
+@click.option(
+  '--dataset_name',
+  help='The local dataset name to use. Defaults to the name of the HuggingFace dataset.',
+  type=str,
+)
+@click.option(
+  '--hf_token',
+  help='The HuggingFace access token to use when making datasets private. '
+  'This can also be set via the `HF_ACCESS_TOKEN` environment flag.',
+  type=str,
+)
+def download_command(
+  url_or_repo: str,
+  project_dir: Optional[str],
+  dataset_namespace: Optional[str],
+  dataset_name: Optional[str],
+  hf_token: Optional[str],
+) -> None:
+  """Download a Lilac dataset from HuggingFace."""
+  download(url_or_repo, project_dir, dataset_namespace, dataset_name)
+
+
+@click.command()
 def concepts() -> None:
   """Lists lilac concepts."""
   print(DISK_CONCEPT_DB.list())
@@ -228,7 +267,7 @@ cli.add_command(start)
 
 cli.add_command(deploy_project_command, name='deploy-project')
 cli.add_command(hf_docker_start_command, name='hf-docker-start')
-
+cli.add_command(download_command, name='download')
 cli.add_command(concepts)
 
 if __name__ == '__main__':
