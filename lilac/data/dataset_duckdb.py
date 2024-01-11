@@ -146,7 +146,7 @@ from .dataset import (
   SortResult,
   StatsResult,
   column_from_identifier,
-  dataset_config_from_manifest,
+  config_from_dataset,
   get_map_parquet_id,
   make_signal_parquet_id,
 )
@@ -335,14 +335,14 @@ class DatasetDuckDB(Dataset):
     self._label_file_lock: dict[str, threading.Lock] = defaultdict(threading.Lock)
 
     # Create a join table from all the parquet files.
-    manifest = self.manifest()
+    self.manifest()
 
     # NOTE: This block is only for backwards compatibility.
     # Make sure the project reflects the dataset.
     project_config = read_project_config(self.project_dir)
     existing_dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not existing_dataset_config:
-      dataset_config = dataset_config_from_manifest(manifest)
+      dataset_config = config_from_dataset(self)
       # Check if the old config file exists so we remember settings.
       old_config_filepath = os.path.join(self.dataset_path, OLD_CONFIG_FILENAME)
       if os.path.exists(old_config_filepath):
