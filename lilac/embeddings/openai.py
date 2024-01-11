@@ -32,8 +32,8 @@ class OpenAIEmbedding(TextEmbeddingSignal):
 
   name: ClassVar[str] = 'openai'
   display_name: ClassVar[str] = 'OpenAI Embeddings'
-  local_batch_size: ClassVar[int] = None
-  local_parallelism: ClassVar[int] = None
+  local_batch_size: ClassVar[int] = API_OPENAI_BATCH_SIZE
+  local_parallelism: ClassVar[int] = API_NUM_PARALLEL_REQUESTS
   local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
   @override
@@ -65,8 +65,6 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       if api_key:
         self._client = openai.OpenAI(api_key=api_key)
         self._azure = False
-        OpenAIEmbedding.local_batch_size = API_OPENAI_BATCH_SIZE
-        OpenAIEmbedding.local_parallelism = API_NUM_PARALLEL_REQUESTS
 
       elif azure_api_key:
         self._client = openai.AzureOpenAI(
