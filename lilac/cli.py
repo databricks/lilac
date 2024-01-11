@@ -129,15 +129,15 @@ def hf_docker_start_command() -> None:
   multiple=True,
 )
 @click.option(
-  '--skip_cache',
-  help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
-  type=bool,
+  '--skip_data_upload',
+  help='When true, only uploads the wheel files without any other changes.',
   is_flag=True,
   default=False,
 )
 @click.option(
-  '--skip_data_upload',
-  help='When true, only uploads the wheel files without any other changes.',
+  '--skip_concept_upload',
+  help='Skip uploading custom concepts.',
+  type=bool,
   is_flag=True,
   default=False,
 )
@@ -176,8 +176,8 @@ def deploy_project_command(
   dataset: Optional[list[str]],
   make_datasets_public: bool,
   concept: Optional[list[str]],
-  skip_cache: bool,
   skip_data_upload: bool,
+  skip_concept_upload: bool,
   create_space: bool,
   load_on_space: bool,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]],
@@ -198,9 +198,9 @@ def deploy_project_command(
     hf_space=hf_space,
     datasets=dataset,
     concepts=concept,
-    skip_cache_upload=skip_cache,
     make_datasets_public=make_datasets_public,
     skip_data_upload=skip_data_upload,
+    skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,

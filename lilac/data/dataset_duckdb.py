@@ -511,14 +511,12 @@ class DatasetDuckDB(Dataset):
       )
       db_mtime = self.con.execute('SELECT mtime FROM mtime_cache').fetchone()[0]  # type: ignore
       if db_mtime < latest_mtime_micro_sec:
-        log(f'Recomputing table for {self.dataset_name}...')
-        self.con.execute('UPDATE mtime_cache SET mtime = ?', (latest_mtime_micro_sec,))
-        self.con.execute(f'CREATE OR REPLACE TABLE t AS (SELECT {select_sql} FROM {join_sql})')
-        log(f'Recomputing index for {self.dataset_name}...')
-        self.con.execute('CREATE INDEX row_idx ON t ("__rowid__")')
-        # If not checkpointed, the index will sometimes not be flushed to disk and be recomputed.
-        self.con.execute('CHECKPOINT')
-        log('Table/index computation complete')
+        with DebugTimer(f'Recomputing table+index for {self.dataset_name}...'):
+          self.con.execute('UPDATE mtime_cache SET mtime = ?', (latest_mtime_micro_sec,))
+          self.con.execute(f'CREATE OR REPLACE TABLE t AS (SELECT {select_sql} FROM {join_sql})')
+          self.con.execute('CREATE INDEX row_idx ON t ("__rowid__")')
+          # If not checkpointed, the index will sometimes not be flushed to disk and be recomputed.
+          self.con.execute('CHECKPOINT')
     else:
       sql_cmd = f"""
         CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})

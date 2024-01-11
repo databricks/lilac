@@ -56,13 +56,6 @@ from lilac.utils import log
   default=False,
 )
 @click.option(
-  '--skip_cache_upload',
-  help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
-  type=bool,
-  is_flag=True,
-  default=False,
-)
-@click.option(
   '--create_space',
   help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
   'with the storage type defined by --hf_space_storage.',
@@ -75,13 +68,20 @@ from lilac.utils import log
   is_flag=True,
   default=False,
 )
+@click.option(
+  '--skip_concept_upload',
+  help='Skip uploading custom concepts.',
+  type=bool,
+  is_flag=True,
+  default=False,
+)
 def deploy_staging(
   hf_space: Optional[str] = None,
   dataset: Optional[list[str]] = None,
   concept: Optional[list[str]] = None,
-  skip_cache_upload: Optional[bool] = False,
   skip_ts_build: Optional[bool] = False,
   skip_data_upload: Optional[bool] = False,
+  skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
 ) -> None:
   """Generate the huggingface space app."""
@@ -115,10 +115,10 @@ def deploy_staging(
       hf_space=hf_space,
       datasets=dataset,
       concepts=concept,
-      skip_cache_upload=skip_cache_upload,
       # Never make datasets public when uploading locally.
       make_datasets_public=False,
       skip_data_upload=skip_data_upload,
+      skip_concept_upload=skip_concept_upload,
       hf_space_storage=None,
       create_space=create_space,
     )
