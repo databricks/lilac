@@ -4,9 +4,6 @@ import pathlib
 import threading
 from typing import Optional, Union
 
-import yaml
-from yaml import CLoader as Loader
-
 from .config import (
   Config,
   DatasetConfig,
@@ -16,7 +13,7 @@ from .config import (
   get_dataset_config,
 )
 from .env import env, get_project_dir, set_project_dir
-from .utils import log, to_yaml
+from .utils import log, read_yaml, to_yaml
 
 PROJECT_CONFIG_FILENAME = 'lilac.yml'
 PROJECT_CONFIG_LOCK = threading.Lock()
@@ -193,15 +190,7 @@ def read_project_config(project_dir: Union[str, pathlib.Path]) -> Config:
   if not os.path.exists(project_config_filepath):
     create_project(project_dir)
 
-  with open(project_config_filepath) as f:
-    yaml_config = f.read()
-
-  try:  # Try using the fast loader.
-    config_dict = yaml.load(yaml_config, Loader=Loader) or {}
-  except Exception:  # Fall back to the slow loader.
-    config_dict = yaml.safe_load(yaml_config) or {}
-
-  return Config(**config_dict)
+  return Config(**read_yaml(project_config_filepath))
 
 
 def write_project_config(project_dir: Union[str, pathlib.Path], config: Config) -> None:

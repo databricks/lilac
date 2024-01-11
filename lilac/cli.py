@@ -232,7 +232,7 @@ def deploy_project_command(
 )
 @click.option(
   '--hf_token',
-  help='The HuggingFace access token to use when making datasets private. '
+  help='The HuggingFace access token to use when accessing private datasets. '
   'This can also be set via the `HF_ACCESS_TOKEN` environment flag.',
   type=str,
 )

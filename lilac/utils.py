@@ -31,6 +31,7 @@ import numpy as np
 import requests
 import yaml
 from pydantic import BaseModel
+from yaml import CLoader as Loader
 
 from .env import env, get_project_dir
 
@@ -313,6 +314,17 @@ class IndentDumper(yaml.Dumper):
 def to_yaml(input: dict) -> str:
   """Convert a dictionary to a pretty yaml representation."""
   return yaml.dump(input, Dumper=IndentDumper, sort_keys=False)
+
+
+def read_yaml(yaml_filepath: str) -> dict:
+  """Read a yaml file."""
+  with open(yaml_filepath) as f:
+    yaml_contents = f.read()
+
+  try:  # Try using the fast loader.
+    return yaml.load(yaml_contents, Loader=Loader) or {}
+  except Exception:  # Fall back to the slow loader.
+    return yaml.safe_load(yaml_contents) or {}
 
 
 def get_hf_dataset_repo_id(

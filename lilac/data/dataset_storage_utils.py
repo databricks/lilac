@@ -5,14 +5,11 @@ import os
 import shutil
 from typing import Optional
 
-import yaml
-from yaml import CLoader as Loader
-
 from ..config import DatasetConfig
 from ..db_manager import get_dataset
 from ..env import env, get_project_dir
 from ..project import add_project_dataset_config
-from ..utils import get_datasets_dir, get_lilac_cache_dir
+from ..utils import get_datasets_dir, get_lilac_cache_dir, read_yaml
 from .dataset import config_from_dataset
 
 
@@ -44,10 +41,7 @@ def download(
       'Please install it with `pip install "huggingface_hub".'
     )
 
-  if url_or_repo.startswith('https://huggingface.co/'):
-    repo_id = url_or_repo[len('https://huggingface.co/datasets/') :]
-  else:
-    repo_id = url_or_repo
+  repo_id = url_or_repo.removeprefix('https://huggingface.co/datasets/')
 
   project_dir = project_dir or get_project_dir()
   datasets_dir = get_datasets_dir(project_dir)
@@ -83,14 +77,7 @@ def download(
   ds = get_dataset(dataset_namespace, dataset_name)
   dataset_config_filename = os.path.join(dataset_dir, 'dataset_config.yml')
   if os.path.exists(dataset_config_filename):
-    with open(dataset_config_filename) as f:
-      dataset_config_yaml = f.read()
-    try:  # Try using the fast loader.
-      config_dict = yaml.load(dataset_config_yaml, Loader=Loader) or {}
-    except Exception:  # Fall back to the slow loader.
-      config_dict = yaml.safe_load(dataset_config_yaml) or {}
-
-    dataset_config = DatasetConfig(**config_dict)
+    dataset_config = DatasetConfig(**read_yaml(dataset_config_filename))
   else:
     dataset_config = config_from_dataset(ds)
 
