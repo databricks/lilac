@@ -6,7 +6,13 @@ import numpy as np
 import pytest
 from typing_extensions import override
 
-from ..config import DatasetConfig, EmbeddingConfig, SignalConfig
+from ..config import (
+  DatasetConfig,
+  DatasetSettings,
+  DatasetUISettings,
+  EmbeddingConfig,
+  SignalConfig,
+)
 from ..schema import (
   EMBEDDING_KEY,
   ROWID,
@@ -620,6 +626,7 @@ def test_config_from_dataset(make_test_data: TestDataMaker) -> None:
     source=TestSource(),
     embeddings=[EmbeddingConfig(path=('text',), embedding='test_embedding')],
     signals=[SignalConfig(path=('text',), signal=TestSignal())],
+    settings=DatasetSettings(ui=DatasetUISettings(media_paths=[('text',)])),
   )
 
 
