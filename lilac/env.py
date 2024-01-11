@@ -37,6 +37,7 @@ class LilacEnvironment(BaseModel):
     description='Turn on Lilac debug mode to log queries and timing information.'
   )
   DISABLE_LOGS: str = PydanticField(description='Disable log() statements to the console.')
+  USE_TABLE_INDEX: str = PydanticField(description='Use persistent tables with rowid indexes.')
 
   # API Keys.
   OPENAI_API_KEY: str = PydanticField(

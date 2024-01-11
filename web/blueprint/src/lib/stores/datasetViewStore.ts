@@ -35,6 +35,7 @@ export interface GroupByState {
 export interface PivotState {
   outerPath?: Path;
   innerPath?: Path;
+  searchText?: string;
 }
 
 export interface ColumnComparisonState {
@@ -360,7 +361,6 @@ export function createDatasetViewStore(
     },
     openPivotViewer(outerPath: Path, innerPath: Path) {
       update(state => {
-        state.schemaCollapsed = true;
         state.viewPivot = true;
         state.pivot = {outerPath: outerPath, innerPath: innerPath};
         return state;

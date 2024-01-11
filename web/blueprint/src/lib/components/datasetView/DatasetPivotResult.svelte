@@ -11,8 +11,8 @@
   } from '$lib/stores/datasetViewStore';
 
   import {datasetLink} from '$lib/utils';
-  import {ROWID, type BinaryFilter, type Path, type UnaryFilter} from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
+  import {getSearchHighlighting} from '$lib/view_utils';
+  import {ROWID, type BinaryFilter, type Path, type StringFilter, type UnaryFilter} from '$lilac';
   import {Information} from 'carbon-icons-svelte';
   import {createEventDispatcher, onDestroy, onMount} from 'svelte';
   import Carousel from '../common/Carousel.svelte';
@@ -22,11 +22,12 @@
   export let path: Path;
   export let parentValue: string;
   export let numRowsInQuery: number | undefined;
+  export let searchText: string | undefined;
   // When true, queries will be issued. This allows us to progressively load without spamming the
   // server.
   export let shouldLoad = false;
 
-  const ITEMS_PER_PAGE = 6;
+  const ITEMS_PER_PAGE = 5;
 
   let isOnScreen = false;
   let root: HTMLDivElement;
@@ -73,7 +74,10 @@
     shouldLoad && isOnScreen
       ? querySelectGroups($store.namespace, $store.datasetName, {
           leaf_path: path,
-          filters,
+          filters: [
+            ...filters,
+            ...(searchText ? [{path, op: 'ilike', value: searchText} as StringFilter] : [])
+          ],
           // Explicitly set the limit to null to get all the groups, not just the top 100.
           limit: null
         })
@@ -91,7 +95,7 @@
       $countQuery?.data != null &&
       $countQuery?.isFetching === false
     ) {
-      dispatch('load');
+      dispatch('load', {count: counts.length});
     }
   }
 
@@ -109,39 +113,52 @@
 </script>
 
 <div class="flex w-full flex-row flex-wrap" bind:this={root}>
-  {#if $countQuery?.isFetching}
-    <SkeletonText />
-  {/if}
   {#if counts.length > 0}
     <Carousel items={counts} pageSize={ITEMS_PER_PAGE}>
-      <div class="w-full" slot="item" let:item>
+      <div class="h-full w-full" slot="item" let:item>
         {@const count = groupResultFromItem(item)}
         {@const groupPercentage = getPercentage(count.count, numRowsInGroup)}
         {@const totalPercentage = getPercentage(count.count, numRowsInQuery)}
-        <div class="min-w-64 md:1/2 h-full flex-grow p-1">
+        {@const textHighlights = getSearchHighlighting(count.name, searchText)}
+        <div
+          class="min-w-64 md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
+        >
           <div
-            class="flex h-full w-full max-w-sm flex-col justify-between gap-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow"
+            class="card-title h-16 text-center text-base font-light leading-5 tracking-tight text-neutral-900"
           >
-            <div class="flex w-full flex-col">
-              <div class="h-24">
-                <div class="card-title text-lg font-medium leading-6 tracking-tight text-gray-900">
-                  {count.name}
+            {#each textHighlights as highlight}
+              {#if highlight.isBold}
+                <span class="font-bold">{highlight.text}</span>
+              {:else}
+                <span>{highlight.text}</span>
+              {/if}
+            {/each}
+          </div>
+          <div
+            class="flex flex-row items-center justify-center gap-x-2 font-light leading-none text-neutral-600"
+          >
+            <div class="leading-2 text-lg">
+              <div class="flex flex-col py-2">
+                <div class="leading-2 flex flex-row items-center gap-x-1 text-xl text-neutral-800">
+                  {groupPercentage}%
+                  <div
+                    use:hoverTooltip={{
+                      text:
+                        `${groupPercentage}% of ${parentValue}\n` + `${totalPercentage}% of total`
+                    }}
+                  >
+                    <Information />
+                  </div>
                 </div>
-              </div>
-              <div
-                class="flex flex-row items-center gap-x-2 font-normal leading-none text-gray-700"
-              >
-                <div class="leading-2 text-lg">{groupPercentage}%</div>
-                <div
-                  use:hoverTooltip={{
-                    text: `${groupPercentage}% of ${parentValue}\n` + `${totalPercentage}% of total`
-                  }}
-                >
-                  <Information />
-                </div>
+                <span class="text-sm text-neutral-700">
+                  {count.count} rows
+                </span>
               </div>
             </div>
+          </div>
+          <div class="w-full text-center">
             <a
+              target="_blank"
               href={datasetLink($store.namespace, $store.datasetName, {
                 ...$store,
                 viewPivot: false,
@@ -154,7 +171,7 @@
               })}
               class="inline-flex items-center text-blue-600 hover:underline"
             >
-              Browse
+              Explore
               <svg
                 class="ms-2.5 h-3 w-3 rtl:rotate-[270deg]"
                 aria-hidden="true"

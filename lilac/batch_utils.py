@@ -139,6 +139,6 @@ def compress_docs(docs: list[str]) -> bytes:
   """Compress a list of documents using gzip."""
   buffer = BytesIO()
   # Gzip compress the data and write it to the buffer
-  with gzip.GzipFile(fileobj=buffer, mode='wb') as f:
+  with gzip.GzipFile(fileobj=buffer, mode='wb', compresslevel=6) as f:
     f.write(json.dumps(docs).encode('utf-8'))
   return buffer.getvalue()

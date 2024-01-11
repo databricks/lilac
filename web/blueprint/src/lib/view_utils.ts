@@ -672,3 +672,26 @@ export function shortPath(path: Path): string {
   }
   return getDisplayPath([path[0], '...', path[path.length - 1]]);
 }
+
+export interface SearchHighlight {
+  text: string;
+  isBold: boolean;
+}
+export function getSearchHighlighting(text: string, query: string | undefined): SearchHighlight[] {
+  if (!query || query.trim() === '') {
+    // If query is empty or undefined, return the original text as not bold
+    return [{text, isBold: false}];
+  }
+
+  const regex = new RegExp(`(${query})`, 'gi');
+  const matches = text.split(regex);
+
+  const searchHighlights: SearchHighlight[] = matches
+    .map(match => ({
+      text: match,
+      isBold: match.toLowerCase() === query.toLowerCase() // Set isBold to true if the match is the query (case insensitive)
+    }))
+    .filter(match => match.text !== '');
+
+  return searchHighlights;
+}
