@@ -33,7 +33,11 @@ from ..signal import (
 from ..tasks import TaskId, TaskInfo, get_task_manager
 from ..utils import DebugTimer, chunks
 from .dataset import Dataset
-from .dataset_utils import get_callable_name, sparse_to_dense_compute
+from .dataset_format import DatasetFormatInputSelector
+from .dataset_utils import (
+  get_callable_name,
+  sparse_to_dense_compute,
+)
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 7
@@ -229,7 +233,7 @@ def _compute_titles(
 
 def cluster_impl(
   dataset: Dataset,
-  input_fn_or_path: Union[Path, Callable[[Item], str]],
+  input_fn_or_path: Union[Path, Callable[[Item], str], DatasetFormatInputSelector],
   output_path: Optional[Path] = None,
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_request,
@@ -245,6 +249,9 @@ def cluster_impl(
     task_info = task_manager.get_task_info(task_id)
   schema = dataset.manifest().data_schema
   path: Optional[PathTuple] = None
+
+  if isinstance(input_fn_or_path, DatasetFormatInputSelector):
+    input_fn_or_path = input_fn_or_path.selector
   if not callable(input_fn_or_path):
     path = normalize_path(input_fn_or_path)
     # Make sure the path exists.

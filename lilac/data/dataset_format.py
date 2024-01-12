@@ -1,12 +1,17 @@
 """Utilities for inferring dataset formats."""
 
-from pydantic import BaseModel
+from typing import Callable, ClassVar
 
-from ..schema import PATH_WILDCARD, PathTuple, Schema, schema
+from pydantic import BaseModel, ConfigDict
+
+from ..schema import PATH_WILDCARD, Item, PathTuple, Schema, schema
 
 
 class DatasetFormat(BaseModel):
   """A dataset format."""
+
+  # Allow extra fields for dataset formats.
+  model_config = ConfigDict(extra='allow')
 
   name: str
   data_schema: Schema
@@ -16,12 +21,27 @@ class DatasetFormat(BaseModel):
   title_slots: list[tuple[PathTuple, PathTuple]] = []
 
 
-SHARE_GPT_FORMAT = DatasetFormat(
-  name='sharegpt',
-  title_slots=[
-    (('conversations', PATH_WILDCARD, 'value'), ('conversations', PATH_WILDCARD, 'from'))
-  ],
-  data_schema=schema(
+class DatasetFormatInputSelector(BaseModel):
+  """Input lambda selectors that map an item to a string, used for format-specific runtime filters.
+
+  For example, in the ShareGPT format, we want 'human' to only filter conversations
+  where conversations.*.from='human'.
+  """
+
+  name: str
+  selector: Callable[[Item], str]
+
+
+def _sharegpt_selector(item: Item, conv_from: str) -> str:
+  """Selector for ShareGPT."""
+  return '\n'.join(conv['value'] for conv in item['conversations'] if conv['from'] == conv_from)
+
+
+class ShareGPTFormat(DatasetFormat):
+  """ShareGPT format."""
+
+  name: str = 'sharegpt'
+  data_schema: Schema = schema(
     {
       'conversations': [
         {
@@ -30,11 +50,28 @@ SHARE_GPT_FORMAT = DatasetFormat(
         }
       ]
     }
-  ),
-)
+  )
+  title_slots: list[tuple[PathTuple, PathTuple]] = [
+    (('conversations', PATH_WILDCARD, 'value'), ('conversations', PATH_WILDCARD, 'from'))
+  ]
+  human: ClassVar[DatasetFormatInputSelector] = DatasetFormatInputSelector(
+    name='human',
+    selector=lambda item: _sharegpt_selector(item, 'human'),
+  )
+  gpt: ClassVar[DatasetFormatInputSelector] = DatasetFormatInputSelector(
+    name='gpt',
+    selector=lambda item: _sharegpt_selector(item, 'gpt'),
+  )
+  system: ClassVar[DatasetFormatInputSelector] = DatasetFormatInputSelector(
+    name='system',
+    selector=lambda item: _sharegpt_selector(item, 'system'),
+  )
+
+
+ShareGPT = ShareGPTFormat()
 
 # https://github.com/imoneoi/openchat
-OPEN_CHAT_FORMAT = DatasetFormat(
+OpenChat = DatasetFormat(
   name='openchat_format',
   title_slots=[(('items', PATH_WILDCARD, 'content'), ('items', PATH_WILDCARD, 'role'))],
   data_schema=schema(
@@ -51,7 +88,7 @@ OPEN_CHAT_FORMAT = DatasetFormat(
 )
 
 # Formats are taken from axlotl: https://github.com/OpenAccess-AI-Collective/axolotl#dataset
-DATASET_FORMATS: list[DatasetFormat] = [SHARE_GPT_FORMAT, OPEN_CHAT_FORMAT]
+DATASET_FORMATS: list[DatasetFormat] = [ShareGPT, OpenChat]
 
 
 def schema_is_compatible_with(dataset_schema: Schema, format_schema: Schema) -> bool:
