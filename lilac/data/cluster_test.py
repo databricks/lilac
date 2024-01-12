@@ -505,7 +505,10 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
   ]
   dataset = make_test_data(texts)
 
+  topic_fn_calls: list[list[tuple[str, float]]] = []
+
   def topic_fn(docs: list[tuple[str, float]]) -> str:
+    topic_fn_calls.append(docs)
     if 'hello' in docs[0][0]:
       return 'greeting'
     elif 'time' in docs[0][0] or 'hour' in docs[0][0]:
@@ -518,6 +521,13 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
     min_cluster_size=2,
     topic_fn=topic_fn,
   )
+
+  # Make sure the topic function is only called for the human text.
+  assert topic_fn_calls == [
+    [('hello how are you', 1.0), ('hello', 1.0)],
+    [('whats the time', 1.0), ('whats the hour', 1.0)],
+  ]
+
   rows = list(dataset.select_rows(combine_columns=True))
   assert rows == [
     {
