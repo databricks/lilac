@@ -131,7 +131,6 @@ def deploy_demo(
       make_datasets_public=True,
       # No extra concepts. lilac concepts are pushed by default.
       concepts=[],
-      skip_cache_upload=skip_data_upload,
       skip_data_upload=skip_data_upload,
       # We only use public concepts in demos.
       skip_concept_upload=True,

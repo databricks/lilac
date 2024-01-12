@@ -10,8 +10,9 @@ import tempfile
 from importlib import resources
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
-from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
+from .concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
 from .config import Config, get_dataset_config
+from .data.dataset_duckdb import DUCKDB_CACHE_FILE
 from .env import get_project_dir
 from .project import PROJECT_CONFIG_FILENAME, read_project_config, write_project_config
 from .sources.huggingface_source import HuggingFaceSource
@@ -31,7 +32,6 @@ def deploy_project(
   datasets: Optional[list[str]] = None,
   make_datasets_public: Optional[bool] = False,
   concepts: Optional[list[str]] = None,
-  skip_cache_upload: Optional[bool] = False,
   skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
@@ -48,8 +48,6 @@ def deploy_project(
     make_datasets_public: When true, and when --load_on_space is False, sets the HuggingFace
       datasets that reflect local datasets to public. Defaults to false.
     concepts: The names of concepts to upload. Defaults to all concepts.
-    skip_cache_upload: Skip uploading the cache files from .cache/lilac which contain cached
-      concept pkl models.
     skip_data_upload: When true, kicks the server without uploading data.
     skip_concept_upload: When true, skips uploading concepts.
     create_space: When True, creates the HuggingFace space if it doesnt exist. The space will be
@@ -85,7 +83,6 @@ def deploy_project(
     datasets=datasets,
     make_datasets_public=make_datasets_public,
     concepts=concepts,
-    skip_cache_upload=skip_cache_upload,
     skip_data_upload=skip_data_upload,
     skip_concept_upload=skip_concept_upload,
     create_space=create_space,
@@ -113,7 +110,6 @@ def deploy_project_operations(
   datasets: Optional[list[str]] = None,
   make_datasets_public: Optional[bool] = False,
   concepts: Optional[list[str]] = None,
-  skip_cache_upload: Optional[bool] = False,
   skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
@@ -257,12 +253,7 @@ def deploy_project_operations(
   if not skip_concept_upload:
     concept_operations, uploaded_concepts = _upload_concepts(hf_space, project_dir, concepts)
     operations.extend(concept_operations)
-
-  ##
-  ##  Upload the cache files.
-  ##
-  if not skip_cache_upload:
-    operations.extend(_upload_cache(hf_space, project_dir, uploaded_concepts))
+    operations.extend(_upload_concept_cache(hf_space, project_dir, uploaded_concepts))
 
   if repo_runtime.storage:
     hf_api.add_space_variable(hf_space, 'LILAC_PROJECT_DIR', '/data')
@@ -329,7 +320,7 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
   return operations
 
 
-def _upload_cache(hf_space: str, project_dir: str, concepts: Optional[list[str]]) -> list:
+def _upload_concept_cache(hf_space: str, project_dir: str, concepts: Optional[list[str]]) -> list:
   """Adds local cache (model pkl files) to the HuggingFace Space commit."""
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, list_files_info
@@ -341,36 +332,33 @@ def _upload_cache(hf_space: str, project_dir: str, concepts: Optional[list[str]]
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
-  cache_dir = get_lilac_cache_dir(project_dir)
+  concept_cache_dir = os.path.join(get_lilac_cache_dir(project_dir), CONCEPTS_DIR)
   cache_files: list[str] = []
-  if os.path.exists(cache_dir):
-    remote_cache_dir = get_lilac_cache_dir(REMOTE_DATA_DIR)
+  remote_cache_dir = os.path.join(get_lilac_cache_dir(REMOTE_DATA_DIR), CONCEPTS_DIR)
 
-    files_info = list(list_files_info(hf_space, f'{remote_cache_dir}/', repo_type='space'))
-    if files_info:
-      operations.append(CommitOperationDelete(path_in_repo=f'{remote_cache_dir}/'))
+  files_info = list(list_files_info(hf_space, f'{remote_cache_dir}/', repo_type='space'))
+  if files_info:
+    operations.append(CommitOperationDelete(path_in_repo=f'{remote_cache_dir}/'))
 
-    for root, _, files in os.walk(cache_dir):
-      relative_root = os.path.relpath(root, cache_dir)
-
-      if relative_root.startswith('concept') and files:
-        if concepts is None:
-          continue
-        _, namespace, name = relative_root.split('/', maxsplit=3)
-        if f'{namespace}/{name}' not in concepts:
-          continue
-
-      for file in files:
-        cache_files.append(os.path.join(relative_root, file))
-        operations.append(
-          CommitOperationAdd(
-            # The path in the remote doesn't os.path.join as it is specific to Linux.
-            path_in_repo=f'{remote_cache_dir}/{relative_root}/{file}',
-            path_or_fileobj=os.path.join(cache_dir, relative_root, file),
-          )
+  if not os.path.exists(concept_cache_dir):
+    return operations
+  for root, _, files in os.walk(concept_cache_dir):
+    *_, namespace, name = root.rsplit('/', maxsplit=2)
+    if concepts and f'{namespace}/{name}' not in concepts:
+      continue
+    for file in files:
+      local_filepath = os.path.join(concept_cache_dir, namespace, name, file)
+      # The path in the remote doesn't os.path.join as it is specific to Linux.
+      remote_filepath = f'{remote_cache_dir}/{namespace}/{name}/{file}'
+      cache_files.append(local_filepath)
+      operations.append(
+        CommitOperationAdd(
+          path_in_repo=remote_filepath,
+          path_or_fileobj=local_filepath,
         )
+      )
 
-  log('Uploading cache files:', cache_files)
+  log('Uploading concept cache files:', cache_files)
   log()
 
   return operations
@@ -481,6 +469,7 @@ def _upload_datasets(
       repo_type='dataset',
       # Delete all data on the server.
       delete_patterns='*',
+      ignore_patterns=[DUCKDB_CACHE_FILE + '*'],
     )
 
     config = read_project_config(project_dir)
@@ -495,11 +484,22 @@ def _upload_datasets(
     dataset_config_yaml = to_yaml(
       dataset_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
     )
+    hf_api.upload_file(
+      path_or_fileobj=dataset_config_yaml.encode(),
+      path_in_repo='dataset_config.yml',
+      repo_id=dataset_repo_id,
+      repo_type='dataset',
+    )
 
     readme = (
-      'This dataset is generated by [Lilac](http://lilacml.com) for a HuggingFace Space: '
+      '---\n'
+      'tags:\n'
+      '- Lilac\n'
+      '---\n'
+      'This dataset is a [Lilac](http://lilacml.com) processed dataset for a HuggingFace Space: '
       f'[huggingface.co/spaces/{hf_space_org}/{hf_space_name}]'
       f'(https://huggingface.co/spaces/{hf_space_org}/{hf_space_name}).\n\n'
+      f'You can download the dataset locally with `lilac download {namespace}/{name}`.\n\n'
       + (f'Original dataset: [{dataset_link}]({dataset_link})\n\n' if dataset_link != '' else '')
       + 'Lilac dataset config:\n'
       f'```{dataset_config_yaml}```\n\n'

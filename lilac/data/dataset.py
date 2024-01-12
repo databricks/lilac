@@ -955,12 +955,13 @@ def default_settings(dataset: Dataset) -> DatasetSettings:
   return DatasetSettings(ui=DatasetUISettings(media_paths=media_paths))
 
 
-def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
+def config_from_dataset(dataset: Dataset) -> DatasetConfig:
   """Computes a DatasetConfig from a manifest.
 
   NOTE: This is only used for backwards compatibility. Once we remove the back-compat logic, this
   method can be removed.
   """
+  manifest = dataset.manifest()
   all_fields = manifest.data_schema.all_fields
 
   all_signals = [
@@ -983,6 +984,7 @@ def dataset_config_from_manifest(manifest: DatasetManifest) -> DatasetConfig:
     embeddings=[
       EmbeddingConfig(path=path, embedding=embedding.name) for path, embedding in embeddings
     ],
+    settings=default_settings(dataset),
   )
 
 

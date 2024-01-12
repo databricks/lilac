@@ -296,11 +296,11 @@ class ConceptModel:
     """Get the scores for the provided embeddings."""
     return self._get_logistic_model(draft).score_embeddings(embeddings)
 
-  def coef(self, draft: DraftId) -> np.ndarray:
+  def coef(self, draft: DraftId = DRAFT_MAIN) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
     return self._get_logistic_model(draft)._model.coef_.reshape(-1)
 
-  def _get_logistic_model(self, draft: DraftId) -> LogisticEmbeddingModel:
+  def _get_logistic_model(self, draft: DraftId = DRAFT_MAIN) -> LogisticEmbeddingModel:
     """Get the logistic model for the provided draft."""
     if draft not in self._logistic_models:
       self._logistic_models[draft] = LogisticEmbeddingModel()

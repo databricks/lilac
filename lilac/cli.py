@@ -7,6 +7,7 @@ import click
 
 from . import __version__
 from .concepts.db_concept import DISK_CONCEPT_DB
+from .data.dataset_storage_utils import download
 from .deploy import deploy_project
 from .env import env, get_project_dir
 from .hf_docker_start import hf_docker_start
@@ -129,15 +130,15 @@ def hf_docker_start_command() -> None:
   multiple=True,
 )
 @click.option(
-  '--skip_cache',
-  help='Skip uploading the cache files from .cache/lilac which contain cached concept pkl models.',
-  type=bool,
+  '--skip_data_upload',
+  help='When true, only uploads the wheel files without any other changes.',
   is_flag=True,
   default=False,
 )
 @click.option(
-  '--skip_data_upload',
-  help='When true, only uploads the wheel files without any other changes.',
+  '--skip_concept_upload',
+  help='Skip uploading custom concepts.',
+  type=bool,
   is_flag=True,
   default=False,
 )
@@ -176,8 +177,8 @@ def deploy_project_command(
   dataset: Optional[list[str]],
   make_datasets_public: bool,
   concept: Optional[list[str]],
-  skip_cache: bool,
   skip_data_upload: bool,
+  skip_concept_upload: bool,
   create_space: bool,
   load_on_space: bool,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]],
@@ -198,14 +199,52 @@ def deploy_project_command(
     hf_space=hf_space,
     datasets=dataset,
     concepts=concept,
-    skip_cache_upload=skip_cache,
     make_datasets_public=make_datasets_public,
     skip_data_upload=skip_data_upload,
+    skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,
     hf_token=hf_token,
   )
+
+
+@click.command()
+@click.argument(
+  'url_or_repo',
+  required=True,
+)
+@click.option(
+  '--project_dir',
+  help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
+  type=str,
+)
+@click.option(
+  '--dataset_namespace',
+  help='The local namespace to use. Defaults to "local".',
+  type=str,
+  default='local',
+)
+@click.option(
+  '--dataset_name',
+  help='The local dataset name to use. Defaults to the name of the HuggingFace dataset.',
+  type=str,
+)
+@click.option(
+  '--hf_token',
+  help='The HuggingFace access token to use when accessing private datasets. '
+  'This can also be set via the `HF_ACCESS_TOKEN` environment flag.',
+  type=str,
+)
+def download_command(
+  url_or_repo: str,
+  project_dir: Optional[str],
+  dataset_namespace: Optional[str],
+  dataset_name: Optional[str],
+  hf_token: Optional[str],
+) -> None:
+  """Download a Lilac dataset from HuggingFace."""
+  download(url_or_repo, project_dir, dataset_namespace, dataset_name)
 
 
 @click.command()
@@ -228,7 +267,7 @@ cli.add_command(start)
 
 cli.add_command(deploy_project_command, name='deploy-project')
 cli.add_command(hf_docker_start_command, name='hf-docker-start')
-
+cli.add_command(download_command, name='download')
 cli.add_command(concepts)
 
 if __name__ == '__main__':
