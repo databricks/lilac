@@ -7,6 +7,7 @@
   } from '$lib/stores/datasetViewStore';
   import {ROWID, type SelectRowsResponse} from '$lilac';
   export let limit: number;
+  export let offset: number | undefined = undefined;
   export let rowsResponse: SelectRowsResponse | undefined = undefined;
 
   const store = getDatasetViewContext();
@@ -24,6 +25,7 @@
       ...selectOptions,
       columns: [ROWID],
       limit,
+      offset,
       // Sort by ROWID on top of any other sort_by option to ensure that the result order is stable.
       sort_by: [...(selectOptions.sort_by || []), ROWID]
     },
