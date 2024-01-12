@@ -7,6 +7,7 @@ from .dataset import (
   Filter,
   FilterLike,
   FilterOp,
+  GroupsSortBy,
   KeywordSearch,
   ListOp,
   MetadataSearch,
@@ -14,6 +15,7 @@ from .dataset import (
   SelectGroupsResult,
   SelectRowsResult,
   SemanticSearch,
+  SortOrder,
   UnaryOp,
 )
 
@@ -34,4 +36,6 @@ __all__ = [
   'SelectRowsResult',
   'SelectGroupsResult',
   'FilterLike',
+  'SortOrder',
+  'GroupsSortBy',
 ]

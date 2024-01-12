@@ -627,6 +627,10 @@ class Dataset(abc.ABC):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
     include_deleted: bool = False,
     value: Optional[str] = 'true',
   ) -> int:
@@ -668,6 +672,10 @@ class Dataset(abc.ABC):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
     include_deleted: bool = False,
   ) -> int:
     """Removes labels from a row, or a set of rows defined by searches and filters.
@@ -681,24 +689,51 @@ class Dataset(abc.ABC):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
   ) -> int:
     """Deletes rows from the dataset.
 
     Returns the number of deleted rows.
     """
-    return self.add_labels(DELETED_LABEL_NAME, row_ids, searches, filters)
+    return self.add_labels(
+      name=DELETED_LABEL_NAME,
+      row_ids=row_ids,
+      searches=searches,
+      filters=filters,
+      sort_by=sort_by,
+      sort_order=sort_order,
+      limit=limit,
+      offset=offset,
+    )
 
   def restore_rows(
     self,
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
   ) -> int:
     """Undeletes rows from the dataset.
 
     Returns the number of restored rows.
     """
-    return self.remove_labels(DELETED_LABEL_NAME, row_ids, searches, filters, include_deleted=True)
+    return self.remove_labels(
+      DELETED_LABEL_NAME,
+      row_ids=row_ids,
+      searches=searches,
+      filters=filters,
+      sort_by=sort_by,
+      sort_order=sort_order,
+      limit=limit,
+      offset=offset,
+      include_deleted=True,
+    )
 
   @abc.abstractmethod
   def stats(self, leaf_path: Path, include_deleted: bool = False) -> StatsResult:

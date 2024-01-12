@@ -2142,6 +2142,10 @@ class DatasetDuckDB(Dataset):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
     include_deleted: bool = False,
     value: Optional[str] = 'true',
   ) -> int:
@@ -2154,7 +2158,14 @@ class DatasetDuckDB(Dataset):
     insert_row_ids = (
       row[ROWID]
       for row in self.select_rows(
-        columns=[ROWID], searches=searches, filters=filters, include_deleted=include_deleted
+        columns=[ROWID],
+        searches=searches,
+        filters=filters,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        limit=limit,
+        offset=offset,
+        include_deleted=include_deleted,
       )
     )
 
@@ -2208,6 +2219,10 @@ class DatasetDuckDB(Dataset):
     row_ids: Optional[Sequence[str]] = None,
     searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[Sequence[Path]] = None,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0,
     include_deleted: bool = False,
   ) -> int:
     # Check if the label file exists.
@@ -2224,7 +2239,14 @@ class DatasetDuckDB(Dataset):
     remove_row_ids = [
       row[ROWID]
       for row in self.select_rows(
-        columns=[ROWID], searches=searches, filters=filters, include_deleted=include_deleted
+        columns=[ROWID],
+        searches=searches,
+        filters=filters,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        limit=limit,
+        offset=offset,
+        include_deleted=include_deleted,
       )
     ]
 
