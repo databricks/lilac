@@ -492,7 +492,7 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
     },
     {
       'conversations': [
-        {'from': 'human', 'value': 'how are you'},
+        {'from': 'human', 'value': 'hello how are you'},
         {'from': 'gpt', 'value': 'pretty good today'},
       ]
     },
@@ -506,14 +506,12 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(texts)
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
-    if 'summar' in docs[0][0]:
-      return 'summarization'
-    elif 'simpl' in docs[0][0]:
-      return 'simplification'
+    print('topicing', docs)
+    if 'hello' in docs[0][0]:
+      return 'greeting'
+    elif 'time' in docs[0][0] or 'hour' in docs[0][0]:
+      return 'time'
     return 'other'
-
-  # with pytest.raises(ValueError, match='output_path must be provided if input is a function'):
-  #   dataset.cluster(lambda row: '\n'.join(row['texts']), min_cluster_size=2, topic_fn=topic_fn)
 
   dataset.cluster(
     ShareGPT.human,
@@ -531,7 +529,7 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
       'cluster': {
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
-        'cluster_title': 'summarization',
+        'cluster_title': 'greeting',
         'category_id': -1,
         'category_membership_prob': None,
         'category_title': None,
@@ -545,7 +543,7 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
       'cluster': {
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
-        'cluster_title': 'simplification',
+        'cluster_title': 'time',
         'category_id': -1,
         'category_membership_prob': None,
         'category_title': None,
@@ -553,13 +551,13 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
     },
     {
       'conversations': [
-        {'from': 'human', 'value': 'how are you'},
+        {'from': 'human', 'value': 'hello how are you'},
         {'from': 'gpt', 'value': 'pretty good today'},
       ],
       'cluster': {
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
-        'cluster_title': 'summarization',
+        'cluster_title': 'greeting',
         'category_id': -1,
         'category_membership_prob': None,
         'category_title': None,
@@ -573,7 +571,7 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
       'cluster': {
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
-        'cluster_title': 'simplification',
+        'cluster_title': 'time',
         'category_id': -1,
         'category_membership_prob': None,
         'category_title': None,

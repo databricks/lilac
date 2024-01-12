@@ -7,17 +7,6 @@ from pydantic import BaseModel, ConfigDict
 from ..schema import PATH_WILDCARD, Item, PathTuple, Schema, schema
 
 
-class DatasetFormatInputSelector(BaseModel):
-  """Input lambda selectors that map an item to a string, used for format-specific runtime filters.
-
-  For example, in the ShareGPT format, we want 'human' to only filter conversations
-  where conversations.*.from='human'.
-  """
-
-  name: str
-  selector: Callable[[Item], str]
-
-
 class DatasetFormat(BaseModel):
   """A dataset format."""
 
@@ -30,6 +19,17 @@ class DatasetFormat(BaseModel):
   # Title slots are a mapping of a media path to a path that represents the title to be displayed
   # for that media path. This allows us to put a title over certain media fields in the UI.
   title_slots: list[tuple[PathTuple, PathTuple]] = []
+
+
+class DatasetFormatInputSelector(BaseModel):
+  """Input lambda selectors that map an item to a string, used for format-specific runtime filters.
+
+  For example, in the ShareGPT format, we want 'human' to only filter conversations
+  where conversations.*.from='human'.
+  """
+
+  name: str
+  selector: Callable[[Item], str]
 
 
 def _sharegpt_selector(item: Item, conv_from: str) -> str:
