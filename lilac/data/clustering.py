@@ -315,7 +315,7 @@ def cluster_impl(
 
     def compute_clusters(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
-      docs: Iterator[Optional[str]] = (item[TEXT_COLUMN] for item in items)
+      docs: Iterator[Optional[str]] = (item.get(TEXT_COLUMN) for item in items)
       cluster_items = sparse_to_dense_compute(
         docs, lambda x: _hdbscan_cluster(x, min_cluster_size, remote)
       )
