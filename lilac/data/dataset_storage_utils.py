@@ -28,7 +28,7 @@ def download(
   dataset_namespace: Optional[str] = 'local',
   dataset_name: Optional[str] = None,
   hf_token: Optional[str] = None,
-  overwrite: bool = False,
+  overwrite: Optional[bool] = False,
 ) -> None:
   """Download a Lilac dataset from HuggingFace.
 
