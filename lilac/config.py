@@ -137,7 +137,7 @@ class ClusterConfig(BaseModel):
 
   dataset_namespace: str
   dataset_name: str
-  path: PathTuple
+  input_path: PathTuple
 
 
 class DatasetConfig(BaseModel):

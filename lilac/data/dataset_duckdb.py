@@ -2575,20 +2575,23 @@ class DatasetDuckDB(Dataset):
           filter_list_val = cast(FeatureListValue, f.value)
           if not isinstance(filter_list_val, list):
             raise ValueError('filter with array value can only use the IN comparison')
-          wrapped_filter_val = [f"'{part}'" for part in filter_list_val]
-          filter_val = f'({", ".join(wrapped_filter_val)})'
-          filter_query = f'{select_str} IN {filter_val}'
+          filter_list_val = [escape_string_literal(val) for val in filter_list_val]
+          if len(filter_list_val) == 1:
+            filter_query = f'{select_str} = {filter_list_val[0]}'
+          else:
+            filter_val = f'({", ".join(filter_list_val)})'
+            filter_query = f'{select_str} IN {filter_val}'
 
-          # Optimization for "rowid IN (...)" queries - there is an index on rowid, but
-          # duckdb does a full index scan when the IN clause is present, instead of the hash join.
-          # So, we insert a range clause to limit the extent of the index scan. This optimization
-          # works well because nearly all of our queries are sorted by rowid, meaning that min/max
-          # will narrow down the index scan to a small range.
-          if env('USE_TABLE_INDEX', default=False) and ROWID in select_str:
-            min_row, max_row = min(filter_list_val), max(filter_list_val)
-            filter_query += f" AND {ROWID} BETWEEN '{min_row}' AND '{max_row}'"
-            # wrap in parens to isolate from other filters, just in case?
-            filter_query = f'({filter_query})'
+            # Optimization for "rowid IN (...)" queries - there is an index on rowid, but
+            # duckdb does a full index scan when the IN clause is present, instead of the hash join.
+            # So, we insert a range clause to limit the extent of the index scan. This optimization
+            # works well because nearly all of our queries are sorted by rowid, meaning that min/max
+            # will narrow down the index scan to a small range.
+            if env('USE_TABLE_INDEX', default=False) and ROWID in select_str:
+              min_row, max_row = min(filter_list_val), max(filter_list_val)
+              filter_query += f' AND {ROWID} BETWEEN {min_row} AND {max_row}'
+              # wrap in parens to isolate from other filters, just in case?
+              filter_query = f'({filter_query})'
         else:
           raise ValueError(f'List op: {f.op} is not yet supported')
       else:

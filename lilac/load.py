@@ -21,7 +21,7 @@ from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .env import get_project_dir
 from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
-from .schema import ROWID, PathTuple
+from .schema import ROWID
 from .tasks import (
   TaskId,
   TaskType,
@@ -62,11 +62,6 @@ def load(
   if not isinstance(config, Config):
     config_path = config or os.path.join(project_dir, PROJECT_CONFIG_FILENAME)
     config = read_config(config_path)
-
-  from devtools import pformat
-
-  print(pformat(config, highlight=False))
-  return
 
   task_manager = get_task_manager()
 
@@ -119,84 +114,98 @@ def load(
       dataset.update_settings(d.settings)
       del dataset
 
+  # log()
+  # log('*** Compute embeddings ***')
+  # with DebugTimer('Loading embeddings'):
+  #   for d in config.datasets:
+  #     dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
+  #     manifest = dataset.manifest()
+
+  #     embedding_task_ids: list[str] = []
+  #     # If embeddings are explicitly set, use only those.
+  #     embeddings = d.embeddings or []
+  #     # If embeddings are not explicitly set, use the media paths and preferred embedding from
+  #     # settings.
+  #     if not embeddings:
+  #       if d.settings and d.settings.ui:
+  #         for path in d.settings.ui.media_paths or []:
+  #           if d.settings.preferred_embedding:
+  #             embeddings.append(
+  #               EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding)
+  #             )
+  #     for e in embeddings:
+  #       field = manifest.data_schema.get_field(e.path)
+  #       embedding_field = (field.fields or {}).get(e.embedding)
+  #       if embedding_field is None or overwrite:
+  #         task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
+  #         _compute_embedding(
+  #           d.namespace,
+  #           d.name,
+  #           e,
+  #           project_dir,
+  #         )
+  #         embedding_task_ids.append(task_id)
+  #       else:
+  #         log(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
+
+  #     del dataset
+  #     gc.collect()
+
+  # log()
+  # log('*** Compute signals ***')
+  # with DebugTimer('Computing signals'):
+  #   for d in config.datasets:
+  #     dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
+  #     manifest = dataset.manifest()
+
+  #     # If signals are explicitly set, use only those.
+  #     signals = d.signals or []
+  #     # If signals are not explicitly set, use the media paths and config.signals.
+  #     if not signals:
+  #       if d.settings and d.settings.ui:
+  #         for path in d.settings.ui.media_paths or []:
+  #           for signal in config.signals or []:
+  #             signals.append(SignalConfig(path=path, signal=signal))
+
+  #     # Separate signals by path to avoid computing the same signal in parallel, which can cause
+  #     # issues with taking too much RAM.
+  #     path_signals: dict[PathTuple, list[SignalConfig]] = {}
+  #     for s in signals:
+  #       path_signals.setdefault(s.path, []).append(s)
+
+  #     for path, signals in path_signals.items():
+  #       for s in signals:
+  #         field = manifest.data_schema.get_field(s.path)
+  #         signal_field = (field.fields or {}).get(s.signal.key(is_computed_signal=True))
+  #         if signal_field is None or overwrite:
+  #           task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
+  #           _compute_signal(
+  #             d.namespace,
+  #             d.name,
+  #             s,
+  #             project_dir,
+  #             task_id,
+  #             overwrite,
+  #           )
+  #         else:
+  #           log(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
+
+  #     del dataset
+  #     gc.collect()
+
   log()
-  log('*** Compute embeddings ***')
-  with DebugTimer('Loading embeddings'):
-    for d in config.datasets:
-      dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
-      manifest = dataset.manifest()
-
-      embedding_task_ids: list[str] = []
-      # If embeddings are explicitly set, use only those.
-      embeddings = d.embeddings or []
-      # If embeddings are not explicitly set, use the media paths and preferred embedding from
-      # settings.
-      if not embeddings:
-        if d.settings and d.settings.ui:
-          for path in d.settings.ui.media_paths or []:
-            if d.settings.preferred_embedding:
-              embeddings.append(
-                EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding)
-              )
-      for e in embeddings:
-        field = manifest.data_schema.get_field(e.path)
-        embedding_field = (field.fields or {}).get(e.embedding)
-        if embedding_field is None or overwrite:
-          task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
-          _compute_embedding(
-            d.namespace,
-            d.name,
-            e,
-            project_dir,
-          )
-          embedding_task_ids.append(task_id)
-        else:
-          log(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
-
-      del dataset
-      gc.collect()
-
-  log()
-  log('*** Compute signals ***')
-  with DebugTimer('Computing signals'):
-    for d in config.datasets:
-      dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
-      manifest = dataset.manifest()
-
-      # If signals are explicitly set, use only those.
-      signals = d.signals or []
-      # If signals are not explicitly set, use the media paths and config.signals.
-      if not signals:
-        if d.settings and d.settings.ui:
-          for path in d.settings.ui.media_paths or []:
-            for signal in config.signals or []:
-              signals.append(SignalConfig(path=path, signal=signal))
-
-      # Separate signals by path to avoid computing the same signal in parallel, which can cause
-      # issues with taking too much RAM.
-      path_signals: dict[PathTuple, list[SignalConfig]] = {}
-      for s in signals:
-        path_signals.setdefault(s.path, []).append(s)
-
-      for path, signals in path_signals.items():
-        for s in signals:
-          field = manifest.data_schema.get_field(s.path)
-          signal_field = (field.fields or {}).get(s.signal.key(is_computed_signal=True))
-          if signal_field is None or overwrite:
-            task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
-            _compute_signal(
-              d.namespace,
-              d.name,
-              s,
-              project_dir,
-              task_id,
-              overwrite,
-            )
-          else:
-            log(f'Signal {s.signal} already exists for {d.name}:{s.path}. Skipping.')
-
-      del dataset
-      gc.collect()
+  log('*** Compute clusters ***')
+  with DebugTimer('Computing clusters'):
+    for c in config.clusters:
+      dataset = DatasetDuckDB(c.dataset_namespace, c.dataset_name, project_dir=project_dir)
+      schema = dataset.manifest().data_schema
+      # Try to find the cluster if it is precomputed.
+      for node in schema.fields.values():
+        if node.cluster is not None and c.input_path == node.cluster.input_path:
+          break
+      else:
+        # No precomputed cluster found.
+        dataset.cluster(c.input_path)
 
   log()
   log('*** Compute model caches ***')
