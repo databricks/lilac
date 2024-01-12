@@ -506,7 +506,6 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(texts)
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
-    print('topicing', docs)
     if 'hello' in docs[0][0]:
       return 'greeting'
     elif 'time' in docs[0][0] or 'hour' in docs[0][0]:
