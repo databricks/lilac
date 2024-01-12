@@ -87,6 +87,50 @@ def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) 
 
 
 @freeze_time(TEST_TIME)
+def test_add_labels_sort_limit(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  dataset = make_test_data(TEST_ITEMS)
+
+  num_labels = dataset.add_labels('test_label', sort_by=['int'], sort_order=SortOrder.ASC, limit=2)
+  assert num_labels == 2
+  assert dataset.manifest() == DatasetManifest(
+    source=TestSource(),
+    namespace='test_namespace',
+    dataset_name='test_dataset',
+    data_schema=schema(
+      {
+        'str': 'string',
+        'int': 'int32',
+        'test_label': field(fields={'label': 'string', 'created': 'timestamp'}, label='test_label'),
+      }
+    ),
+    num_items=3,
+  )
+
+  assert list(dataset.select_rows([PATH_WILDCARD])) == [
+    {
+      'str': 'a',
+      'int': 1,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+  ]
+
+  assert dataset.get_label_names() == ['test_label']
+
+
+@freeze_time(TEST_TIME)
 def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data(TEST_ITEMS)
 
@@ -299,6 +343,57 @@ def test_remove_labels_no_filters(make_test_data: TestDataMaker, mocker: MockerF
   ]
 
   assert dataset.get_label_names() == []
+
+
+@freeze_time(TEST_TIME)
+def test_remove_labels_sort_limit(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  dataset = make_test_data(TEST_ITEMS)
+
+  # Add labels to every row.
+  num_labels = dataset.add_labels('test_label')
+  assert num_labels == 3
+
+  # Remove 2 labels.
+  num_labels = dataset.remove_labels(
+    'test_label', sort_by=['int'], sort_order=SortOrder.ASC, limit=2
+  )
+  assert num_labels == 2
+  assert dataset.manifest() == DatasetManifest(
+    source=TestSource(),
+    namespace='test_namespace',
+    dataset_name='test_dataset',
+    data_schema=schema(
+      {
+        'str': 'string',
+        'int': 'int32',
+        'test_label': field(fields={'label': 'string', 'created': 'timestamp'}, label='test_label'),
+      }
+    ),
+    num_items=3,
+  )
+
+  assert list(dataset.select_rows([PATH_WILDCARD], sort_by=('str',), sort_order=SortOrder.ASC)) == [
+    {
+      'str': 'a',
+      'int': 1,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+    {
+      'str': 'b',
+      'int': 2,
+      'test_label.label': None,
+      'test_label.created': None,
+    },
+    {
+      'str': 'c',
+      'int': 3,
+      'test_label.label': 'true',
+      'test_label.created': Timestamp(TEST_TIME),
+    },
+  ]
+
+  assert dataset.get_label_names() == ['test_label']
 
 
 @freeze_time(TEST_TIME)

@@ -12,7 +12,7 @@ from .config import (
 from .data import *  # noqa: F403
 from .data.dataset_duckdb import DatasetDuckDB
 from .data.dataset_format import *  # noqa: F403
-from .db_manager import get_dataset, set_default_dataset_cls
+from .db_manager import get_dataset, list_datasets, set_default_dataset_cls
 from .deploy import deploy_config, deploy_project
 from .embeddings import *  # noqa: F403
 from .env import *  # noqa: F403
@@ -50,6 +50,7 @@ __all__ = [
   'from_dicts',
   'from_huggingface',
   'get_dataset',
+  'list_datasets',
   'init',
   'span',
   'load',

@@ -362,6 +362,9 @@ export function createDatasetViewStore(
     openPivotViewer(outerPath: Path, innerPath: Path) {
       update(state => {
         state.viewPivot = true;
+        state.query.filters = undefined;
+        state.query.searches = undefined;
+        state.groupBy = undefined;
         state.pivot = {outerPath: outerPath, innerPath: innerPath};
         return state;
       });
