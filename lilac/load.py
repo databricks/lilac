@@ -21,7 +21,7 @@ from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .env import get_project_dir
 from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
-from .schema import ROWID
+from .schema import ROWID, PathTuple
 from .tasks import (
   TaskId,
   TaskType,
