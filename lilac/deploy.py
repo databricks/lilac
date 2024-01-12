@@ -11,12 +11,11 @@ from importlib import resources
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from .concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
-from .config import Config, get_dataset_config
-from .data.dataset_duckdb import DUCKDB_CACHE_FILE
+from .config import Config
+from .data.dataset_storage_utils import upload
 from .env import get_project_dir
 from .project import PROJECT_CONFIG_FILENAME, read_project_config, write_project_config
-from .sources.huggingface_source import HuggingFaceSource
-from .utils import get_dataset_output_dir, get_hf_dataset_repo_id, get_lilac_cache_dir, log, to_yaml
+from .utils import get_hf_dataset_repo_id, get_lilac_cache_dir, log, to_yaml
 
 HF_SPACE_DIR = '.hf_spaces'
 PY_DIST_DIR = 'dist'
@@ -449,68 +448,12 @@ def _upload_datasets(
     namespace, name = d.split('/')
     dataset_repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, namespace, name)
 
-    print(
-      f'Uploading "{d}" to HuggingFace dataset repo '
-      f'https://huggingface.co/datasets/{dataset_repo_id}\n'
-    )
-
-    hf_api.create_repo(
-      dataset_repo_id,
-      repo_type='dataset',
-      private=not make_datasets_public,
-      exist_ok=True,
-    )
-    dataset_output_dir = get_dataset_output_dir(project_dir, namespace, name)
-    hf_api.upload_folder(
-      folder_path=dataset_output_dir,
-      # The path in the remote doesn't os.path.join as it is specific to Linux.
-      path_in_repo=f'{namespace}/{name}',
-      repo_id=dataset_repo_id,
-      repo_type='dataset',
-      # Delete all data on the server.
-      delete_patterns='*',
-      ignore_patterns=[DUCKDB_CACHE_FILE + '*'],
-    )
-
-    config = read_project_config(project_dir)
-    dataset_config = get_dataset_config(config, namespace, name)
-    if dataset_config is None:
-      raise ValueError(f'Dataset {namespace}/{name} not found in project config.')
-
-    dataset_link = ''
-    if isinstance(dataset_config.source, HuggingFaceSource):
-      dataset_link = f'https://huggingface.co/datasets/{dataset_config.source.dataset_name}'
-
-    dataset_config_yaml = to_yaml(
-      dataset_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
-    )
-    hf_api.upload_file(
-      path_or_fileobj=dataset_config_yaml.encode(),
-      path_in_repo='dataset_config.yml',
-      repo_id=dataset_repo_id,
-      repo_type='dataset',
-    )
-
-    readme = (
-      '---\n'
-      'tags:\n'
-      '- Lilac\n'
-      '---\n'
-      f'# {config}\n'
-      'This dataset is a [Lilac](http://lilacml.com) processed dataset.'
-      # TODO: add this as extra
-      f'[huggingface.co/spaces/{hf_space_org}/{hf_space_name}]'
-      f'(https://huggingface.co/spaces/{hf_space_org}/{hf_space_name}).\n\n'
-      f'You can download the dataset locally with `lilac download {namespace}/{name}`.\n\n'
-      + (f'Original dataset: [{dataset_link}]({dataset_link})\n\n' if dataset_link != '' else '')
-      + 'Lilac dataset config:\n'
-      f'```{dataset_config_yaml}```\n\n'
-    ).encode()
-    hf_api.upload_file(
-      path_or_fileobj=readme,
-      path_in_repo='README.md',
-      repo_id=dataset_repo_id,
-      repo_type='dataset',
+    upload(
+      dataset=d,
+      project_dir=project_dir,
+      url_or_repo=dataset_repo_id,
+      public=make_datasets_public,
+      hf_token=hf_api.token,
     )
 
     lilac_hf_datasets.append(dataset_repo_id)
