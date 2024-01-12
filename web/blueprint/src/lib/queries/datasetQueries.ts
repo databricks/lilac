@@ -174,14 +174,10 @@ function getRowMetadataBatcher(
       fetcher: async (request: BatchMetadataRequest[]) => {
         const rowIds = request.map(r => r.rowId);
         const selectRowsResponse = await DatasetsService.selectRows(namespace, datasetName, {
-          // Add a IN filter for the rowIds, in addition to any other existing filters.
-          filters: [{path: [ROWID], op: 'in', value: rowIds}, ...(selectRowsOptions.filters || [])],
+          filters: [{path: [ROWID], op: 'in', value: rowIds}],
           searches: selectRowsOptions.searches,
           columns: [PATH_WILDCARD, ROWID],
           combine_columns: true,
-          sort_by: selectRowsOptions.sort_by,
-          sort_order: selectRowsOptions.sort_order,
-          offset: selectRowsOptions.offset,
           limit: rowIds.length,
           include_deleted: true
         });
