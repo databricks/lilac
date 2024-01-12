@@ -360,6 +360,7 @@ def cluster(
         task_info=task_info,
       )
       for item, title in zip(items2, titles):
+        # Drop the temporary newline-concatenated text column.
         del item[TEXT_COLUMN]
         yield {**item, CATEGORY_TITLE: title}
 
@@ -398,7 +399,6 @@ def _cluster(
   """Cluster docs with HDBSCAN."""
   if remote:
     remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
-    docs = list(docs)
     gzipped_docs = compress_docs(list(docs))
     response = remote_fn({'gzipped_docs': gzipped_docs})
     yield from response['clusters']
