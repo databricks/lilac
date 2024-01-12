@@ -2,11 +2,13 @@
 from typing import ClassVar, Iterable, Iterator
 
 import pytest
+from pytest_mock import MockerFixture
 
 from ..embeddings.jina import JinaV2Small
 from ..schema import ClusterInfo, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
+from . import clustering
 from .clustering import (
   CATEGORY_ID,
   CATEGORY_MEMBERSHIP_PROB,
@@ -50,7 +52,7 @@ def setup_teardown() -> Iterable[None]:
   clear_source_registry()
 
 
-def test_simple_clusters(make_test_data: TestDataMaker) -> None:
+def test_simple_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   texts: list[str] = [
     'Can you summarize this article',
     'Can you rewrite this in a simpler way',
@@ -66,6 +68,7 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
       return 'simplification'
     return 'other'
 
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset.cluster('text', min_cluster_size=2, topic_fn=topic_fn)
 
   rows = list(dataset.select_rows(['text', 'text__cluster'], combine_columns=True))
@@ -76,9 +79,9 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -87,9 +90,9 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -98,9 +101,9 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -109,9 +112,9 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
   ]
@@ -136,9 +139,9 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
             'metadata_search(op=equals,value=summarization)': True,
           },
         ),
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -151,9 +154,9 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
             'metadata_search(op=equals,value=summarization)': True,
           },
         ),
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
   ]
@@ -193,7 +196,7 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
   )
 
 
-def test_nested_clusters(make_test_data: TestDataMaker) -> None:
+def test_nested_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   texts: list[list[dict[str, str]]] = [
     [  # Cluster 1
       {'text': 'Can you summarize this article'},
@@ -212,6 +215,7 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
       {'text': 'Give me simplified version of this text'},
     ],
   ]
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'texts': t} for t in texts])
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
@@ -230,9 +234,9 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -240,9 +244,9 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -250,9 +254,9 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -260,17 +264,18 @@ def test_nested_clusters(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
   ]
 
 
-def test_path_ending_with_repeated(make_test_data: TestDataMaker) -> None:
+def test_path_ending_with_repeated(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   texts: list[list[str]] = [['hello', 'teacher'], ['professor'], ['hi']]
   dataset = make_test_data([{'texts': t} for t in texts])
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
     if 'hello' in docs[0][0]:
@@ -286,10 +291,10 @@ def test_path_ending_with_repeated(make_test_data: TestDataMaker) -> None:
       'texts': ['hello', 'teacher'],
       'texts__cluster': {
         'cluster_id': -1,
-        'cluster_membership_prob': None,
+        'cluster_membership_prob': 0.0,
         'cluster_title': None,
         'category_id': -1,
-        'category_membership_prob': None,
+        'category_membership_prob': 0.0,
         'category_title': None,
       },
     },
@@ -297,10 +302,10 @@ def test_path_ending_with_repeated(make_test_data: TestDataMaker) -> None:
       'texts': ['professor'],
       'texts__cluster': {
         'cluster_id': -1,
-        'cluster_membership_prob': None,
+        'cluster_membership_prob': 0.0,
         'cluster_title': None,
         'category_id': -1,
-        'category_membership_prob': None,
+        'category_membership_prob': 0.0,
         'category_title': None,
       },
     },
@@ -308,17 +313,17 @@ def test_path_ending_with_repeated(make_test_data: TestDataMaker) -> None:
       'texts': ['hi'],
       'texts__cluster': {
         'cluster_id': -1,
-        'cluster_membership_prob': None,
+        'cluster_membership_prob': 0.0,
         'cluster_title': None,
         'category_id': -1,
-        'category_membership_prob': None,
+        'category_membership_prob': 0.0,
         'category_title': None,
       },
     },
   ]
 
 
-def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
+def test_clusters_with_fn(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   texts: list[list[str]] = [
     ['Can you summarize this article'],
     ['Can you rewrite this in a simpler way'],
@@ -326,6 +331,7 @@ def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
     ['Can you simplify this text'],
   ]
   dataset = make_test_data([{'texts': t} for t in texts])
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
     if 'summar' in docs[0][0]:
@@ -351,9 +357,9 @@ def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -362,9 +368,9 @@ def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -373,9 +379,9 @@ def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -384,21 +390,24 @@ def test_clusters_with_fn(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
   ]
 
 
-def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) -> None:
+def test_clusters_with_fn_output_is_under_a_dict(
+  make_test_data: TestDataMaker, mocker: MockerFixture
+) -> None:
   texts: list[list[str]] = [
     ['Can you summarize this article'],
     ['Can you rewrite this in a simpler way'],
     ['Can you provide a short summary of the following text'],
     ['Can you simplify this text'],
   ]
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'texts': t, 'info': {'dummy': True}} for t in texts])
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
@@ -424,9 +433,9 @@ def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) 
           'cluster_id': 0,
           'cluster_membership_prob': 1.0,
           'cluster_title': 'summarization',
-          'category_id': -1,
-          'category_membership_prob': None,
-          'category_title': None,
+          'category_id': 0,
+          'category_membership_prob': 1.0,
+          'category_title': 'MockCategory',
         },
       },
     },
@@ -438,9 +447,9 @@ def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) 
           'cluster_id': 1,
           'cluster_membership_prob': 1.0,
           'cluster_title': 'simplification',
-          'category_id': -1,
-          'category_membership_prob': None,
-          'category_title': None,
+          'category_id': 1,
+          'category_membership_prob': 1.0,
+          'category_title': 'MockCategory',
         },
       },
     },
@@ -452,9 +461,9 @@ def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) 
           'cluster_id': 0,
           'cluster_membership_prob': 1.0,
           'cluster_title': 'summarization',
-          'category_id': -1,
-          'category_membership_prob': None,
-          'category_title': None,
+          'category_id': 0,
+          'category_membership_prob': 1.0,
+          'category_title': 'MockCategory',
         },
       },
     },
@@ -466,22 +475,23 @@ def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) 
           'cluster_id': 1,
           'cluster_membership_prob': 1.0,
           'cluster_title': 'simplification',
-          'category_id': -1,
-          'category_membership_prob': None,
-          'category_title': None,
+          'category_id': 1,
+          'category_membership_prob': 1.0,
+          'category_title': 'MockCategory',
         },
       },
     },
   ]
 
 
-def test_clusters_on_enriched_text(make_test_data: TestDataMaker) -> None:
+def test_clusters_on_enriched_text(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   texts: list[str] = [
     'Can you summarize this article',
     'Can you rewrite this in a simpler way',
     'Can you provide a short summary of the following text',
     'Can you simplify this text',
   ]
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'text': t} for t in texts])
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
@@ -503,9 +513,9 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -514,9 +524,9 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -527,9 +537,9 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker) -> None:
         'cluster_id': 0,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'summarization',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
     {
@@ -538,9 +548,9 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker) -> None:
         'cluster_id': 1,
         'cluster_membership_prob': 1.0,
         'cluster_title': 'simplification',
-        'category_id': -1,
-        'category_membership_prob': None,
-        'category_title': None,
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
   ]

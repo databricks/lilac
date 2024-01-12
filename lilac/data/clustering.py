@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from pydantic import (
   BaseModel,
 )
-from tenacity import retry, stop_after_attempt, wait_random_exponential
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
 
 from ..batch_utils import compress_docs, flatten_path_iter, group_by_sorted_key_iter
 from ..embeddings.jina import JinaV2Small
@@ -31,9 +31,9 @@ from ..signal import (
   TopicFn,
 )
 from ..tasks import TaskId, TaskInfo, get_task_manager
-from ..utils import DebugTimer
+from ..utils import DebugTimer, chunks
 from .dataset import Dataset
-from .dataset_utils import get_callable_name
+from .dataset_utils import get_callable_name, sparse_to_dense_compute
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 7
@@ -53,6 +53,8 @@ FIELD_SUFFIX = 'cluster'
 MIN_CLUSTER_SIZE = 5
 UMAP_DIM = 5
 UMAP_SEED = 42
+HDBSCAN_SELECTION_EPS = 0.05
+BATCH_SOFT_CLUSTER_NOISE = 1024
 
 
 @functools.cache
@@ -90,26 +92,43 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
   docs = [doc for doc, _ in ranked_docs[:_TOP_K_CENTRAL_DOCS]]
   texts = [f'BEGIN_REQUEST\n{_snippet_to_prefix_and_suffix(doc)}\nEND_REQUEST' for doc in docs]
   input = '\n'.join(texts)
-  title = _openai_client().chat.completions.create(
-    model='gpt-3.5-turbo-1106',
-    response_model=Title,
-    temperature=0.0,
-    max_tokens=50,
-    messages=[
-      {
-        'role': 'system',
-        'content': (
-          'You are a world-class title generator. Ignore the group of related requests below, and '
-          'generate a short title to describe the common theme. Some examples: "YA book reviews", '
-          '"Questions about South East Asia", "Translating English to Polish", "Writing product '
-          'descriptions", etc. Prefer using descriptive words. Do not use vague words like '
-          '"various", "assortment", "comments", "discussion", etc.'
-        ),
-      },
-      {'role': 'user', 'content': input},
-    ],
+  try:
+    import openai
+
+  except ImportError:
+    raise ImportError(
+      'Could not import the "openai" python package. '
+      'Please install it with `pip install openai`.'
+    )
+
+  @retry(
+    retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
+    wait=wait_random_exponential(multiplier=0.5, max=60),
+    stop=stop_after_attempt(10),
   )
-  return title.title
+  def request_with_retries() -> str:
+    title = _openai_client().chat.completions.create(
+      model='gpt-3.5-turbo-1106',
+      response_model=Title,
+      temperature=0.0,
+      max_tokens=50,
+      messages=[
+        {
+          'role': 'system',
+          'content': (
+            'You are a world-class title generator. Ignore the group of related requests below, '
+            'and generate a short title to describe the common theme. Some examples: "YA book '
+            'reviews", "Questions about South East Asia", "Translating English to Polish", '
+            '"Writing product descriptions", etc. Prefer using descriptive words. Do not use vague '
+            'words like "various", "assortment", "comments", "discussion", etc.'
+          ),
+        },
+        {'role': 'user', 'content': input},
+      ],
+    )
+    return title.title
+
+  return request_with_retries()
 
 
 class Category(BaseModel):
@@ -118,29 +137,46 @@ class Category(BaseModel):
   category: str
 
 
-def _generate_category(ranked_docs: list[tuple[str, float]]) -> str:
+def generate_category(ranked_docs: list[tuple[str, float]]) -> str:
   """Summarize a list of titles in a category."""
   # Get the top 5 documents.
   docs = [doc for doc, _ in ranked_docs[:_TOP_K_CENTRAL_TITLES]]
   input = '\n'.join(docs)
-  category = _openai_client().chat.completions.create(
-    model='gpt-3.5-turbo-1106',
-    response_model=Category,
-    temperature=0.0,
-    max_tokens=50,
-    messages=[
-      {
-        'role': 'system',
-        'content': (
-          'You are a world-class category labeler. Generate a short category name for the provided '
-          'titles. For example, given two titles "translating english to polish" and "translating '
-          'korean to english", generate "Translation".'
-        ),
-      },
-      {'role': 'user', 'content': input},
-    ],
+  try:
+    import openai
+
+  except ImportError:
+    raise ImportError(
+      'Could not import the "openai" python package. '
+      'Please install it with `pip install openai`.'
+    )
+
+  @retry(
+    retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
+    wait=wait_random_exponential(multiplier=0.5, max=60),
+    stop=stop_after_attempt(10),
   )
-  return category.category
+  def request_with_retries() -> str:
+    category = _openai_client().chat.completions.create(
+      model='gpt-3.5-turbo-1106',
+      response_model=Category,
+      temperature=0.0,
+      max_tokens=50,
+      messages=[
+        {
+          'role': 'system',
+          'content': (
+            'You are a world-class category labeler. Generate a short category name for the '
+            'provided titles. For example, given two titles "translating english to polish" and '
+            '"translating korean to english", generate "Translation".'
+          ),
+        },
+        {'role': 'user', 'content': input},
+      ],
+    )
+    return category.category
+
+  return request_with_retries()
 
 
 def _compute_titles(
@@ -151,7 +187,6 @@ def _compute_titles(
   topic_fn: TopicFn,
   task_info: Optional[TaskInfo] = None,
 ) -> Iterator[str]:
-  @retry(wait=wait_random_exponential(multiplier=0.5, max=60), stop=stop_after_attempt(10))
   def _compute_title(
     sorted_docs: list[tuple[str, float]], group_size: int
   ) -> Optional[tuple[int, Optional[str]]]:
@@ -192,9 +227,9 @@ def _compute_titles(
       yield title
 
 
-def cluster(
+def cluster_impl(
   dataset: Dataset,
-  input: Union[Path, Callable[[Item], str]],
+  input_fn_or_path: Union[Path, Callable[[Item], str]],
   output_path: Optional[Path] = None,
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_request,
@@ -210,8 +245,8 @@ def cluster(
     task_info = task_manager.get_task_info(task_id)
   schema = dataset.manifest().data_schema
   path: Optional[PathTuple] = None
-  if not callable(input):
-    path = normalize_path(input)
+  if not callable(input_fn_or_path):
+    path = normalize_path(input_fn_or_path)
     # Make sure the path exists.
     if not schema.has_field(path):
       raise ValueError(f'Path {path} does not exist in the dataset.')
@@ -262,7 +297,11 @@ def cluster(
       for path_part in cluster_output_path:
         cluster_info = cluster_info.get(path_part, {})
 
-      text = input(item) if callable(input) else _flatten_input(item, cast(PathTuple, path))
+      text = (
+        input_fn_or_path(item)
+        if callable(input_fn_or_path)
+        else _flatten_input(item, cast(PathTuple, path))
+      )
       return {**cluster_info, TEXT_COLUMN: text}
 
     dataset.map(extract_text, output_path=cluster_output_path, overwrite=True)
@@ -276,9 +315,12 @@ def cluster(
 
     def compute_clusters(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
-      docs = (item[TEXT_COLUMN] for item in items)
-      for item, cluster_item in zip(items2, _cluster(docs, min_cluster_size, remote)):
-        yield {**item, **cluster_item}
+      docs: Iterator[Optional[str]] = (item[TEXT_COLUMN] for item in items)
+      cluster_items = sparse_to_dense_compute(
+        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, remote)
+      )
+      for item, cluster_item in zip(items2, cluster_items):
+        yield {**item, **(cluster_item or {})}
 
     # Compute the clusters.
     dataset.transform(
@@ -325,13 +367,14 @@ def cluster(
 
     def compute_category_clusters(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
-      docs = (item[CLUSTER_TITLE] for item in items)
-      for item, cluster_item in zip(items2, _cluster(docs, min_cluster_size, remote)):
-        yield {
-          **item,
-          CATEGORY_ID: cluster_item.get(CLUSTER_ID, -1),
-          CATEGORY_MEMBERSHIP_PROB: cluster_item.get(CLUSTER_MEMBERSHIP_PROB, 0),
-        }
+      docs = (item.get(CLUSTER_TITLE) for item in items)
+      cluster_items = sparse_to_dense_compute(
+        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, remote)
+      )
+      for item, cluster_item in zip(items2, cluster_items):
+        item[CATEGORY_ID] = (cluster_item or {}).get(CLUSTER_ID, -1)
+        item[CATEGORY_MEMBERSHIP_PROB] = (cluster_item or {}).get(CLUSTER_MEMBERSHIP_PROB, 0)
+        yield item
 
     # Compute the clusters.
     dataset.transform(
@@ -356,7 +399,7 @@ def cluster(
         text_column=CLUSTER_TITLE,
         id_column=CATEGORY_ID,
         membership_column=CATEGORY_MEMBERSHIP_PROB,
-        topic_fn=_generate_category,
+        topic_fn=generate_category,
         task_info=task_info,
       )
       for item, title in zip(items2, titles):
@@ -382,7 +425,7 @@ def cluster(
         cluster=ClusterInfo(
           min_cluster_size=min_cluster_size,
           remote=remote,
-          input_path=(get_callable_name(input),) if callable(input) else path,
+          input_path=(get_callable_name(input_fn_or_path),) if callable(input_fn_or_path) else path,
         ),
       ),
     )
@@ -391,7 +434,7 @@ def cluster(
     task_manager.set_completed(task_id)
 
 
-def _cluster(
+def _hdbscan_cluster(
   docs: Iterator[str],
   min_cluster_size: int = MIN_CLUSTER_SIZE,
   remote: bool = False,
@@ -442,19 +485,54 @@ def _cluster(
   # Try to import the cuml version of HDBSCAN, which is much faster than the sklearn version.
   # if CUDA is available.
   try:
-    from cuml.cluster.hdbscan import HDBSCAN  # type: ignore
+    from cuml.cluster.hdbscan import HDBSCAN, membership_vector  # type: ignore
   except ImportError:
-    from sklearn.cluster import HDBSCAN
+    from hdbscan import HDBSCAN, membership_vector
 
   with DebugTimer('HDBSCAN: Clustering'):
     min_cluster_size = min(min_cluster_size, len(all_vectors))
-    hdbscan = HDBSCAN(min_cluster_size=min_cluster_size, n_jobs=-1)
-    hdbscan.fit(all_vectors)
+    clusterer = HDBSCAN(
+      min_cluster_size=min_cluster_size,
+      min_samples=min_cluster_size - 1,
+      cluster_selection_epsilon=HDBSCAN_SELECTION_EPS,
+      cluster_selection_method='leaf',
+      prediction_data=True,
+    )
+    clusterer.fit(all_vectors)
 
-  for cluster_id, membership_prob in zip(hdbscan.labels_, hdbscan.probabilities_):
-    cluster_id = int(cluster_id)
-    membership_prob = float(membership_prob)
-    item = {CLUSTER_ID: cluster_id, CLUSTER_MEMBERSHIP_PROB: membership_prob}
-    if cluster_id < 0:
-      item = {CLUSTER_ID: -1}
-    yield item
+  noisy_vectors: list[np.ndarray] = []
+  for i, cluster_id in enumerate(clusterer.labels_):
+    if cluster_id == -1:
+      noisy_vectors.append(all_vectors[i])
+  num_noisy = len(noisy_vectors)
+  perc_noisy = 100 * num_noisy / len(clusterer.labels_)
+  print(f'{num_noisy} noise points ({perc_noisy:.1f}%) will be assigned to nearest cluster.')
+
+  noisy_labels: list[np.ndarray] = []
+  noisy_probs: list[np.ndarray] = []
+  labels = clusterer.labels_
+  memberships = clusterer.probabilities_
+  if num_noisy > 0 and num_noisy < len(clusterer.labels_):
+    with DebugTimer('HDBSCAN: Computing membership for the noise points'):
+      for batch_noisy_vectors in chunks(noisy_vectors, BATCH_SOFT_CLUSTER_NOISE):
+        batch_noisy_vectors = np.array(batch_noisy_vectors, dtype=np.float32)
+        soft_clusters = membership_vector(clusterer, batch_noisy_vectors)
+        if soft_clusters.ndim < 2:
+          soft_clusters = soft_clusters.reshape(-1, 1)
+        noisy_labels.append(np.argmax(soft_clusters, axis=1))
+        noisy_probs.append(np.max(soft_clusters, axis=1))
+
+    noisy_labels = np.concatenate(noisy_labels, axis=0, dtype=np.int32)
+    noisy_probs = np.concatenate(noisy_probs, axis=0, dtype=np.float32)
+    noise_index = 0
+    for i, cluster_id in enumerate(labels):
+      if cluster_id == -1:
+        labels[i] = noisy_labels[noise_index]
+        memberships[i] = noisy_probs[noise_index]
+        noise_index += 1
+
+  del clusterer, all_vectors, noisy_vectors
+  gc.collect()
+
+  for cluster_id, membership_prob in zip(labels, memberships):
+    yield {CLUSTER_ID: int(cluster_id), CLUSTER_MEMBERSHIP_PROB: float(membership_prob)}
