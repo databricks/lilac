@@ -42,14 +42,44 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 ## 🔥 Getting started
 
 ### 💻 Install
-
+*Install via pip*
 ```sh
 pip install lilac[all]
 ```
-
+*On HiggingFace Spaces*
 If you prefer no local installation, you can fork the
 [fork the HuggingFace Spaces demo](https://lilacai-lilac.hf.space/). Documentation
 [here](https://docs.lilacml.com/huggingface/huggingface_spaces.html).
+
+<details>
+  <summary>*Install from source*</summary>
+  
+  first, clone the repo:
+  ```sh
+  git clone https://github.com/lilacai/lilac.git
+  ```
+  Now, Build from source:
+  > Note: you must have atleast the lts version of `nodejs` and `npm` installed to build.
+  ```sh
+  cd lilac
+  # install poetry
+  pip install poetry
+  
+  # start venv
+  poetry shell
+  
+  # Install node dependencies
+  npm install
+  
+  # Now we can build
+  bash | ./scripts/build_server_prod.sh
+  
+  # install the source build of lilac
+  pip install ."[all]"
+  ```
+  Now you can start Lilac as usual in your choice of project!
+</details>
+
 
 ### 🌐 Start a webserver
 
@@ -252,6 +282,8 @@ dataset.add_labels(
 
 Labels can be exported for downstream tasks. Detailed documentation
 [here](https://docs.lilacml.com/datasets/dataset_labels.html).
+
+
 
 ## 💬 Contact
 
