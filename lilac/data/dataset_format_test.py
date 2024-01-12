@@ -1,7 +1,7 @@
 """Tests for the dataset_format module."""
 
 
-from .dataset_format import OPEN_CHAT_FORMAT, SHARE_GPT_FORMAT
+from .dataset_format import OpenChat, ShareGPT
 from .dataset_test_utils import TestDataMaker
 
 
@@ -18,7 +18,7 @@ def test_infer_sharegpt(make_test_data: TestDataMaker) -> None:
     ]
   )
 
-  assert dataset.manifest().dataset_format == SHARE_GPT_FORMAT
+  assert dataset.manifest().dataset_format == ShareGPT
 
 
 def test_infer_sharegpt_extra(make_test_data: TestDataMaker) -> None:
@@ -35,7 +35,7 @@ def test_infer_sharegpt_extra(make_test_data: TestDataMaker) -> None:
     ]
   )
 
-  assert dataset.manifest().dataset_format == SHARE_GPT_FORMAT
+  assert dataset.manifest().dataset_format == ShareGPT
 
 
 def test_infer_open_chat(make_test_data: TestDataMaker) -> None:
@@ -60,7 +60,7 @@ def test_infer_open_chat(make_test_data: TestDataMaker) -> None:
     ]
   )
 
-  assert dataset.manifest().dataset_format == OPEN_CHAT_FORMAT
+  assert dataset.manifest().dataset_format == OpenChat
 
 
 def test_other_format(make_test_data: TestDataMaker) -> None:

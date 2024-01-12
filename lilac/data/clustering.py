@@ -33,6 +33,7 @@ from ..signal import (
 from ..tasks import TaskId, TaskInfo, get_task_manager
 from ..utils import DebugTimer
 from .dataset import Dataset
+from .dataset_format import DatasetFormatInputSelector
 from .dataset_utils import get_callable_name, get_common_ancestor, get_sibling_output_path
 
 _SHORTEN_LEN = 400
@@ -144,7 +145,7 @@ def _generate_category(ranked_docs: list[tuple[str, float]]) -> str:
 
 def cluster(
   dataset: Dataset,
-  input: Union[Path, Callable[[Item], str]],
+  input: Union[Path, Callable[[Item], str], DatasetFormatInputSelector],
   output_path: Optional[Path] = None,
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_request,
@@ -159,6 +160,9 @@ def cluster(
   if task_id:
     task_info = task_manager.get_task_info(task_id)
   path: Optional[PathTuple] = None
+
+  if isinstance(input, DatasetFormatInputSelector):
+    input = input.selector
   if not callable(input):
     path = normalize_path(input)
   elif not output_path:

@@ -4,7 +4,7 @@ from typing import ClassVar, Iterable, Iterator
 import pytest
 
 from ..embeddings.jina import JinaV2Small
-from ..schema import ClusterInfo, field, schema
+from ..schema import ClusterInfo, Item, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
 from .clustering import (
@@ -16,6 +16,7 @@ from .clustering import (
   CLUSTER_TITLE,
 )
 from .dataset import DatasetManifest, MetadataSearch
+from .dataset_format import ShareGPT
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -470,6 +471,112 @@ def test_clusters_with_fn_output_is_under_a_dict(make_test_data: TestDataMaker) 
           'category_membership_prob': None,
           'category_title': None,
         },
+      },
+    },
+  ]
+
+
+def test_clusters_sharegpt(make_test_data: TestDataMaker) -> None:
+  texts: list[Item] = [
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'hello'},
+        {'from': 'gpt', 'value': 'i am a language model'},
+      ]
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the time'},
+        {'from': 'gpt', 'value': '1030'},
+      ]
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'how are you'},
+        {'from': 'gpt', 'value': 'pretty good today'},
+      ]
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the hour'},
+        {'from': 'gpt', 'value': '10 is the hour'},
+      ]
+    },
+  ]
+  dataset = make_test_data(texts)
+
+  def topic_fn(docs: list[tuple[str, float]]) -> str:
+    if 'summar' in docs[0][0]:
+      return 'summarization'
+    elif 'simpl' in docs[0][0]:
+      return 'simplification'
+    return 'other'
+
+  # with pytest.raises(ValueError, match='output_path must be provided if input is a function'):
+  #   dataset.cluster(lambda row: '\n'.join(row['texts']), min_cluster_size=2, topic_fn=topic_fn)
+
+  dataset.cluster(
+    ShareGPT.human,
+    output_path='cluster',
+    min_cluster_size=2,
+    topic_fn=topic_fn,
+  )
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'hello'},
+        {'from': 'gpt', 'value': 'i am a language model'},
+      ],
+      'cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the time'},
+        {'from': 'gpt', 'value': '1030'},
+      ],
+      'cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'how are you'},
+        {'from': 'gpt', 'value': 'pretty good today'},
+      ],
+      'cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
+      },
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the hour'},
+        {'from': 'gpt', 'value': '10 is the hour'},
+      ],
+      'cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': -1,
+        'category_membership_prob': None,
+        'category_title': None,
       },
     },
   ]
