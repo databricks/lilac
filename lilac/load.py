@@ -2,9 +2,10 @@
 
 Usage:
 
-poetry run python -m lilac.load \
-  --project_dir=demo_data \
-  --config_path=lilac_hf_space.yml
+poetry run lilac load \
+  --config_path=lilac_hf_space.yml \
+  demo_data
+
 """
 
 import gc
@@ -61,6 +62,11 @@ def load(
   if not isinstance(config, Config):
     config_path = config or os.path.join(project_dir, PROJECT_CONFIG_FILENAME)
     config = read_config(config_path)
+
+  from devtools import pformat
+
+  print(pformat(config, highlight=False))
+  return
 
   task_manager = get_task_manager()
 

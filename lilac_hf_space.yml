@@ -82,3 +82,21 @@ concept_model_cache_embeddings:
   - cohere
   # PALM is currently timing-out.
   # - palm
+
+clusters:
+  - dataset_namespace: lilac
+    dataset_name: glaive
+    path:
+      - question
+  - dataset_namespace: lilac
+    dataset_name: open-asssistant-conversations
+    path:
+      - text
+  - dataset_namespace: lilac
+    dataset_name: databricks-dolly-15k-curated-en
+    path:
+      - original-instruction
+  - dataset_namespace: lilac
+    dataset_name: OpenOrca-100k
+    path:
+      - question
