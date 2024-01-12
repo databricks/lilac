@@ -426,6 +426,7 @@ export function getSelectRowsOptions(
           fieldName == CLUSTER_TITLE_FIELD ? CLUSTER_MEMBERSHIP_PROB : CATEGORY_MEMBERSHIP_PROB
         );
       options.sort_by = [membershipProbPath];
+      options.sort_order = 'DESC';
     }
     options.searches = options.searches || [];
     options.searches.push({

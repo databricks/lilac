@@ -11,7 +11,7 @@ from .config import (
 )
 from .data import *  # noqa: F403
 from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_format import *  # noqa: F403
+from .data.dataset_format import OpenChat, ShareGPT
 from .db_manager import get_dataset, list_datasets, set_default_dataset_cls
 from .deploy import deploy_config, deploy_project
 from .embeddings import *  # noqa: F403

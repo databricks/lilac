@@ -324,7 +324,7 @@ Tout = TypeVar('Tout')
 
 
 def sparse_to_dense_compute(
-  sparse_input: Iterable[Optional[Tin]], func: Callable[[Iterable[Tin]], Iterator[Tout]]
+  sparse_input: Iterator[Optional[Tin]], func: Callable[[Iterator[Tin]], Iterator[Tout]]
 ) -> Iterator[Optional[Tout]]:
   """Densifies the input before calling the provided `func` and sparsifies the output."""
   sparse_input = iter(sparse_input)
