@@ -365,6 +365,7 @@ export function createDatasetViewStore(
         state.query.filters = undefined;
         state.query.searches = undefined;
         state.groupBy = undefined;
+        state.rowId = undefined;
         state.pivot = {outerPath: outerPath, innerPath: innerPath};
         return state;
       });
