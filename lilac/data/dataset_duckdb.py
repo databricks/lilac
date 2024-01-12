@@ -150,7 +150,7 @@ from .dataset import (
   get_map_parquet_id,
   make_signal_parquet_id,
 )
-from .dataset_format import infer_formats
+from .dataset_format import DatasetFormatInputSelector, infer_formats
 from .dataset_utils import (
   count_leafs,
   create_json_map_output_schema,
@@ -2901,7 +2901,7 @@ class DatasetDuckDB(Dataset):
   @override
   def cluster(
     self,
-    input: Union[Path, Callable[[Item], str]],
+    input: Union[Path, Callable[[Item], str], DatasetFormatInputSelector],
     output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,

@@ -43,6 +43,7 @@
    datasets/dataset_signals.md
    datasets/dataset_query.md
    datasets/dataset_export.md
+   datasets/dataset_share.md
 
 .. toctree::
    :caption: Projects

@@ -5,7 +5,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from ..embeddings.jina import JinaV2Small
-from ..schema import ClusterInfo, field, schema
+from ..schema import ClusterInfo, Item, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
 from . import clustering
@@ -18,6 +18,7 @@ from .clustering import (
   CLUSTER_TITLE,
 )
 from .dataset import DatasetManifest, MetadataSearch
+from .dataset_format import ShareGPT
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -479,6 +480,125 @@ def test_clusters_with_fn_output_is_under_a_dict(
           'category_membership_prob': 1.0,
           'category_title': 'MockCategory',
         },
+      },
+    },
+  ]
+
+
+def test_clusters_sharegpt(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
+
+  texts: list[Item] = [
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'hello'},
+        {'from': 'gpt', 'value': 'i am a language model'},
+      ]
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the time'},
+        {'from': 'gpt', 'value': '1030'},
+      ]
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'hello how are you'},
+        {'from': 'gpt', 'value': 'pretty good today'},
+      ]
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the hour'},
+        {'from': 'gpt', 'value': '10 is the hour'},
+      ]
+    },
+  ]
+  dataset = make_test_data(texts)
+
+  topic_fn_calls: list[list[tuple[str, float]]] = []
+
+  def topic_fn(docs: list[tuple[str, float]]) -> str:
+    topic_fn_calls.append(docs)
+    if 'hello' in docs[0][0]:
+      return 'greeting'
+    elif 'time' in docs[0][0] or 'hour' in docs[0][0]:
+      return 'time'
+    return 'other'
+
+  dataset.cluster(
+    ShareGPT.human,
+    output_path='cluster',
+    min_cluster_size=2,
+    topic_fn=topic_fn,
+  )
+
+  # Sort because topics are shuffled.
+  for topic_fn_call in topic_fn_calls:
+    topic_fn_call.sort()
+
+  # Make sure the topic function is only called for the human text.
+  assert topic_fn_calls == [
+    [('hello', 1.0), ('hello how are you', 1.0)],
+    [('whats the hour', 1.0), ('whats the time', 1.0)],
+  ]
+
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == [
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'hello'},
+        {'from': 'gpt', 'value': 'i am a language model'},
+      ],
+      'cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'greeting',
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
+      },
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the time'},
+        {'from': 'gpt', 'value': '1030'},
+      ],
+      'cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'time',
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
+      },
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'hello how are you'},
+        {'from': 'gpt', 'value': 'pretty good today'},
+      ],
+      'cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'greeting',
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
+      },
+    },
+    {
+      'conversations': [
+        {'from': 'human', 'value': 'whats the hour'},
+        {'from': 'gpt', 'value': '10 is the hour'},
+      ],
+      'cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'time',
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
       },
     },
   ]
