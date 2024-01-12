@@ -234,7 +234,7 @@
                   {:else}<span>{highlight.text}</span>{/if}
                 {/each}
               </div>
-              <div class="flex flex-col font-light">
+              <div class="flex w-full flex-col items-center font-light">
                 <span class="ml-2 text-xl text-neutral-800">
                   {group.percentage}%
                 </span>
@@ -243,7 +243,7 @@
                 </span>
               </div>
               <div class="">
-                <a class="flex flex-row" href={groupLink}>
+                <a class="flex flex-row" href={groupLink} target="_blank">
                   Explore
                   <svg
                     class="ms-2 h-3 w-3 rtl:rotate-[270deg]"

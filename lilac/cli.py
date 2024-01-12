@@ -7,7 +7,7 @@ import click
 
 from . import __version__
 from .concepts.db_concept import DISK_CONCEPT_DB
-from .data.dataset_storage_utils import download
+from .data.dataset_storage_utils import download, upload
 from .deploy import deploy_project
 from .env import env, get_project_dir
 from .hf_docker_start import hf_docker_start
@@ -236,15 +236,66 @@ def deploy_project_command(
   'This can also be set via the `HF_ACCESS_TOKEN` environment flag.',
   type=str,
 )
+@click.option(
+  '--overwrite',
+  help='When true, overwrites any existing datasets with the same name.',
+  is_flag=True,
+  default=False,
+)
 def download_command(
   url_or_repo: str,
   project_dir: Optional[str],
   dataset_namespace: Optional[str],
   dataset_name: Optional[str],
   hf_token: Optional[str],
+  overwrite: Optional[bool] = False,
 ) -> None:
   """Download a Lilac dataset from HuggingFace."""
-  download(url_or_repo, project_dir, dataset_namespace, dataset_name)
+  download(url_or_repo, project_dir, dataset_namespace, dataset_name, hf_token, overwrite)
+
+
+@click.command()
+@click.argument(
+  'dataset',
+  required=True,
+)
+@click.option(
+  '--project_dir',
+  help='The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.',
+  type=str,
+)
+@click.option(
+  '--url_or_repo',
+  help='The repo id, or full dataset URL, to use for uploading. For example: lilacai/my-dataset.',
+  type=str,
+)
+@click.option(
+  '--public',
+  help='When true, makes the dataset public.',
+  is_flag=True,
+  default=False,
+)
+@click.option(
+  '--readme_suffix',
+  help='A suffix string for the readme file.',
+  type=str,
+)
+@click.option(
+  '--hf_token',
+  help='The HuggingFace access token to use when writing private datasets. '
+  'This can also be set via the `HF_ACCESS_TOKEN` environment flag.',
+  type=str,
+)
+def upload_command(
+  dataset: str,
+  project_dir: Optional[str],
+  url_or_repo: Optional[str] = None,
+  public: Optional[bool] = False,
+  readme_suffix: Optional[str] = None,
+  hf_token: Optional[str] = None,
+) -> None:
+  """Upload a Lilac dataset to HuggingFace."""
+  upload(dataset, project_dir, url_or_repo, public, readme_suffix, hf_token)
 
 
 @click.command()
@@ -268,6 +319,7 @@ cli.add_command(start)
 cli.add_command(deploy_project_command, name='deploy-project')
 cli.add_command(hf_docker_start_command, name='hf-docker-start')
 cli.add_command(download_command, name='download')
+cli.add_command(upload_command, name='upload')
 cli.add_command(concepts)
 
 if __name__ == '__main__':

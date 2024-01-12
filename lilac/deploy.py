@@ -496,7 +496,9 @@ def _upload_datasets(
       'tags:\n'
       '- Lilac\n'
       '---\n'
-      'This dataset is a [Lilac](http://lilacml.com) processed dataset for a HuggingFace Space: '
+      f'# {config}\n'
+      'This dataset is a [Lilac](http://lilacml.com) processed dataset.'
+      # TODO: add this as extra
       f'[huggingface.co/spaces/{hf_space_org}/{hf_space_name}]'
       f'(https://huggingface.co/spaces/{hf_space_org}/{hf_space_name}).\n\n'
       f'You can download the dataset locally with `lilac download {namespace}/{name}`.\n\n'
