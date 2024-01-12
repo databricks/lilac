@@ -1941,9 +1941,11 @@ class DatasetDuckDB(Dataset):
 
     order_query = ''
     if sort_sql_before_udf:
-      order_query = (
-        f'ORDER BY {", ".join(sort_sql_before_udf)} ' f'{cast(SortOrder, sort_order).value}'
-      )
+      # TODO(smilkov): Make the sort order also a list to align with the sort_by list.
+      sort_with_order = [
+        f'{sql} {cast(SortOrder, sort_order).value}' for sql in sort_sql_before_udf
+      ]
+      order_query = f'ORDER BY {", ".join(sort_with_order)}'
 
     limit_query = ''
     if limit:
@@ -2862,7 +2864,7 @@ class DatasetDuckDB(Dataset):
     with open_file(map_manifest_filepath, 'w') as f:
       f.write(map_manifest.model_dump_json(exclude_none=True, indent=2))
 
-    log(f'Wrote map output to {parquet_dir}')
+    log(f'Wrote map output to {parquet_filename}')
 
     # Promote any new string columns as media fields if the length is above a threshold.
     for path, field in map_schema.leafs.items():

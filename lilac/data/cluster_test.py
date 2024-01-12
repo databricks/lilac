@@ -8,9 +8,9 @@ from ..schema import ClusterInfo, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
 from .clustering import (
+  CATEGORY_ID,
   CATEGORY_MEMBERSHIP_PROB,
   CATEGORY_TITLE,
-  CATEROGY_ID,
   CLUSTER_ID,
   CLUSTER_MEMBERSHIP_PROB,
   CLUSTER_TITLE,
@@ -180,7 +180,7 @@ def test_simple_clusters(make_test_data: TestDataMaker) -> None:
             CLUSTER_ID: field('int32', categorical=True),
             CLUSTER_MEMBERSHIP_PROB: 'float32',
             CLUSTER_TITLE: 'string',
-            CATEROGY_ID: field('int32', categorical=True),
+            CATEGORY_ID: field('int32', categorical=True),
             CATEGORY_MEMBERSHIP_PROB: 'float32',
             CATEGORY_TITLE: 'string',
           },

@@ -20,7 +20,13 @@
   $: rowsQuery = querySelectRows(
     $store.namespace,
     $store.datasetName,
-    {...selectOptions, columns: [ROWID], limit},
+    {
+      ...selectOptions,
+      columns: [ROWID],
+      limit,
+      // Sort by ROWID on top of any other sort_by option to ensure that the result order is stable.
+      sort_by: [...(selectOptions.sort_by || []), ROWID]
+    },
     $selectRowsSchema.data?.schema
   );
 
