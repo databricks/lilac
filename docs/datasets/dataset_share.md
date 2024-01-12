@@ -27,8 +27,6 @@ Optional arguments:
 --hf_token: A huggingface access token, defaults to HF_ACCESS_TOKEN.
 ```
 
-Output:
-
 ### Download
 
 To download a dataset that was uploaded with the `lilac upload` command:
