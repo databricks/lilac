@@ -34,7 +34,7 @@ Output:
 To download a dataset that was uploaded with the `lilac upload` command:
 
 ```bash
-lilac download lilacai/glaive-test
+lilac download lilacai/glaive
 ```
 
 Optional arguments:
