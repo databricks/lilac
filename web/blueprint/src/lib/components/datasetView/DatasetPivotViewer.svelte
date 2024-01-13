@@ -239,7 +239,7 @@
                   {group.percentage}%
                 </span>
                 <span class="ml-2 text-neutral-500">
-                  {group.count} rows
+                  {group.count.toLocaleString()} rows
                 </span>
               </div>
               <div class="">

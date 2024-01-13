@@ -8,6 +8,7 @@ from typing import Any, Callable, Iterator, Optional, Union, cast
 import instructor
 import modal
 import numpy as np
+from instructor.exceptions import IncompleteOutputException
 from joblib import Parallel, delayed
 from pydantic import (
   BaseModel,
@@ -111,26 +112,32 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
     stop=stop_after_attempt(10),
   )
   def request_with_retries() -> str:
-    title = _openai_client().chat.completions.create(
-      model='gpt-3.5-turbo-1106',
-      response_model=Title,
-      temperature=0.0,
-      max_tokens=50,
-      messages=[
-        {
-          'role': 'system',
-          'content': (
-            'You are a world-class title generator. Ignore the group of related requests below, '
-            'and generate a short title to describe the common theme. Some examples: "YA book '
-            'reviews", "Questions about South East Asia", "Translating English to Polish", '
-            '"Writing product descriptions", etc. Prefer using descriptive words. Do not use vague '
-            'words like "various", "assortment", "comments", "discussion", etc.'
-          ),
-        },
-        {'role': 'user', 'content': input},
-      ],
-    )
-    return title.title
+    max_tokens = 50
+    while True:
+      try:
+        title = _openai_client().chat.completions.create(
+          model='gpt-3.5-turbo-1106',
+          response_model=Title,
+          temperature=0.0,
+          max_tokens=max_tokens,
+          messages=[
+            {
+              'role': 'system',
+              'content': (
+                'You are a world-class title generator. Ignore the group of related requests '
+                'below, and generate a short title to describe the common theme. Some examples: '
+                '"YA book reviews", "Questions about South East Asia", "Translating English to '
+                'Polish", "Writing product descriptions", etc. Prefer using descriptive words. Do '
+                'not use vague words like "various", "assortment", "comments", "discussion", etc.'
+              ),
+            },
+            {'role': 'user', 'content': input},
+          ],
+        )
+        return title.title
+      except IncompleteOutputException:
+        max_tokens = max_tokens * 2
+        print(f'Retrying with max_tokens={max_tokens}')
 
   return request_with_retries()
 

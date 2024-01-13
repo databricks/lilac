@@ -151,7 +151,7 @@
                   </div>
                 </div>
                 <span class="text-sm text-neutral-700">
-                  {count.count} rows
+                  {count.count.toLocaleString()} rows
                 </span>
               </div>
             </div>
