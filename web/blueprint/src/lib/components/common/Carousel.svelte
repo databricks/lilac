@@ -1,18 +1,18 @@
 <script lang="ts">
+  import {SkeletonText} from 'carbon-components-svelte';
   import {ChevronLeft, ChevronRight} from 'carbon-icons-svelte';
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type T = any;
 
   export let pageSize: number;
-  export let items: T[] = [];
+  export let items: T[] | undefined = undefined;
 
   let currentPage = 0;
 
   $: prevPageDisabled = currentPage === 0;
-  $: nextPageDisabled = (currentPage + 1) * pageSize >= items.length;
+  $: nextPageDisabled = items != null ? (currentPage + 1) * pageSize >= items.length : true;
 
-  $: itemsVisible = items.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  $: itemsVisible = items?.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   function showNextPage() {
     if (nextPageDisabled) return;
@@ -23,7 +23,7 @@
     currentPage -= 1;
   }
 
-  $: pages = Array.from({length: Math.ceil(items.length / pageSize)});
+  $: pages = items != null ? Array.from({length: Math.ceil(items.length / pageSize)}) : [];
 </script>
 
 <div class="flex w-full flex-col">
@@ -33,16 +33,25 @@
         class:invisible={prevPageDisabled}
         class:opacity-50={prevPageDisabled}
         class="mx-1"
-        on:click={() => showPrevPage()}><ChevronLeft /></button
-      >
+        on:click={() => showPrevPage()}
+        ><ChevronLeft />
+      </button>
     </div>
 
     <div class="flex h-full grow flex-row gap-x-2">
-      {#each itemsVisible as item}
-        <div style={`width: ${100 / pageSize}%`} class="h-full">
-          <slot name="item" {item} />
-        </div>
-      {/each}
+      {#if itemsVisible != null}
+        {#each itemsVisible as item}
+          <div style={`width: ${100 / pageSize}%`} class="h-full">
+            <slot name="item" {item} />
+          </div>
+        {/each}
+      {:else}
+        {#each Array(pageSize) as _, index (index)}
+          <div style={`width: ${100 / pageSize}%`} class="h-full">
+            <SkeletonText class="w-full" paragraph />
+          </div>
+        {/each}
+      {/if}
     </div>
 
     <div class="flex flex-shrink items-center">
@@ -50,8 +59,9 @@
         class:invisible={nextPageDisabled}
         class:opacity-50={nextPageDisabled}
         class="mx-1"
-        on:click={() => showNextPage()}><ChevronRight /></button
-      >
+        on:click={() => showNextPage()}
+        ><ChevronRight />
+      </button>
     </div>
   </div>
   <div class="mx-auto px-16">

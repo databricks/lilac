@@ -13,7 +13,6 @@
   import {datasetLink} from '$lib/utils';
   import {getSearchHighlighting} from '$lib/view_utils';
   import {ROWID, type BinaryFilter, type Path, type StringFilter, type UnaryFilter} from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
   import {Information} from 'carbon-icons-svelte';
   import {createEventDispatcher, onDestroy, onMount} from 'svelte';
   import Carousel from '../common/Carousel.svelte';
@@ -78,10 +77,6 @@
         limit: null
       })
     : null;
-  $: counts = ($countQuery?.data?.counts || []).map(([name, count]) => ({
-    name,
-    count
-  }));
 
   const dispatch = createEventDispatcher();
   $: {
@@ -91,7 +86,7 @@
       $countQuery?.data != null &&
       $countQuery?.isFetching === false
     ) {
-      dispatch('load', {count: counts.length});
+      dispatch('load', {count: $countQuery.data.counts.length});
     }
   }
 
@@ -106,13 +101,15 @@
     // version that supports generics, so we have to do this type-cast.
     return item as (typeof counts)[0];
   }
+
+  $: counts = $countQuery?.data?.counts?.map(([name, count]) => ({
+    name,
+    count
+  }));
 </script>
 
 <div class="flex h-64 w-full flex-row flex-wrap" bind:this={root}>
-  {#if $countQuery?.isFetching === true}
-    <SkeletonText paragraph class="w-full" />
-  {/if}
-  {#if counts.length > 0}
+  {#if isOnScreen}
     <Carousel items={counts} pageSize={ITEMS_PER_PAGE}>
       <div class="w-full" slot="item" let:item>
         {@const count = groupResultFromItem(item)}
