@@ -112,16 +112,16 @@
   }
 </script>
 
-<div class="flex w-full flex-row flex-wrap" bind:this={root}>
+<div class="flex h-64 w-full flex-row flex-wrap" bind:this={root}>
   {#if counts.length > 0}
     <Carousel items={counts} pageSize={ITEMS_PER_PAGE}>
-      <div class="h-full w-full" slot="item" let:item>
+      <div class="w-full" slot="item" let:item>
         {@const count = groupResultFromItem(item)}
         {@const groupPercentage = getPercentage(count.count, numRowsInGroup)}
         {@const totalPercentage = getPercentage(count.count, numRowsInQuery)}
         {@const textHighlights = getSearchHighlighting(count.name, searchText)}
         <div
-          class="min-w-64 md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
+          class="md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
         >
           <div
             class="card-title h-16 text-center text-base font-light leading-5 tracking-tight text-neutral-900"

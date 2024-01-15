@@ -37,9 +37,9 @@
       >
     </div>
 
-    <div class="flex h-full grow flex-row">
+    <div class="flex h-full grow flex-row gap-x-2">
       {#each itemsVisible as item}
-        <div style={`width: ${100 / pageSize}%`} class="mx-1 h-full">
+        <div style={`width: ${100 / pageSize}%`} class="h-full">
           <slot name="item" {item} />
         </div>
       {/each}
