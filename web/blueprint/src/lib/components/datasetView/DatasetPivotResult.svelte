@@ -13,6 +13,7 @@
   import {datasetLink} from '$lib/utils';
   import {getSearchHighlighting} from '$lib/view_utils';
   import {ROWID, type BinaryFilter, type Path, type StringFilter, type UnaryFilter} from '$lilac';
+  import {SkeletonText} from 'carbon-components-svelte';
   import {Information} from 'carbon-icons-svelte';
   import {createEventDispatcher, onDestroy, onMount} from 'svelte';
   import Carousel from '../common/Carousel.svelte';
@@ -23,9 +24,6 @@
   export let parentValue: string;
   export let numRowsInQuery: number | undefined;
   export let searchText: string | undefined;
-  // When true, queries will be issued. This allows us to progressively load without spamming the
-  // server.
-  export let shouldLoad = false;
 
   const ITEMS_PER_PAGE = 5;
 
@@ -59,29 +57,27 @@
   $: filters = [filter, ...(selectOptions.filters || [])];
 
   $: selectOptions = getSelectRowsOptions($store);
-  $: rowsQuery =
-    shouldLoad && isOnScreen
-      ? querySelectRows(
-          $store.namespace,
-          $store.datasetName,
-          {...selectOptions, columns: [ROWID], limit: 1, filters},
-          $selectRowsSchema.data?.schema
-        )
-      : null;
+  $: rowsQuery = isOnScreen
+    ? querySelectRows(
+        $store.namespace,
+        $store.datasetName,
+        {...selectOptions, columns: [ROWID], limit: 1, filters},
+        $selectRowsSchema.data?.schema
+      )
+    : null;
   $: numRowsInGroup = $rowsQuery?.data?.total_num_rows;
 
-  $: countQuery =
-    shouldLoad && isOnScreen
-      ? querySelectGroups($store.namespace, $store.datasetName, {
-          leaf_path: path,
-          filters: [
-            ...filters,
-            ...(searchText ? [{path, op: 'ilike', value: searchText} as StringFilter] : [])
-          ],
-          // Explicitly set the limit to null to get all the groups, not just the top 100.
-          limit: null
-        })
-      : null;
+  $: countQuery = isOnScreen
+    ? querySelectGroups($store.namespace, $store.datasetName, {
+        leaf_path: path,
+        filters: [
+          ...filters,
+          ...(searchText ? [{path, op: 'ilike', value: searchText} as StringFilter] : [])
+        ],
+        // Explicitly set the limit to null to get all the groups, not just the top 100.
+        limit: null
+      })
+    : null;
   $: counts = ($countQuery?.data?.counts || []).map(([name, count]) => ({
     name,
     count
@@ -113,6 +109,9 @@
 </script>
 
 <div class="flex h-64 w-full flex-row flex-wrap" bind:this={root}>
+  {#if $countQuery?.isFetching === true}
+    <SkeletonText paragraph class="w-full" />
+  {/if}
   {#if counts.length > 0}
     <Carousel items={counts} pageSize={ITEMS_PER_PAGE}>
       <div class="w-full" slot="item" let:item>

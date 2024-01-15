@@ -125,8 +125,6 @@
     $store.pivot = {...$store.pivot, outerPath: outerLeafPath};
   }
 
-  // We use a loadIndex to load the inner viewers serially so we don't overwhelm the server.
-  let loadIndex = 0;
   let groupCounts: number[] = [];
 
   // The bound input text from the search box.
@@ -146,7 +144,6 @@
 
   function clearSearch() {
     inputSearchText = undefined;
-    loadIndex = 0;
     search();
   }
 </script>
@@ -267,11 +264,7 @@
             {#if innerLeafPath && innerLeafPath.length > 0}
               {#key searchText}
                 <DatasetPivotResult
-                  shouldLoad={loadIndex >= i}
                   on:load={({detail}) => {
-                    // Serially load in the order of results on the page so we don't overwhelm the
-                    // server.
-                    loadIndex = i + 1;
                     groupCounts[i] = detail.count;
                     groupCounts = groupCounts;
                   }}
