@@ -133,7 +133,7 @@
                 <Checkbox />
               {:else if typeof filter.value === 'function'}
                 <span>Blob filter not yet implemented</span>
-              {:else}
+              {:else if typeof filter.value === 'number' || typeof filter.value === 'string'}
                 <TextInput labelText="Value" bind:value={filter.value} />
               {/if}
               <button

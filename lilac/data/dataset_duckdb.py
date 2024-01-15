@@ -136,6 +136,8 @@ from .dataset import (
   FilterLike,
   GroupsSortBy,
   MediaResult,
+  OuterGroup,
+  PivotResult,
   Search,
   SearchResultInfo,
   SelectGroupsResult,
@@ -1628,6 +1630,107 @@ class DatasetDuckDB(Dataset):
       counts = [(None if pd.isnull(val) else val.to_pydatetime(), count) for val, count in counts]
 
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
+
+  @override
+  def pivot(
+    self,
+    outer_path: Path,
+    inner_path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+  ) -> PivotResult:
+    if not inner_path or not outer_path:
+      raise ValueError('both `outer_path` and `inner_path` must be provided')
+    sort_by = sort_by or GroupsSortBy.COUNT
+    sort_order = sort_order or SortOrder.DESC
+    inner_path = normalize_path(inner_path)
+    outer_path = normalize_path(outer_path)
+    manifest = self.manifest()
+    inner_leaf = manifest.data_schema.get_field(inner_path)
+    outer_leaf = manifest.data_schema.get_field(outer_path)
+
+    # Find the inner-most inner leaf in case this field is repeated.
+    while inner_leaf.repeated_field:
+      inner_leaf = inner_leaf.repeated_field
+      inner_path = (*inner_path, PATH_WILDCARD)
+
+    # Find the inner-most outer leaf in case this field is repeated.
+    while outer_leaf.repeated_field:
+      outer_leaf = outer_leaf.repeated_field
+      outer_path = (*outer_path, PATH_WILDCARD)
+
+    if not inner_leaf.dtype:
+      raise ValueError(f'Inner path "{inner_path}" is not a leaf in the dataset')
+    if not outer_leaf.dtype:
+      raise ValueError(f'Outer path "{outer_path}" is not a leaf in the dataset')
+
+    if inner_leaf.dtype.type == 'map' or is_ordinal(inner_leaf.dtype):
+      raise ValueError(f'Cannot compute pivot on an ordinal or map field "{inner_path}".')
+    if outer_leaf.dtype.type == 'map' or is_ordinal(outer_leaf.dtype):
+      raise ValueError(f'Cannot compute pivot on an ordinal or map field "{outer_path}".')
+
+    if self.stats(inner_path).approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
+      return PivotResult(too_many_distinct=True, outer_groups=[])
+    if self.stats(outer_path).approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
+      return PivotResult(too_many_distinct=True, outer_groups=[])
+
+    count_column = GroupsSortBy.COUNT.value
+    value_column = GroupsSortBy.VALUE.value
+    inner_column = 'inner'
+
+    inner_duckdb_path = self._leaf_path_to_duckdb_path(inner_path, manifest.data_schema)
+    inner_select = _select_sql(
+      inner_duckdb_path,
+      flatten=True,
+      unnest=True,
+      path=inner_path,
+      schema=manifest.data_schema,
+      span_from=self._resolve_span(inner_path, manifest),
+    )
+
+    outer_duckdb_path = self._leaf_path_to_duckdb_path(outer_path, manifest.data_schema)
+    outer_select = _select_sql(
+      outer_duckdb_path,
+      flatten=True,
+      unnest=True,
+      path=outer_path,
+      schema=manifest.data_schema,
+      span_from=self._resolve_span(outer_path, manifest),
+    )
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+    if manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
+      filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
+    filter_queries = self._create_where(manifest, filters)
+
+    where_query = ''
+    if filter_queries:
+      where_query = f"WHERE {' AND '.join(filter_queries)}"
+
+    query = f"""
+      SELECT
+        out_val AS {value_column},
+        SUM(c) AS {count_column},
+        list({{'{value_column}': in_val, '{count_column}': c}} ORDER BY c DESC) AS {inner_column}
+      FROM (
+        SELECT out_val, in_val, count() AS c FROM (
+          SELECT {outer_select} AS out_val, {inner_select} AS in_val
+          FROM t
+          {where_query}
+        )
+        GROUP BY out_val, in_val
+      )
+      GROUP BY out_val
+      ORDER BY {sort_by.value} {sort_order.value}, {value_column}
+    """
+    df = self._query_df(query)
+    outer_groups: list[OuterGroup] = []
+    for out_val, count, inner_structs in df.itertuples(index=False, name=None):
+      inner: list[tuple[str, int]] = [
+        (struct[value_column], struct[count_column]) for struct in inner_structs
+      ]
+      outer_groups.append(OuterGroup(value=out_val, count=count, inner=inner))
+    return PivotResult(outer_groups=outer_groups)
 
   def _topk_udf_to_sort_by(
     self,

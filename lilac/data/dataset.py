@@ -273,6 +273,21 @@ class SelectGroupsResult(BaseModel):
   bins: Optional[list[Bin]] = None
 
 
+class OuterGroup(BaseModel):
+  """The outer group of a pivot query."""
+
+  value: str
+  count: int
+  inner: list[tuple[str, int]]
+
+
+class PivotResult(BaseModel):
+  """The result of a pivot query."""
+
+  outer_groups: list[OuterGroup]
+  too_many_distinct: bool = False
+
+
 class Filter(BaseModel):
   """A filter on a column."""
 
@@ -562,6 +577,18 @@ class Dataset(abc.ABC):
     Returns:
       A `SelectGroupsResult` iterator where each row is a group.
     """
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def pivot(
+    self,
+    outer_path: Path,
+    inner_path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+  ) -> PivotResult:
+    """Pivot table with counts across two fields (outer and inner)."""
     raise NotImplementedError
 
   @abc.abstractmethod

@@ -96,10 +96,10 @@
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function groupResultFromItem(item: any): (typeof counts)[0] {
+  function groupResultFromItem(item: any): {name: string; count: number} {
     // This is just a type-cast for the svelte component below. We haven't upgraded to the svelte
     // version that supports generics, so we have to do this type-cast.
-    return item as (typeof counts)[0];
+    return item;
   }
 
   $: counts = $countQuery?.data?.counts?.map(([name, count]) => ({
