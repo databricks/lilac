@@ -15,7 +15,6 @@ from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
 from .tasks import (
-  TaskId,
   get_task_manager,
 )
 from .utils import DebugTimer, get_datasets_dir, log
@@ -211,7 +210,6 @@ def _compute_signal(
   name: str,
   signal_config: SignalConfig,
   project_dir: Union[str, pathlib.Path],
-  task_id: TaskId,
   overwrite: bool = False,
 ) -> None:
   # Turn off debug logging.
@@ -223,7 +221,6 @@ def _compute_signal(
     signal=signal_config.signal,
     path=signal_config.path,
     overwrite=overwrite,
-    task_id=task_id,
   )
 
   # Free up RAM.
