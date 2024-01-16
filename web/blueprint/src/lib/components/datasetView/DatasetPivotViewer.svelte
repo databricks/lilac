@@ -118,8 +118,6 @@
   }
   $: groups = getGroups($pivotQuery?.data, $outerCountQuery?.data, $store.pivot?.searchText);
 
-  $: noResults = false;
-
   function getPercentage(count: number) {
     if (numRowsInQuery == null) return '';
     return ((count / numRowsInQuery) * 100).toFixed(2);
@@ -304,11 +302,10 @@
               />
             {/if}
           </div>
+        {:else}
+          <div class="mx-20 mt-8 w-full text-lg text-gray-600">No results.</div>
         {/each}
       </div>
-    {/if}
-    {#if noResults}
-      <div class="mx-20 mt-8 w-full text-lg text-gray-600">No results.</div>
     {/if}
   </div>
 </div>
