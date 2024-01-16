@@ -40,7 +40,7 @@
         }}
       >
         <Button
-          href={`https://docs.huggingface.co/spaces/${huggingFaceSpaceId}?duplicate=true`}
+          href={`https://huggingface.co/spaces/${huggingFaceSpaceId}?duplicate=true`}
           target="_blank"
           kind="tertiary">duplicate</Button
         >
@@ -52,7 +52,7 @@
             'See Lilac documentation on duplicating the HuggingFace space  ' +
             'so you can manage your own instance.'
         }}
-        href="https://docs.lilacml.com/huggingface/huggingface_spaces.html"><Help /></a
+        href="https://docs.lilacml.com/deployment/huggingface_spaces.html"><Help /></a
       >
     </div>
   </div>

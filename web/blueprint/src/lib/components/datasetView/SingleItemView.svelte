@@ -16,7 +16,7 @@
 
   let limit = DEFAULT_LIMIT_SELECT_ROW_IDS;
   let rowsResponse: SelectRowsResponse | undefined;
-  let nextRowsResponse: SelectRowsResponse | undefined;
+  let nextRowResponse: SelectRowsResponse | undefined;
 
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
@@ -64,11 +64,18 @@
     if (index == null) {
       return;
     }
-    let newIndex = direction === 'next' ? index + 1 : Math.max(index - 1, 0);
-    const newRowId = L.value(nextRowsResponse?.rows[newIndex]?.[ROWID], 'string');
-    if (newRowId != null) {
-      store.setRowId(newRowId);
+    if (rows == null) {
       return;
+    }
+    let newIndex = direction === 'next' ? index + 1 : Math.max(index - 1, 0);
+    let newRowId: string | null;
+    if (newIndex >= rows.length) {
+      newRowId = L.value(nextRowResponse?.rows?.[0]?.[ROWID], 'string');
+    } else {
+      newRowId = L.value(rows[newIndex]?.[ROWID], 'string');
+    }
+    if (newRowId) {
+      store.setRowId(newRowId);
     }
   }
 
@@ -84,13 +91,21 @@
 <FilterPanel numRowsInQuery={rowsResponse?.total_num_rows} />
 
 <SingleItemSelectRows {limit} bind:rowsResponse />
-<SingleItemSelectRows limit={limit * 2} bind:rowsResponse={nextRowsResponse} />
+{#if rows != null}
+  <SingleItemSelectRows limit={1} offset={rows.length} bind:rowsResponse={nextRowResponse} />
+{/if}
 
-<!-- Prefetch both the current and the next page of responses, to minimize the loading bar. -->
-{#each nextRowsResponse?.rows || [] as row}
-  {@const rowId = L.value(row[ROWID], 'string')}
-  <PrefetchRowItem {rowId} />
-{/each}
+<!-- Prefetch the previous and next item to minimize perceived lag. -->
+{#if index != null && rows != null}
+  {#if index > 0}
+    <PrefetchRowItem rowId={L.value(rows[index - 1]?.[ROWID], 'string')} />
+  {/if}
+
+  {#if index < rows.length - 1}
+    <PrefetchRowItem rowId={L.value(rows[index + 1]?.[ROWID], 'string')} />
+  {/if}
+{/if}
+
 <div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
   <RowItem
     {index}
