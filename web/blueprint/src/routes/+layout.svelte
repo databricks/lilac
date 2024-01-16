@@ -2,7 +2,7 @@
   import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
   import {apiErrors, queryClient} from '$lib/queries/queryClient';
   import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
-  import type {ApiError} from '$lilac';
+  import {OpenAPI, type ApiError} from '$lilac';
   import {QueryClientProvider} from '@tanstack/svelte-query';
   import {Theme, ToastNotification} from 'carbon-components-svelte';
   import {onMount} from 'svelte';
@@ -56,11 +56,22 @@
   // the dataset state on the global app store.
   function urlChange(url: string | URL) {
     const newURL = new URL(url);
-    const newPage = routeToPage[newURL.pathname];
+    const pathName = newURL.pathname.endsWith('/') ? newURL.pathname.slice(0, -1) : newURL.pathname;
+    const newPage = routeToPage[pathName];
     urlHashStore.setHash(newPage, newURL.hash);
   }
 
   onMount(() => {
+    // Set the base URL for OpenAPI requests automatically. We use the current path, minus the
+    // current page, as the base URL. This allows us to override the OpenAPI generated code to point
+    // to endpoints that may not be served from '/'.
+    let pathName = window.location.pathname;
+    // Remove the page from the path name.
+    if ($page.route.id != null && pathName.endsWith($page.route.id)) {
+      pathName = pathName.slice(0, -$page.route.id.length);
+    }
+    OpenAPI.BASE = pathName != '' ? `${location.origin}/${pathName}` : location.origin;
+
     // This fixes a cross-origin error when the app is embedding in an iframe. Some carbon
     // components attach listeners to window.parent, which is not allowed in an iframe, so we set
     // the parent to window.
