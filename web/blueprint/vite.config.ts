@@ -8,19 +8,53 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom'
   },
+  base: '/blueprint/',
   server: {
     proxy: {
-      '^/api': 'http://127.0.0.1:5432',
+      '^/blueprint/$': {
+        rewrite: path => {
+          if (path.includes('_app')) {
+            return path;
+          }
+          return path.replace('/blueprint', '');
+        },
+        target: 'http://127.0.0.1:5432'
+      },
+      '^/blueprint/api': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      },
       // Listing data files.
-      '^/_data': 'http://127.0.0.1:5432',
+      '^/blueprint/_data': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      },
       // Google login.
-      '^/google': 'http://127.0.0.1:5432',
-      '/auth_info': 'http://127.0.0.1:5432',
-      '/status': 'http://127.0.0.1:5432',
-      '/load_config': 'http://127.0.0.1:5432',
+      '^/blueprint/google': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      },
+      '/blueprint/auth_info': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      },
+      '/blueprint/status': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      },
+      '/blueprint/load_config': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      },
       // OpenAPI docs
-      '^/docs': 'http://127.0.0.1:5432',
-      '/openapi.json': 'http://127.0.0.1:5432'
+      '^/blueprint/docs': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      },
+      '/blueprint/openapi.json': {
+        rewrite: path => path.replace('/blueprint', ''),
+        target: 'http://127.0.0.1:5432'
+      }
     }
   }
 });

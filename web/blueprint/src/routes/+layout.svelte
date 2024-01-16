@@ -61,16 +61,21 @@
     urlHashStore.setHash(newPage, newURL.hash);
   }
 
+  OpenAPI.BASE = '/blueprint';
+
   onMount(() => {
     // Set the base URL for OpenAPI requests automatically. We use the current path, minus the
     // current page, as the base URL. This allows us to override the OpenAPI generated code to point
     // to endpoints that may not be served from '/'.
     let pathName = window.location.pathname;
     // Remove the page from the path name.
+    console.log('route id', $page.route.id);
     if ($page.route.id != null && pathName.endsWith($page.route.id)) {
       pathName = pathName.slice(0, -$page.route.id.length);
     }
-    OpenAPI.BASE = pathName != '' ? `${location.origin}/${pathName}` : location.origin;
+
+    // OpenAPI.BASE = pathName != '' ? `${location.origin}${pathName}` : location.origin;
+    console.log(OpenAPI.BASE, location.origin, pathName);
 
     // This fixes a cross-origin error when the app is embedding in an iframe. Some carbon
     // components attach listeners to window.parent, which is not allowed in an iframe, so we set
