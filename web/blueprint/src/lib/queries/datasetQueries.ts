@@ -233,8 +233,6 @@ export const querySelectRowsSchema = createApiQuery(
 
 export const querySelectGroups = createApiQuery(DatasetsService.selectGroups, DATASETS_TAG);
 
-export const queryPivot = createApiQuery(DatasetsService.pivot, DATASETS_TAG);
-
 export const infiniteQuerySelectRows = (
   namespace: string,
   datasetName: string,

@@ -1,10 +1,11 @@
 <script lang="ts">
   import {
-    queryPivot,
+    DATASETS_TAG,
     querySelectGroups,
     querySelectRows,
     querySelectRowsSchema
   } from '$lib/queries/datasetQueries';
+  import {createApiQuery} from '$lib/queries/queryUtils';
   import {
     getDatasetViewContext,
     getSelectRowsOptions,
@@ -13,6 +14,7 @@
   import {datasetLink} from '$lib/utils';
   import {getDisplayPath, getSearchHighlighting} from '$lib/view_utils';
   import {
+    DatasetsService,
     ROWID,
     childFields,
     deserializePath,
@@ -67,14 +69,14 @@
         })
       : null;
 
-  $: pivotQuery =
-    outerLeafPath != null && innerLeafPath != null
-      ? queryPivot($store.namespace, $store.datasetName, {
-          outer_path: outerLeafPath,
-          inner_path: innerLeafPath,
-          filters: selectOptions.filters
-        })
-      : null;
+  $: pivotQueryFn = createApiQuery(DatasetsService.pivot, DATASETS_TAG, {
+    enabled: outerLeafPath != null && innerLeafPath != null
+  });
+  $: pivotQuery = pivotQueryFn($store.namespace, $store.datasetName, {
+    outer_path: outerLeafPath!,
+    inner_path: innerLeafPath!,
+    filters: selectOptions.filters
+  });
 
   function getGroups(
     pivotTable: PivotResult | undefined,
@@ -82,9 +84,6 @@
     searchQuery: string | undefined
   ): OuterPivot[] | undefined {
     if (pivotTable == null && outerCounts == null) return undefined;
-    if (pivotTable != null && outerCounts != null) {
-      throw new Error('Should not happen');
-    }
     searchQuery = searchQuery?.trim().toLowerCase();
 
     if (pivotTable != null) {
@@ -115,8 +114,6 @@
         textHighlights: getSearchHighlighting(value, searchText),
         inner: []
       }));
-    } else {
-      throw new Error('Should not happen');
     }
   }
   $: groups = getGroups($pivotQuery?.data, $outerCountQuery?.data, $store.pivot?.searchText);
@@ -155,7 +152,7 @@
       selectedItem: DropdownItem;
     }>
   ) {
-    innerLeafPath = deserializePath(e.detail.selectedId);
+    innerLeafPath = e.detail.selectedId != null ? deserializePath(e.detail.selectedId) : undefined;
     $store.pivot = {...$store.pivot, innerPath: innerLeafPath};
   }
   function selectOuterPath(
@@ -164,7 +161,7 @@
       selectedItem: DropdownItem;
     }>
   ) {
-    outerLeafPath = deserializePath(e.detail.selectedId);
+    outerLeafPath = e.detail.selectedId != null ? deserializePath(e.detail.selectedId) : undefined;
     $store.pivot = {...$store.pivot, outerPath: outerLeafPath};
   }
 
