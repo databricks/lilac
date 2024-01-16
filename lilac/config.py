@@ -128,6 +128,21 @@ class DatasetSettings(BaseModel):
   )
 
 
+class ClusterConfig(BaseModel):
+  """Configuration for computing clusters for a dataset.
+
+  This is not used in any Lilac-internal database configuration settings. Just some sugar for
+  specifying which clusters to compute for our demo website.
+  """
+
+  dataset_namespace: str
+  dataset_name: str
+  input_path: PathTuple
+  remote: bool = (
+    True  # Whether to compute the cluster via remote service. Toggle to false for unit testing.
+  )
+
+
 class DatasetConfig(BaseModel):
   """Configures a dataset with a source and transformations."""
 
@@ -184,6 +199,10 @@ class Config(BaseModel):
   # A list of embeddings to compute the model caches for, for all concepts.
   concept_model_cache_embeddings: list[str] = PydanticField(
     description='The set of embeddings to compute model caches for for every concept.', default=[]
+  )
+
+  clusters: list[ClusterConfig] = PydanticField(
+    description='The set of datasets and paths to compute clusters for.', default=[]
   )
   model_config = ConfigDict(extra='forbid')
 

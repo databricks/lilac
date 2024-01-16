@@ -346,6 +346,8 @@ class Field(BaseModel):
 class Schema(BaseModel):
   """Database schema."""
 
+  # Map of top-level column names to fields (which are potentially complex structs).
+  # Use .all_fields to get all fields, not just the top-level fields.
   fields: dict[str, Field]
   # Cached leafs.
   _leafs: Optional[dict[PathTuple, Field]] = None
@@ -363,7 +365,7 @@ class Schema(BaseModel):
 
   @functools.cached_property
   def all_fields(self) -> list[tuple[PathTuple, Field]]:
-    """Return all the fields in the schema as a flat list."""
+    """Return all the fields, including nested and repeated fields, as a flat list."""
     result: list[tuple[PathTuple, Field]] = []
     q: deque[tuple[PathTuple, Field]] = deque([((), Field(fields=self.fields))])
     while q:

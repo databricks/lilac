@@ -151,6 +151,7 @@ openai = ["openai"]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
+devtools = "^0.12.2"
 google-api-python-client-stubs = "^1.13.0"
 httpx = "^0.24.0"
 huggingface-hub = "^0.17.1"
