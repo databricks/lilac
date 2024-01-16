@@ -154,7 +154,9 @@
         <div class="flex flex-wrap gap-x-8">
           <section>
             <h4>Source fields</h4>
-            <FieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
+            {#if checkedSourceFields != null}
+              <FieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
+            {/if}
           </section>
           {#if labelFields.length > 0}
             <section>
