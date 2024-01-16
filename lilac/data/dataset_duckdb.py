@@ -1665,10 +1665,14 @@ class DatasetDuckDB(Dataset):
     if not outer_leaf.dtype:
       raise ValueError(f'Outer path "{outer_path}" is not a leaf in the dataset')
 
-    if inner_leaf.dtype.type == 'map' or is_ordinal(inner_leaf.dtype):
-      raise ValueError(f'Cannot compute pivot on an ordinal or map field "{inner_path}".')
-    if outer_leaf.dtype.type == 'map' or is_ordinal(outer_leaf.dtype):
-      raise ValueError(f'Cannot compute pivot on an ordinal or map field "{outer_path}".')
+    if inner_leaf.dtype.type == 'map':
+      raise ValueError(f'Cannot compute pivot on a map field "{inner_path}".')
+    if is_ordinal(inner_leaf.dtype):
+      raise ValueError(f'Cannot compute pivot on an ordinal field "{inner_path}".')
+    if outer_leaf.dtype.type == 'map':
+      raise ValueError(f'Cannot compute pivot on an map field "{outer_path}".')
+    if is_ordinal(outer_leaf.dtype):
+      raise ValueError(f'Cannot compute pivot on an ordinal field "{outer_path}".')
 
     if self.stats(inner_path).approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
       return PivotResult(too_many_distinct=True, outer_groups=[])
@@ -1704,25 +1708,27 @@ class DatasetDuckDB(Dataset):
     )
 
     query = f"""
+      WITH tuples AS (
+        SELECT {outer_select} AS out_val, {inner_select} AS in_val
+        FROM t
+        {where_query}
+      ),
+      tuple_counts AS (
+        SELECT out_val, in_val, count() AS c FROM tuples
+        GROUP BY out_val, in_val
+      )
       SELECT
         out_val AS {value_column},
         SUM(c) AS {count_column},
         list({{'{value_column}': in_val, '{count_column}': c}} ORDER BY c DESC) AS {inner_column}
-      FROM (
-        SELECT out_val, in_val, count() AS c FROM (
-          SELECT {outer_select} AS out_val, {inner_select} AS in_val
-          FROM t
-          {where_query}
-        )
-        GROUP BY out_val, in_val
-      )
+      FROM tuple_counts
       GROUP BY out_val
       ORDER BY {sort_by.value} {sort_order.value}, {value_column}
     """
     df = self._query_df(query)
     outer_groups: list[PivotResultOuterGroup] = []
     for out_val, count, inner_structs in df.itertuples(index=False, name=None):
-      inner: list[tuple[str, int]] = [
+      inner: list[tuple[Optional[str], int]] = [
         (struct[value_column], struct[count_column]) for struct in inner_structs
       ]
       outer_groups.append(PivotResultOuterGroup(value=out_val, count=count, inner=inner))
