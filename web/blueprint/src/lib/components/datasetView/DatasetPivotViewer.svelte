@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    queryPivot,
     querySelectGroups,
     querySelectRows,
     querySelectRowsSchema
@@ -17,7 +18,9 @@
     deserializePath,
     isSignalField,
     serializePath,
-    type Path
+    type Path,
+    type PivotResult,
+    type SelectGroupsResult
   } from '$lilac';
   import {Search, SkeletonText} from 'carbon-components-svelte';
   import type {
@@ -25,10 +28,10 @@
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import DropdownPill from '../common/DropdownPill.svelte';
-  import DatasetPivotResult from './DatasetPivotResult.svelte';
+  import DatasetPivotResult, {type OuterPivot} from './DatasetPivotResult.svelte';
 
-  let outerLeafPath: Path | undefined = undefined; // = ['source'];
-  let innerLeafPath: Path | undefined = undefined; // ['prompt_cluster', 'topic'];
+  let outerLeafPath: Path | undefined = undefined;
+  let innerLeafPath: Path | undefined = undefined;
 
   const store = getDatasetViewContext();
 
@@ -55,7 +58,7 @@
 
   // Get the total count for the dataset.
   $: outerCountQuery =
-    outerLeafPath != null
+    outerLeafPath != null && innerLeafPath == null
       ? querySelectGroups($store.namespace, $store.datasetName, {
           leaf_path: outerLeafPath,
           filters: selectOptions.filters,
@@ -63,22 +66,62 @@
           limit: null
         })
       : null;
-  $: groups = ($outerCountQuery?.data?.counts || []).map(([name, count]) => {
-    const textHighlights = getSearchHighlighting(name, searchText);
-    const hasMatchingSearch = textHighlights.some(x => x.isBold);
-    return {
-      name,
-      count,
-      percentage: getPercentage(count),
-      textHighlights,
-      hasMatchingSearch
-    };
-  });
 
-  $: noResults =
-    groupCounts.length === groups.length &&
-    groupCounts.every(count => count === 0) &&
-    !groups.some(group => group.hasMatchingSearch);
+  $: pivotQuery =
+    outerLeafPath != null && innerLeafPath != null
+      ? queryPivot($store.namespace, $store.datasetName, {
+          outer_path: outerLeafPath,
+          inner_path: innerLeafPath,
+          filters: selectOptions.filters
+        })
+      : null;
+
+  function getGroups(
+    pivotTable: PivotResult | undefined,
+    outerCounts: SelectGroupsResult | undefined,
+    searchQuery: string | undefined
+  ): OuterPivot[] | undefined {
+    if (pivotTable == null && outerCounts == null) return undefined;
+    if (pivotTable != null && outerCounts != null) {
+      throw new Error('Should not happen');
+    }
+    searchQuery = searchQuery?.trim().toLowerCase();
+
+    if (pivotTable != null) {
+      const groups = pivotTable.outer_groups.map(outerGroup => ({
+        value: outerGroup.value,
+        count: outerGroup.count,
+        percentage: getPercentage(outerGroup.count),
+        textHighlights: getSearchHighlighting(outerGroup.value, searchText),
+        inner: outerGroup.inner
+          .filter(x => searchQuery == null || x[0].toLowerCase().includes(searchQuery))
+          .map(([innerValue, innerCount]) => ({
+            value: innerValue,
+            count: innerCount,
+            textHighlights: getSearchHighlighting(innerValue, searchText)
+          }))
+      }));
+      // Filter out groups with no inner groups and no match on the search query.
+      return groups.filter(
+        group =>
+          group.inner.length > 0 ||
+          (searchQuery != null && group.value.toLowerCase().includes(searchQuery))
+      );
+    } else if (outerCounts != null) {
+      return outerCounts.counts.map(([value, count]) => ({
+        value,
+        count,
+        percentage: getPercentage(count),
+        textHighlights: getSearchHighlighting(value, searchText),
+        inner: []
+      }));
+    } else {
+      throw new Error('Should not happen');
+    }
+  }
+  $: groups = getGroups($pivotQuery?.data, $outerCountQuery?.data, $store.pivot?.searchText);
+
+  $: noResults = false;
 
   function getPercentage(count: number) {
     if (numRowsInQuery == null) return '';
@@ -125,8 +168,6 @@
     $store.pivot = {...$store.pivot, outerPath: outerLeafPath};
   }
 
-  let groupCounts: number[] = [];
-
   // The bound input text from the search box.
   let inputSearchText: string | undefined = undefined;
   function searchInput(e: Event) {
@@ -137,7 +178,6 @@
   // The search text after a user presses the search button or enter.
   $: searchText = $store.pivot?.searchText;
   function search() {
-    groupCounts = [];
     searchText = inputSearchText != null ? inputSearchText : undefined;
     $store.pivot = {...$store.pivot, searchText};
   }
@@ -203,11 +243,11 @@
   </div>
 
   <div class="flex flex-row overflow-y-scroll">
-    {#if $outerCountQuery == null || $outerCountQuery.isFetching || outerLeafPath == null}
+    {#if groups == null}
       <SkeletonText />
     {:else}
-      <div class="flex w-full flex-col">
-        {#each groups as group, i}
+      <div class="flex w-full flex-col gap-y-10">
+        {#each groups as group}
           {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
             ...$store,
             viewPivot: false,
@@ -215,16 +255,11 @@
             query: {
               ...$store.query
             },
-            groupBy: {path: outerLeafPath, value: group.name}
+            groupBy: outerLeafPath ? {path: outerLeafPath, value: group.value} : undefined
           })}
 
-          {@const shouldShow =
-            (groupCounts[i] != null && groupCounts[i] > 0) || group.hasMatchingSearch}
-          <div class="flex w-full flex-row" class:px-4={shouldShow} class:mb-10={shouldShow}>
-            <div
-              class="mx-11 flex w-48 flex-col items-center justify-center gap-y-4 py-1"
-              class:hidden={!shouldShow}
-            >
+          <div class="flex w-full flex-row">
+            <div class="mx-11 flex w-48 flex-col items-center justify-center gap-y-4 py-1">
               <div class="mx-2 whitespace-break-spaces text-center text-2xl">
                 {#each group.textHighlights as highlight}
                   {#if highlight.isBold}<span class="font-bold">{highlight.text}</span>
@@ -261,25 +296,15 @@
               </div>
             </div>
 
-            {#if innerLeafPath && innerLeafPath.length > 0}
-              {#key searchText}
-                <DatasetPivotResult
-                  on:load={({detail}) => {
-                    groupCounts[i] = detail.count;
-                    groupCounts = groupCounts;
-                  }}
-                  filter={group.name == null
-                    ? {path: outerLeafPath, op: 'not_exists'}
-                    : {path: outerLeafPath, op: 'equals', value: group.name}}
-                  path={innerLeafPath}
-                  parentValue={group.name}
-                  {numRowsInQuery}
-                  searchText={//
-                  // When the parent matches the text, we don't pass the search
-                  // text to the child for filtering so it shows all results.
-                  !group.hasMatchingSearch ? searchText : undefined}
-                />
-              {/key}
+            {#if outerLeafPath && innerLeafPath && numRowsInQuery}
+              <DatasetPivotResult
+                filter={group.value == null
+                  ? {path: outerLeafPath, op: 'not_exists'}
+                  : {path: outerLeafPath, op: 'equals', value: group.value}}
+                {group}
+                path={innerLeafPath}
+                {numRowsInQuery}
+              />
             {/if}
           </div>
         {/each}
