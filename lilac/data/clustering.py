@@ -346,12 +346,13 @@ def cluster_impl(
       overwrite=True,
     )
 
+  total_len = dataset.stats(temp_text_path).total_count
   cluster_titles_exist = schema.has_field((*cluster_output_path, CLUSTER_TITLE))
   if not cluster_titles_exist or overwrite or recompute_titles:
     if task_info:
       task_info.message = 'Computing cluster titles'
       task_info.total_progress = 0
-      task_info.total_len = dataset.stats(temp_text_path).total_count
+      task_info.total_len = total_len
 
     def compute_cluster_titles(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
@@ -406,7 +407,7 @@ def cluster_impl(
     if task_info:
       task_info.message = 'Computing category titles'
       task_info.total_progress = 0
-      task_info.total_len = dataset.stats(category_title_path).total_count
+      task_info.total_len = total_len
 
     def compute_category_titles(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)

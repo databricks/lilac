@@ -1,6 +1,6 @@
 <script lang="ts">
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
-  import {DTYPE_TO_ICON, getSearches, isPreviewSignal} from '$lib/view_utils';
+  import {DTYPE_TO_ICON, getDisplayPath, getSearches, isPreviewSignal} from '$lib/view_utils';
 
   import {computeSignalMutation, querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {querySignals} from '$lib/queries/signalQueries';
@@ -105,10 +105,9 @@
     }
   }
   $: {
-    if (isClusterRoot && fieldTitle) {
-      // Find the cluster field name by finding the last value in input path that is not PATH_WILDCARD.
-      const clusterFieldName = clusterInfo?.input_path?.find(p => p !== PATH_WILDCARD);
-      fieldTitle = `Clusters of "${clusterFieldName}"`;
+    if (isClusterRoot && fieldTitle && clusterInfo?.input_path) {
+      const clusterFieldName = getDisplayPath(clusterInfo?.input_path);
+      fieldTitle = `Clusters of ${clusterFieldName}`;
     }
   }
 
