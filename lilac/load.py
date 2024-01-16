@@ -1,12 +1,4 @@
-"""A script to load a dataset or set of datasets from a config for a Lilac instance.
-
-Usage:
-
-poetry run lilac load \
-  --config_path=lilac_hf_space.yml \
-  demo_data
-
-"""
+"""Loaders for managing the datasets on the Lilac demo."""
 
 import gc
 import os
@@ -200,12 +192,14 @@ def load(
       dataset = DatasetDuckDB(c.dataset_namespace, c.dataset_name, project_dir=project_dir)
       schema = dataset.manifest().data_schema
       # Try to find the cluster if it is precomputed.
-      for node in schema.fields.values():
-        if node.cluster is not None and c.input_path == node.cluster.input_path:
+      for path, node in schema.all_fields:
+        if node.cluster is not None and node.cluster.input_path == c.input_path:
+          log('Cluster already computed:', c)
           break
       else:
         # No precomputed cluster found.
-        dataset.cluster(c.input_path)
+        log('Computing cluster:', c)
+        dataset.cluster(c.input_path, remote=c.remote)
 
   log()
   log('*** Compute model caches ***')

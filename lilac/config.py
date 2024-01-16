@@ -138,6 +138,9 @@ class ClusterConfig(BaseModel):
   dataset_namespace: str
   dataset_name: str
   input_path: PathTuple
+  remote: bool = (
+    True  # Whether to compute the cluster via remote service. Toggle to false for unit testing.
+  )
 
 
 class DatasetConfig(BaseModel):

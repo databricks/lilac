@@ -3,14 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { Schema } from './Schema';
-
 /**
  * A dataset format.
  */
-export type DatasetFormat = {
-    name: string;
-    data_schema: Schema;
-    title_slots?: Array<any[]>;
-};
-
+export type DatasetFormat = Record<string, any>;
