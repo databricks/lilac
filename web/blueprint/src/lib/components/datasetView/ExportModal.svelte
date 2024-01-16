@@ -9,7 +9,7 @@
     isLabelField,
     isLabelRootField,
     isMapField,
-    isSignalRootField,
+    isSignalField,
     petals,
     type ExportOptions,
     type LilacField,
@@ -84,12 +84,12 @@
   function getFields(schema: LilacSchema) {
     const allFields = childFields(schema);
     const petalFields = petals(schema).filter(
-      field => ['embedding'].indexOf(field.dtype?.type || '') === -1
+      f => !childFields(f).some(f => f.dtype?.type === 'embedding')
     );
 
     const labelFields = allFields.filter(f => isLabelRootField(f));
     const enrichedFields = allFields
-      .filter(f => isSignalRootField(f) || isClusterField(f))
+      .filter(f => isSignalField(f) || isClusterField(f))
       .filter(f => !childFields(f).some(f => f.dtype?.type === 'embedding'));
     const mapFields = allFields.filter(f => isMapField(f));
 
