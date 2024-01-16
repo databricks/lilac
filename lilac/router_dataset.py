@@ -17,6 +17,7 @@ from .data.dataset import (
   FeatureValue,
   GroupsSortBy,
   ListOp,
+  PivotResult,
   Search,
   SelectGroupsResult,
   SelectRowsSchemaResult,
@@ -254,6 +255,28 @@ def select_groups(
     options.sort_order,
     options.limit,
     options.bins,
+  )
+
+
+class PivotOptions(BaseModel):
+  """The request for the pivot endpoint."""
+
+  inner_path: Path
+  outer_path: Path
+  filters: Sequence[Filter] = []
+
+
+@router.post('/{namespace}/{dataset_name}/pivot')
+def pivot(namespace: str, dataset_name: str, options: PivotOptions) -> PivotResult:
+  """REST endpoint for dataset.pivot."""
+  dataset = get_dataset(namespace, dataset_name)
+  sanitized_filters = [
+    PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
+  ]
+  return dataset.pivot(
+    options.outer_path,
+    options.inner_path,
+    filters=sanitized_filters,
   )
 
 

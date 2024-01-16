@@ -21,7 +21,6 @@ import {
   type SelectRowsSchemaOptions,
   type SortOrder
 } from '$lilac';
-import deepEqual from 'deep-equal';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable} from 'svelte/store';
 
@@ -476,4 +475,8 @@ export function getSelectRowsSchemaOptions(
 /** Returns if two filters are equall. */
 function filterEquals(f1: Filter, f2: Filter): boolean {
   return f1.op == f2.op && f1.value == f2.value && pathIsEqual(f1.path, f2.path);
+}
+
+function deepEqual(obj1: unknown, obj2: unknown): boolean {
+  return JSON.stringify(obj1) === JSON.stringify(obj2);
 }

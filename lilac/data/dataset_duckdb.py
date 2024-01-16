@@ -136,6 +136,8 @@ from .dataset import (
   FilterLike,
   GroupsSortBy,
   MediaResult,
+  PivotResult,
+  PivotResultOuterGroup,
   Search,
   SearchResultInfo,
   SelectGroupsResult,
@@ -1629,6 +1631,109 @@ class DatasetDuckDB(Dataset):
 
     return SelectGroupsResult(too_many_distinct=False, counts=counts, bins=named_bins)
 
+  @override
+  def pivot(
+    self,
+    outer_path: Path,
+    inner_path: Path,
+    filters: Optional[Sequence[FilterLike]] = None,
+    sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
+    sort_order: Optional[SortOrder] = SortOrder.DESC,
+  ) -> PivotResult:
+    if not inner_path or not outer_path:
+      raise ValueError('both `outer_path` and `inner_path` must be provided')
+    sort_by = sort_by or GroupsSortBy.COUNT
+    sort_order = sort_order or SortOrder.DESC
+    inner_path = normalize_path(inner_path)
+    outer_path = normalize_path(outer_path)
+    manifest = self.manifest()
+    inner_leaf = manifest.data_schema.get_field(inner_path)
+    outer_leaf = manifest.data_schema.get_field(outer_path)
+
+    # Find the inner-most inner leaf in case this field is repeated.
+    while inner_leaf.repeated_field:
+      inner_leaf = inner_leaf.repeated_field
+      inner_path = (*inner_path, PATH_WILDCARD)
+
+    # Find the inner-most outer leaf in case this field is repeated.
+    while outer_leaf.repeated_field:
+      outer_leaf = outer_leaf.repeated_field
+      outer_path = (*outer_path, PATH_WILDCARD)
+
+    if not inner_leaf.dtype:
+      raise ValueError(f'Inner path "{inner_path}" is not a leaf in the dataset')
+    if not outer_leaf.dtype:
+      raise ValueError(f'Outer path "{outer_path}" is not a leaf in the dataset')
+
+    if inner_leaf.dtype.type == 'map':
+      raise ValueError(f'Cannot compute pivot on a map field "{inner_path}".')
+    if is_ordinal(inner_leaf.dtype):
+      raise ValueError(f'Cannot compute pivot on an ordinal field "{inner_path}".')
+    if outer_leaf.dtype.type == 'map':
+      raise ValueError(f'Cannot compute pivot on an map field "{outer_path}".')
+    if is_ordinal(outer_leaf.dtype):
+      raise ValueError(f'Cannot compute pivot on an ordinal field "{outer_path}".')
+
+    if self.stats(inner_path).approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
+      return PivotResult(too_many_distinct=True, outer_groups=[])
+    if self.stats(outer_path).approx_count_distinct >= dataset.TOO_MANY_DISTINCT:
+      return PivotResult(too_many_distinct=True, outer_groups=[])
+
+    count_column = GroupsSortBy.COUNT.value
+    value_column = GroupsSortBy.VALUE.value
+    inner_column = 'inner'
+
+    inner_duckdb_path = self._leaf_path_to_duckdb_path(inner_path, manifest.data_schema)
+    inner_select = _select_sql(
+      inner_duckdb_path,
+      flatten=True,
+      unnest=True,
+      path=inner_path,
+      schema=manifest.data_schema,
+      span_from=self._resolve_span(inner_path, manifest),
+    )
+
+    outer_duckdb_path = self._leaf_path_to_duckdb_path(outer_path, manifest.data_schema)
+    outer_select = _select_sql(
+      outer_duckdb_path,
+      flatten=True,
+      unnest=True,
+      path=outer_path,
+      schema=manifest.data_schema,
+      span_from=self._resolve_span(outer_path, manifest),
+    )
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+    where_query = self._compile_select_options(
+      DuckDBQueryParams(filters=filters, include_deleted=False)
+    )
+
+    query = f"""
+      WITH tuples AS (
+        SELECT {outer_select} AS out_val, {inner_select} AS in_val
+        FROM t
+        {where_query}
+      ),
+      tuple_counts AS (
+        SELECT out_val, in_val, count() AS c FROM tuples
+        GROUP BY out_val, in_val
+      )
+      SELECT
+        out_val AS {value_column},
+        SUM(c) AS {count_column},
+        list({{'{value_column}': in_val, '{count_column}': c}} ORDER BY c DESC) AS {inner_column}
+      FROM tuple_counts
+      GROUP BY out_val
+      ORDER BY {sort_by.value} {sort_order.value}, {value_column}
+    """
+    df = self._query_df(query)
+    outer_groups: list[PivotResultOuterGroup] = []
+    for out_val, count, inner_structs in df.itertuples(index=False, name=None):
+      inner: list[tuple[Optional[str], int]] = [
+        (struct[value_column], struct[count_column]) for struct in inner_structs
+      ]
+      outer_groups.append(PivotResultOuterGroup(value=out_val, count=count, inner=inner))
+    return PivotResult(outer_groups=outer_groups)
+
   def _topk_udf_to_sort_by(
     self,
     udf_columns: list[Column],
@@ -2575,20 +2680,23 @@ class DatasetDuckDB(Dataset):
           filter_list_val = cast(FeatureListValue, f.value)
           if not isinstance(filter_list_val, list):
             raise ValueError('filter with array value can only use the IN comparison')
-          wrapped_filter_val = [f"'{part}'" for part in filter_list_val]
-          filter_val = f'({", ".join(wrapped_filter_val)})'
-          filter_query = f'{select_str} IN {filter_val}'
+          filter_list_val = [escape_string_literal(val) for val in filter_list_val]
+          if len(filter_list_val) == 1:
+            filter_query = f'{select_str} = {filter_list_val[0]}'
+          else:
+            filter_val = f'({", ".join(filter_list_val)})'
+            filter_query = f'{select_str} IN {filter_val}'
 
-          # Optimization for "rowid IN (...)" queries - there is an index on rowid, but
-          # duckdb does a full index scan when the IN clause is present, instead of the hash join.
-          # So, we insert a range clause to limit the extent of the index scan. This optimization
-          # works well because nearly all of our queries are sorted by rowid, meaning that min/max
-          # will narrow down the index scan to a small range.
-          if env('USE_TABLE_INDEX', default=False) and ROWID in select_str:
-            min_row, max_row = min(filter_list_val), max(filter_list_val)
-            filter_query += f" AND {ROWID} BETWEEN '{min_row}' AND '{max_row}'"
-            # wrap in parens to isolate from other filters, just in case?
-            filter_query = f'({filter_query})'
+            # Optimization for "rowid IN (...)" queries - there is an index on rowid, but
+            # duckdb does a full index scan when the IN clause is present, instead of the hash join.
+            # So, we insert a range clause to limit the extent of the index scan. This optimization
+            # works well because nearly all of our queries are sorted by rowid, meaning that min/max
+            # will narrow down the index scan to a small range.
+            if env('USE_TABLE_INDEX', default=False) and ROWID in select_str:
+              min_row, max_row = min(filter_list_val), max(filter_list_val)
+              filter_query += f' AND {ROWID} BETWEEN {min_row} AND {max_row}'
+              # wrap in parens to isolate from other filters, just in case?
+              filter_query = f'({filter_query})'
         else:
           raise ValueError(f'List op: {f.op} is not yet supported')
       else:

@@ -56,7 +56,8 @@
   // the dataset state on the global app store.
   function urlChange(url: string | URL) {
     const newURL = new URL(url);
-    const newPage = routeToPage[newURL.pathname];
+    const pathName = newURL.pathname.endsWith('/') ? newURL.pathname.slice(0, -1) : newURL.pathname;
+    const newPage = routeToPage[pathName];
     urlHashStore.setHash(newPage, newURL.hash);
   }
 

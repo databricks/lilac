@@ -14,6 +14,8 @@ import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
 import type { ExportOptions } from '../models/ExportOptions';
 import type { GetStatsOptions } from '../models/GetStatsOptions';
+import type { PivotOptions } from '../models/PivotOptions';
+import type { PivotResult } from '../models/PivotResult';
 import type { RemoveLabelsOptions } from '../models/RemoveLabelsOptions';
 import type { RestoreRowsOptions } from '../models/RestoreRowsOptions';
 import type { SelectGroupsOptions } from '../models/SelectGroupsOptions';
@@ -198,6 +200,35 @@ export class DatasetsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/datasets/{namespace}/{dataset_name}/select_groups',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Pivot
+     * REST endpoint for dataset.pivot.
+     * @param namespace
+     * @param datasetName
+     * @param requestBody
+     * @returns PivotResult Successful Response
+     * @throws ApiError
+     */
+    public static pivot(
+        namespace: string,
+        datasetName: string,
+        requestBody: PivotOptions,
+    ): CancelablePromise<PivotResult> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/pivot',
             path: {
                 'namespace': namespace,
                 'dataset_name': datasetName,

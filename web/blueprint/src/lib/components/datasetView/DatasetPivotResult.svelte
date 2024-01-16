@@ -1,31 +1,35 @@
+<script context="module" lang="ts">
+  import type {SearchHighlight} from '$lib/view_utils';
+
+  export interface InnerPivot {
+    value: string | null;
+    count: number;
+    textHighlights: SearchHighlight[];
+  }
+
+  export interface OuterPivot {
+    value: string | null;
+    count: number;
+    inner: InnerPivot[];
+    percentage: string;
+    textHighlights: SearchHighlight[];
+  }
+</script>
+
 <script lang="ts">
-  import {
-    querySelectGroups,
-    querySelectRows,
-    querySelectRowsSchema
-  } from '$lib/queries/datasetQueries';
-  import {
-    getDatasetViewContext,
-    getSelectRowsOptions,
-    getSelectRowsSchemaOptions
-  } from '$lib/stores/datasetViewStore';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
 
   import {datasetLink} from '$lib/utils';
-  import {getSearchHighlighting} from '$lib/view_utils';
-  import {ROWID, type BinaryFilter, type Path, type StringFilter, type UnaryFilter} from '$lilac';
+  import type {BinaryFilter, Path, UnaryFilter} from '$lilac';
   import {Information} from 'carbon-icons-svelte';
-  import {createEventDispatcher, onDestroy, onMount} from 'svelte';
+  import {onDestroy, onMount} from 'svelte';
   import Carousel from '../common/Carousel.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
   export let filter: BinaryFilter | UnaryFilter;
+  export let group: OuterPivot;
   export let path: Path;
-  export let parentValue: string;
-  export let numRowsInQuery: number | undefined;
-  export let searchText: string | undefined;
-  // When true, queries will be issued. This allows us to progressively load without spamming the
-  // server.
-  export let shouldLoad = false;
+  export let numRowsInQuery: number;
 
   const ITEMS_PER_PAGE = 5;
 
@@ -33,10 +37,7 @@
   let root: HTMLDivElement;
   let observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        isOnScreen = true;
-        observer.disconnect();
-      }
+      isOnScreen = entry.isIntersecting;
     });
   });
 
@@ -50,54 +51,8 @@
 
   const store = getDatasetViewContext();
 
-  $: selectRowsSchema = querySelectRowsSchema(
-    $store.namespace,
-    $store.datasetName,
-    getSelectRowsSchemaOptions($store)
-  );
-
-  $: filters = [filter, ...(selectOptions.filters || [])];
-
   $: selectOptions = getSelectRowsOptions($store);
-  $: rowsQuery =
-    shouldLoad && isOnScreen
-      ? querySelectRows(
-          $store.namespace,
-          $store.datasetName,
-          {...selectOptions, columns: [ROWID], limit: 1, filters},
-          $selectRowsSchema.data?.schema
-        )
-      : null;
-  $: numRowsInGroup = $rowsQuery?.data?.total_num_rows;
-
-  $: countQuery =
-    shouldLoad && isOnScreen
-      ? querySelectGroups($store.namespace, $store.datasetName, {
-          leaf_path: path,
-          filters: [
-            ...filters,
-            ...(searchText ? [{path, op: 'ilike', value: searchText} as StringFilter] : [])
-          ],
-          // Explicitly set the limit to null to get all the groups, not just the top 100.
-          limit: null
-        })
-      : null;
-  $: counts = ($countQuery?.data?.counts || []).map(([name, count]) => ({
-    name,
-    count
-  }));
-
-  const dispatch = createEventDispatcher();
-  $: {
-    if (
-      $rowsQuery?.data != null &&
-      $rowsQuery?.isFetching === false &&
-      $countQuery?.data != null &&
-      $countQuery?.isFetching === false
-    ) {
-      dispatch('load', {count: counts.length});
-    }
-  }
+  $: filters = [filter, ...(selectOptions.filters || [])];
 
   function getPercentage(count: number, total: number | undefined) {
     if (total == null) return '0';
@@ -105,28 +60,27 @@
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function groupResultFromItem(item: any): (typeof counts)[0] {
+  function castToInnerPivot(item: any): InnerPivot {
     // This is just a type-cast for the svelte component below. We haven't upgraded to the svelte
     // version that supports generics, so we have to do this type-cast.
-    return item as (typeof counts)[0];
+    return item;
   }
 </script>
 
-<div class="flex w-full flex-row flex-wrap" bind:this={root}>
-  {#if counts.length > 0}
-    <Carousel items={counts} pageSize={ITEMS_PER_PAGE}>
-      <div class="h-full w-full" slot="item" let:item>
-        {@const count = groupResultFromItem(item)}
-        {@const groupPercentage = getPercentage(count.count, numRowsInGroup)}
-        {@const totalPercentage = getPercentage(count.count, numRowsInQuery)}
-        {@const textHighlights = getSearchHighlighting(count.name, searchText)}
+<div class="flex h-64 w-full flex-row flex-wrap" bind:this={root}>
+  {#if isOnScreen}
+    <Carousel items={group.inner} pageSize={ITEMS_PER_PAGE}>
+      <div class="w-full" slot="item" let:item>
+        {@const innerGroup = castToInnerPivot(item)}
+        {@const groupPercentage = getPercentage(innerGroup.count, group.count)}
+        {@const totalPercentage = getPercentage(innerGroup.count, numRowsInQuery)}
         <div
-          class="min-w-64 md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
+          class="md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
         >
           <div
             class="card-title h-16 text-center text-base font-light leading-5 tracking-tight text-neutral-900"
           >
-            {#each textHighlights as highlight}
+            {#each innerGroup.textHighlights as highlight}
               {#if highlight.isBold}
                 <span class="font-bold">{highlight.text}</span>
               {:else}
@@ -144,14 +98,14 @@
                   <div
                     use:hoverTooltip={{
                       text:
-                        `${groupPercentage}% of ${parentValue}\n` + `${totalPercentage}% of total`
+                        `${groupPercentage}% of ${group.value}\n` + `${totalPercentage}% of total`
                     }}
                   >
                     <Information />
                   </div>
                 </div>
                 <span class="text-sm text-neutral-700">
-                  {count.count} rows
+                  {innerGroup.count.toLocaleString()} rows
                 </span>
               </div>
             </div>
@@ -167,7 +121,7 @@
                   ...$store.query,
                   filters
                 },
-                groupBy: {path, value: count.name}
+                groupBy: {path, value: innerGroup.value}
               })}
               class="inline-flex items-center text-blue-600 hover:underline"
             >

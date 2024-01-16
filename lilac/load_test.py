@@ -7,9 +7,12 @@ from typing import ClassVar, Iterable, Iterator, Optional, cast
 
 import numpy as np
 import pytest
+from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from .config import Config, DatasetConfig, EmbeddingConfig, SignalConfig
+from lilac.data import clustering
+
+from .config import ClusterConfig, Config, DatasetConfig, EmbeddingConfig, SignalConfig
 from .data.dataset import DatasetManifest
 from .db_manager import get_dataset
 from .env import set_project_dir
@@ -343,3 +346,38 @@ def test_load_twice_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixt
   second_manifest = get_dataset('namespace', 'test').manifest()
 
   assert first_manifest == second_manifest
+
+
+def test_load_clusters(
+  tmp_path: pathlib.Path, capsys: pytest.CaptureFixture, mocker: MockerFixture
+) -> None:
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
+  set_project_dir(tmp_path)
+
+  # Initialize the lilac project. init() defaults to the project directory.
+  init()
+
+  project_config = Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestSource(),
+      )
+    ],
+    clusters=[
+      ClusterConfig(
+        dataset_namespace='namespace', dataset_name='test', input_path=('str',), remote=False
+      )
+    ],
+  )
+
+  # Load the project config from a config object.
+  load(config=project_config)
+  assert 'Computing cluster:' in capsys.readouterr().out
+
+  dataset = get_dataset('namespace', 'test')
+  assert dataset.manifest().data_schema.fields['str__cluster'].cluster is not None
+
+  load(config=project_config)
+  assert 'Cluster already computed:' in capsys.readouterr().out
