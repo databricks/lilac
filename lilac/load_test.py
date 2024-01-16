@@ -377,7 +377,7 @@ def test_load_clusters(
   assert 'Computing cluster:' in capsys.readouterr().out
 
   dataset = get_dataset('namespace', 'test')
-  assert dataset.manifest().data_schema.fields['str__cluster'].cluster is not None  # type:ignore
+  assert dataset.manifest().data_schema.fields['str__cluster'].cluster is not None
 
   load(config=project_config)
   assert 'Cluster already computed:' in capsys.readouterr().out
