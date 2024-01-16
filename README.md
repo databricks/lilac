@@ -47,9 +47,9 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 pip install lilac[all]
 ```
 
-If you prefer no local installation, you can fork the
-[fork the HuggingFace Spaces demo](https://lilacai-lilac.hf.space/). Documentation
-[here](https://docs.lilacml.com/huggingface/huggingface_spaces.html).
+If you prefer no local installation, you can duplicate the
+[HuggingFace Spaces demo](https://lilacai-lilac.hf.space/). Documentation
+[here](https://docs.lilacml.com/deployment/huggingface_spaces.html).
 
 ### 🌐 Start a webserver
 
