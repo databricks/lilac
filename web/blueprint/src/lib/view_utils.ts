@@ -677,10 +677,13 @@ export interface SearchHighlight {
   text: string;
   isBold: boolean;
 }
-export function getSearchHighlighting(text: string, query: string | undefined): SearchHighlight[] {
-  if (!query || query.trim() === '') {
+export function getSearchHighlighting(
+  text: string | null | undefined,
+  query: string | undefined
+): SearchHighlight[] {
+  if (!query || !text || query.trim() === '') {
     // If query is empty or undefined, return the original text as not bold
-    return [{text, isBold: false}];
+    return [{text: text || 'N/A', isBold: false}];
   }
 
   const regex = new RegExp(`(${query})`, 'gi');

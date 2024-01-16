@@ -273,18 +273,18 @@ class SelectGroupsResult(BaseModel):
   bins: Optional[list[Bin]] = None
 
 
-class OuterGroup(BaseModel):
-  """The outer group of a pivot query."""
+class PivotResultOuterGroup(BaseModel):
+  """The outer group of a pivot result."""
 
-  value: str
+  value: Optional[str]
   count: int
-  inner: list[tuple[str, int]]
+  inner: list[tuple[Optional[str], int]]
 
 
 class PivotResult(BaseModel):
   """The result of a pivot query."""
 
-  outer_groups: list[OuterGroup]
+  outer_groups: list[PivotResultOuterGroup]
   too_many_distinct: bool = False
 
 
@@ -588,7 +588,26 @@ class Dataset(abc.ABC):
     sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
     sort_order: Optional[SortOrder] = SortOrder.DESC,
   ) -> PivotResult:
-    """Pivot table with counts across two fields (outer and inner)."""
+    """Generate a pivot table with counts over two fields (outer and inner).
+
+    For each value of `outer_path` in the dataset, the pivot table will contain the count of
+    that value, as well as the internal counts of all the values of `inner_path` for the given
+    `outer_path` value.
+
+    For example, if `outer_path` is `split=train|test` and `inner_path` is `source=wiki|cc` the
+    pivot table will look like:
+
+    ```
+    [
+      {
+        value: 'train', count: 100, inner: [{value: 'wiki', count: 94}, {value: 'cc', count: 6}],
+      },
+      {
+        value: 'test', count: 10, inner: [{value: 'wiki', count: 3}, {value: 'cc', count: 7}],
+      },
+    ]
+    ```
+    """
     raise NotImplementedError
 
   @abc.abstractmethod

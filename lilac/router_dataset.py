@@ -268,7 +268,7 @@ class PivotOptions(BaseModel):
 
 @router.post('/{namespace}/{dataset_name}/pivot')
 def pivot(namespace: str, dataset_name: str, options: PivotOptions) -> PivotResult:
-  """Wrapper around dataset.pivot."""
+  """REST endpoint for dataset.pivot."""
   dataset = get_dataset(namespace, dataset_name)
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])

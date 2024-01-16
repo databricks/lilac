@@ -4,10 +4,10 @@
 /* eslint-disable */
 
 /**
- * The outer group of a pivot query.
+ * The outer group of a pivot result.
  */
-export type OuterGroup = {
-    value: string;
+export type PivotResultOuterGroup = {
+    value: (string | null);
     count: number;
     inner: Array<any[]>;
 };

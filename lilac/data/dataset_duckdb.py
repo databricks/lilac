@@ -136,8 +136,8 @@ from .dataset import (
   FilterLike,
   GroupsSortBy,
   MediaResult,
-  OuterGroup,
   PivotResult,
+  PivotResultOuterGroup,
   Search,
   SearchResultInfo,
   SelectGroupsResult,
@@ -1699,13 +1699,9 @@ class DatasetDuckDB(Dataset):
       span_from=self._resolve_span(outer_path, manifest),
     )
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
-    if manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
-      filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
-    filter_queries = self._create_where(manifest, filters)
-
-    where_query = ''
-    if filter_queries:
-      where_query = f"WHERE {' AND '.join(filter_queries)}"
+    where_query = self._compile_select_options(
+      DuckDBQueryParams(filters=filters, include_deleted=False)
+    )
 
     query = f"""
       SELECT
@@ -1724,12 +1720,12 @@ class DatasetDuckDB(Dataset):
       ORDER BY {sort_by.value} {sort_order.value}, {value_column}
     """
     df = self._query_df(query)
-    outer_groups: list[OuterGroup] = []
+    outer_groups: list[PivotResultOuterGroup] = []
     for out_val, count, inner_structs in df.itertuples(index=False, name=None):
       inner: list[tuple[str, int]] = [
         (struct[value_column], struct[count_column]) for struct in inner_structs
       ]
-      outer_groups.append(OuterGroup(value=out_val, count=count, inner=inner))
+      outer_groups.append(PivotResultOuterGroup(value=out_val, count=count, inner=inner))
     return PivotResult(outer_groups=outer_groups)
 
   def _topk_udf_to_sort_by(

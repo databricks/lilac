@@ -2,13 +2,13 @@
   import type {SearchHighlight} from '$lib/view_utils';
 
   export interface InnerPivot {
-    value: string;
+    value: string | null;
     count: number;
     textHighlights: SearchHighlight[];
   }
 
   export interface OuterPivot {
-    value: string;
+    value: string | null;
     count: number;
     inner: InnerPivot[];
     percentage: string;

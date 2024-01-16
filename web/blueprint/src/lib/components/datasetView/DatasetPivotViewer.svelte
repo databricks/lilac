@@ -1,10 +1,5 @@
 <script lang="ts">
-  import {
-    DATASETS_TAG,
-    querySelectGroups,
-    querySelectRows,
-    querySelectRowsSchema
-  } from '$lib/queries/datasetQueries';
+  import {DATASETS_TAG, querySelectRows, querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {createApiQuery} from '$lib/queries/queryUtils';
   import {
     getDatasetViewContext,
@@ -21,8 +16,7 @@
     isSignalField,
     serializePath,
     type Path,
-    type PivotResult,
-    type SelectGroupsResult
+    type PivotResult
   } from '$lilac';
   import {Search, SkeletonText} from 'carbon-components-svelte';
   import type {
@@ -58,17 +52,6 @@
   );
   $: numRowsInQuery = $rowsQuery.data?.total_num_rows;
 
-  // Get the total count for the dataset.
-  $: outerCountQuery =
-    outerLeafPath != null && innerLeafPath == null
-      ? querySelectGroups($store.namespace, $store.datasetName, {
-          leaf_path: outerLeafPath,
-          filters: selectOptions.filters,
-          // Explicitly set the limit to null to get all the groups, not just the top 100.
-          limit: null
-        })
-      : null;
-
   $: pivotQueryFn = createApiQuery(DatasetsService.pivot, DATASETS_TAG, {
     enabled: outerLeafPath != null && innerLeafPath != null
   });
@@ -80,43 +63,32 @@
 
   function getGroups(
     pivotTable: PivotResult | undefined,
-    outerCounts: SelectGroupsResult | undefined,
     searchQuery: string | undefined
   ): OuterPivot[] | undefined {
-    if (pivotTable == null && outerCounts == null) return undefined;
+    if (pivotTable == null) return undefined;
     searchQuery = searchQuery?.trim().toLowerCase();
-
-    if (pivotTable != null) {
-      const groups = pivotTable.outer_groups.map(outerGroup => ({
-        value: outerGroup.value,
-        count: outerGroup.count,
-        percentage: getPercentage(outerGroup.count),
-        textHighlights: getSearchHighlighting(outerGroup.value, searchText),
-        inner: outerGroup.inner
-          .filter(x => searchQuery == null || x[0].toLowerCase().includes(searchQuery))
-          .map(([innerValue, innerCount]) => ({
-            value: innerValue,
-            count: innerCount,
-            textHighlights: getSearchHighlighting(innerValue, searchText)
-          }))
-      }));
-      // Filter out groups with no inner groups and no match on the search query.
-      return groups.filter(
-        group =>
-          group.inner.length > 0 ||
-          (searchQuery != null && group.value.toLowerCase().includes(searchQuery))
-      );
-    } else if (outerCounts != null) {
-      return outerCounts.counts.map(([value, count]) => ({
-        value,
-        count,
-        percentage: getPercentage(count),
-        textHighlights: getSearchHighlighting(value, searchText),
-        inner: []
-      }));
-    }
+    const groups = pivotTable.outer_groups.map(outerGroup => ({
+      value: outerGroup.value,
+      count: outerGroup.count,
+      percentage: getPercentage(outerGroup.count),
+      textHighlights: getSearchHighlighting(outerGroup.value, searchText),
+      inner: outerGroup.inner
+        .filter(x => searchQuery == null || x[0].toLowerCase().includes(searchQuery))
+        .map(([innerValue, innerCount]) => ({
+          value: innerValue,
+          count: innerCount,
+          textHighlights: getSearchHighlighting(innerValue, searchText)
+        }))
+    }));
+    // Filter out groups with no inner groups and no match on the search query.
+    return groups.filter(
+      group =>
+        group.inner.length > 0 ||
+        (searchQuery != null && group.value?.toLowerCase().includes(searchQuery))
+    );
   }
-  $: groups = getGroups($pivotQuery?.data, $outerCountQuery?.data, $store.pivot?.searchText);
+
+  $: groups = getGroups($pivotQuery?.data, $store.pivot?.searchText);
 
   function getPercentage(count: number) {
     if (numRowsInQuery == null) return '';
@@ -238,7 +210,11 @@
   </div>
 
   <div class="flex flex-row overflow-y-scroll">
-    {#if groups == null}
+    {#if innerLeafPath == null}
+      <div class="mx-20 mt-8 w-full text-lg text-gray-600">Select a field to explore.</div>
+    {:else if outerLeafPath == null}
+      <div class="mx-20 mt-8 w-full text-lg text-gray-600">Select a field to group by.</div>
+    {:else if groups == null}
       <SkeletonText />
     {:else}
       <div class="flex w-full flex-col gap-y-10">

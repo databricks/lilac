@@ -214,7 +214,7 @@ export class DatasetsService {
 
     /**
      * Pivot
-     * Wrapper around dataset.pivot.
+     * REST endpoint for dataset.pivot.
      * @param namespace
      * @param datasetName
      * @param requestBody

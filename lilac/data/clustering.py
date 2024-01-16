@@ -113,7 +113,7 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
   )
   def request_with_retries() -> str:
     max_tokens = 50
-    while True:
+    while max_tokens <= 200:
       try:
         title = _openai_client().chat.completions.create(
           model='gpt-3.5-turbo-1106',
@@ -138,6 +138,8 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
       except IncompleteOutputException:
         max_tokens = max_tokens * 2
         print(f'Retrying with max_tokens={max_tokens}')
+    print(f'Could not generate a reasonable title for input:\n{input}')
+    return 'FAILED_TO_GENERATE'
 
   return request_with_retries()
 

@@ -3,13 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { OuterGroup } from './OuterGroup';
+import type { PivotResultOuterGroup } from './PivotResultOuterGroup';
 
 /**
  * The result of a pivot query.
  */
 export type PivotResult = {
-    outer_groups: Array<OuterGroup>;
+    outer_groups: Array<PivotResultOuterGroup>;
     too_many_distinct?: boolean;
 };
 
