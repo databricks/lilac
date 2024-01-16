@@ -14,9 +14,6 @@ from .env import get_project_dir
 from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
-from .tasks import (
-  get_task_manager,
-)
 from .utils import DebugTimer, get_datasets_dir, log
 
 
@@ -52,8 +49,6 @@ def load(
   if not isinstance(config, Config):
     config_path = config or os.path.join(project_dir, PROJECT_CONFIG_FILENAME)
     config = read_config(config_path)
-
-  task_manager = get_task_manager()
 
   if overwrite:
     shutil.rmtree(get_datasets_dir(project_dir), ignore_errors=True)
