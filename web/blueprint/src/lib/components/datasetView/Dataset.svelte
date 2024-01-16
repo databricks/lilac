@@ -50,8 +50,8 @@
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  let settingsOpen = false;
-  let exportOpen = false;
+  $: settingsOpen = $datasetViewStore.modal === 'Settings';
+  $: exportOpen = $datasetViewStore.modal === 'Export';
 
   const authInfo = queryAuthInfo();
   $: canUpdateSettings = $authInfo.data?.access.dataset.update_settings;
@@ -125,7 +125,10 @@
           >
         </div>
 
-        <button use:hoverTooltip={{text: 'Export data'}} on:click={() => (exportOpen = true)}>
+        <button
+          use:hoverTooltip={{text: 'Export data'}}
+          on:click={() => ($datasetViewStore.modal = 'Export')}
+        >
           <Export />
         </button>
         <div
@@ -140,7 +143,7 @@
           <button
             use:hoverTooltip={{text: 'Dataset settings'}}
             disabled={!canUpdateSettings}
-            on:click={() => (settingsOpen = true)}><Settings /></button
+            on:click={() => ($datasetViewStore.modal = 'Settings')}><Settings /></button
           >
         </div>
       </div>
@@ -160,14 +163,23 @@
       {:else if itemsViewType == 'scroll'}
         <ScrollView />
       {:else if itemsViewType == 'single_item'}
-        <SingleItemView {settingsOpen} />
+        <SingleItemView modalOpen={$datasetViewStore.modal != null} />
       {/if}
     </div>
   </div>
 
   {#if $schema.data}
-    <DatasetSettingsModal bind:open={settingsOpen} {namespace} name={datasetName} />
-    <ExportModal bind:open={exportOpen} schema={$schema.data} />
+    <DatasetSettingsModal
+      open={settingsOpen}
+      {namespace}
+      name={datasetName}
+      on:close={() => ($datasetViewStore.modal = null)}
+    />
+    <ExportModal
+      open={exportOpen}
+      schema={$schema.data}
+      on:close={() => ($datasetViewStore.modal = null)}
+    />
     <ComposedModal
       size="lg"
       open={$datasetViewStore.insightsOpen}

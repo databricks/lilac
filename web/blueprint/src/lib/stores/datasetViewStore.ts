@@ -52,6 +52,8 @@ export interface TextSelection {
   endCol: number;
 }
 
+type ModalMenu = 'Export' | 'Settings';
+
 export interface DatasetViewState {
   namespace: string;
   datasetName: string;
@@ -73,6 +75,8 @@ export interface DatasetViewState {
   // View.
   schemaCollapsed: boolean;
   insightsOpen: boolean;
+  // The currently open modal menu.
+  modal?: ModalMenu | null;
 
   // Currently selected rowid. null is a temp state of loading the next page of row ids to find
   // the next row id.

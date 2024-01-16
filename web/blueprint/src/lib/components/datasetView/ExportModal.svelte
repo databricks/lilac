@@ -5,8 +5,10 @@
   import {
     DELETED_LABEL_KEY,
     childFields,
+    isClusterField,
     isLabelField,
-    isSignalField,
+    isLabelRootField,
+    isMapField,
     isSignalRootField,
     petals,
     type ExportOptions,
@@ -45,15 +47,28 @@
 
   const datasetViewStore = getDatasetViewContext();
 
-  $: ({sourceFields, enrichedFields, labelFields} = getFields(schema));
+  $: ({sourceFields, enrichedFields, labelFields, mapFields} = getFields(schema));
 
-  let checkedSourceFields: LilacField[] = [];
+  let checkedSourceFields: LilacField[] | undefined = undefined;
   let checkedLabeledFields: LilacField[] = [];
   let checkedEnrichedFields: LilacField[] = [];
+  let checkedMapFields: LilacField[] = [];
   let includeOnlyLabels: boolean[] = [];
   let excludeLabels: boolean[] = [];
 
-  $: exportFields = [...checkedSourceFields, ...checkedLabeledFields, ...checkedEnrichedFields];
+  // Default the checked source fields to all of them.
+  $: {
+    if (sourceFields != null && checkedSourceFields == null) {
+      checkedSourceFields = sourceFields;
+    }
+  }
+
+  $: exportFields = [
+    ...(checkedSourceFields || []),
+    ...checkedLabeledFields,
+    ...checkedEnrichedFields,
+    ...checkedMapFields
+  ];
 
   $: previewRows =
     exportFields.length > 0
@@ -71,12 +86,23 @@
     const petalFields = petals(schema).filter(
       field => ['embedding'].indexOf(field.dtype?.type || '') === -1
     );
-    const sourceFields = petalFields.filter(f => !isSignalField(f) && !isLabelField(f));
-    const labelFields = allFields.filter(f => f.label != null);
+
+    const labelFields = allFields.filter(f => isLabelRootField(f));
     const enrichedFields = allFields
-      .filter(f => isSignalRootField(f))
+      .filter(f => isSignalRootField(f) || isClusterField(f))
       .filter(f => !childFields(f).some(f => f.dtype?.type === 'embedding'));
-    return {sourceFields, enrichedFields, labelFields};
+    const mapFields = allFields.filter(f => isMapField(f));
+
+    const sourceFields = petalFields.filter(
+      f =>
+        !labelFields.includes(f) &&
+        !enrichedFields.includes(f) &&
+        !mapFields.includes(f) &&
+        // Labels are special in that we only show the root of the label field so the children do
+        // not show up in the labelFields.
+        !isLabelField(f)
+    );
+    return {sourceFields, enrichedFields, labelFields, mapFields};
   }
 
   async function submit() {
@@ -116,7 +142,7 @@
   }
 </script>
 
-<ComposedModal size="lg" {open} on:submit={submit} on:close={() => (open = false)}>
+<ComposedModal size="lg" {open} on:submit={submit} on:close={close}>
   <ModalHeader title="Export dataset" />
   <ModalBody hasForm>
     <div class="flex flex-col gap-y-10">
@@ -125,7 +151,7 @@
         <p class="text-red-600" class:invisible={exportFields.length > 0}>
           No fields selected. Please select at least one field to export.
         </p>
-        <div class="flex flex-wrap gap-x-12">
+        <div class="flex flex-wrap gap-x-8">
           <section>
             <h4>Source fields</h4>
             <FieldList fields={sourceFields} bind:checkedFields={checkedSourceFields} />
@@ -140,6 +166,12 @@
             <section>
               <h4>Enriched fields</h4>
               <FieldList fields={enrichedFields} bind:checkedFields={checkedEnrichedFields} />
+            </section>
+          {/if}
+          {#if mapFields.length > 0}
+            <section>
+              <h4>Map fields</h4>
+              <FieldList fields={mapFields} bind:checkedFields={checkedMapFields} />
             </section>
           {/if}
         </div>
