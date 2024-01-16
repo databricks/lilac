@@ -5,6 +5,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
+from threading import Thread
 from typing import (
   Any,
   Awaitable,
@@ -189,3 +190,19 @@ def get_progress_bar(
     task_manager.set_completed(task_id)
 
   return progress_reporter
+
+
+def launch_task(task_id: TaskId, run_fn: Callable) -> None:
+  """Launch a task in a thread, handling exit conditions, etc.."""
+  tm = get_task_manager()
+
+  def _wrapper() -> None:
+    try:
+      run_fn()
+    except Exception as e:
+      tm.set_error(task_id, str(e))
+    else:
+      tm.set_completed(task_id)
+
+  thread = Thread(target=_wrapper, daemon=True)
+  thread.start()

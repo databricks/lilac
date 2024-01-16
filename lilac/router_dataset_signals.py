@@ -11,7 +11,7 @@ from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import Path
 from .signal import Signal, TextEmbeddingSignal, resolve_signal
-from .tasks import TaskId, get_task_manager
+from .tasks import TaskId, get_task_manager, launch_task
 
 router = APIRouter(route_class=RouteErrorHandler)
 
@@ -72,8 +72,7 @@ def compute_signal(
       remote=signal.remote,
     )
 
-  thread = Thread(target=run, daemon=True)
-  thread.start()
+  launch_task(task_id, run)
 
   return ComputeSignalResponse(task_id=task_id)
 

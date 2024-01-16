@@ -7,7 +7,6 @@ poetry run python -m lilac.datasets.loader \
   --output_dir=./data/ \
   --config_path=./datasets/the_movies_dataset.json
 """
-from threading import Thread
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,7 +19,7 @@ from .env import get_project_dir
 from .load_dataset import process_source
 from .router_utils import RouteErrorHandler
 from .source import get_source_cls, registered_sources
-from .tasks import TaskId, TaskType, get_task_manager
+from .tasks import TaskId, TaskType, get_task_manager, launch_task
 
 REQUEST_TIMEOUT_SEC = 30 * 60  # 30 mins.
 
@@ -98,7 +97,6 @@ async def load(
       task_id,
     )
 
-  thread = Thread(target=run, daemon=True)
-  thread.start()
+  launch_task(task_id, run)
 
   return LoadDatasetResponse(task_id=task_id)
