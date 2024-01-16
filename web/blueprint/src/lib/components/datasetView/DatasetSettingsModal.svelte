@@ -20,6 +20,7 @@
     TextInput
   } from 'carbon-components-svelte';
   import {TrashCan} from 'carbon-icons-svelte';
+  import {createEventDispatcher} from 'svelte';
   import CommandSelectList from '../commands/selectors/CommandSelectList.svelte';
   import RemovableTag from '../common/RemovableTag.svelte';
   import DatasetSettingsFields from './DatasetSettingsFields.svelte';
@@ -69,11 +70,16 @@
     ? parseSettings($settingsQuery.data)
     : newSettings;
 
+  const dispatch = createEventDispatcher();
+  function close() {
+    open = false;
+    dispatch('close');
+  }
   function submit() {
     if (newSettings == null) return;
     $updateSettings.mutate([namespace, name, newSettings], {
       onSuccess: () => {
-        open = false;
+        close();
       }
     });
   }
@@ -109,7 +115,7 @@
   $: labels = $schema.data && getSchemaLabels($schema.data);
 </script>
 
-<ComposedModal {open} on:submit={submit} on:close={() => (open = false)}>
+<ComposedModal {open} on:submit={submit} on:close={close}>
   <ModalHeader label="Changes" title="Dataset settings" />
   <ModalBody hasForm>
     <div class="flex flex-row">
@@ -207,7 +213,7 @@
     danger={settingsPage === 'administration'}
     primaryButtonText="Save"
     secondaryButtonText="Cancel"
-    on:click:button--secondary={() => (open = false)}
+    on:click:button--secondary={close}
     primaryButtonDisabled={settingsPage === 'administration'}
   />
 </ComposedModal>

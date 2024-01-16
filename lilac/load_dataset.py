@@ -27,7 +27,7 @@ from .schema import MANIFEST_FILENAME, PARQUET_FILENAME_PREFIX, ROWID, Field, It
 from .source import Source, SourceManifest
 from .sources.dict_source import DictSource
 from .sources.huggingface_source import HuggingFaceSource
-from .tasks import TaskId, get_progress_bar, get_task_manager
+from .tasks import TaskId, get_progress_bar
 from .utils import get_dataset_output_dir, log, open_file
 
 
@@ -129,9 +129,6 @@ def process_source(
     dataset = get_dataset(config.namespace, config.name, project_dir)
     settings = default_settings(dataset)
     update_project_dataset_settings(config.namespace, config.name, settings, project_dir)
-
-  if task_id is not None:
-    get_task_manager().set_completed(task_id)
 
   log(f'Dataset "{config.name}" written to {output_dir}')
 

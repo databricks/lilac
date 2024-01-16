@@ -1045,7 +1045,11 @@ class DatasetDuckDB(Dataset):
     if task_id is not None:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len, task_id=task_id)
     else:
-      progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
+      progress_bar = get_progress_bar(
+        offset=offset,
+        estimated_len=estimated_len,
+        task_description=f'Compute signal {signal} on {self.dataset_name}:{path}',
+      )
 
     n_jobs = 1 if remote else signal.local_parallelism
     prefer = 'threads' if remote else signal.local_strategy
@@ -1158,7 +1162,11 @@ class DatasetDuckDB(Dataset):
     if task_id is not None:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len, task_id=task_id)
     else:
-      progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len)
+      progress_bar = get_progress_bar(
+        offset=offset,
+        estimated_len=estimated_len,
+        task_description=f'Compute embedding {signal} on {self.dataset_name}:{path}',
+      )
 
     n_jobs = 1 if remote else signal.local_parallelism
     prefer = 'threads' if remote else signal.local_strategy

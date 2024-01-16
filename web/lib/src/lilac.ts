@@ -251,10 +251,10 @@ export function isMapField(field: LilacField): boolean {
 
 /** If a field is produced by a map, it returns the map information. Otherwise returns null. */
 export function getMapInfo(field: LilacField): MapInfo | null {
-  if (field.map) {
+  if (field.map != null) {
     return field.map;
   }
-  if (field.parent) {
+  if (field.parent != null) {
     return getMapInfo(field.parent);
   }
   return null;
@@ -285,6 +285,11 @@ export function isClusterField(field: LilacField): boolean {
 export function isClusterRootField(field: LilacField) {
   // TODO(smilkov): Add a special bit to the field to indicate that it is a cluster root field.
   return field.cluster != null;
+}
+
+/** Determine if a field is produced by a label. */
+export function isLabelRootField(field: LilacField) {
+  return field.label != null;
 }
 
 /** If a field is produced by a label, returns the label name. Otherwise returns null. */

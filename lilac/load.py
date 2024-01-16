@@ -14,11 +14,6 @@ from .env import get_project_dir
 from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import ROWID, PathTuple
-from .tasks import (
-  TaskId,
-  TaskType,
-  get_task_manager,
-)
 from .utils import DebugTimer, get_datasets_dir, log
 
 
@@ -55,8 +50,6 @@ def load(
     config_path = config or os.path.join(project_dir, PROJECT_CONFIG_FILENAME)
     config = read_config(config_path)
 
-  task_manager = get_task_manager()
-
   if overwrite:
     shutil.rmtree(get_datasets_dir(project_dir), ignore_errors=True)
 
@@ -76,14 +69,9 @@ def load(
     log('Skipping loaded datasets:', ', '.join([d.name for d in skipped_datasets]))
 
   with DebugTimer(f'Loading datasets: {", ".join([d.name for d in datasets_to_load])}'):
-    dataset_task_ids: list[str] = []
     for d in datasets_to_load:
       shutil.rmtree(os.path.join(project_dir, d.name), ignore_errors=True)
-      task_id = task_manager.task_id(
-        f'Load dataset {d.namespace}/{d.name}', type=TaskType.DATASET_LOAD
-      )
-      process_source(project_dir, d, task_id)
-      dataset_task_ids.append(task_id)
+      process_source(project_dir, d)
 
   log()
   total_num_rows = 0
@@ -112,8 +100,6 @@ def load(
     for d in config.datasets:
       dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
       manifest = dataset.manifest()
-
-      embedding_task_ids: list[str] = []
       # If embeddings are explicitly set, use only those.
       embeddings = d.embeddings or []
       # If embeddings are not explicitly set, use the media paths and preferred embedding from
@@ -129,14 +115,12 @@ def load(
         field = manifest.data_schema.get_field(e.path)
         embedding_field = (field.fields or {}).get(e.embedding)
         if embedding_field is None or overwrite:
-          task_id = task_manager.task_id(f'Compute embedding {e.embedding} on {d.name}:{e.path}')
           _compute_embedding(
             d.namespace,
             d.name,
             e,
             project_dir,
           )
-          embedding_task_ids.append(task_id)
         else:
           log(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
 
@@ -170,13 +154,11 @@ def load(
           field = manifest.data_schema.get_field(s.path)
           signal_field = (field.fields or {}).get(s.signal.key(is_computed_signal=True))
           if signal_field is None or overwrite:
-            task_id = task_manager.task_id(f'Compute signal {s.signal} on {d.name}:{s.path}')
             _compute_signal(
               d.namespace,
               d.name,
               s,
               project_dir,
-              task_id,
               overwrite,
             )
           else:
@@ -223,7 +205,6 @@ def _compute_signal(
   name: str,
   signal_config: SignalConfig,
   project_dir: Union[str, pathlib.Path],
-  task_id: TaskId,
   overwrite: bool = False,
 ) -> None:
   # Turn off debug logging.
@@ -235,7 +216,6 @@ def _compute_signal(
     signal=signal_config.signal,
     path=signal_config.path,
     overwrite=overwrite,
-    task_id=task_id,
   )
 
   # Free up RAM.

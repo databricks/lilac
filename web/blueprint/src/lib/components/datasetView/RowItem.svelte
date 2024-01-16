@@ -43,7 +43,7 @@
   export let updateSequentialRowId: ((direction: 'previous' | 'next') => void) | undefined =
     undefined;
   export let nextRowId: string | undefined = undefined;
-  export let settingsOpen = false;
+  export let modalOpen = false;
 
   let openDeleteModal = false;
 
@@ -153,7 +153,7 @@
 
   function onKeyDown(key: KeyboardEvent) {
     // Keyboard shortcuts are disabled in scroll-view and when settings are open.
-    if (itemsViewType !== 'single_item' || settingsOpen) {
+    if (itemsViewType !== 'single_item' || modalOpen) {
       return;
     }
 
