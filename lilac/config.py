@@ -62,6 +62,10 @@ class EmbeddingConfig(BaseModel):
 
   path: PathTuple
   embedding: str
+  remote: bool = (
+    True  # Whether to compute the cluster via remote service. Toggle to false for unit testing.
+  )
+
   model_config = ConfigDict(extra='forbid')
 
   @field_validator('path', mode='before')

@@ -1,9 +1,9 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
 import gc
+import itertools
 from typing import TYPE_CHECKING, ClassVar, Iterator, Optional
 
 import modal
-import numpy as np
 from typing_extensions import override
 
 from ..utils import DebugTimer, chunks
@@ -23,7 +23,7 @@ GTE_SMALL = 'thenlper/gte-small'
 GTE_BASE = 'thenlper/gte-base'
 GTE_TINY = 'TaylorAI/gte-tiny'
 GTE_CONTEXT_SIZE = 512
-GTE_REMOTE_BATCH_SIZE = 1024
+GTE_REMOTE_BATCH_SIZE = 1024 * 16
 
 
 class GTESmall(TextEmbeddingSignal):
@@ -45,7 +45,6 @@ class GTESmall(TextEmbeddingSignal):
 
   @override
   def setup(self) -> None:
-    print('setting up the model')
     try:
       from sentence_transformers import SentenceTransformer
     except ImportError:
@@ -68,27 +67,28 @@ class GTESmall(TextEmbeddingSignal):
   @override
   def compute_remote(self, docs: Iterator[str]) -> Iterator[Item]:
     # Trim the docs to the max context size.
-    trimmed_docs = [doc[:GTE_CONTEXT_SIZE] for doc in docs]
 
-    with DebugTimer('Chunking'):
-      text_chunks = [
-        (i, chunk) for i, doc in enumerate(trimmed_docs) for chunk in clustering_spacy_chunker(doc)
-      ]
-    chunk_texts = [chunk[0] for _, chunk in text_chunks]
-    doc_outputs: list[list[Item]] = [[] for _ in trimmed_docs]
-    batches = [{'docs': texts} for texts in chunks(chunk_texts, GTE_REMOTE_BATCH_SIZE)]
+    trimmed_docs = (doc[:GTE_CONTEXT_SIZE] for doc in docs)
+    text_chunks = (
+      (i, chunk) for i, doc in enumerate(trimmed_docs) for chunk in clustering_spacy_chunker(doc)
+    )
+    text_chunks, text_chunks_2 = itertools.tee(text_chunks)
+    chunk_texts = (chunk[0] for _, chunk in text_chunks)
+    batches = ({'docs': texts} for texts in chunks(chunk_texts, GTE_REMOTE_BATCH_SIZE))
 
     gte = modal.Function.lookup('gte', 'GTE.embed')
-    all_vectors: list[np.ndarray] = []
-    with DebugTimer('GTE remote'):
-      for response in gte.map(batches):
-        all_vectors.extend(list(response['vectors']))
-
-    for vector, (i, (_, (start, end))) in zip(all_vectors, text_chunks):
-      doc_outputs[i].append(lilac_embedding(start, end, vector))
-
-    for doc_output in doc_outputs:
-      yield doc_output
+    with DebugTimer('Computing GTE remotely'):
+      doc_embeddings: list[Item] = []
+      last_index = 0
+      for response in gte.map(batches, order_outputs=True):
+        for vector in response['vectors']:
+          i, (_, (start, end)) = next(text_chunks_2)
+          if i > last_index:
+            yield doc_embeddings
+            doc_embeddings = []
+            last_index = i
+          doc_embeddings.append(lilac_embedding(start, end, vector))
+      yield doc_embeddings
 
   @override
   def teardown(self) -> None:
