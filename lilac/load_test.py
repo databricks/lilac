@@ -10,9 +10,15 @@ import pytest
 from pytest_mock import MockerFixture
 from typing_extensions import override
 
-from lilac.data import clustering
-
-from .config import ClusterConfig, Config, DatasetConfig, EmbeddingConfig, SignalConfig
+from .config import (
+  ClusterConfig,
+  ClusterInputSelectorConfig,
+  Config,
+  DatasetConfig,
+  EmbeddingConfig,
+  SignalConfig,
+)
+from .data import clustering
 from .data.dataset import DatasetManifest
 from .db_manager import get_dataset
 from .env import set_project_dir
@@ -348,10 +354,7 @@ def test_load_twice_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixt
   assert first_manifest == second_manifest
 
 
-def test_load_clusters(
-  tmp_path: pathlib.Path, capsys: pytest.CaptureFixture, mocker: MockerFixture
-) -> None:
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
+def test_load_clusters(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -378,6 +381,121 @@ def test_load_clusters(
 
   dataset = get_dataset('namespace', 'test')
   assert dataset.manifest().data_schema.fields['str__cluster'].cluster is not None
+
+  load(config=project_config)
+  assert 'Cluster already computed:' in capsys.readouterr().out
+
+
+class TestShareGPTSource(Source):
+  """A test sharegpt source."""
+
+  name: ClassVar[str] = 'test_sharegpt_source'
+
+  @override
+  def source_schema(self) -> SourceSchema:
+    """Yield all items."""
+    return SourceSchema(
+      fields=schema(
+        {
+          'conversations': [
+            {
+              'from': 'string',
+              'value': 'string',
+            }
+          ]
+        }
+      ).fields,
+      num_items=4,
+    )
+
+  @override
+  def yield_items(self) -> Iterable[Item]:
+    """Yield all items."""
+    yield from [
+      {
+        'conversations': [
+          {'from': 'human', 'value': 'hello'},
+          {'from': 'gpt', 'value': 'i am a language model'},
+        ]
+      },
+      {
+        'conversations': [
+          {'from': 'human', 'value': 'whats the time'},
+          {'from': 'gpt', 'value': '1030'},
+        ]
+      },
+      {
+        'conversations': [
+          {'from': 'human', 'value': 'hello how are you'},
+          {'from': 'gpt', 'value': 'pretty good today'},
+        ]
+      },
+      {
+        'conversations': [
+          {'from': 'human', 'value': 'whats the hour'},
+          {'from': 'gpt', 'value': '10 is the hour'},
+        ]
+      },
+    ]
+
+
+def test_load_clusters_format_selector(
+  tmp_path: pathlib.Path, capsys: pytest.CaptureFixture, mocker: MockerFixture
+) -> None:
+  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
+
+  topic_fn_calls: list[list[tuple[str, float]]] = []
+
+  def _test_topic_fn(docs: list[tuple[str, float]]) -> str:
+    topic_fn_calls.append(docs)
+    if 'hello' in docs[0][0]:
+      return 'greeting'
+    elif 'time' in docs[0][0] or 'hour' in docs[0][0]:
+      return 'time'
+    return 'other'
+
+  mocker.patch.object(clustering, 'summarize_request', side_effect=_test_topic_fn)
+  set_project_dir(tmp_path)
+
+  # Initialize the lilac project. init() defaults to the project directory.
+  init()
+
+  project_config = Config(
+    datasets=[
+      DatasetConfig(
+        namespace='namespace',
+        name='test',
+        source=TestShareGPTSource(),
+      )
+    ],
+    clusters=[
+      ClusterConfig(
+        dataset_namespace='namespace',
+        dataset_name='test',
+        input_selector=ClusterInputSelectorConfig(
+          format='sharegpt',
+          selector='human',
+        ),
+        output_path=('cluster',),
+        min_cluster_size=2,
+        remote=False,
+      )
+    ],
+  )
+
+  # Load the project config from a config object.
+  load(config=project_config)
+  assert 'Computing cluster:' in capsys.readouterr().out
+
+  # Sort because topics are shuffled.
+  for topic_fn_call in topic_fn_calls:
+    topic_fn_call.sort()
+
+  # Make sure the topic function is only called for the human text.
+  assert topic_fn_calls == [
+    [('hello', 1.0), ('hello how are you', 1.0)],
+    [('whats the hour', 1.0), ('whats the time', 1.0)],
+  ]
 
   load(config=project_config)
   assert 'Cluster already computed:' in capsys.readouterr().out

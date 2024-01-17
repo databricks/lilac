@@ -32,6 +32,7 @@ from ..config import (
   SignalConfig,
   get_dataset_config,
 )
+from ..dataset_format import DatasetFormat, DatasetFormatInputSelector
 from ..env import get_project_dir
 from ..project import read_project_config, update_project_dataset_settings
 from ..schema import (
@@ -61,7 +62,6 @@ from ..signal import (
 from ..signals.concept_scorer import ConceptSignal
 from ..source import Source, resolve_source
 from ..tasks import TaskExecutionType, TaskId
-from .dataset_format import DatasetFormat, DatasetFormatInputSelector
 
 # Threshold for rejecting certain queries (e.g. group by) for columns with large cardinality.
 TOO_MANY_DISTINCT = 1_000_000

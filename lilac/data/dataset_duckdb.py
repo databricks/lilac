@@ -37,6 +37,7 @@ from ..config import (
   SignalConfig,
   get_dataset_config,
 )
+from ..dataset_format import DatasetFormatInputSelector, infer_formats
 from ..db_manager import remove_dataset_from_cache
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
@@ -112,8 +113,8 @@ from ..utils import (
   log,
   open_file,
 )
-from . import dataset
-from .clustering import cluster_impl, summarize_request
+from . import clustering, dataset  # Imported top-level so they can be mocked.
+from .clustering import cluster_impl
 from .dataset import (
   BINARY_OPS,
   DELETED_LABEL_NAME,
@@ -152,7 +153,6 @@ from .dataset import (
   get_map_parquet_id,
   make_signal_parquet_id,
 )
-from .dataset_format import DatasetFormatInputSelector, infer_formats
 from .dataset_utils import (
   count_leafs,
   create_json_map_output_schema,
@@ -538,7 +538,8 @@ class DatasetDuckDB(Dataset):
 
     dataset_formats = infer_formats(merged_schema)
     # Choose the first dataset format as the format.
-    dataset_format = dataset_formats[0] if dataset_formats else None
+    dataset_format_cls = dataset_formats[0] if dataset_formats else None
+    dataset_format = dataset_format_cls() if dataset_format_cls else None
 
     return DatasetManifest(
       namespace=self.namespace,
@@ -3024,7 +3025,7 @@ class DatasetDuckDB(Dataset):
     remote: bool = False,
     task_id: Optional[TaskId] = None,
   ) -> None:
-    topic_fn = topic_fn or summarize_request
+    topic_fn = topic_fn or clustering.summarize_request
     return cluster_impl(
       self, input, output_path, min_cluster_size, topic_fn, overwrite, remote, task_id=task_id
     )

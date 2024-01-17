@@ -10,6 +10,7 @@ from pydantic import (
   ConfigDict,
   SerializeAsAny,
   ValidationError,
+  ValidationInfo,
   field_serializer,
   field_validator,
 )
@@ -128,6 +129,13 @@ class DatasetSettings(BaseModel):
   )
 
 
+class ClusterInputSelectorConfig(BaseModel):
+  """Configures a format selector for a cluster input."""
+
+  format: str
+  selector: str
+
+
 class ClusterConfig(BaseModel):
   """Configuration for computing clusters for a dataset.
 
@@ -137,10 +145,22 @@ class ClusterConfig(BaseModel):
 
   dataset_namespace: str
   dataset_name: str
-  input_path: PathTuple
+  input_path: Optional[PathTuple] = None
+  input_selector: Optional[ClusterInputSelectorConfig] = None
+  output_path: Optional[PathTuple] = None
+  min_cluster_size: int = 5
   remote: bool = (
     True  # Whether to compute the cluster via remote service. Toggle to false for unit testing.
   )
+
+  @field_validator('input_selector')
+  def check_inputs(
+    cls, input_selector: Optional[ClusterInputSelectorConfig], values: ValidationInfo
+  ) -> Optional[ClusterInputSelectorConfig]:
+    """Check that either `input_path` or `input_selector` is defined."""
+    if 'input_path' not in values.data and not input_selector:
+      raise ValueError('either `input_path` or `input_selector` is required')
+    return input_selector
 
 
 class DatasetConfig(BaseModel):

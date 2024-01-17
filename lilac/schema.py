@@ -239,12 +239,20 @@ class MapInfo(BaseModel):
   date_created: datetime
 
 
+class ClusterInputFormatSelectorInfo(BaseModel):
+  """Information for a format selector for a cluster call."""
+
+  format: str
+  selector: str
+
+
 class ClusterInfo(BaseModel):
   """Holds information about clustering operation that was run on a dataset."""
 
   min_cluster_size: Optional[int] = None
   remote: Optional[bool] = None
   input_path: Optional[PathTuple] = None
+  input_format_selector: Optional[ClusterInputFormatSelectorInfo] = None
 
 
 class MapType(DataType):

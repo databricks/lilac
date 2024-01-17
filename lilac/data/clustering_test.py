@@ -5,6 +5,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from ..embeddings.jina import JinaV2Small
+from ..formats import ShareGPT
 from ..schema import ClusterInfo, Item, field, schema
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
@@ -18,7 +19,6 @@ from .clustering import (
   CLUSTER_TITLE,
 )
 from .dataset import DatasetManifest, MetadataSearch
-from .dataset_format import ShareGPT
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
