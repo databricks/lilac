@@ -101,17 +101,8 @@ def load(
     for d in config.datasets:
       dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
       manifest = dataset.manifest()
-      # If embeddings are explicitly set, use only those.
+
       embeddings = d.embeddings or []
-      # If embeddings are not explicitly set, use the media paths and preferred embedding from
-      # settings.
-      if not embeddings:
-        if d.settings and d.settings.ui:
-          for path in d.settings.ui.media_paths or []:
-            if d.settings.preferred_embedding:
-              embeddings.append(
-                EmbeddingConfig(path=path, embedding=d.settings.preferred_embedding)
-              )
       for e in embeddings:
         field = manifest.data_schema.get_field(e.path)
         embedding_field = (field.fields or {}).get(e.embedding)

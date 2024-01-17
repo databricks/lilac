@@ -15,6 +15,13 @@ datasets:
           - - answer_formatted
             - answer
         markdown_paths: []
+    embeddings:
+      - embedding: gte-small
+        path:
+          - question
+      - embedding: gte-small
+        path:
+          - answer
 
   - name: open-asssistant-conversations
     namespace: lilac
@@ -27,6 +34,10 @@ datasets:
     source:
       source_name: huggingface
       dataset_name: OpenAssistant/oasst1
+    embeddings:
+      - embedding: gte-small
+        path:
+          - text
 
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
@@ -46,10 +57,19 @@ datasets:
           - - new-response
             - value
             - '*'
-      preferred_embedding: 'gte-small'
     source:
       dataset_name: argilla/databricks-dolly-15k-curated-en
       source_name: huggingface
+    embeddings:
+      - embedding: gte-small
+        path:
+          - original-instruction
+      - embedding: gte-small
+        path:
+          - original-context
+      - embedding: gte-small
+        path:
+          - original-response
 
   - name: 'OpenOrca-100k'
     namespace: lilac
@@ -64,6 +84,13 @@ datasets:
       source_name: huggingface
       dataset_name: Open-Orca/OpenOrca
       sample_size: 100000
+    embeddings:
+      - embedding: gte-small
+        path:
+          - question
+      - embedding: gte-small
+        path:
+          - response
 
 signals:
   - signal_name: pii
