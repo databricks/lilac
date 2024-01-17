@@ -459,7 +459,8 @@ def _hdbscan_cluster(
   """Cluster docs with HDBSCAN."""
   if remote:
     remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
-    gzipped_docs = compress_docs(list(docs))
+    with DebugTimer('Compressing docs for clustering remotely'):
+      gzipped_docs = compress_docs(list(docs))
     response = remote_fn({'gzipped_docs': gzipped_docs})
     yield from response['clusters']
 

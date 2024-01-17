@@ -1029,7 +1029,8 @@ class DatasetDuckDB(Dataset):
       self.project_dir,
     )
 
-    signal.setup()
+    if not remote:
+      signal.setup()
 
     jsonl_cache_filepath = _jsonl_cache_filepath(
       namespace=self.namespace,
@@ -1138,7 +1139,8 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
-    signal.setup()
+    if not remote:
+      signal.setup()
 
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
 
