@@ -323,7 +323,7 @@
           <SkeletonText class="!w-80" />
         {:else if value == null || row == null}
           <span class="ml-12 italic">null</span>
-        {:else if colCompareState == null && spanValuePaths != null}
+        {:else if colCompareState == null && spanValuePaths != null && field != null}
           <ItemMediaTextContent
             hidden={markdown}
             text={value}
