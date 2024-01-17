@@ -29,7 +29,7 @@ class ShareGPT(DatasetFormat):
   """ShareGPT format."""
 
   name: ClassVar[str] = 'sharegpt'
-  data_schema: ClassVar[Schema] = schema(
+  data_schema: Schema = schema(
     {
       'conversations': [
         {
@@ -39,7 +39,7 @@ class ShareGPT(DatasetFormat):
       ]
     }
   )
-  title_slots: ClassVar[list[tuple[PathTuple, PathTuple]]] = [
+  title_slots: list[tuple[PathTuple, PathTuple]] = [
     (('conversations', PATH_WILDCARD, 'value'), ('conversations', PATH_WILDCARD, 'from'))
   ]
 

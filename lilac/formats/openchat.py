@@ -11,7 +11,7 @@ class OpenChat(DatasetFormat):
   """OpenChat format."""
 
   name: ClassVar[str] = 'openchat'
-  data_schema: ClassVar[Schema] = schema(
+  data_schema: Schema = schema(
     {
       'items': [
         {
@@ -23,6 +23,6 @@ class OpenChat(DatasetFormat):
     },
   )
 
-  title_slots: ClassVar[list[tuple[PathTuple, PathTuple]]] = [
+  title_slots: list[tuple[PathTuple, PathTuple]] = [
     (('items', PATH_WILDCARD, 'content'), ('items', PATH_WILDCARD, 'role'))
   ]

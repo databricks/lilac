@@ -1,7 +1,7 @@
 """Tests for the dataset_format module."""
 
 
-from .dataset_test_utils import TestDataMaker
+from .data.dataset_test_utils import TestDataMaker
 
 
 def test_infer_no_format(make_test_data: TestDataMaker) -> None:

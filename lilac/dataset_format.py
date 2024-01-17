@@ -36,11 +36,11 @@ class DatasetFormat(BaseModel):
   model_config = ConfigDict(extra='allow')
 
   name: ClassVar[str]
-  data_schema: ClassVar[Schema]
+  data_schema: Optional[Schema] = None
 
   # Title slots are a mapping of a media path to a path that represents the title to be displayed
   # for that media path. This allows us to put a title over certain media fields in the UI.
-  title_slots: ClassVar[list[tuple[PathTuple, PathTuple]]] = []
+  title_slots: Optional[list[tuple[PathTuple, PathTuple]]] = []
 
   # Input selectors are used for format-specific runtime filters.
   input_selectors: ClassVar[dict[str, DatasetFormatInputSelector]] = {}
@@ -72,9 +72,10 @@ DATASET_FORMAT_REGISTRY: dict[str, Type[DatasetFormat]] = {}
 def infer_formats(data_schema: Schema) -> list[type[DatasetFormat]]:
   """Infer the dataset formats for a dataset."""
   formats = []
-  for format in DATASET_FORMAT_REGISTRY.values():
-    if schema_is_compatible_with(data_schema, format.data_schema):
-      formats.append(format)
+  for format_cls in DATASET_FORMAT_REGISTRY.values():
+    format = format_cls()
+    if format.data_schema and schema_is_compatible_with(data_schema, format.data_schema):
+      formats.append(format_cls)
   return formats
 
 
