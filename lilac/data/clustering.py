@@ -22,6 +22,7 @@ from ..schema import (
   PATH_WILDCARD,
   VALUE_KEY,
   ClusterInfo,
+  ClusterInputFormatSelectorInfo,
   Item,
   Path,
   PathTuple,
@@ -195,7 +196,7 @@ def generate_category(ranked_docs: list[tuple[str, float]]) -> str:
 def _compute_titles(
   items: Iterator[Item],
   text_column: str,
-  id_column: str,
+  cluster_id_column: str,
   membership_column: str,
   topic_fn: TopicFn,
   task_info: Optional[TaskInfo] = None,
@@ -208,26 +209,37 @@ def _compute_titles(
     return group_size, topic_fn(sorted_docs)
 
   def _delayed_compute_all_titles() -> Iterator:
-    for group in group_by_sorted_key_iter(items, lambda x: x[id_column]):
+    for group in group_by_sorted_key_iter(items, lambda x: x[cluster_id_column]):
       sorted_docs: list[tuple[str, float]] = []
+
       for item in group:
         if not item:
           continue
-        cluster_id = item.get(id_column, -1)
+
+        cluster_id = item.get(cluster_id_column, -1)
         if cluster_id < 0:
           continue
+
         text = item.get(text_column)
         if not text:
           continue
+
         membership_prob = item.get(membership_column, 0)
         if membership_prob == 0:
           continue
+
         sorted_docs.append((text, membership_prob))
+
       # Remove any duplicate texts in the group.
       sorted_docs = list(set(sorted_docs))
+
       # Shuffle the group to avoid biasing the topic function.
       random.shuffle(sorted_docs)
+
+      # Sort the group by membership probability after shuffling so that we still choose high
+      # membership scores but they are still shuffled when the values are equal.
       sorted_docs.sort(key=lambda text_score: text_score[1], reverse=True)
+
       yield delayed(_compute_title)(sorted_docs, len(group))
 
   parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
@@ -256,11 +268,15 @@ def cluster_impl(
   task_info: Optional[TaskInfo] = None
   if task_id:
     task_info = task_manager.get_task_info(task_id)
-  schema = dataset.manifest().data_schema
+  manifest = dataset.manifest()
+  schema = manifest.data_schema
   path: Optional[PathTuple] = None
 
+  dataset_format_input_selector: Optional[DatasetFormatInputSelector] = None
   if isinstance(input_fn_or_path, DatasetFormatInputSelector):
+    dataset_format_input_selector = input_fn_or_path
     input_fn_or_path = input_fn_or_path.selector
+
   if not callable(input_fn_or_path):
     path = normalize_path(input_fn_or_path)
     # Make sure the path exists.
@@ -309,16 +325,16 @@ def cluster_impl(
       return '\n'.join(texts)
 
     def extract_text(item: Item) -> Item:
-      cluster_info = item
+      cluster_item = item
       for path_part in cluster_output_path:
-        cluster_info = cluster_info.get(path_part, {})
+        cluster_item = cluster_item.get(path_part, {})
 
       text = (
         input_fn_or_path(item)
         if callable(input_fn_or_path)
         else _flatten_input(item, cast(PathTuple, path))
       )
-      return {**cluster_info, TEXT_COLUMN: text}
+      return {**cluster_item, TEXT_COLUMN: text}
 
     dataset.map(extract_text, output_path=cluster_output_path, overwrite=True)
 
@@ -358,7 +374,7 @@ def cluster_impl(
       titles = _compute_titles(
         items,
         text_column=TEXT_COLUMN,
-        id_column=CLUSTER_ID,
+        cluster_id_column=CLUSTER_ID,
         membership_column=CLUSTER_MEMBERSHIP_PROB,
         topic_fn=topic_fn,
         task_info=task_info,
@@ -413,7 +429,7 @@ def cluster_impl(
       titles = _compute_titles(
         items,
         text_column=CLUSTER_TITLE,
-        id_column=CATEGORY_ID,
+        cluster_id_column=CATEGORY_ID,
         membership_column=CATEGORY_MEMBERSHIP_PROB,
         topic_fn=generate_category,
         task_info=task_info,
@@ -442,6 +458,12 @@ def cluster_impl(
           min_cluster_size=min_cluster_size,
           remote=remote,
           input_path=(get_callable_name(input_fn_or_path),) if callable(input_fn_or_path) else path,
+          input_format_selector=ClusterInputFormatSelectorInfo(
+            format=manifest.dataset_format.name,
+            selector=dataset_format_input_selector.name,
+          )
+          if dataset_format_input_selector and manifest.dataset_format
+          else None,
         ),
       ),
     )

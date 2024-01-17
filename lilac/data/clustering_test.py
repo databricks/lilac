@@ -18,7 +18,6 @@ from .clustering import (
   CLUSTER_TITLE,
 )
 from .dataset import DatasetManifest, MetadataSearch
-from .dataset_format import ShareGPT
 from .dataset_test_utils import (
   TEST_DATASET_NAME,
   TEST_NAMESPACE,
@@ -26,6 +25,7 @@ from .dataset_test_utils import (
   TestSource,
   enriched_item,
 )
+from .formats import ShareGPT
 
 
 class TestSignal(TextSignal):

@@ -1,24 +1,14 @@
-"""Utilities for inferring dataset formats."""
+"""Utilities for inferring dataset formats.
 
-from typing import Callable, ClassVar
+Formats are taken from axlotl: https://github.com/OpenAccess-AI-Collective/axolotl#dataset
+"""
 
-from pydantic import BaseModel, ConfigDict
+import copy
+from typing import Any, Callable, ClassVar, Optional, Type, Union
 
-from ..schema import PATH_WILDCARD, Item, PathTuple, Schema, schema
+from pydantic import BaseModel, ConfigDict, model_serializer
 
-
-class DatasetFormat(BaseModel):
-  """A dataset format."""
-
-  # Allow extra fields for dataset formats.
-  model_config = ConfigDict(extra='allow')
-
-  name: str
-  data_schema: Schema
-
-  # Title slots are a mapping of a media path to a path that represents the title to be displayed
-  # for that media path. This allows us to put a title over certain media fields in the UI.
-  title_slots: list[tuple[PathTuple, PathTuple]] = []
+from ..schema import Item, PathTuple, Schema
 
 
 class DatasetFormatInputSelector(BaseModel):
@@ -32,63 +22,35 @@ class DatasetFormatInputSelector(BaseModel):
   selector: Callable[[Item], str]
 
 
-def _sharegpt_selector(item: Item, conv_from: str) -> str:
-  """Selector for ShareGPT."""
-  return '\n'.join(conv['value'] for conv in item['conversations'] if conv['from'] == conv_from)
+class DatasetFormat(BaseModel):
+  """A dataset format.
 
+  Formats are taken from: https://github.com/OpenAccess-AI-Collective/axolotl#dataset.
 
-class ShareGPTFormat(DatasetFormat):
-  """ShareGPT format."""
+  Formats allow us to specify opinionated selectors, like selecting only "human" parts of
+  conversations. They also allow us to specify title slots, which are used to display
+  titles over certain media fields in the UI.
+  """
 
-  name: str = 'sharegpt'
-  data_schema: Schema = schema(
-    {
-      'conversations': [
-        {
-          'from': 'string',
-          'value': 'string',
-        }
-      ]
-    }
-  )
-  title_slots: list[tuple[PathTuple, PathTuple]] = [
-    (('conversations', PATH_WILDCARD, 'value'), ('conversations', PATH_WILDCARD, 'from'))
-  ]
-  human: ClassVar[DatasetFormatInputSelector] = DatasetFormatInputSelector(
-    name='human',
-    selector=lambda item: _sharegpt_selector(item, 'human'),
-  )
-  gpt: ClassVar[DatasetFormatInputSelector] = DatasetFormatInputSelector(
-    name='gpt',
-    selector=lambda item: _sharegpt_selector(item, 'gpt'),
-  )
-  system: ClassVar[DatasetFormatInputSelector] = DatasetFormatInputSelector(
-    name='system',
-    selector=lambda item: _sharegpt_selector(item, 'system'),
-  )
+  # Allow extra fields for dataset formats.
+  model_config = ConfigDict(extra='allow')
 
+  name: ClassVar[str]
+  data_schema: ClassVar[Schema]
 
-ShareGPT = ShareGPTFormat()
+  # Title slots are a mapping of a media path to a path that represents the title to be displayed
+  # for that media path. This allows us to put a title over certain media fields in the UI.
+  title_slots: ClassVar[list[tuple[PathTuple, PathTuple]]] = []
 
-# https://github.com/imoneoi/openchat
-OpenChat = DatasetFormat(
-  name='openchat_format',
-  title_slots=[(('items', PATH_WILDCARD, 'content'), ('items', PATH_WILDCARD, 'role'))],
-  data_schema=schema(
-    {
-      'items': [
-        {
-          'role': 'string',
-          'content': 'string',
-        }
-      ],
-      'system': 'string',
-    },
-  ),
-)
+  # Input selectors are used for format-specific runtime filters.
+  input_selectors: ClassVar[dict[str, DatasetFormatInputSelector]] = {}
 
-# Formats are taken from axlotl: https://github.com/OpenAccess-AI-Collective/axolotl#dataset
-DATASET_FORMATS: list[DatasetFormat] = [ShareGPT, OpenChat]
+  @model_serializer(mode='wrap', when_used='always')
+  def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:
+    """Serialize the model to a dictionary."""
+    res = serializer(self)
+    res['format_name'] = self.name
+    return res
 
 
 def schema_is_compatible_with(dataset_schema: Schema, format_schema: Schema) -> bool:
@@ -104,10 +66,53 @@ def schema_is_compatible_with(dataset_schema: Schema, format_schema: Schema) -> 
   return True
 
 
-def infer_formats(data_schema: Schema) -> list[DatasetFormat]:
+DATASET_FORMAT_REGISTRY: dict[str, Type[DatasetFormat]] = {}
+
+
+def infer_formats(data_schema: Schema) -> list[type[DatasetFormat]]:
   """Infer the dataset formats for a dataset."""
   formats = []
-  for format in DATASET_FORMATS:
+  for format in DATASET_FORMAT_REGISTRY.values():
     if schema_is_compatible_with(data_schema, format.data_schema):
       formats.append(format)
   return formats
+
+
+def register_dataset_format(format_cls: Type[DatasetFormat]) -> None:
+  """Register a dataset format in the global registry."""
+  if format_cls.name in DATASET_FORMAT_REGISTRY:
+    raise ValueError(f'Dataset format "{format_cls.name}" has already been registered!')
+
+  DATASET_FORMAT_REGISTRY[format_cls.name] = format_cls
+
+
+def get_dataset_format_cls(format_name: str) -> Optional[Type[DatasetFormat]]:
+  """Return a registered dataset format class given the name in the registry."""
+  return (
+    DATASET_FORMAT_REGISTRY.get(format_name) if format_name in DATASET_FORMAT_REGISTRY else None
+  )
+
+
+def resolve_dataset_format(dataset_format: Union[dict, DatasetFormat]) -> DatasetFormat:
+  """Resolve a generic format base class to a specific format class."""
+  if isinstance(dataset_format, DatasetFormat):
+    # The format is already parsed.
+    return dataset_format
+
+  format_name = dataset_format.get('format_name')
+  if not format_name:
+    raise ValueError('"dataset_format" needs to be defined in the json dict.')
+
+  format_cls = get_dataset_format_cls(format_name)
+  if not format_cls:
+    # Make a metaclass so we get a valid `DatasetFormat` class.
+    format_cls = type(f'DatasetFormat_{format_name}', (DatasetFormat,), {'name': format_name})
+
+  dataset_format = copy.deepcopy(dataset_format)
+  del dataset_format['dataset_format']
+  return format_cls(**dataset_format)
+
+
+def clear_dataset_format_registry() -> None:
+  """Clear the format registry."""
+  DATASET_FORMAT_REGISTRY.clear()

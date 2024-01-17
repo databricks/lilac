@@ -9,6 +9,7 @@ from typing import Optional, Union
 from .concepts.db_concept import DiskConceptDB, DiskConceptModelDB
 from .config import Config, EmbeddingConfig, SignalConfig, read_config
 from .data.dataset_duckdb import DatasetDuckDB
+from .data.dataset_format import get_dataset_format_cls
 from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .env import get_project_dir
 from .load_dataset import process_source
@@ -172,16 +173,49 @@ def load(
   with DebugTimer('Computing clusters'):
     for c in config.clusters:
       dataset = DatasetDuckDB(c.dataset_namespace, c.dataset_name, project_dir=project_dir)
-      schema = dataset.manifest().data_schema
+      manifest = dataset.manifest()
+      schema = manifest.data_schema
       # Try to find the cluster if it is precomputed.
       for path, node in schema.all_fields:
-        if node.cluster is not None and node.cluster.input_path == c.input_path:
+        if node.cluster is not None and (
+          node.cluster.input_path == c.input_path
+          or (
+            node.cluster.input_format_selector
+            and c.input_format_selector
+            and (
+              node.cluster.input_format_selector.format == c.input_format_selector.format
+              and node.cluster.input_format_selector.selector == c.input_format_selector.selector
+            )
+          )
+        ):
           log('Cluster already computed:', c)
           break
       else:
         # No precomputed cluster found.
         log('Computing cluster:', c)
-        dataset.cluster(c.input_path, remote=c.remote)
+
+        cluster_input = c.input_path
+        if c.input_format_selector:
+          format_cls = get_dataset_format_cls(c.input_format_selector.format)
+          if format_cls is None:
+            raise ValueError(f'Unknown format: {c.input_format_selector.format}')
+
+          format = format_cls()
+          if format != manifest.dataset_format:
+            raise ValueError(
+              f'Cluster input format {c.input_format_selector.format} does not match '
+              f'dataset format {manifest.dataset_format}'
+            )
+
+          cluster_input = format_cls.input_selectors[c.input_format_selector.selector]
+
+        assert cluster_input is not None
+        dataset.cluster(
+          cluster_input,
+          output_path=c.output_path,
+          min_cluster_size=c.min_cluster_size,
+          remote=c.remote,
+        )
 
   log()
   log('*** Compute model caches ***')
