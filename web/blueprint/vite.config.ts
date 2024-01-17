@@ -1,6 +1,8 @@
 import {sveltekit} from '@sveltejs/kit/vite';
 import {defineConfig} from 'vitest/config';
 
+const PORT = 5173;
+
 export default defineConfig({
   plugins: [sveltekit()],
   test: {
@@ -9,6 +11,7 @@ export default defineConfig({
     environment: 'jsdom'
   },
   server: {
+    port: PORT,
     proxy: {
       '^/api': 'http://127.0.0.1:5432',
       // Listing data files.
@@ -24,7 +27,7 @@ export default defineConfig({
       // Simulate the app being served under /blueprint base path for testing.
       '^/blueprint': {
         rewrite: path => path.replace('/blueprint', ''),
-        target: 'http://localhost:5173/'
+        target: `http://localhost:${PORT}/`
       }
     }
   }
