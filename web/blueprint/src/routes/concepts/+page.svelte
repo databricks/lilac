@@ -6,7 +6,7 @@
   import ConceptView from '$lib/components/concepts/ConceptView.svelte';
   import {deleteConceptMutation, queryConcept, queryConcepts} from '$lib/queries/conceptQueries';
   import {getUrlHashContext} from '$lib/stores/urlHashStore';
-  import {conceptIdentifier, conceptLink} from '$lib/utils';
+  import {conceptIdentifier, conceptLink, startLink} from '$lib/utils';
   import {Modal, SkeletonText, Tag} from 'carbon-components-svelte';
   import {InProgress, Settings, Share} from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
@@ -43,7 +43,7 @@
     $deleteConcept.mutate([namespace, name], {
       onSuccess: () => {
         deleteConceptInfo = null;
-        goto('/');
+        goto(startLink());
       }
     });
   }

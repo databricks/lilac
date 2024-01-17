@@ -33,7 +33,7 @@ export function datasetLink(
   }`;
 }
 
-export function signalLink(name: string | undefined) {
+export function signalLink(name: string) {
   return `${base}/signals#${name}`;
 }
 
