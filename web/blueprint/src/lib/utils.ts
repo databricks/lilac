@@ -11,7 +11,7 @@ export function conceptIdentifier(namespace: string, conceptName: string) {
 }
 
 export function conceptLink(namespace: string, conceptName: string) {
-  return `/concepts#${conceptIdentifier(namespace, conceptName)}`;
+  return `${base}/concepts#${conceptIdentifier(namespace, conceptName)}`;
 }
 
 export function datasetIdentifier(namespace: string, datasetName: string) {
@@ -33,6 +33,26 @@ export function datasetLink(
   }`;
 }
 
-export function signalLink(name: string) {
-  return `/signals#${name}`;
+export function signalLink(name: string | undefined) {
+  return `${base}/signals#${name}`;
+}
+
+export function newDatasetLink() {
+  return `${base}/datasets/new`;
+}
+
+export function startLink() {
+  return `${base}/`;
+}
+
+export function ragLink() {
+  return `${base}/rag`;
+}
+
+export function settingsLink() {
+  return `${base}/settings`;
+}
+
+export function datasetLoadingLink(namespace: string, datasetName: string, taskId: string) {
+  return `${base}/datasets/loading#${datasetIdentifier(namespace, datasetName)}/${taskId}`;
 }

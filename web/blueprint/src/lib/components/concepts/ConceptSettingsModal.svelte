@@ -6,6 +6,7 @@
     queryConcepts
   } from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {startLink} from '$lib/utils';
   import {conceptDisplayName} from '$lib/view_utils';
   import {
     Checkbox,
@@ -136,7 +137,9 @@
                   class:opacity-50={deleteConceptInputName != displayName}
                   disabled={deleteConceptInputName != displayName}
                   on:click={() =>
-                    $deleteConcept.mutate([namespace, conceptName], {onSuccess: () => goto('/')})}
+                    $deleteConcept.mutate([namespace, conceptName], {
+                      onSuccess: () => goto(startLink())
+                    })}
                 >
                   I understand, delete this concept
                   <TrashCan />

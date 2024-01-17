@@ -2,8 +2,8 @@
   import {goto} from '$app/navigation';
   import GettingStartedStep from '$lib/components/GettingStartedStep.svelte';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {newDatasetLink} from '$lib/utils';
   import {Button} from 'carbon-components-svelte';
-
   const authInfo = queryAuthInfo();
   $: canCreateDataset = $authInfo.data?.access.create_dataset;
 </script>
@@ -20,9 +20,9 @@
       description="Click 'Add dataset', or select a dataset from the left panel."
     >
       <div class="mt-4">
-        <Button disabled={!canCreateDataset} size="small" on:click={() => goto('/datasets/new')}
-          >+ Add dataset</Button
-        >
+        <Button disabled={!canCreateDataset} size="small" on:click={() => goto(newDatasetLink())}>
+          + Add dataset
+        </Button>
       </div>
       {#if !canCreateDataset}
         <div class="flex flex-col border border-neutral-100 bg-red-100 p-2">

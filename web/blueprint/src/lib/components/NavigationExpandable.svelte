@@ -8,7 +8,6 @@
 </script>
 
 <script lang="ts">
-  import {base} from '$app/paths';
   import {getNavigationContext} from '$lib/stores/navigationStore';
   import {getUrlHashContext, type AppPage} from '$lib/stores/urlHashStore';
 
@@ -71,12 +70,11 @@
               class:bg-neutral-100={linkItem.isSelected}
             >
               <a
-                href={base +
-                  urlHashContext.getPageIdentifierLink(
-                    linkItem.page,
-                    linkItem.identifier,
-                    $navigationStore
-                  )}
+                href={urlHashContext.getPageIdentifierLink(
+                  linkItem.page,
+                  linkItem.identifier,
+                  $navigationStore
+                )}
                 class:text-black={linkItem.isSelected}
                 class:font-semibold={linkItem.isSelected}
                 class="w-full truncate px-1 py-1 text-xs text-black"

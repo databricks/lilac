@@ -1,8 +1,8 @@
+import {base} from '$app/paths';
 import {mergeDeep} from '$lilac';
 import {getContext, hasContext, setContext} from 'svelte';
 import {writable, type Writable} from 'svelte/store';
 import {NAV_STORE_KEY, defaultNavigationState, type NavigationState} from './navigationStore';
-
 export type AppPage =
   | 'home'
   | 'concepts'
@@ -60,7 +60,7 @@ export function createUrlHashStore(navStore: Writable<NavigationState>) {
       // Remove any page-specific state when getting a link to a page + identifier.
       const pageHashState = null;
       const hash = getStateHash(identifier, navState, pageHashState);
-      return `/${page}${hash}`;
+      return `${base}/${page}${hash}`;
     },
     setHash(page: AppPage, hash: string) {
       update(state => {

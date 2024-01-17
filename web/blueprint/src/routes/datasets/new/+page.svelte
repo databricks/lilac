@@ -9,8 +9,7 @@
   import TableInput from '$lib/components/datasets/sqlite/TableInput.svelte';
   import {loadDatasetMutation, querySources, querySourcesSchema} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {datasetIdentifier} from '$lib/utils';
-
+  import {datasetLoadingLink} from '$lib/utils';
   import {
     Button,
     Form,
@@ -95,7 +94,7 @@
       ],
       {
         onSuccess: resp => {
-          goto(`/datasets/loading#${datasetIdentifier(namespace, name)}/${resp.task_id}`);
+          goto(datasetLoadingLink(namespace, name, resp.task_id));
         }
       }
     );
