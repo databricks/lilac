@@ -41,7 +41,7 @@ export function newDatasetLink() {
   return `${base}/datasets/new`;
 }
 
-export function startLink() {
+export function homeLink() {
   return `${base}/`;
 }
 

@@ -27,6 +27,9 @@
 
   let showError: ApiError | undefined = undefined;
 
+  // Set the base URL for the OpenAPI requests when the app is served from a subdir.
+  OpenAPI.BASE = base;
+
   const routeToPage: Record<string, AppPage> = {
     '': 'home',
     '/datasets': 'datasets',
@@ -47,9 +50,6 @@
   const notificationsStore = createNotificationsStore();
   setNotificationsContext(notificationsStore);
   $: notifications = $notificationsStore?.notifications || [];
-
-  // Set the base URL for OpenAPI requests automatically.
-  OpenAPI.BASE = base;
 
   onMount(() => {
     // Initialize the page from the hash.

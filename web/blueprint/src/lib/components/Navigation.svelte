@@ -7,7 +7,7 @@
   import {querySignals} from '$lib/queries/signalQueries';
   import {getNavigationContext} from '$lib/stores/navigationStore';
   import {getUrlHashContext, type AppPage} from '$lib/stores/urlHashStore';
-  import {conceptLink, newDatasetLink, ragLink, settingsLink, startLink} from '$lib/utils';
+  import {conceptLink, homeLink, newDatasetLink, ragLink, settingsLink} from '$lib/utils';
   import {getTaggedConcepts, getTaggedDatasets} from '$lib/view_utils';
   import {AddAlt, DataVis_3, Settings, SidePanelClose} from 'carbon-icons-svelte';
   import NavigationCategory from './NavigationCategory.svelte';
@@ -92,7 +92,7 @@
     <div
       class="header flex flex-row items-center justify-between border-b border-gray-200 px-1 pl-4"
     >
-      <a class="flex flex-row items-center text-xl normal-case" href={startLink()}>
+      <a class="flex flex-row items-center text-xl normal-case" href={homeLink()}>
         <img class="logo-img mr-2 rounded opacity-90" src={logo_50x50} alt="Logo" />
         Lilac
       </a>

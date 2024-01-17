@@ -6,7 +6,7 @@
     queryConcepts
   } from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {startLink} from '$lib/utils';
+  import {homeLink} from '$lib/utils';
   import {conceptDisplayName} from '$lib/view_utils';
   import {
     Checkbox,
@@ -138,7 +138,7 @@
                   disabled={deleteConceptInputName != displayName}
                   on:click={() =>
                     $deleteConcept.mutate([namespace, conceptName], {
-                      onSuccess: () => goto(startLink())
+                      onSuccess: () => goto(homeLink())
                     })}
                 >
                   I understand, delete this concept

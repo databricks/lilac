@@ -24,9 +24,9 @@ export default defineConfig({
       // OpenAPI docs
       '^/docs': 'http://127.0.0.1:5432',
       '/openapi.json': 'http://127.0.0.1:5432',
-      // Simulate the app being served under /blueprint base path for testing.
-      '^/blueprint': {
-        rewrite: path => path.replace('/blueprint', ''),
+      // Serve the entire app under /proxy base path, in addition to top-level, for testing.
+      '^/proxy': {
+        rewrite: path => path.replace('/proxy', ''),
         target: `http://localhost:${PORT}/`
       }
     }

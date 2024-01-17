@@ -9,7 +9,7 @@
     updateDatasetSettingsMutation
   } from '$lib/queries/datasetQueries';
   import {queryClient} from '$lib/queries/queryClient';
-  import {datasetIdentifier, startLink} from '$lib/utils';
+  import {datasetIdentifier, homeLink} from '$lib/utils';
   import {getSchemaLabels, type DatasetSettings} from '$lilac';
   import {
     ComboBox,
@@ -197,7 +197,7 @@
                     onSuccess: () =>
                       // Invalidate the query after the redirect to avoid invalid queries to the
                       // dataset after it's deleted.
-                      goto(startLink()).then(() => queryClient.invalidateQueries([DATASETS_TAG]))
+                      goto(homeLink()).then(() => queryClient.invalidateQueries([DATASETS_TAG]))
                   })}
               >
                 I understand, delete this dataset
