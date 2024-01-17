@@ -156,7 +156,7 @@ class ClusterConfig(BaseModel):
   @field_validator('input_format_selector')
   def check_inputs(
     cls, input_format_selector: Optional[ClusterInputFormatSelectorConfig], values: ValidationInfo
-  ):
+  ) -> Optional[ClusterInputFormatSelectorConfig]:
     """Check that either `input_path` or `input_format_selector` is defined."""
     if 'input_path' not in values.data and not input_format_selector:
       raise ValueError('either `input_path` or `input_format_selector` is required')

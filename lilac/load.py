@@ -9,7 +9,7 @@ from typing import Optional, Union
 from .concepts.db_concept import DiskConceptDB, DiskConceptModelDB
 from .config import Config, EmbeddingConfig, SignalConfig, read_config
 from .data.dataset_duckdb import DatasetDuckDB
-from .data.dataset_format import get_dataset_format_cls
+from .data.dataset_format import DatasetFormatInputSelector, get_dataset_format_cls
 from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .env import get_project_dir
 from .load_dataset import process_source
@@ -194,7 +194,7 @@ def load(
         # No precomputed cluster found.
         log('Computing cluster:', c)
 
-        cluster_input = c.input_path
+        cluster_input: Optional[Union[DatasetFormatInputSelector, PathTuple]] = c.input_path
         if c.input_format_selector:
           format_cls = get_dataset_format_cls(c.input_format_selector.format)
           if format_cls is None:

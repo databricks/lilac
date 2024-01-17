@@ -11,6 +11,7 @@ export type { AddLabelsOptions } from './models/AddLabelsOptions';
 export type { AuthenticationInfo } from './models/AuthenticationInfo';
 export type { BinaryFilter } from './models/BinaryFilter';
 export type { ClusterInfo } from './models/ClusterInfo';
+export type { ClusterInputFormatSelectorInfo } from './models/ClusterInputFormatSelectorInfo';
 export type { ClusterOptions } from './models/ClusterOptions';
 export type { ClusterResponse } from './models/ClusterResponse';
 export type { Column } from './models/Column';

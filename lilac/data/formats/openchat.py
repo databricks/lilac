@@ -1,6 +1,8 @@
 """ShareGPT format."""
 
-from ...schema import PATH_WILDCARD, schema
+from typing import ClassVar
+
+from ...schema import PATH_WILDCARD, PathTuple, Schema, schema
 from ..dataset_format import DatasetFormat
 
 
@@ -8,8 +10,8 @@ from ..dataset_format import DatasetFormat
 class OpenChat(DatasetFormat):
   """OpenChat format."""
 
-  name = 'openchat'
-  data_schema = schema(
+  name: ClassVar[str] = 'openchat'
+  data_schema: ClassVar[Schema] = schema(
     {
       'items': [
         {
@@ -21,4 +23,6 @@ class OpenChat(DatasetFormat):
     },
   )
 
-  title_slots = [(('items', PATH_WILDCARD, 'content'), ('items', PATH_WILDCARD, 'role'))]
+  title_slots: ClassVar[list[tuple[PathTuple, PathTuple]]] = [
+    (('items', PATH_WILDCARD, 'content'), ('items', PATH_WILDCARD, 'role'))
+  ]
