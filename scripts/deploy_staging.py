@@ -28,9 +28,11 @@ from typing import Optional, Union
 
 import click
 from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
+from lilac.data.dataset_storage_utils import upload
 from lilac.deploy import PY_DIST_DIR, deploy_project_operations
 from lilac.env import env
-from lilac.utils import log
+from lilac.project import read_project_config
+from lilac.utils import get_hf_dataset_repo_id, log
 
 
 @click.command()
@@ -85,6 +87,8 @@ def deploy_staging(
   create_space: Optional[bool] = False,
 ) -> None:
   """Generate the huggingface space app."""
+  # For local deployments, we hard-code the project_dir dir.
+  project_dir = 'data'
   hf_space = hf_space or env('HF_STAGING_DEMO_REPO')
   if not hf_space:
     raise ValueError('Must specify --hf_space or set env.HF_STAGING_DEMO_REPO')
@@ -107,16 +111,32 @@ def deploy_staging(
   if concept is None:
     concept = []
 
+  ##
+  ##  Upload datasets.
+  ##
+  if not skip_data_upload:
+    for d in dataset:
+      upload(
+        dataset=d,
+        project_dir=project_dir,
+        url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
+        public=False,
+        hf_token=hf_api.token,
+      )
+
+  project_config = read_project_config(project_dir)
+  project_config.datasets = [
+    d for d in project_config.datasets if f'{d.namespace}/{d.name}' in dataset
+  ]
+
   operations.extend(
     deploy_project_operations(
       hf_api,
-      # For local deployments, we hard-code the 'data' dir.
-      project_dir='data',
+      project_config=project_config,
+      project_dir=project_dir,
       hf_space=hf_space,
       datasets=dataset,
       concepts=concept,
-      # Never make datasets public when uploading locally.
-      make_datasets_public=False,
       skip_data_upload=skip_data_upload,
       skip_concept_upload=skip_concept_upload,
       hf_space_storage=None,

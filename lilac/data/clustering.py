@@ -469,9 +469,6 @@ def cluster_impl(
       ),
     )
 
-  if task_id:
-    task_manager.set_completed(task_id)
-
 
 def _hdbscan_cluster(
   docs: Iterator[str],
