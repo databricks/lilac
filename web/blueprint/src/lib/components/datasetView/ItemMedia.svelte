@@ -1,10 +1,14 @@
 <script lang="ts">
   import {
     queryDatasetManifest,
-    queryDatasetSchema,
+    querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext, type ColumnComparisonState} from '$lib/stores/datasetViewStore';
+  import {
+    getDatasetViewContext,
+    getSelectRowsSchemaOptions,
+    type ColumnComparisonState
+  } from '$lib/stores/datasetViewStore';
   /**
    * Component that renders a single value from a row in the dataset row view
    * In the case of strings with string_spans, it will render the derived string spans as well
@@ -47,7 +51,6 @@
 
   export let mediaPath: Path;
   export let row: LilacValueNode | undefined | null = undefined;
-  export let field: LilacField;
   export let highlightedFields: LilacField[];
   export let mediaFields: LilacField[];
   // The root path contains the sub-path up to the point of this leaf.
@@ -84,13 +87,17 @@
   }
   $: isLeaf = childPathParts.length === 0;
 
-  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: schema = querySelectRowsSchema(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    getSelectRowsSchemaOptions($datasetViewStore)
+  );
 
   $: isRepeatedParent = pathIsRepeated(rootPath?.slice(0, -1));
   $: isRepeated = pathIsRepeated(rootPath);
   function pathIsRepeated(path?: Path | null) {
     return $schema.data != null && path != null
-      ? getField($schema.data, path)?.repeated_field != null
+      ? getField($schema.data.schema, path)?.repeated_field != null
       : false;
   }
 
@@ -156,7 +163,7 @@
   // NOTE: We do not use media paths here to allow the user to compare to a field they didn't
   // necessarily add to the media fields.
   $: stringPetals =
-    $schema.data != null ? petals($schema.data).filter(p => p.dtype?.type === 'string') : [];
+    $schema.data != null ? petals($schema.data.schema).filter(p => p.dtype?.type === 'string') : [];
 
   $: compareMediaPaths = stringPetals
     .map(f => f.path)
@@ -179,10 +186,12 @@
     datasetViewStore.addCompareColumn([rootPath!, event.detail.id]);
   }
 
-  $: computedEmbeddings = getComputedEmbeddings($schema.data, mediaPath);
+  $: computedEmbeddings = getComputedEmbeddings($schema.data?.schema, mediaPath);
   $: noEmbeddings = computedEmbeddings.length === 0;
 
-  $: spanValuePaths = getSpanValuePaths(field, highlightedFields);
+  $: field =
+    $schema.data != null && rootPath != null ? getField($schema.data.schema, rootPath) : null;
+  $: spanValuePaths = field != null ? getSpanValuePaths(field, highlightedFields) : null;
 
   function findSimilar(searchText: DataTypeCasted) {
     if (rootPath == null) return;
@@ -314,7 +323,7 @@
           <SkeletonText class="!w-80" />
         {:else if value == null || row == null}
           <span class="ml-12 italic">null</span>
-        {:else if colCompareState == null}
+        {:else if colCompareState == null && spanValuePaths != null}
           <ItemMediaTextContent
             hidden={markdown}
             text={value}
@@ -334,7 +343,7 @@
               <SvelteMarkdown source={formatValue(value)} />
             </div>
           </div>
-        {:else}
+        {:else if colCompareState != null}
           <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
         {/if}
       </div>
