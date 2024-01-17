@@ -1,3 +1,4 @@
+import {base} from '$app/paths';
 import {defaultDatasetViewState, type DatasetViewState} from './stores/datasetViewStore';
 import {serializeState} from './stores/urlHashStore';
 
@@ -27,7 +28,7 @@ export function datasetLink(
     const defaultState = defaultDatasetViewState(namespace, datasetName);
     hashState = serializeState(datasetViewState, defaultState);
   }
-  return `/datasets#${datasetIdentifier(namespace, datasetName)}${
+  return `${base}/datasets#${datasetIdentifier(namespace, datasetName)}${
     hashState != null ? `&${hashState}` : ''
   }`;
 }

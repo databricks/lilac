@@ -20,6 +20,7 @@
   import 'carbon-components-svelte/css/all.css';
   import {slide} from 'svelte/transition';
 
+  import {base} from '$app/paths';
   import GoogleAnalytics from '$lib/components/GoogleAnalytics.svelte';
   import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import '../app.css';
@@ -27,7 +28,7 @@
   let showError: ApiError | undefined = undefined;
 
   const routeToPage: Record<string, AppPage> = {
-    '/': 'home',
+    '': 'home',
     '/datasets': 'datasets',
     '/datasets/loading': 'datasets/loading',
     '/concepts': 'concepts',
@@ -39,13 +40,16 @@
   const navStore = createNavigationStore();
   setNavigationContext(navStore);
 
-  $: currentPage = $page.route.id != null ? routeToPage[$page.route.id] : 'home';
+  $: currentPage = routeToPage[$page.route.id || ''];
   let urlHashStore = createUrlHashStore(navStore);
   setUrlHashContext(urlHashStore);
 
   const notificationsStore = createNotificationsStore();
   setNotificationsContext(notificationsStore);
   $: notifications = $notificationsStore?.notifications || [];
+
+  // Set the base URL for OpenAPI requests automatically.
+  OpenAPI.BASE = base;
 
   onMount(() => {
     // Initialize the page from the hash.
@@ -56,22 +60,13 @@
   // the dataset state on the global app store.
   function urlChange(url: string | URL) {
     const newURL = new URL(url);
-    const pathName = newURL.pathname.endsWith('/') ? newURL.pathname.slice(0, -1) : newURL.pathname;
+    let pathName = newURL.pathname.slice(base.length);
+    pathName = pathName.endsWith('/') ? pathName.slice(0, -1) : pathName;
     const newPage = routeToPage[pathName];
     urlHashStore.setHash(newPage, newURL.hash);
   }
 
   onMount(() => {
-    // Set the base URL for OpenAPI requests automatically. We use the current path, minus the
-    // current page, as the base URL. This allows us to override the OpenAPI generated code to point
-    // to endpoints that may not be served from '/'.
-    let pathName = window.location.pathname;
-    // Remove the page from the path name.
-    if ($page.route.id != null && pathName.endsWith($page.route.id)) {
-      pathName = pathName.slice(0, -$page.route.id.length);
-    }
-    OpenAPI.BASE = pathName != '' ? `${location.origin}/${pathName}` : location.origin;
-
     // This fixes a cross-origin error when the app is embedding in an iframe. Some carbon
     // components attach listeners to window.parent, which is not allowed in an iframe, so we set
     // the parent to window.
