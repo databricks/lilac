@@ -129,7 +129,7 @@ class DatasetSettings(BaseModel):
   )
 
 
-class ClusterInputFormatSelectorConfig(BaseModel):
+class ClusterInputSelectorConfig(BaseModel):
   """Configures a format selector for a cluster input."""
 
   format: str
@@ -146,21 +146,21 @@ class ClusterConfig(BaseModel):
   dataset_namespace: str
   dataset_name: str
   input_path: Optional[PathTuple] = None
-  input_format_selector: Optional[ClusterInputFormatSelectorConfig] = None
+  input_selector: Optional[ClusterInputSelectorConfig] = None
   output_path: Optional[PathTuple] = None
   min_cluster_size: int = 5
   remote: bool = (
     True  # Whether to compute the cluster via remote service. Toggle to false for unit testing.
   )
 
-  @field_validator('input_format_selector')
+  @field_validator('input_selector')
   def check_inputs(
-    cls, input_format_selector: Optional[ClusterInputFormatSelectorConfig], values: ValidationInfo
-  ) -> Optional[ClusterInputFormatSelectorConfig]:
-    """Check that either `input_path` or `input_format_selector` is defined."""
-    if 'input_path' not in values.data and not input_format_selector:
-      raise ValueError('either `input_path` or `input_format_selector` is required')
-    return input_format_selector
+    cls, input_selector: Optional[ClusterInputSelectorConfig], values: ValidationInfo
+  ) -> Optional[ClusterInputSelectorConfig]:
+    """Check that either `input_path` or `input_selector` is defined."""
+    if 'input_path' not in values.data and not input_selector:
+      raise ValueError('either `input_path` or `input_selector` is required')
+    return input_selector
 
 
 class DatasetConfig(BaseModel):

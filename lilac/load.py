@@ -181,10 +181,10 @@ def load(
           node.cluster.input_path == c.input_path
           or (
             node.cluster.input_format_selector
-            and c.input_format_selector
+            and c.input_selector
             and (
-              node.cluster.input_format_selector.format == c.input_format_selector.format
-              and node.cluster.input_format_selector.selector == c.input_format_selector.selector
+              node.cluster.input_format_selector.format == c.input_selector.format
+              and node.cluster.input_format_selector.selector == c.input_selector.selector
             )
           )
         ):
@@ -195,19 +195,19 @@ def load(
         log('Computing cluster:', c)
 
         cluster_input: Optional[Union[DatasetFormatInputSelector, PathTuple]] = c.input_path
-        if c.input_format_selector:
-          format_cls = get_dataset_format_cls(c.input_format_selector.format)
+        if c.input_selector:
+          format_cls = get_dataset_format_cls(c.input_selector.format)
           if format_cls is None:
-            raise ValueError(f'Unknown format: {c.input_format_selector.format}')
+            raise ValueError(f'Unknown format: {c.input_selector.format}')
 
           format = format_cls()
           if format != manifest.dataset_format:
             raise ValueError(
-              f'Cluster input format {c.input_format_selector.format} does not match '
+              f'Cluster input format {c.input_selector.format} does not match '
               f'dataset format {manifest.dataset_format}'
             )
 
-          cluster_input = format_cls.input_selectors[c.input_format_selector.selector]
+          cluster_input = format_cls.input_selectors[c.input_selector.selector]
 
         assert cluster_input is not None
         dataset.cluster(

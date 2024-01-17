@@ -12,7 +12,7 @@ from typing_extensions import override
 
 from .config import (
   ClusterConfig,
-  ClusterInputFormatSelectorConfig,
+  ClusterInputSelectorConfig,
   Config,
   DatasetConfig,
   EmbeddingConfig,
@@ -472,7 +472,7 @@ def test_load_clusters_format_selector(
       ClusterConfig(
         dataset_namespace='namespace',
         dataset_name='test',
-        input_format_selector=ClusterInputFormatSelectorConfig(
+        input_selector=ClusterInputSelectorConfig(
           format='sharegpt',
           selector='human',
         ),
@@ -486,7 +486,6 @@ def test_load_clusters_format_selector(
   # Load the project config from a config object.
   load(config=project_config)
   assert 'Computing cluster:' in capsys.readouterr().out
-  print(capsys.readouterr().out)
 
   # Sort because topics are shuffled.
   for topic_fn_call in topic_fn_calls:
