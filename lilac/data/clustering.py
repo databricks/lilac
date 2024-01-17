@@ -16,6 +16,7 @@ from pydantic import (
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
 
 from ..batch_utils import compress_docs, flatten_path_iter, group_by_sorted_key_iter
+from ..dataset_format import DatasetFormatInputSelector
 from ..embeddings.jina import JinaV2Small
 from ..schema import (
   EMBEDDING_KEY,
@@ -35,7 +36,6 @@ from ..signal import (
 from ..tasks import TaskId, TaskInfo, get_task_manager
 from ..utils import DebugTimer, chunks
 from .dataset import Dataset
-from .dataset_format import DatasetFormatInputSelector
 from .dataset_utils import (
   get_callable_name,
   sparse_to_dense_compute,

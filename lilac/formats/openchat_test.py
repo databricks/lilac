@@ -1,7 +1,7 @@
 """Tests for the openchat format."""
 
 
-from ..dataset_test_utils import TestDataMaker
+from ..data.dataset_test_utils import TestDataMaker
 from .openchat import OpenChat
 
 

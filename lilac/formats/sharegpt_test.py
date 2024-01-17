@@ -1,7 +1,7 @@
 """Tests for inferring the sharegpt format."""
 
 
-from ..dataset_test_utils import TestDataMaker
+from ..data.dataset_test_utils import TestDataMaker
 from .sharegpt import ShareGPT
 
 

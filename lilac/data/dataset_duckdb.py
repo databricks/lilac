@@ -37,6 +37,7 @@ from ..config import (
   SignalConfig,
   get_dataset_config,
 )
+from ..dataset_format import DatasetFormatInputSelector, infer_formats
 from ..db_manager import remove_dataset_from_cache
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
@@ -152,7 +153,6 @@ from .dataset import (
   get_map_parquet_id,
   make_signal_parquet_id,
 )
-from .dataset_format import DatasetFormatInputSelector, infer_formats
 from .dataset_utils import (
   count_leafs,
   create_json_map_output_schema,

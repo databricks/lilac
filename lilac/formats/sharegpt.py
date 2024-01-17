@@ -1,8 +1,8 @@
 """ShareGPT format."""
 from typing import ClassVar
 
-from ...schema import PATH_WILDCARD, Item, PathTuple, Schema, schema
 from ..dataset_format import DatasetFormat, DatasetFormatInputSelector
+from ..schema import PATH_WILDCARD, Item, PathTuple, Schema, schema
 
 
 def _sharegpt_selector(item: Item, conv_from: str) -> str:

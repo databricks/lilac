@@ -2,8 +2,8 @@
 
 from typing import ClassVar
 
-from ...schema import PATH_WILDCARD, PathTuple, Schema, schema
 from ..dataset_format import DatasetFormat
+from ..schema import PATH_WILDCARD, PathTuple, Schema, schema
 
 
 # https://github.com/imoneoi/openchat

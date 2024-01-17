@@ -8,7 +8,7 @@ from typing import Any, Callable, ClassVar, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, model_serializer
 
-from ..schema import Item, PathTuple, Schema
+from .schema import Item, PathTuple, Schema
 
 
 class DatasetFormatInputSelector(BaseModel):
