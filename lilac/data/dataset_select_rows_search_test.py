@@ -145,7 +145,7 @@ def test_search_keyword_with_filters(make_test_data: TestDataMaker) -> None:
   query = 'world'
   result = dataset.select_rows(
     ['*'],
-    filters=[(ROWID, 'in', ['1', '3'])],
+    filters=[(ROWID, 'in', ['00001', '00003'])],
     searches=[KeywordSearch(path='text', query=query)],
     combine_columns=True,
   )
@@ -240,7 +240,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
         embedding='test_embedding',
       )
     ],
-    filters=[(ROWID, 'in', ['1', '2'])],
+    filters=[(ROWID, 'in', ['00001', '00002'])],
     combine_columns=True,
   )
   expected_signal_udf = ConceptSignal(
@@ -250,7 +250,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
   assert list(result) == [
     # Results are sorted by score desc.
     {
-      ROWID: '2',
+      ROWID: '00002',
       'text': enriched_item(
         'hello world2.',
         {
@@ -260,7 +260,7 @@ def test_concept_search(make_test_data: TestDataMaker, mocker: MockerFixture) ->
       ),
     },
     {
-      ROWID: '1',
+      ROWID: '00001',
       'text': enriched_item(
         'hello world.',
         {
@@ -450,7 +450,7 @@ def test_concept_search_over_repeated_string(make_test_data: TestDataMaker) -> N
         embedding='test_embedding',
       )
     ],
-    filters=[Filter(path=(ROWID,), op='in', value=['1', '2'])],
+    filters=[Filter(path=(ROWID,), op='in', value=['00001', '00002'])],
   )
   assert list(result) == [
     {

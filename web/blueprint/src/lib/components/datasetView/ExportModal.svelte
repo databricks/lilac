@@ -71,7 +71,7 @@
   ];
 
   $: previewRows =
-    exportFields.length > 0
+    exportFields.length > 0 && open
       ? querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
           columns: exportFields.map(x => x.path),
           limit: 3,

@@ -160,22 +160,22 @@ def test_udf_with_rowid_filter(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
 
   # Filter by a specific rowid.
-  filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
+  filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '00001')]
   udf_col = Column('text', signal_udf=LengthSignal())
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
-  assert list(result) == [{ROWID: '1', 'text': 'hello', 'text.length_signal': 5}]
+  assert list(result) == [{ROWID: '00001', 'text': 'hello', 'text.length_signal': 5}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1
 
-  filters = [(ROWID, 'equals', '2')]
+  filters = [(ROWID, 'equals', '00002')]
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
-  assert list(result) == [{ROWID: '2', 'text': 'everybody', 'text.length_signal': 9}]
+  assert list(result) == [{ROWID: '00002', 'text': 'everybody', 'text.length_signal': 9}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 1 + 1
 
   # No filters.
   result = dataset.select_rows([ROWID, 'text', udf_col])
   assert list(result) == [
-    {ROWID: '1', 'text': 'hello', 'text.length_signal': 5},
-    {ROWID: '2', 'text': 'everybody', 'text.length_signal': 9},
+    {ROWID: '00001', 'text': 'hello', 'text.length_signal': 5},
+    {ROWID: '00002', 'text': 'everybody', 'text.length_signal': 9},
   ]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 2
 
@@ -184,17 +184,17 @@ def test_udf_with_rowid_filter_repeated(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': ['hello', 'hi']}, {'text': ['everybody', 'bye', 'test']}])
 
   # Filter by a specific rowid.
-  filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '1')]
+  filters: list[BinaryFilterTuple] = [(ROWID, 'equals', '00001')]
   udf_col = Column(('text', '*'), signal_udf=LengthSignal())
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
-  assert list(result) == [{ROWID: '1', 'text': ['hello', 'hi'], 'text.length_signal': [5, 2]}]
+  assert list(result) == [{ROWID: '00001', 'text': ['hello', 'hi'], 'text.length_signal': [5, 2]}]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2
 
   # Filter by a specific rowid.
-  filters = [(ROWID, 'equals', '2')]
+  filters = [(ROWID, 'equals', '00002')]
   result = dataset.select_rows([ROWID, 'text', udf_col], filters=filters)
   assert list(result) == [
-    {ROWID: '2', 'text': ['everybody', 'bye', 'test'], 'text.length_signal': [9, 3, 4]}
+    {ROWID: '00002', 'text': ['everybody', 'bye', 'test'], 'text.length_signal': [9, 3, 4]}
   ]
   assert cast(LengthSignal, udf_col.signal_udf)._call_count == 2 + 3
 

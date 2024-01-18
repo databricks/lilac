@@ -212,7 +212,7 @@ def test_select_ids(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows([ROWID])
 
-  assert list(result) == [{ROWID: '1'}, {ROWID: '2'}, {ROWID: '3'}]
+  assert list(result) == [{ROWID: '00001'}, {ROWID: '00002'}, {ROWID: '00003'}]
 
 
 def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None:
@@ -220,13 +220,13 @@ def test_select_ids_with_limit_and_offset(make_test_data: TestDataMaker) -> None
   dataset = make_test_data(items)
 
   result = dataset.select_rows([ROWID], offset=1, limit=3)
-  assert list(result) == [{ROWID: '2'}, {ROWID: '3'}, {ROWID: '4'}]
+  assert list(result) == [{ROWID: '00002'}, {ROWID: '00003'}, {ROWID: '00004'}]
 
   result = dataset.select_rows([ROWID], offset=7, limit=2)
-  assert list(result) == [{ROWID: '8'}, {ROWID: '9'}]
+  assert list(result) == [{ROWID: '00008'}, {ROWID: '00009'}]
 
   result = dataset.select_rows([ROWID], offset=8, limit=200)
-  assert list(result) == [{ROWID: '9'}]
+  assert list(result) == [{ROWID: '00009'}]
 
   result = dataset.select_rows([ROWID], offset=9, limit=200)
   assert list(result) == []
@@ -238,9 +238,9 @@ def test_columns(make_test_data: TestDataMaker) -> None:
   result = dataset.select_rows([ROWID, 'str', 'float'])
 
   assert list(result) == [
-    {ROWID: '1', 'str': 'a', 'float': 3.0},
-    {ROWID: '2', 'str': 'b', 'float': 2.0},
-    {ROWID: '3', 'str': 'b', 'float': 1.0},
+    {ROWID: '00001', 'str': 'a', 'float': 3.0},
+    {ROWID: '00002', 'str': 'b', 'float': 2.0},
+    {ROWID: '00003', 'str': 'b', 'float': 1.0},
   ]
 
 

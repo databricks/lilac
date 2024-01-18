@@ -87,35 +87,35 @@ def test_sort_by_source_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
 
   # Sort by bool.
   result = dataset.select_rows(columns=[ROWID], sort_by=['erased'], sort_order=SortOrder.ASC)
-  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
+  assert list(result) == [{ROWID: '00002'}, {ROWID: '00001'}, {ROWID: '00003'}]
   result = dataset.select_rows(columns=[ROWID], sort_by=['erased'], sort_order=SortOrder.DESC)
-  assert list(result) == [{ROWID: '1'}, {ROWID: '3'}, {ROWID: '2'}]
+  assert list(result) == [{ROWID: '00003'}, {ROWID: '00001'}, {ROWID: '00002'}]
 
   # Sort by float.
   result = dataset.select_rows(columns=[ROWID], sort_by=['score'], sort_order=SortOrder.ASC)
-  assert list(result) == [{ROWID: '2'}, {ROWID: '3'}, {ROWID: '1'}]
+  assert list(result) == [{ROWID: '00002'}, {ROWID: '00003'}, {ROWID: '00001'}]
   result = dataset.select_rows(columns=[ROWID], sort_by=['score'], sort_order=SortOrder.DESC)
-  assert list(result) == [{ROWID: '1'}, {ROWID: '3'}, {ROWID: '2'}]
+  assert list(result) == [{ROWID: '00001'}, {ROWID: '00003'}, {ROWID: '00002'}]
 
   # Sort by nested int.
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['document.num_pages'], sort_order=SortOrder.ASC
   )
-  assert list(result) == [{ROWID: '3'}, {ROWID: '1'}, {ROWID: '2'}]
+  assert list(result) == [{ROWID: '00003'}, {ROWID: '00001'}, {ROWID: '00002'}]
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['document.num_pages'], sort_order=SortOrder.DESC
   )
-  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
+  assert list(result) == [{ROWID: '00002'}, {ROWID: '00001'}, {ROWID: '00003'}]
 
   # Sort by double nested string.
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['document.header.title'], sort_order=SortOrder.ASC
   )
-  assert list(result) == [{ROWID: '3'}, {ROWID: '2'}, {ROWID: '1'}]
+  assert list(result) == [{ROWID: '00003'}, {ROWID: '00002'}, {ROWID: '00001'}]
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['document.header.title'], sort_order=SortOrder.DESC
   )
-  assert list(result) == [{ROWID: '1'}, {ROWID: '2'}, {ROWID: '3'}]
+  assert list(result) == [{ROWID: '00001'}, {ROWID: '00002'}, {ROWID: '00003'}]
 
 
 def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> None:
@@ -127,21 +127,21 @@ def test_sort_by_signal_no_alias_no_repeated(make_test_data: TestDataMaker) -> N
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['text.test_signal.len'], sort_order=SortOrder.ASC
   )
-  assert list(result) == [{ROWID: '3'}, {ROWID: '1'}, {ROWID: '2'}]
+  assert list(result) == [{ROWID: '00003'}, {ROWID: '00001'}, {ROWID: '00002'}]
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['text.test_signal.len'], sort_order=SortOrder.DESC
   )
-  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
+  assert list(result) == [{ROWID: '00002'}, {ROWID: '00001'}, {ROWID: '00003'}]
 
   # Sort by `signal.is_all_cap`.
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['text.test_signal.is_all_cap'], sort_order=SortOrder.ASC
   )
-  assert list(result) == [{ROWID: '2'}, {ROWID: '1'}, {ROWID: '3'}]
+  assert list(result) == [{ROWID: '00002'}, {ROWID: '00001'}, {ROWID: '00003'}]
   result = dataset.select_rows(
     columns=[ROWID], sort_by=['text.test_signal.is_all_cap'], sort_order=SortOrder.DESC
   )
-  assert list(result) == [{ROWID: '1'}, {ROWID: '3'}, {ROWID: '2'}]
+  assert list(result) == [{ROWID: '00003'}, {ROWID: '00001'}, {ROWID: '00002'}]
 
 
 def test_sort_by_signal_alias_no_repeated(make_test_data: TestDataMaker) -> None:
@@ -196,8 +196,8 @@ def test_sort_by_enriched_alias_no_repeated(make_test_data: TestDataMaker) -> No
   )
   # Aliases are ignored when combining columns.
   assert list(result) == [
-    {'text': enriched_item('HEY', {'test_signal': {'len': 3, 'is_all_cap': True}})},
     {'text': enriched_item('HI', {'test_signal': {'len': 2, 'is_all_cap': True}})},
+    {'text': enriched_item('HEY', {'test_signal': {'len': 3, 'is_all_cap': True}})},
     {'text': enriched_item('everyone', {'test_signal': {'len': 8, 'is_all_cap': False}})},
   ]
 

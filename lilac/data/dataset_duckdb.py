@@ -1041,7 +1041,7 @@ class DatasetDuckDB(Dataset):
       self.project_dir,
     )
 
-    signal.setup()
+    signal.setup_remote() if remote else signal.setup()
 
     jsonl_cache_filepath = _jsonl_cache_filepath(
       namespace=self.namespace,
@@ -1150,7 +1150,7 @@ class DatasetDuckDB(Dataset):
 
     signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
 
-    signal.setup()
+    signal.setup_remote() if remote else signal.setup()
 
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
 
@@ -2027,8 +2027,9 @@ class DatasetDuckDB(Dataset):
     sort_by = cast(
       list[PathTuple], [(sort.alias,) if sort.alias else sort.path for sort in sort_results]
     )
-    # Choose the first sort order as we only support a single sort order for now.
-    sort_order = sort_results[0].order if sort_results else None
+    # Choose the first sort order as we only support a single sort order for now. If the user didn't
+    # provide any sort_by, we default to UUID, ascending.
+    sort_order = sort_results[0].order if sort_results else SortOrder.ASC
 
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
     udf_aliases: dict[str, PathTuple] = {
@@ -2105,7 +2106,10 @@ class DatasetDuckDB(Dataset):
     temp_column_to_offset_column: dict[str, tuple[str, Field]] = {}
     select_queries: list[str] = []
 
+    row_id_selected = False
     for column in cols:
+      if column.path == (ROWID,):
+        row_id_selected = True
       path = column.path
       # If the signal is vector-based, we don't need to select the actual data, just the rowids
       # plus an arbitrarily nested array of `None`s`.
@@ -2187,12 +2191,15 @@ class DatasetDuckDB(Dataset):
       else:
         sort_sql_before_udf.append(sort_sql)
 
+    # Always append the rowid to the sort order to ensure stable results.
+    sort_sql_before_udf.append(ROWID)
+    if sort_sql_after_udf and row_id_selected:
+      sort_sql_after_udf.append(ROWID)
+
     order_query = ''
     if sort_sql_before_udf:
       # TODO(smilkov): Make the sort order also a list to align with the sort_by list.
-      sort_with_order = [
-        f'{sql} {cast(SortOrder, sort_order).value}' for sql in sort_sql_before_udf
-      ]
+      sort_with_order = [f'{sql} {sort_order.value}' for sql in sort_sql_before_udf]
       order_query = f'ORDER BY {", ".join(sort_with_order)}'
 
     limit_query = ''
@@ -2283,9 +2290,7 @@ class DatasetDuckDB(Dataset):
           (total_num_rows,) = count
 
       if sort_sql_after_udf:
-        if not sort_order:
-          raise ValueError('`sort_order` is required when `sort_by` is specified.')
-        rel = rel.order(f'{", ".join(sort_sql_after_udf)} {sort_order.value}')
+        rel = rel.order(', '.join([f'{s} {sort_order.value}' for s in sort_sql_after_udf]))
 
       if limit:
         rel = rel.limit(limit, offset)
