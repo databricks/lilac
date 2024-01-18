@@ -1891,8 +1891,9 @@ class DatasetDuckDB(Dataset):
     sort_by = cast(
       list[PathTuple], [(sort.alias,) if sort.alias else sort.path for sort in sort_results]
     )
-    # Choose the first sort order as we only support a single sort order for now.
-    sort_order = sort_results[0].order if sort_results else SortOrder.DESC
+    # Choose the first sort order as we only support a single sort order for now. If the user didn't
+    # provide any sort_by, we default to UUID, ascending.
+    sort_order = sort_results[0].order if sort_results else SortOrder.ASC
 
     col_aliases: dict[str, PathTuple] = {col.alias: col.path for col in cols if col.alias}
     udf_aliases: dict[str, PathTuple] = {
@@ -2821,7 +2822,7 @@ class DatasetDuckDB(Dataset):
         limit_clause += f' OFFSET {query_options.offset}'
 
     sort_path = query_options.sort_by
-    sort_order = query_options.sort_order or SortOrder.DESC
+    sort_order = query_options.sort_order or SortOrder.ASC
     order_clause = ''
     if sort_path:
       self._validate_sort_path(sort_path, manifest.data_schema)
