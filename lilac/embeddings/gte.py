@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterator, Optional
 import modal
 from typing_extensions import override
 
+from ..splitters.chunk_splitter import TextChunk
 from ..utils import DebugTimer, chunks
 
 if TYPE_CHECKING:
@@ -69,7 +70,7 @@ class GTESmall(TextEmbeddingSignal):
     # Trim the docs to the max context size.
 
     trimmed_docs = (doc[:GTE_CONTEXT_SIZE] for doc in docs)
-    text_chunks = (
+    text_chunks: Iterator[tuple[int, TextChunk]] = (
       (i, chunk) for i, doc in enumerate(trimmed_docs) for chunk in clustering_spacy_chunker(doc)
     )
     text_chunks, text_chunks_2 = itertools.tee(text_chunks)
