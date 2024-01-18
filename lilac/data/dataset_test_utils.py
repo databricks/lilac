@@ -141,7 +141,7 @@ def _write_items(
   # Add rowids to the items.
   items = [deepcopy(item) for item in items]
   for i, item in enumerate(items):
-    item[ROWID] = str(i + 1)
+    item[ROWID] = str(i + 1).zfill(5)
 
   simple_parquet_files = write_items_to_parquet(
     items, source_dir, schema, filename_prefix=PARQUET_FILENAME_PREFIX, shard_index=0, num_shards=1
