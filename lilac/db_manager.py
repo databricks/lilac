@@ -6,6 +6,8 @@ from typing import Optional, Type, Union
 
 from pydantic import BaseModel
 
+from lilac.schema import MANIFEST_FILENAME
+
 from .config import get_dataset_config
 from .data.dataset import Dataset
 from .env import get_project_dir
@@ -94,6 +96,8 @@ def list_datasets(project_dir: Optional[Union[str, pathlib.Path]] = None) -> lis
       if not os.path.isdir(dataset_path):
         continue
       if dataset_name.startswith('.'):
+        continue
+      if not os.path.exists(os.path.join(dataset_path, MANIFEST_FILENAME)):
         continue
 
       dataset_config = get_dataset_config(project_config, namespace, dataset_name)
