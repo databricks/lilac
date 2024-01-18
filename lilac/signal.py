@@ -162,6 +162,10 @@ class Signal(BaseModel):
     """Setup the signal."""
     pass
 
+  def setup_remote(self) -> None:
+    """Setup the signal for remote execution."""
+    pass
+
   def teardown(self) -> None:
     """Tears down the signal."""
     pass

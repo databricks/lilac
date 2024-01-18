@@ -62,9 +62,7 @@ class EmbeddingConfig(BaseModel):
 
   path: PathTuple
   embedding: str
-  remote: bool = (
-    True  # Whether to compute the cluster via remote service. Toggle to false for unit testing.
-  )
+  remote: bool = False  # Whether to compute the cluster via remote service.
 
   model_config = ConfigDict(extra='forbid')
 
@@ -153,9 +151,7 @@ class ClusterConfig(BaseModel):
   input_selector: Optional[ClusterInputSelectorConfig] = None
   output_path: Optional[PathTuple] = None
   min_cluster_size: int = 5
-  remote: bool = (
-    True  # Whether to compute the cluster via remote service. Toggle to false for unit testing.
-  )
+  remote: bool = False  # Whether to compute the cluster via remote service.
 
   @field_validator('input_selector')
   def check_inputs(

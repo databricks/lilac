@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterator, Optional
 import modal
 from typing_extensions import override
 
+from ..batch_utils import compress_docs
 from ..splitters.chunk_splitter import TextChunk
 from ..utils import DebugTimer, chunks
 
@@ -75,7 +76,10 @@ class GTESmall(TextEmbeddingSignal):
     )
     text_chunks, text_chunks_2 = itertools.tee(text_chunks)
     chunk_texts = (chunk[0] for _, chunk in text_chunks)
-    batches = ({'docs': texts} for texts in chunks(chunk_texts, GTE_REMOTE_BATCH_SIZE))
+
+    batches = (
+      {'gzipped_docs': compress_docs(texts)} for texts in chunks(chunk_texts, GTE_REMOTE_BATCH_SIZE)
+    )
 
     gte = modal.Function.lookup('gte', 'GTE.embed')
     with DebugTimer('Computing GTE remotely'):
