@@ -2051,6 +2051,11 @@ class DatasetDuckDB(Dataset):
       else:
         sort_sql_before_udf.append(sort_sql)
 
+    # Always append the rowid to the sort order to ensure stable results.
+    sort_sql_before_udf.append(ROWID)
+    if sort_sql_after_udf:
+      sort_sql_after_udf.append(ROWID)
+
     order_query = ''
     if sort_sql_before_udf:
       # TODO(smilkov): Make the sort order also a list to align with the sort_by list.
