@@ -18,7 +18,7 @@
     $store.datasetName,
     getSelectRowsSchemaOptions($store)
   );
-  $: selectOptions = getSelectRowsOptions($store, true /* implicitSortByRowID */);
+  $: selectOptions = getSelectRowsOptions($store);
   $: rowsQuery = querySelectRows(
     $store.namespace,
     $store.datasetName,
@@ -26,9 +26,7 @@
       ...selectOptions,
       columns: [ROWID],
       limit: limit + 1,
-      offset,
-      // Sort by ROWID on top of any other sort_by option to ensure that the result order is stable.
-      sort_by: [...(selectOptions.sort_by || []), ROWID]
+      offset
     },
     $selectRowsSchema.data?.schema
   );

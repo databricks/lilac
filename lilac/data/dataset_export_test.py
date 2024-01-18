@@ -150,8 +150,8 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
   df = dataset.to_pandas([ROWID, 'text', 'text.test_signal.flen'])
   expected_df = pd.DataFrame(
     [
-      {ROWID: '1', 'text': 'hello', 'text.test_signal.flen': np.float32(5.0)},
-      {ROWID: '2', 'text': 'everybody', 'text.test_signal.flen': np.float32(9.0)},
+      {ROWID: '00001', 'text': 'hello', 'text.test_signal.flen': np.float32(5.0)},
+      {ROWID: '00002', 'text': 'everybody', 'text.test_signal.flen': np.float32(9.0)},
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)
@@ -169,7 +169,7 @@ def test_label_and_export_by_excluding(
   make_test_data: TestDataMaker, tmp_path: pathlib.Path
 ) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
-  dataset.delete_rows(['2', '3'])
+  dataset.delete_rows(['00002', '00003'])
 
   # Download all, except the 'deleted' label.
   filepath = tmp_path / 'dataset.json'
@@ -205,8 +205,8 @@ def test_label_and_export_by_excluding(
 
 def test_include_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
-  dataset.add_labels('good', ['2', '3'])
-  dataset.add_labels('very_good', ['3', '4'])
+  dataset.add_labels('good', ['00002', '00003'])
+  dataset.add_labels('very_good', ['00003', '00004'])
 
   # Include good and very_good when we export.
   filepath = tmp_path / 'dataset.json'
@@ -221,8 +221,8 @@ def test_include_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathli
 
 def test_exclude_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
-  dataset.add_labels('bad', ['2'])
-  dataset.add_labels('very_bad', ['2', '3'])
+  dataset.add_labels('bad', ['00002'])
+  dataset.add_labels('very_bad', ['00002', '00003'])
 
   # Include good and very_good when we export.
   filepath = tmp_path / 'dataset.json'
@@ -237,8 +237,8 @@ def test_exclude_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathli
 
 def test_exclude_trumps_include(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}, {'text': 'd'}])
-  dataset.add_labels('good', ['2', '3', '4'])
-  dataset.add_labels('bad', ['3', '4'])
+  dataset.add_labels('good', ['00002', '00003', '00004'])
+  dataset.add_labels('bad', ['00003', '00004'])
 
   # Include good and very_good when we export.
   filepath = tmp_path / 'dataset.json'

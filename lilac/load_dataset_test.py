@@ -13,6 +13,7 @@ from pytest_mock import MockerFixture
 from typing_extensions import override
 
 from .config import Config, DatasetConfig, DatasetSettings, DatasetUISettings
+from .data.dataset import SortOrder
 from .data.dataset_duckdb import read_source_manifest
 from .data.dataset_utils import get_parquet_filename, schema_to_arrow_schema
 from .load_dataset import from_dicts, from_huggingface, process_source
@@ -146,7 +147,7 @@ def test_data_loader(
 def test_from_dicts() -> None:
   items = [{'text': 'hello'}, {'text': 'world'}]
   ds = from_dicts('local', 'test', items)
-  assert list(ds.select_rows()) == items
+  assert list(ds.select_rows(sort_by=['text'], sort_order=SortOrder.ASC)) == items
 
 
 def test_from_hf_dataset() -> None:
@@ -156,7 +157,7 @@ def test_from_hf_dataset() -> None:
 
   hf_ds = Dataset.from_generator(gen)
   ds = from_huggingface(hf_ds)
-  assert list(ds.select_rows()) == [
+  assert list(ds.select_rows(sort_by=['text'], sort_order=SortOrder.ASC)) == [
     {'__hfsplit__': 'default', 'text': 'hello'},
     {'__hfsplit__': 'default', 'text': 'world'},
   ]
@@ -171,7 +172,7 @@ def test_from_hf_dataset_dict() -> None:
 
   hf_ds_dict = DatasetDict({'train': Dataset.from_generator(gen)})
   ds = from_huggingface(hf_ds_dict)
-  assert list(ds.select_rows()) == [
+  assert list(ds.select_rows(sort_by=['text'], sort_order=SortOrder.ASC)) == [
     {'__hfsplit__': 'train', 'text': 'hello'},
     {'__hfsplit__': 'train', 'text': 'world'},
   ]
@@ -186,7 +187,7 @@ def test_from_hf_explicit_namespace_and_name() -> None:
 
   hf_ds = Dataset.from_generator(gen)
   ds = from_huggingface(hf_ds, namespace='local', name='test')
-  assert list(ds.select_rows()) == [
+  assert list(ds.select_rows(sort_by=['text'], sort_order=SortOrder.ASC)) == [
     {'__hfsplit__': 'default', 'text': 'hello'},
     {'__hfsplit__': 'default', 'text': 'world'},
   ]
