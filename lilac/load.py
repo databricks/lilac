@@ -264,6 +264,7 @@ def _compute_embedding(
     embedding=embedding_config.embedding,
     path=embedding_config.path,
     overwrite=True,
+    remote=embedding_config.remote,
   )
   remove_dataset_from_cache(namespace, name)
   del dataset
