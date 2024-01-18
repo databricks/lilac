@@ -100,10 +100,8 @@ def list_datasets(project_dir: Optional[Union[str, pathlib.Path]] = None) -> lis
         continue
 
       dataset_config = get_dataset_config(project_config, namespace, dataset_name)
-      if not dataset_config:
-        continue
       tags: list[str] = []
-      if dataset_config.settings and dataset_config.settings.tags:
+      if dataset_config and dataset_config.settings and dataset_config.settings.tags:
         tags = dataset_config.settings.tags
 
       dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name, tags=tags))
