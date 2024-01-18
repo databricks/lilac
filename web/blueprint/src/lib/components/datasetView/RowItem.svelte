@@ -311,7 +311,6 @@
               mediaPath={[]}
               {mediaFields}
               {row}
-              field={mediaFields[0]}
               {highlightedFields}
               isFetching={$rowQuery?.isFetching}
             />
