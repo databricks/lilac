@@ -41,7 +41,7 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
   """
   if hasattr(signal, 'display_name'):
     schema['title'] = signal.display_name
-  if not signal.runs_remote and 'remote' in schema['properties']:
+  if not signal.supports_garden and 'remote' in schema['properties']:
     del schema['properties']['remote']
 
   signal_prop: dict[str, Any]
@@ -79,7 +79,7 @@ class Signal(BaseModel):
   local_parallelism: ClassVar[int] = 1
   local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
-  runs_remote: ClassVar[bool] = False
+  supports_garden: ClassVar[bool] = False
 
   remote: bool = PydanticField(default=False, description='Accelerate computation on Lilac Garden')
 

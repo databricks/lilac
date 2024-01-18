@@ -43,7 +43,7 @@ class JinaV2Small(TextEmbeddingSignal):
   local_batch_size: ClassVar[int] = JINA_BATCH_SIZE
   local_parallelism: ClassVar[int] = 1
   local_strategy: ClassVar[TaskExecutionType] = 'threads'
-  runs_remote: ClassVar[bool] = True
+  supports_garden: ClassVar[bool] = True
 
   _size = 'small'
   _model: Optional['AutoModel'] = None
@@ -131,5 +131,5 @@ class JinaV2Base(JinaV2Small):
   name: ClassVar[str] = 'jina-v2-base'
   display_name: ClassVar[str] = 'Jina V2 (base)'
 
-  runs_remote: ClassVar[bool] = False
+  supports_garden: ClassVar[bool] = False
   _size = 'base'

@@ -40,7 +40,7 @@ class GTESmall(TextEmbeddingSignal):
   local_batch_size: ClassVar[int] = SENTENCE_TRANSFORMER_BATCH_SIZE
   local_parallelism: ClassVar[int] = 1
   local_strategy: ClassVar[TaskExecutionType] = 'threads'
-  runs_remote: ClassVar[bool] = True
+  supports_garden: ClassVar[bool] = True
 
   _model_name = GTE_SMALL
   _model: 'SentenceTransformer'
@@ -119,7 +119,7 @@ class GTEBase(GTESmall):
   name: ClassVar[str] = 'gte-base'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (base)'
 
-  runs_remote: ClassVar[bool] = False
+  supports_garden: ClassVar[bool] = False
   _model_name = GTE_BASE
 
 
@@ -129,5 +129,5 @@ class GTETiny(GTESmall):
   name: ClassVar[str] = 'gte-tiny'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (tiny)'
 
-  runs_remote: ClassVar[bool] = False
+  supports_garden: ClassVar[bool] = False
   _model_name = GTE_TINY
