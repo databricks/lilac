@@ -389,7 +389,7 @@ def test_signal_ignores_deleted(make_test_data: TestDataMaker) -> None:
     source=TestSource(),
   )
 
-  dataset.delete_rows(['1'])
+  dataset.delete_rows(['00001'])
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'str')
 

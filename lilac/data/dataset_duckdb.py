@@ -1969,7 +1969,10 @@ class DatasetDuckDB(Dataset):
     temp_column_to_offset_column: dict[str, tuple[str, Field]] = {}
     select_queries: list[str] = []
 
+    row_id_selected = False
     for column in cols:
+      if column.path == (ROWID,):
+        row_id_selected = True
       path = column.path
       # If the signal is vector-based, we don't need to select the actual data, just the rowids
       # plus an arbitrarily nested array of `None`s`.
@@ -2053,7 +2056,7 @@ class DatasetDuckDB(Dataset):
 
     # Always append the rowid to the sort order to ensure stable results.
     sort_sql_before_udf.append(ROWID)
-    if sort_sql_after_udf:
+    if sort_sql_after_udf and row_id_selected:
       sort_sql_after_udf.append(ROWID)
 
     order_query = ''

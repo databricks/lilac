@@ -25,12 +25,12 @@ STRING_TEST_DATA: list[Item] = [
 def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = (ROWID, 'equals', '1')
+  id_filter: BinaryFilterTuple = (ROWID, 'equals', '00001')
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{'str': 'a', 'int': 1, 'bool': False, 'float': 3.0}]
 
-  id_filter = (ROWID, 'equals', '2')
+  id_filter = (ROWID, 'equals', '00002')
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{'str': 'b', 'int': 2, 'bool': True, 'float': 2.0}]
@@ -44,7 +44,7 @@ def test_filter_by_ids(make_test_data: TestDataMaker) -> None:
 def test_filter_deleted_interaction(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  id_filter: BinaryFilterTuple = (ROWID, 'equals', '1')
+  id_filter: BinaryFilterTuple = (ROWID, 'equals', '00001')
   result = dataset.select_rows(filters=[id_filter])
 
   assert list(result) == [{'str': 'a', 'int': 1, 'bool': False, 'float': 3.0}]
@@ -177,12 +177,12 @@ def test_filter_string_not_regex_matches(make_test_data: TestDataMaker) -> None:
 def test_filter_by_list_of_ids(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data(TEST_DATA)
 
-  filter: ListFilterTuple = (ROWID, 'in', ['1', '2'])
+  filter: ListFilterTuple = (ROWID, 'in', ['00001', '00002'])
   result = dataset.select_rows(['*', ROWID], filters=[filter])
 
   assert list(result) == [
-    {ROWID: '1', 'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
-    {ROWID: '2', 'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
+    {ROWID: '00001', 'str': 'a', 'int': 1, 'bool': False, 'float': 3.0},
+    {ROWID: '00002', 'str': 'b', 'int': 2, 'bool': True, 'float': 2.0},
   ]
 
 

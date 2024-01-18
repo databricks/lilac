@@ -34,7 +34,7 @@ def setup_teardown() -> Iterable[None]:
 def test_add_single_label(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data(TEST_ITEMS)
 
-  num_labels = dataset.add_labels('test_label', filters=[(ROWID, 'equals', '1')])
+  num_labels = dataset.add_labels('test_label', filters=[(ROWID, 'equals', '00001')])
   assert num_labels == 1
   assert dataset.manifest() == DatasetManifest(
     source=TestSource(),
@@ -134,7 +134,7 @@ def test_add_labels_sort_limit(make_test_data: TestDataMaker, mocker: MockerFixt
 def test_add_row_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data(TEST_ITEMS)
 
-  num_labels = dataset.add_labels('test_label', row_ids=['1', '2'])
+  num_labels = dataset.add_labels('test_label', row_ids=['00001', '00002'])
   assert num_labels == 2
   assert list(dataset.select_rows([PATH_WILDCARD])) == [
     {
@@ -166,9 +166,9 @@ def test_label_deleted_interaction(make_test_data: TestDataMaker, mocker: Mocker
   # Expected semantics:
   # Adding/removing labels on deleted rows will fail unless include_deleted=True.
   # That's true even if the row was manually specified in row_ids!
-  dataset.add_labels('test_label', row_ids=['1', '2'])
-  dataset.delete_rows(['1'])
-  dataset.remove_labels('test_label', row_ids=['1', '2'])
+  dataset.add_labels('test_label', row_ids=['00001', '00002'])
+  dataset.delete_rows(['00001'])
+  dataset.remove_labels('test_label', row_ids=['00001', '00002'])
   assert list(dataset.select_rows([PATH_WILDCARD], include_deleted=True)) == [
     {
       'str': 'a',
@@ -196,7 +196,7 @@ def test_label_deleted_interaction(make_test_data: TestDataMaker, mocker: Mocker
     },
   ]
 
-  dataset.remove_labels('test_label', row_ids=['1'], include_deleted=True)
+  dataset.remove_labels('test_label', row_ids=['00001'], include_deleted=True)
   assert sorted(
     dataset.select_rows([PATH_WILDCARD], include_deleted=True), key=lambda x: x['int']
   ) == [
@@ -220,7 +220,7 @@ def test_label_deleted_interaction(make_test_data: TestDataMaker, mocker: Mocker
     },
   ]
 
-  dataset.add_labels('test_label', row_ids=['1', '3'])
+  dataset.add_labels('test_label', row_ids=['00001', '00003'])
   assert sorted(
     dataset.select_rows([PATH_WILDCARD], include_deleted=True), key=lambda x: x['int']
   ) == [
@@ -285,11 +285,11 @@ def test_add_row_labels_no_filters(make_test_data: TestDataMaker, mocker: Mocker
 def test_remove_labels(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data(TEST_ITEMS)
 
-  num_labels = dataset.add_labels('test_label', row_ids=['1', '2', '3'])
+  num_labels = dataset.add_labels('test_label', row_ids=['00001', '00002', '00003'])
   assert num_labels == 3
 
   # Remove the first label.
-  num_labels = dataset.remove_labels('test_label', row_ids=['1'])
+  num_labels = dataset.remove_labels('test_label', row_ids=['00001'])
   assert num_labels == 1
 
   assert list(dataset.select_rows([PATH_WILDCARD], sort_by=['int'], sort_order=SortOrder.ASC)) == [
@@ -400,10 +400,10 @@ def test_remove_labels_sort_limit(make_test_data: TestDataMaker, mocker: MockerF
 def test_label_overwrites(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   dataset = make_test_data(TEST_ITEMS)
 
-  num_labels = dataset.add_labels('test_label', value='yes', filters=[(ROWID, 'equals', '1')])
+  num_labels = dataset.add_labels('test_label', value='yes', filters=[(ROWID, 'equals', '00001')])
   assert num_labels == 1
   # Overwrite the value.
-  num_labels = dataset.add_labels('test_label', value='no', filters=[(ROWID, 'equals', '1')])
+  num_labels = dataset.add_labels('test_label', value='no', filters=[(ROWID, 'equals', '00001')])
   assert num_labels == 1
 
   assert list(dataset.select_rows([PATH_WILDCARD])) == [
