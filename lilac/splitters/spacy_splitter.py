@@ -115,7 +115,7 @@ def group_by_embedding(
 
 
 def clustering_spacy_chunker(
-  text: str, filter_short: int = 0, max_len: int = 512, target_num_groups: Optional[int] = None
+  text: str, filter_short: int = 4, max_len: int = 512, target_num_groups: Optional[int] = None
 ) -> list[TextChunk]:
   """Split text into sentence-based chunks, with semantic clustering to join related sentences."""
   chunks = simple_spacy_chunker(text, filter_short=filter_short)
