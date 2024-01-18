@@ -124,6 +124,7 @@ def deploy_staging(
         hf_token=hf_api.token,
       )
 
+  # For staging deployments, we strip down the project config to only the specified datasets
   project_config = read_project_config(project_dir)
   project_config.datasets = [
     d for d in project_config.datasets if f'{d.namespace}/{d.name}' in dataset

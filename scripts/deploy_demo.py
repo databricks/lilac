@@ -102,7 +102,7 @@ def deploy_demo(
   dataset: Optional[list[str]] = None,
 ) -> None:
   """Deploys the public demo."""
-  # The original parsed configuration is _always_ uploaded to the HF space
+  # For the public demo, the lilac_hf_space.yml is _always_ uploaded to the HF space
   original_parsed_config = read_config(config)
   # If a dataset is specified, we only sync/load/upload that dataset.
   if dataset is not None:
