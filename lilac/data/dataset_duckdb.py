@@ -1234,6 +1234,27 @@ class DatasetDuckDB(Dataset):
     log(f'Wrote embedding index to {output_dir}')
 
   @override
+  def delete_embedding(self, embedding: str, path: Path) -> None:
+    path = normalize_path(path)
+    vector_index = self._get_vector_db_index(embedding, path)
+    output_dir = os.path.join(self.dataset_path, _signal_dir((*path, embedding)))
+    vector_index.delete(output_dir)
+
+    with self._vector_index_lock:
+      # Remove the vector index from the cache so it's recreated.
+      del self._vector_indices[(path, embedding)]
+
+    # Delete the signal manifest.
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # outputs are run.
+    if os.path.exists(signal_manifest_filepath):
+      os.remove(signal_manifest_filepath)
+      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+      # existent file.
+      self.manifest()
+
+  @override
   def load_embedding(
     self,
     load_fn: Callable[[Item], Union[np.ndarray, list[SpanVector]]],
@@ -1253,7 +1274,7 @@ class DatasetDuckDB(Dataset):
     manifest = self.manifest()
     index_field = manifest.data_schema.get_field(index_path)
     if index_field.dtype != STRING:
-      raise ValueError('`index_path` "{index_path}" must be a string field.')
+      raise ValueError(f'`index_path` "{index_path}" must be a string field.')
 
     # We create an implicit embedding signal for user-loaded embeddings.
     signal = create_user_text_embedding_signal(embedding_name)
@@ -1266,8 +1287,11 @@ class DatasetDuckDB(Dataset):
     signal_schema = create_signal_schema(signal, index_path, manifest.data_schema)
 
     assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
-    if manifest.data_schema.has_field(output_path) and not overwrite:
-      raise ValueError('Embedding already exists. Use overwrite=True to overwrite.')
+    if manifest.data_schema.has_field(output_path):
+      if overwrite:
+        self.delete_embedding(embedding_name, index_path)
+      else:
+        raise ValueError('Embedding already exists. Use overwrite=True to overwrite.')
 
     query_params = DuckDBQueryParams()
     estimated_len = self.count(query_params)
@@ -1290,7 +1314,6 @@ class DatasetDuckDB(Dataset):
     def _validated_load_fn(item: Item) -> Union[np.ndarray, list[Item]]:
       res = load_fn(item)
 
-      print('validating', res)
       if isinstance(res, np.ndarray):
         texts = list(flatten_path_iter(item, path=index_path))
         # We currently only support non-repeated texts.

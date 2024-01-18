@@ -576,6 +576,16 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def delete_embedding(self, embedding: str, path: Path) -> None:
+    """Delete a computed embedding from the dataset.
+
+    Args:
+      embedding: The name of the embedding.
+      path: The path of the computed embedding.
+    """
+    pass
+
+  @abc.abstractmethod
   def select_groups(
     self,
     leaf_path: Path,

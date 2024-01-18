@@ -1,6 +1,7 @@
 """HNSW vector store."""
 
 import multiprocessing
+import os
 import threading
 from typing import Iterable, Optional, Set, cast
 
@@ -33,6 +34,11 @@ class HNSWVectorStore(VectorStore):
     self._key_to_label: Optional[pd.Series] = None
     self._index: Optional[hnswlib.Index] = None
     self._lock = threading.Lock()
+
+  @override
+  def delete(self, base_path: str) -> None:
+    os.remove(base_path + _HNSW_SUFFIX)
+    os.remove(base_path + _LOOKUP_SUFFIX)
 
   @override
   def save(self, base_path: str) -> None:
