@@ -171,34 +171,33 @@ def deploy_project_operations(
   ##
   ##  Upload the HuggingFace application file (README.md) with uploaded datasets.
   ##
-  if load_on_space:
-    hf_space_org, hf_space_name = hf_space.split('/')
-    dataset_repos = [
-      get_hf_dataset_repo_id(hf_space_org, hf_space_name, d.namespace, d.name)
-      for d in project_config.datasets
-    ]
-    readme = (
-      '---\n'
-      + to_yaml(
-        {
-          'title': 'Lilac',
-          'emoji': '🌷',
-          'colorFrom': 'purple',
-          'colorTo': 'purple',
-          'sdk': 'docker',
-          'app_port': 5432,
-          'datasets': dataset_repos,
-        }
-      )
-      + '\n---'
+  hf_space_org, hf_space_name = hf_space.split('/')
+  dataset_repos = [
+    get_hf_dataset_repo_id(hf_space_org, hf_space_name, d.namespace, d.name)
+    for d in project_config.datasets
+  ]
+  readme = (
+    '---\n'
+    + to_yaml(
+      {
+        'title': 'Lilac',
+        'emoji': '🌷',
+        'colorFrom': 'purple',
+        'colorTo': 'purple',
+        'sdk': 'docker',
+        'app_port': 5432,
+        'datasets': dataset_repos,
+      }
     )
-    readme_filename = 'README.md'
-    if hf_api.file_exists(hf_space, readme_filename, repo_type='space'):
-      operations.append(CommitOperationDelete(path_in_repo=readme_filename))
+    + '\n---'
+  )
+  readme_filename = 'README.md'
+  if hf_api.file_exists(hf_space, readme_filename, repo_type='space'):
+    operations.append(CommitOperationDelete(path_in_repo=readme_filename))
 
-    operations.append(
-      CommitOperationAdd(path_in_repo=readme_filename, path_or_fileobj=readme.encode())
-    )
+  operations.append(
+    CommitOperationAdd(path_in_repo=readme_filename, path_or_fileobj=readme.encode())
+  )
   ##
   ##  Upload the lilac.yml project configuration.
   ##
