@@ -28,9 +28,7 @@ def deploy_project(
   hf_space: str,
   project_config: Optional[Config] = None,
   project_dir: Optional[str] = None,
-  datasets: Optional[list[str]] = None,
   concepts: Optional[list[str]] = None,
-  skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
@@ -41,11 +39,9 @@ def deploy_project(
 
   Args:
     hf_space: The huggingface space. Should be formatted like `SPACE_ORG/SPACE_NAME`.
-    project_config: A config to use for the project; defaults to config file found in project_dir.
+    project_config: A project config for the space; defaults to config file found in project_dir.
     project_dir: The project directory to grab data from. Defaults to `env.LILAC_PROJECT_DIR`.
-    datasets: The names of datasets to upload. Defaults to all datasets.
     concepts: The names of concepts to upload. Defaults to all concepts.
-    skip_data_upload: When true, kicks the server without uploading data.
     skip_concept_upload: When true, skips uploading concepts.
     create_space: When True, creates the HuggingFace space if it doesnt exist. The space will be
       created with the storage type defined by --hf_space_storage.
@@ -78,9 +74,7 @@ def deploy_project(
     project_dir=project_dir,
     hf_space=hf_space,
     project_config=project_config,
-    datasets=datasets,
     concepts=concepts,
-    skip_data_upload=skip_data_upload,
     skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,
@@ -105,9 +99,7 @@ def deploy_project_operations(
   project_dir: str,
   hf_space: str,
   project_config: Optional[Config] = None,
-  datasets: Optional[list[str]] = None,
   concepts: Optional[list[str]] = None,
-  skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
@@ -177,10 +169,9 @@ def deploy_project_operations(
   operations.extend(_make_wheel_dir(hf_api, hf_space))
 
   ##
-  ##  Upload the HuggingFace application file (README.md) with uploaded datasets so they are synced
-  ##  to storage when the docker image boots up.
+  ##  Upload the HuggingFace application file (README.md) with uploaded datasets.
   ##
-  if datasets or load_on_space:
+  if load_on_space:
     hf_space_org, hf_space_name = hf_space.split('/')
     dataset_repos = [
       get_hf_dataset_repo_id(hf_space_org, hf_space_name, d.namespace, d.name)
@@ -211,18 +202,17 @@ def deploy_project_operations(
   ##
   ##  Upload the lilac.yml project configuration.
   ##
-  if datasets and not skip_data_upload:
-    project_config_filename = f'data/{PROJECT_CONFIG_FILENAME}'
-    if hf_api.file_exists(hf_space, project_config_filename, repo_type='space'):
-      operations.append(CommitOperationDelete(path_in_repo=project_config_filename))
-    operations.append(
-      CommitOperationAdd(
-        path_in_repo=project_config_filename,
-        path_or_fileobj=to_yaml(
-          project_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
-        ).encode(),
-      )
+  project_config_filename = f'data/{PROJECT_CONFIG_FILENAME}'
+  if hf_api.file_exists(hf_space, project_config_filename, repo_type='space'):
+    operations.append(CommitOperationDelete(path_in_repo=project_config_filename))
+  operations.append(
+    CommitOperationAdd(
+      path_in_repo=project_config_filename,
+      path_or_fileobj=to_yaml(
+        project_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
+      ).encode(),
     )
+  )
 
   ##
   ##  Upload concepts.

@@ -177,7 +177,6 @@ def deploy_project_command(
   dataset: Optional[list[str]],
   make_datasets_public: bool,
   concept: Optional[list[str]],
-  skip_data_upload: bool,
   skip_concept_upload: bool,
   create_space: bool,
   load_on_space: bool,
@@ -197,10 +196,7 @@ def deploy_project_command(
   deploy_project(
     project_dir=project_dir,
     hf_space=hf_space,
-    datasets=dataset,
     concepts=concept,
-    make_datasets_public=make_datasets_public,
-    skip_data_upload=skip_data_upload,
     skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,

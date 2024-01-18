@@ -102,12 +102,16 @@ def deploy_demo(
   dataset: Optional[list[str]] = None,
 ) -> None:
   """Deploys the public demo."""
-  parsed_config = read_config(config)
-  full_dataset_list = parsed_config.datasets
+  # The original parsed configuration is _always_ uploaded to the HF space
+  original_parsed_config = read_config(config)
+  # If a dataset is specified, we only sync/load/upload that dataset.
   if dataset is not None:
-    parsed_config.datasets = [
-      d for d in parsed_config.datasets if f'{d.namespace}/{d.name}' in dataset
+    config_to_load = original_parsed_config.model_copy()
+    config_to_load.datasets = [
+      d for d in config_to_load.datasets if f'{d.namespace}/{d.name}' in dataset
     ]
+  else:
+    config_to_load = original_parsed_config
   hf_space_org, hf_space_name = hf_space.split('/')
 
   if not skip_sync:
@@ -115,7 +119,7 @@ def deploy_demo(
     # Get all the datasets uploaded in the org.
     hf_dataset_repos = [dataset.id for dataset in hf_api.list_datasets(author=hf_space_org)]
 
-    for ds in parsed_config.datasets:
+    for ds in config_to_load.datasets:
       repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, ds.namespace, ds.name)
       if repo_id not in hf_dataset_repos:
         print('Dataset does not exist on HuggingFace, skipping sync: ', ds)
@@ -131,13 +135,13 @@ def deploy_demo(
       )
 
   if not skip_load:
-    load(project_dir, parsed_config, load_overwrite)
+    load(project_dir, config_to_load, load_overwrite)
 
   ##
   ##  Upload datasets.
   ##
   if not skip_data_upload:
-    for ds in parsed_config.datasets:
+    for ds in config_to_load.datasets:
       repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, ds.namespace, ds.name)
       upload(
         dataset=f'{ds.namespace}/{ds.name}',
@@ -149,15 +153,12 @@ def deploy_demo(
       )
 
   if not skip_deploy:
-    datasets = [f'{ds.namespace}/{ds.name}' for ds in full_dataset_list]
     deploy_project(
       hf_space=hf_space,
-      project_config=parsed_config,
+      project_config=original_parsed_config,
       project_dir=project_dir,
-      datasets=datasets,
       # No extra concepts. lilac concepts are pushed by default.
       concepts=[],
-      skip_data_upload=skip_data_upload,
       # We only use public concepts in demos.
       skip_concept_upload=True,
       create_space=create_space,
