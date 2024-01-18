@@ -6,12 +6,11 @@ from typing import Optional, Type, Union
 
 from pydantic import BaseModel
 
-from lilac.schema import MANIFEST_FILENAME
-
 from .config import get_dataset_config
 from .data.dataset import Dataset
 from .env import get_project_dir
 from .project import read_project_config
+from .schema import MANIFEST_FILENAME
 from .utils import get_datasets_dir
 
 _DEFAULT_DATASET_CLS: Type[Dataset]
@@ -101,8 +100,10 @@ def list_datasets(project_dir: Optional[Union[str, pathlib.Path]] = None) -> lis
         continue
 
       dataset_config = get_dataset_config(project_config, namespace, dataset_name)
+      if not dataset_config:
+        continue
       tags: list[str] = []
-      if dataset_config and dataset_config.settings and dataset_config.settings.tags:
+      if dataset_config.settings and dataset_config.settings.tags:
         tags = dataset_config.settings.tags
 
       dataset_infos.append(DatasetInfo(namespace=namespace, dataset_name=dataset_name, tags=tags))
