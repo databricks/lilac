@@ -17,8 +17,8 @@ from ..schema import (
   RichData,
   SignalInputType,
   SpanVector,
+  chunk_embedding,
   field,
-  lilac_embedding,
   span,
 )
 from ..signal import (
@@ -54,7 +54,7 @@ class TestEmbedding(TextEmbeddingSignal):
       if example == '':
         yield None
         continue
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class LengthSignal(TextSignal):

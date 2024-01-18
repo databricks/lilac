@@ -85,6 +85,7 @@ class VectorDBIndex:
   """
 
   def __init__(self, vector_store: str) -> None:
+    print('~~~~~~~~~~~~~~~~~~~CREATING VECTOR DB INDEX')
     self._vector_store: VectorStore = get_vector_store_cls(vector_store)()
     # Map a path key to spans for that path.
     self._id_to_spans: dict[PathKey, list[tuple[int, int]]] = {}

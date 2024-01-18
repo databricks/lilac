@@ -14,8 +14,8 @@ from ..schema import (
   RichData,
   SignalInputType,
   SpanVector,
+  chunk_embedding,
   field,
-  lilac_embedding,
   schema,
   span,
 )
@@ -107,7 +107,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class TestEmbeddingSumSignal(VectorSignal):

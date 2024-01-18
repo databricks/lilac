@@ -13,7 +13,7 @@ from ..schema import (
   Item,
   RichData,
   SpanVector,
-  lilac_embedding,
+  chunk_embedding,
 )
 from ..signal import TextEmbeddingSignal, get_signal_by_type
 from ..splitters.chunk_splitter import TextChunk
@@ -82,6 +82,6 @@ def chunked_compute_embedding(
     batch_texts = [text for _, (text, _) in batch]
     batch_embeddings = embed_fn(batch_texts)
     for (i, (_, (start, end))), embedding in zip(batch, batch_embeddings):
-      output[i].append(lilac_embedding(start, end, embedding))
+      output[i].append(chunk_embedding(start, end, embedding))
 
   return [lis or None for lis in output]

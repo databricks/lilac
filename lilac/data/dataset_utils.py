@@ -185,7 +185,7 @@ def _flat_embeddings(
 
 
 def write_embeddings_to_disk(
-  vector_store: str, signal_items: Iterable[Item], output_dir: str
+  vector_index: VectorDBIndex, signal_items: Iterable[Item], output_dir: str
 ) -> None:
   """Write a set of embeddings to disk."""
   path_embedding_items = (
@@ -213,7 +213,6 @@ def write_embeddings_to_disk(
 
   span_vectors = _get_span_vectors()
 
-  vector_index = VectorDBIndex(vector_store)
   for span_vectors_chunk in chunks(span_vectors, EMBEDDINGS_WRITE_CHUNK_SIZE):
     chunk_spans: list[tuple[PathKey, list[tuple[int, int]]]] = []
     chunk_embedding_vectors: list[np.ndarray] = []
@@ -228,9 +227,6 @@ def write_embeddings_to_disk(
 
     del embedding_matrix, chunk_embedding_vectors, chunk_spans
     gc.collect()
-
-  del vector_index
-  gc.collect()
 
 
 def write_items_to_parquet(

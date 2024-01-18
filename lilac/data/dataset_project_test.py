@@ -19,7 +19,7 @@ from ..db_manager import get_dataset
 from ..env import get_project_dir
 from ..load_dataset import create_dataset
 from ..project import create_project_and_set_env, read_project_config
-from ..schema import Field, Item, RichData, field, lilac_embedding
+from ..schema import Field, Item, RichData, chunk_embedding, field
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..source import Source, SourceSchema, clear_source_registry, register_source
 
@@ -71,7 +71,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class TestSignal(TextSignal):

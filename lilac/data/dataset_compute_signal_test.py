@@ -17,8 +17,8 @@ from ..schema import (
   Item,
   RichData,
   SignalInputType,
+  chunk_embedding,
   field,
-  lilac_embedding,
   schema,
   span,
 )
@@ -144,7 +144,7 @@ class TestEmbedding(TextEmbeddingSignal):
     """Call the embedding function."""
     for example in data:
       example = cast(str, example)
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))]
 
 
 class ComputedKeySignal(TextSignal):

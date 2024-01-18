@@ -481,8 +481,14 @@ def span(start: int, end: int, metadata: dict[str, Any] = {}) -> Item:
   return {SPAN_KEY: {TEXT_SPAN_START_FEATURE: start, TEXT_SPAN_END_FEATURE: end}, **metadata}
 
 
-def lilac_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
-  """Creates a lilac embedding item, representing a vector with a pointer to a slice of text."""
+def chunk_embedding(start: int, end: int, embedding: Optional[np.ndarray]) -> Item:
+  """Creates a lilac chunk embedding: a vector with a pointer to a chunk of text.
+
+  Args:
+    start: The start character of of the chunk with respect to the original text.
+    end: The end character of the chunk with respect to the original text.
+    embedding: The embedding vector for the chunk.
+  """
   # Cast to int; we've had issues where start/end were np.int64, which caused downstream sadness.
   return span(int(start), int(end), {EMBEDDING_KEY: embedding})
 

@@ -9,7 +9,7 @@ from typing_extensions import override
 
 from ..data.dataset_test_utils import make_vector_index
 from ..embeddings.vector_store import VectorStore, register_vector_store
-from ..schema import Item, RichData, VectorKey, lilac_embedding, span
+from ..schema import Item, RichData, VectorKey, chunk_embedding, span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .semantic_similarity import SemanticSimilaritySignal
 
@@ -63,7 +63,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Embed the examples, use a hashmap to the vector for simplicity."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)

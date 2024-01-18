@@ -219,6 +219,25 @@ class TextEmbeddingSignal(TextSignal):
     return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
 
+def create_user_text_embedding_signal(embedding_name: str) -> TextEmbeddingSignal:
+  """Create a user text embedding signal."""
+
+  class UserTextEmbeddingSignal(TextEmbeddingSignal):
+    """This class is a shim for user-provided text embeddings.
+
+    The entire app assumes that when embeddings are computed, they are from an embedding signal, so
+    we create this dummy user text embedding signal just to make sure that the app doesn't break.
+    """
+
+    name: ClassVar[str] = embedding_name
+
+    @override
+    def compute(self, docs: list[str]) -> list[Optional[Item]]:
+      raise ValueError('User text embeddings cannot be computed.')
+
+  return UserTextEmbeddingSignal()
+
+
 def _vector_signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
   """Add the enum values for embeddings."""
   embeddings: list[str] = []

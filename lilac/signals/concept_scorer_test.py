@@ -20,7 +20,7 @@ from ..concepts.db_concept import (
 from ..data.dataset_duckdb import DatasetDuckDB
 from ..data.dataset_test_utils import make_vector_index
 from ..db_manager import set_default_dataset_cls
-from ..schema import Item, RichData, SignalInputType, lilac_embedding
+from ..schema import Item, RichData, SignalInputType, chunk_embedding
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from .concept_scorer import ConceptSignal
 
@@ -54,7 +54,7 @@ class TestEmbedding(TextEmbeddingSignal):
     for example in data:
       if example not in EMBEDDING_MAP:
         raise ValueError(f'Example "{str(example)}" not in embedding map')
-      yield [lilac_embedding(0, len(example), np.array(EMBEDDING_MAP[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(EMBEDDING_MAP[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)

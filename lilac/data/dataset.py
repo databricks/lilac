@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequence, Union
 
+import numpy as np
 import pandas as pd
 from pydantic import (
   BaseModel,
@@ -511,6 +512,27 @@ class Dataset(abc.ABC):
     """Compute an embedding for a given field path."""
     pass
 
+  @abc.abstractmethod
+  def load_embedding(
+    self,
+    load_fn: Callable[[Item], Union[np.ndarray, list[SpanVector]]],
+    index_path: Path,
+    embedding_name: str,
+    overwrite: bool = False,
+    task_id: Optional[TaskId] = None,
+  ) -> None:
+    """Loads embeddings from an external source.
+
+    Args:
+      load_fn: A function that takes an item and returns an embedding.
+      index_path: The path to the index to load the embeddings into.
+      embedding_name: The name of the embedding. This is just used for naming.
+      overwrite: Whether to overwrite an existing embedding.
+      task_id: The TaskManager `task_id` for this process run. This is used to update the progress
+        of the task.
+    """
+    pass
+
   def compute_concept(
     self,
     namespace: str,
@@ -688,9 +710,7 @@ class Dataset(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def get_embeddings(
-    self, embedding: str, rowid: str, path: Union[PathKey, str]
-  ) -> list[SpanVector]:
+  def get_embeddings(self, embedding: str, rowid: str, path: Union[PathKey, str]) -> list[Item]:
     """Returns the span-level embeddings associated with a specific row value.
 
     Args:
@@ -703,7 +723,11 @@ class Dataset(abc.ABC):
           row path would be `docs.0.text` for the 1st doc and `docs.1.text` for the 2nd doc.
 
     Returns:
-      A list of `ll.SpanVector` dicts holding the span coordinates and the embedding.
+      A list of `ll.Item` dicts holding the span coordinates and the embedding. These come from
+      ll.chunk_embedding, which looks like:
+      ```
+      {'__span__': {'start': 0, 'end': 6}, 'embedding': array([1., 0., 0.])}
+      ```
     """
     pass
 

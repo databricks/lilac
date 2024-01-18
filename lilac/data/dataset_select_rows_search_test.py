@@ -11,7 +11,7 @@ from typing_extensions import override
 from ..concepts.concept import ExampleIn, LogisticEmbeddingModel
 from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..db_manager import set_default_dataset_cls
-from ..schema import ROWID, Item, RichData, SignalInputType, lilac_embedding, span
+from ..schema import ROWID, Item, RichData, SignalInputType, chunk_embedding, span
 from ..signal import TextEmbeddingSignal, clear_signal_registry, register_signal
 from ..signals.concept_scorer import ConceptSignal
 from ..signals.semantic_similarity import SemanticSimilaritySignal
@@ -170,7 +170,7 @@ class TestEmbedding(TextEmbeddingSignal):
     """Call the embedding function."""
     for example in data:
       embedding = np.array(STR_EMBEDDINGS[cast(str, example)])
-      yield [lilac_embedding(0, len(example), embedding)]
+      yield [chunk_embedding(0, len(example), embedding)]
 
 
 def test_semantic_search(make_test_data: TestDataMaker) -> None:

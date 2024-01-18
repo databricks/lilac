@@ -29,7 +29,7 @@ from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
 
 from ..auth import UserInfo
-from ..batch_utils import flatten_iter, unflatten_iter
+from ..batch_utils import flatten_iter, flatten_path_iter, unflatten_iter
 from ..config import (
   OLD_CONFIG_FILENAME,
   DatasetConfig,
@@ -52,6 +52,7 @@ from ..project import (
 from ..schema import (
   BOOLEAN,
   EMBEDDING,
+  EMBEDDING_KEY,
   MANIFEST_FILENAME,
   PATH_WILDCARD,
   ROWID,
@@ -75,6 +76,7 @@ from ..schema import (
   Schema,
   SpanVector,
   arrow_schema_to_schema,
+  chunk_embedding,
   column_paths_match,
   is_float,
   is_integer,
@@ -90,6 +92,7 @@ from ..signal import (
   TextEmbeddingSignal,
   TopicFn,
   VectorSignal,
+  create_user_text_embedding_signal,
   get_signal_by_type,
   resolve_signal,
 )
@@ -612,10 +615,15 @@ class DatasetDuckDB(Dataset):
         and m.vector_store
         and m.signal.name == embedding
       ]
+      # Create the vector db index when it hasn't been created yet.
       if not manifests:
-        raise ValueError(f'No embedding found for path {path}.')
+        vector_index = VectorDBIndex(self.vector_store)
+        self._vector_indices[index_key] = vector_index
+        return vector_index
+
       if len(manifests) > 1:
         raise ValueError(f'Multiple embeddings found for path {path}. Got: {manifests}')
+
       manifest = manifests[0]
       if not manifest.vector_store:
         raise ValueError(
@@ -969,9 +977,7 @@ class DatasetDuckDB(Dataset):
     return get_json_query(select_str), schema, parquet_filepath
 
   @override
-  def get_embeddings(
-    self, embedding: str, rowid: str, path: Union[PathKey, str]
-  ) -> list[SpanVector]:
+  def get_embeddings(self, embedding: str, rowid: str, path: Union[PathKey, str]) -> list[Item]:
     """Returns the span-level embeddings associated with a specific row value."""
     path = normalize_path(cast(PathTuple, path))
     path = tuple([int(p) if p.isdigit() else p for p in path])
@@ -981,7 +987,12 @@ class DatasetDuckDB(Dataset):
 
     path_key: PathKey = tuple([rowid, *[p for p in path if isinstance(p, int)]])
     res = list(vector_index.get([path_key]))
-    return res[0]
+
+    # Convert the internal SpanVector to the public facing chunk_embedding.
+    return [
+      chunk_embedding(span_vector['span'][0], span_vector['span'][1], span_vector['vector'])
+      for span_vector in res[0]
+    ]
 
   @override
   def compute_signal(
@@ -1188,8 +1199,9 @@ class DatasetDuckDB(Dataset):
       )
     )
 
+    vector_index = self._get_vector_db_index(embedding, input_path)
     write_embeddings_to_disk(
-      vector_store=self.vector_store,
+      vector_index=vector_index,
       signal_items=output_items,
       output_dir=output_dir,
     )
@@ -1212,6 +1224,130 @@ class DatasetDuckDB(Dataset):
       signal=signal,
       enriched_path=input_path,
       parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
+      vector_store=self.vector_store,
+      py_version=metadata.version('lilac'),
+    )
+
+    with open_file(signal_manifest_filepath, 'w') as f:
+      f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
+
+    log(f'Wrote embedding index to {output_dir}')
+
+  @override
+  def load_embedding(
+    self,
+    load_fn: Callable[[Item], Union[np.ndarray, list[SpanVector]]],
+    index_path: Path,
+    embedding_name: str,
+    overwrite: bool = False,
+    task_id: Optional[TaskId] = None,
+  ) -> None:
+    index_path = normalize_path(index_path)
+    # Make sure there are no PATH_WILDCARDS in index_path.
+    if any(p == PATH_WILDCARD for p in index_path):
+      raise ValueError(
+        '`index_path` cannot contain repeated values for `load_embedding`. '
+        'If you require this, please file an issue: https://github.com/lilacai/lilac/issues/new'
+      )
+
+    manifest = self.manifest()
+    index_field = manifest.data_schema.get_field(index_path)
+    if index_field.dtype != STRING:
+      raise ValueError('`index_path` "{index_path}" must be a string field.')
+
+    # We create an implicit embedding signal for user-loaded embeddings.
+    signal = create_user_text_embedding_signal(embedding_name)
+    signal.setup()
+
+    signal_col = Column(path=index_path, alias='value', signal_udf=signal)
+
+    output_path = _col_destination_path(signal_col, is_computed_signal=True)
+    output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
+    signal_schema = create_signal_schema(signal, index_path, manifest.data_schema)
+
+    assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
+    if manifest.data_schema.has_field(output_path) and not overwrite:
+      raise ValueError('Embedding already exists. Use overwrite=True to overwrite.')
+
+    query_params = DuckDBQueryParams()
+    estimated_len = self.count(query_params)
+
+    if task_id is not None:
+      progress_bar = get_progress_bar(estimated_len=estimated_len, task_id=task_id)
+    else:
+      progress_bar = get_progress_bar(
+        estimated_len=estimated_len,
+        task_description=f'Load embedding {embedding_name} on {self.dataset_name}:{index_path}',
+      )
+
+    jsonl_cache_filepath = _jsonl_cache_filepath(
+      namespace=self.namespace,
+      dataset_name=self.dataset_name,
+      key=output_path,
+      project_dir=self.project_dir,
+    )
+
+    def _validated_load_fn(item: Item) -> Union[np.ndarray, list[Item]]:
+      res = load_fn(item)
+
+      print('validating', res)
+      if isinstance(res, np.ndarray):
+        texts = list(flatten_path_iter(item, path=index_path))
+        # We currently only support non-repeated texts.
+        text = texts[0]
+        return [chunk_embedding(0, len(text), res)]
+      elif isinstance(res, list):
+        for chunk in res:
+          assert EMBEDDING_KEY in chunk and SPAN_KEY in chunk, (
+            f'load_fn must return a list of `ll.chunk_embedding()` or a single numpy array. '
+            f'Got: {type(res)}'
+          )
+        return res
+      else:
+        raise ValueError(
+          f'load_fn must return a list of `ll.chunk_embedding()` or a numpy array. Got: {type(res)}'
+        )
+
+    output_items = progress_bar(
+      self._dispatch_workers(
+        joblib.Parallel(n_jobs=1, prefer='threads', return_as='generator'),
+        _validated_load_fn,
+        output_path,
+        jsonl_cache_filepath,
+        batch_size=None,
+        select_path=None,  # Select the entire row.
+        overwrite=overwrite,
+        query_options=query_params,
+        checkpoint_progress=False,
+      )
+    )
+
+    output_items = list(output_items)
+    print('oi', output_items)
+
+    vector_index = self._get_vector_db_index(embedding_name, index_path)
+    write_embeddings_to_disk(
+      vector_index=vector_index,
+      signal_items=output_items,
+      output_dir=output_dir,
+    )
+    gc.collect()
+
+    signal_manifest_filepath = os.path.join(output_dir, SIGNAL_MANIFEST_FILENAME)
+    # If the signal manifest already exists, delete it as it will be rewritten after the new signal
+    # outputs are run.
+    if os.path.exists(signal_manifest_filepath):
+      os.remove(signal_manifest_filepath)
+      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
+      # existent file.
+      self.manifest()
+
+    signal_manifest = SignalManifest(
+      files=[],
+      data_schema=signal_schema,
+      signal=signal,
+      enriched_path=index_path,
+      parquet_id=make_signal_parquet_id(signal, index_path, is_computed_signal=True),
       vector_store=self.vector_store,
       py_version=metadata.version('lilac'),
     )

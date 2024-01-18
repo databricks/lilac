@@ -24,7 +24,7 @@ from .db_manager import get_dataset
 from .env import set_project_dir
 from .load import load
 from .project import PROJECT_CONFIG_FILENAME, init
-from .schema import EMBEDDING_KEY, Field, Item, RichData, field, lilac_embedding, schema
+from .schema import EMBEDDING_KEY, Field, Item, RichData, chunk_embedding, field, schema
 from .signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from .source import Source, SourceSchema, clear_source_registry, register_source
 from .utils import to_yaml
@@ -77,7 +77,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class TestSignal(TextSignal):

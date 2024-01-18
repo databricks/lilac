@@ -15,8 +15,8 @@ from ..schema import (
   SignalInputType,
   SpanVector,
   VectorKey,
+  chunk_embedding,
   field,
-  lilac_embedding,
   span,
 )
 from ..signal import (
@@ -379,7 +379,7 @@ def test_sort_by_complex_signal_udf_alias_called_on_repeated(make_test_data: Tes
 
 
 def test_sort_by_primitive_signal_udf_alias_called_on_repeated(
-  make_test_data: TestDataMaker
+  make_test_data: TestDataMaker,
 ) -> None:
   dataset = make_test_data(
     [
@@ -453,7 +453,7 @@ class TopKEmbedding(TextEmbeddingSignal):
       for i, score in enumerate(example.split('_')):
         start, end = i * 2, i * 2 + 1
         vector = np.array([int(score)])
-        emb_spans.append(lilac_embedding(start, end, vector))
+        emb_spans.append(chunk_embedding(start, end, vector))
       yield emb_spans
 
 
