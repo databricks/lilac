@@ -41,7 +41,6 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
   """
   if hasattr(signal, 'display_name'):
     schema['title'] = signal.display_name
-  schema['runs_remote'] = signal.runs_remote
   if not signal.runs_remote and 'remote' in schema['properties']:
     del schema['properties']['remote']
 

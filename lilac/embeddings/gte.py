@@ -119,6 +119,7 @@ class GTEBase(GTESmall):
   name: ClassVar[str] = 'gte-base'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (base)'
 
+  runs_remote: ClassVar[bool] = False
   _model_name = GTE_BASE
 
 
@@ -128,4 +129,5 @@ class GTETiny(GTESmall):
   name: ClassVar[str] = 'gte-tiny'
   display_name: ClassVar[str] = 'Gegeral Text Embeddings (tiny)'
 
+  runs_remote: ClassVar[bool] = False
   _model_name = GTE_TINY
