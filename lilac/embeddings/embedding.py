@@ -47,7 +47,6 @@ def get_embed_fn(
 
     for item in items:
       if not item:
-        breakpoint()
         raise ValueError('Embedding signal returned None.', embedding)
 
       yield [
