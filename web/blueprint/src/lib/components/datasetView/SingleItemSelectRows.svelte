@@ -43,7 +43,7 @@
         rows: $rowsQuery.data.rows.slice(0, -1)
       };
       lookAheadRowId = L.value(
-        $rowsQuery.data.rows[$rowsQuery.data.rows.length - 1][ROWID],
+        $rowsQuery.data.rows?.[$rowsQuery.data.rows.length - 1]?.[ROWID],
         'string'
       );
     } else {

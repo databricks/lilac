@@ -72,16 +72,14 @@
   $: removeLabels = $schema.data != null ? removeLabelsMutation($schema.data) : null;
 
   $: selectOptions = getSelectRowsOptions($datasetViewStore);
-  $: rowQuery =
-    rowId != null && $selectRowsSchema.data != null && !$selectRowsSchema.isFetching
-      ? queryRowMetadata(
-          namespace,
-          datasetName,
-          rowId,
-          selectOptions,
-          $selectRowsSchema.data.schema
-        )
-      : null;
+  $: rowQuery = queryRowMetadata(
+    namespace,
+    datasetName,
+    rowId,
+    selectOptions,
+    $selectRowsSchema.data?.schema,
+    rowId != null && $selectRowsSchema.data != null /* enabled */
+  );
   $: row = $rowQuery != null && !$rowQuery.isFetching ? $rowQuery?.data : null;
   $: rowLabels = row != null ? getRowLabels(row) : [];
   $: disableLabels = !canEditLabels;

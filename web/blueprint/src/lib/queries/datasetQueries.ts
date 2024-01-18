@@ -195,27 +195,27 @@ function getRowMetadataBatcher(
 export const queryRowMetadata = (
   namespace: string,
   datasetName: string,
-  rowId: string,
+  rowId: string | undefined | null,
   selectRowsOptions: SelectRowsOptions,
-  schema?: LilacSchema | undefined
+  schema?: LilacSchema | undefined,
+  enabled = true
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): CreateQueryResult<Awaited<Record<string, any>>, ApiError> => {
   const tags = [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId];
   const endpoint = getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch;
   type TQueryFnData = Awaited<ReturnType<typeof endpoint>>;
 
-  const apiQuery = (...args: Parameters<typeof endpoint>) =>
-    createQuery<TQueryFnData, ApiError, TQueryFnData>({
-      queryKey: apiQueryKey(tags as string[], endpoint.name, ...args),
-      queryFn: () => endpoint(...args),
-      // Allow the result of the query to contain non-serializable data, such as `LilacField` which
-      // has pointers to parents: https://tanstack.com/query/v4/docs/react/reference/useQuery
-      structuralSharing: false,
-      select: res => {
-        return schema == null ? res : deserializeRow(res, schema);
-      }
-    });
-  return apiQuery({rowId, selectRowsOptions});
+  return createQuery<TQueryFnData, ApiError, TQueryFnData>({
+    queryKey: apiQueryKey(tags as string[], endpoint.name, {rowId, selectRowsOptions}),
+    queryFn: () => endpoint({rowId: rowId || '', selectRowsOptions}),
+    // Allow the result of the query to contain non-serializable data, such as `LilacField` which
+    // has pointers to parents: https://tanstack.com/query/v4/docs/react/reference/useQuery
+    structuralSharing: false,
+    enabled,
+    select: res => {
+      return schema == null ? res : deserializeRow(res, schema);
+    }
+  });
 };
 
 export const querySelectRowsSchema = createApiQuery(

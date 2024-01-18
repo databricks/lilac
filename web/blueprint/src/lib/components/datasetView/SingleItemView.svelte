@@ -107,15 +107,19 @@
 {/if}
 
 <div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
-  <RowItem
-    {index}
-    totalNumRows={rowsResponse?.total_num_rows}
-    {rowId}
-    {nextRowId}
-    {mediaFields}
-    {highlightedFields}
-    {updateSequentialRowId}
-    {modalOpen}
-  />
+  {#if rows?.length === 0}
+    <div class="mt-8 flex flex-col items-center text-xl">No rows found</div>
+  {:else}
+    <RowItem
+      {index}
+      totalNumRows={rowsResponse?.total_num_rows}
+      {rowId}
+      {nextRowId}
+      {mediaFields}
+      {highlightedFields}
+      {updateSequentialRowId}
+      {modalOpen}
+    />
+  {/if}
 </div>
 <svelte:window on:keydown={onKeyDown} />
