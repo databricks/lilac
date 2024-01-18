@@ -10,6 +10,7 @@ from .config import get_dataset_config
 from .data.dataset import Dataset
 from .env import get_project_dir
 from .project import read_project_config
+from .schema import MANIFEST_FILENAME
 from .utils import get_datasets_dir
 
 _DEFAULT_DATASET_CLS: Type[Dataset]
@@ -94,6 +95,8 @@ def list_datasets(project_dir: Optional[Union[str, pathlib.Path]] = None) -> lis
       if not os.path.isdir(dataset_path):
         continue
       if dataset_name.startswith('.'):
+        continue
+      if not os.path.exists(os.path.join(dataset_path, MANIFEST_FILENAME)):
         continue
 
       dataset_config = get_dataset_config(project_config, namespace, dataset_name)
