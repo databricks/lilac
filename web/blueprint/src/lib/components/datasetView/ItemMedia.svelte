@@ -372,7 +372,6 @@
           rootPath={[...(rootPath || []), childPathPart]}
           {mediaFields}
           {row}
-          {field}
           {highlightedFields}
           {mediaPath}
         />

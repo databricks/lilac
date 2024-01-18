@@ -557,17 +557,17 @@ def test_map_deleted_interaction(
   def _map_fn(item: Item) -> Item:
     return item['text'].upper()
 
-  dataset.delete_rows(row_ids=['1', '2', '3'])
+  dataset.delete_rows(row_ids=['00001', '00002', '00003'])
 
   dataset.map(_map_fn, output_path='text_upper', num_jobs=num_jobs, execution_type=execution_type)
 
   rows = list(dataset.select_rows(['text_upper'], include_deleted=True))
   assert rows == [
+    {'text_upper': None},
+    {'text_upper': None},
+    {'text_upper': None},
     {'text_upper': 'D'},
     {'text_upper': 'E'},
-    {'text_upper': None},
-    {'text_upper': None},
-    {'text_upper': None},
   ]
 
   dataset.map(

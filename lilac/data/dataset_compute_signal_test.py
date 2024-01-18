@@ -389,7 +389,7 @@ def test_signal_ignores_deleted(make_test_data: TestDataMaker) -> None:
     source=TestSource(),
   )
 
-  dataset.delete_rows(['1'])
+  dataset.delete_rows(['00001'])
   test_signal = TestSignal()
   dataset.compute_signal(test_signal, 'str')
 
@@ -426,9 +426,9 @@ def test_signal_ignores_deleted(make_test_data: TestDataMaker) -> None:
 
   result = dataset.select_rows(['str'], combine_columns=True, include_deleted=True)
   assert list(result) == [
-    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
-    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
     {'str': 'a'},
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
+    {'str': enriched_item('b', {'test_signal': {'len': 1, 'flen': 1.0}})},
   ]
 
 

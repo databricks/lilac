@@ -16,7 +16,7 @@
 
   let limit = DEFAULT_LIMIT_SELECT_ROW_IDS;
   let rowsResponse: SelectRowsResponse | undefined;
-  let nextRowResponse: SelectRowsResponse | undefined;
+  let lookAheadRowId: string | null = null;
 
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
@@ -70,7 +70,7 @@
     let newIndex = direction === 'next' ? index + 1 : Math.max(index - 1, 0);
     let newRowId: string | null;
     if (newIndex >= rows.length) {
-      newRowId = L.value(nextRowResponse?.rows?.[0]?.[ROWID], 'string');
+      newRowId = lookAheadRowId;
     } else {
       newRowId = L.value(rows[newIndex]?.[ROWID], 'string');
     }
@@ -93,10 +93,7 @@
 
 <FilterPanel numRowsInQuery={rowsResponse?.total_num_rows} />
 
-<SingleItemSelectRows {limit} bind:rowsResponse />
-{#if rows != null}
-  <SingleItemSelectRows limit={1} offset={rows.length} bind:rowsResponse={nextRowResponse} />
-{/if}
+<SingleItemSelectRows {limit} bind:rowsResponse bind:lookAheadRowId />
 
 <!-- Prefetch the previous and next item to minimize perceived lag. -->
 {#if index != null && rows != null}
@@ -110,15 +107,19 @@
 {/if}
 
 <div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
-  <RowItem
-    {index}
-    totalNumRows={rowsResponse?.total_num_rows}
-    {rowId}
-    {nextRowId}
-    {mediaFields}
-    {highlightedFields}
-    {updateSequentialRowId}
-    {modalOpen}
-  />
+  {#if rows?.length === 0}
+    <div class="mt-8 flex flex-col items-center text-xl">No rows found</div>
+  {:else}
+    <RowItem
+      {index}
+      totalNumRows={rowsResponse?.total_num_rows}
+      {rowId}
+      {nextRowId}
+      {mediaFields}
+      {highlightedFields}
+      {updateSequentialRowId}
+      {modalOpen}
+    />
+  {/if}
 </div>
 <svelte:window on:keydown={onKeyDown} />
