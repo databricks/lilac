@@ -176,7 +176,9 @@ def deploy_project_command(
   project_dir: str,
   hf_space: str,
   dataset: Optional[list[str]],
+  make_datasets_public: bool,
   concept: Optional[list[str]],
+  skip_data_upload: bool,
   skip_concept_upload: bool,
   create_space: bool,
   load_on_space: bool,
@@ -193,17 +195,16 @@ def deploy_project_command(
     concept = None
 
   hf_token = hf_token or env('HF_ACCESS_TOKEN')
-  ##
-  ##  Upload datasets.
-  ##
-  for d in dataset:
-    upload(
-      dataset=d,
-      project_dir=project_dir,
-      url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
-      public=False,
-      hf_token=hf_token,
-    )
+
+  if not skip_data_upload:
+    for d in dataset:
+      upload(
+        dataset=d,
+        project_dir=project_dir,
+        url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
+        public=make_datasets_public,
+        hf_token=hf_token,
+      )
 
   deploy_project(
     project_dir=project_dir,
