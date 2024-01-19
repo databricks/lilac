@@ -1224,9 +1224,8 @@ class DatasetDuckDB(Dataset):
     # outputs are run.
     if os.path.exists(signal_manifest_filepath):
       os.remove(signal_manifest_filepath)
-      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
-      # existent file.
-      self.manifest()
+      # Recreate all the views, otherwise this could be stale and point to a non existent file.
+      self._clear_joint_table_cache()
 
     signal_manifest = SignalManifest(
       files=[],
@@ -1260,9 +1259,8 @@ class DatasetDuckDB(Dataset):
     # outputs are run.
     if os.path.exists(signal_manifest_filepath):
       os.remove(signal_manifest_filepath)
-      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
-      # existent file.
-      self.manifest()
+      # Recreate all the views, otherwise this could be stale and point to a non existent file.
+      self._clear_joint_table_cache()
 
   @override
   def load_embedding(
@@ -1379,9 +1377,8 @@ class DatasetDuckDB(Dataset):
     # outputs are run.
     if os.path.exists(signal_manifest_filepath):
       os.remove(signal_manifest_filepath)
-      # Call manifest() to recreate all the views, otherwise this could be stale and point to a non
-      # existent file.
-      self.manifest()
+      # Recreate all the views, otherwise this could be stale and point to a non existent file.
+      self._clear_joint_table_cache()
 
     signal_manifest = SignalManifest(
       files=[],
