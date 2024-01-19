@@ -1,5 +1,6 @@
 """Tests for dataset.load_embedding()."""
 
+import re
 from typing import Iterable
 
 import numpy as np
@@ -211,5 +212,11 @@ def test_load_embedding_throws_twice_no_overwrite(make_test_data: TestDataMaker)
     np.testing.assert_array_almost_equal(embedding[EMBEDDING_KEY], EMBEDDINGS[row['id']])
 
   # Calling load_embedding again with the same embedding name throws.
-  with pytest.raises(ValueError, match='blah blah'):
+  with pytest.raises(
+    ValueError,
+    match=re.escape(
+      'Embedding "test_embedding" already exists at path (\'str\',). '
+      'Use overwrite=True to overwrite.'
+    ),
+  ):
     dataset.load_embedding(_load_embedding, index_path='str', embedding_name='test_embedding')

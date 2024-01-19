@@ -265,7 +265,9 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
 
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
 
-  with pytest.raises(ValueError, match="No embedding found for path \\('text',\\)"):
+  with pytest.raises(
+    ValueError, match='Embedding "test_embedding" not found for path \\(\'text\',\\)'
+  ):
     dataset.select_rows(['text', signal_col])
 
 

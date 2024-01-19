@@ -166,7 +166,9 @@ def test_missing_embedding_signal(make_test_data: TestDataMaker, mocker: MockerF
 
   # The embedding is missing for 'text'.
   embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
-  with pytest.raises(ValueError, match="No embedding found for path \\('text',\\)"):
+  with pytest.raises(
+    ValueError, match='Embedding "test_embedding" not found for path \\(\'text\',\\)'
+  ):
     dataset.compute_signal(embedding_sum_signal, 'text')
 
 

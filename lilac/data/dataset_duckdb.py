@@ -1033,6 +1033,9 @@ class DatasetDuckDB(Dataset):
     if manifest.data_schema.has_field(output_path) and not overwrite:
       raise ValueError('Signal already exists. Use overwrite=True to overwrite.')
 
+    if isinstance(signal, VectorSignal):
+      self._assert_embedding_exists(input_path, signal.embedding)
+
     # Update the project config before computing the signal.
     add_project_signal_config(
       self.namespace,
@@ -1291,7 +1294,10 @@ class DatasetDuckDB(Dataset):
       if overwrite:
         self.delete_embedding(embedding_name, index_path)
       else:
-        raise ValueError('Embedding already exists. Use overwrite=True to overwrite.')
+        raise ValueError(
+          f'Embedding "{embedding_name}" already exists at path {index_path}. '
+          'Use overwrite=True to overwrite.'
+        )
 
     query_params = DuckDBQueryParams()
     estimated_len = self.count(query_params)
@@ -2269,6 +2275,8 @@ class DatasetDuckDB(Dataset):
 
         if isinstance(signal, VectorSignal):
           embedding_signal = signal
+          self._assert_embedding_exists(udf_col.path, embedding_signal.embedding)
+
           vector_store = self._get_vector_db_index(embedding_signal.embedding, udf_col.path)
           flat_keys = flatten_keys(df[ROWID], input)
           signal_out = sparse_to_dense_compute(
@@ -3278,6 +3286,12 @@ class DatasetDuckDB(Dataset):
     filepath = os.path.expanduser(filepath)
     self._execute(f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT PARQUET)")
     log(f'Dataset exported to {filepath}')
+
+  def _assert_embedding_exists(self, path: PathTuple, embedding: str) -> None:
+    manifest = self.manifest()
+    embedding_path = (*path, embedding)
+    if not manifest.data_schema.has_field(embedding_path):
+      raise ValueError(f'Embedding "{embedding}" not found for path {path}.')
 
 
 def _escape_like_value(value: str) -> str:
