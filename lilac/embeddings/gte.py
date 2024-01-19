@@ -67,7 +67,7 @@ class GTESmall(TextEmbeddingSignal):
     )
 
   @override
-  def compute_remote(self, docs: Iterator[str]) -> Iterator[Item]:
+  def compute_garden(self, docs: Iterator[str]) -> Iterator[Item]:
     # Trim the docs to the max context size.
 
     trimmed_docs = (doc[:GTE_CONTEXT_SIZE] for doc in docs)
@@ -82,7 +82,7 @@ class GTESmall(TextEmbeddingSignal):
     )
 
     gte = modal.Function.lookup('gte', 'GTE.embed')
-    with DebugTimer('Computing GTE remotely'):
+    with DebugTimer('Computing GTE on Lilac Garden'):
       doc_embeddings: list[Item] = []
       last_index = 0
       for response in gte.map(batches, order_outputs=True):
