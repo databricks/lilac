@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from tqdm import tqdm
 
 from .env import env
-from .utils import pretty_timedelta
+from .utils import log, pretty_timedelta
 
 TaskId = str
 TaskFn = Union[Callable[..., Any], Callable[..., Awaitable[Any]]]
@@ -200,6 +200,7 @@ def launch_task(task_id: TaskId, run_fn: Callable) -> None:
     try:
       run_fn()
     except Exception as e:
+      log(e)
       tm.set_error(task_id, str(e))
     else:
       tm.set_completed(task_id)
