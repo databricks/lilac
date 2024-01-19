@@ -39,6 +39,7 @@
    datasets/dataset_delete_rows.md
    datasets/dataset_edit.md
    datasets/dataset_labels.md
+   datasets/dataset_embeddings.md
    datasets/dataset_concepts.md
    datasets/dataset_signals.md
    datasets/dataset_query.md
