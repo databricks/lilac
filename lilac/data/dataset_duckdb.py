@@ -1161,6 +1161,15 @@ class DatasetDuckDB(Dataset):
 
     assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
 
+    if manifest.data_schema.has_field(output_path):
+      if overwrite:
+        self.delete_embedding(embedding, input_path)
+      else:
+        raise ValueError(
+          f'Embedding "{embedding}" already exists at path {input_path}. '
+          'Use overwrite=True to overwrite.'
+        )
+
     jsonl_cache_filepath = _jsonl_cache_filepath(
       namespace=self.namespace,
       dataset_name=self.dataset_name,
