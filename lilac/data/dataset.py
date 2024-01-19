@@ -50,7 +50,6 @@ from ..schema import (
   PathKey,
   PathTuple,
   Schema,
-  SpanVector,
   change_const_to_enum,
   normalize_path,
 )
@@ -515,7 +514,7 @@ class Dataset(abc.ABC):
   @abc.abstractmethod
   def load_embedding(
     self,
-    load_fn: Callable[[Item], Union[np.ndarray, list[SpanVector]]],
+    load_fn: Callable[[Item], Union[np.ndarray, list[Item]]],
     index_path: Path,
     embedding: str,
     overwrite: bool = False,
@@ -524,7 +523,9 @@ class Dataset(abc.ABC):
     """Loads embeddings from an external source.
 
     Args:
-      load_fn: A function that takes an item and returns an embedding.
+      load_fn: A function that takes an item and returns an embedding. `load_fn` should return
+        either a numpy array for full-document embeddings, or a list of `ll.chunk_embeddings` for
+        chunked embeddings.
       index_path: The path to the index to load the embeddings into.
       embedding: The name of the embedding to load under. This should be a registered embedding.
       overwrite: Whether to overwrite an existing embedding.

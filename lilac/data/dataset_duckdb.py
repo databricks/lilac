@@ -74,7 +74,6 @@ from ..schema import (
   PathTuple,
   RichData,
   Schema,
-  SpanVector,
   arrow_schema_to_schema,
   chunk_embedding,
   column_paths_match,
@@ -1259,7 +1258,7 @@ class DatasetDuckDB(Dataset):
   @override
   def load_embedding(
     self,
-    load_fn: Callable[[Item], Union[np.ndarray, list[SpanVector]]],
+    load_fn: Callable[[Item], Union[np.ndarray, list[Item]]],
     index_path: Path,
     embedding: str,
     overwrite: bool = False,
