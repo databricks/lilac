@@ -53,6 +53,10 @@ class TestVectorStore(VectorStore):
     keys = keys or []
     return np.array([EMBEDDINGS[tuple(path_key)][cast(int, index)] for *path_key, index in keys])
 
+  @override
+  def delete(self, base_path: str) -> None:
+    raise NotImplementedError
+
 
 class TestEmbedding(TextEmbeddingSignal):
   """A test embed function."""

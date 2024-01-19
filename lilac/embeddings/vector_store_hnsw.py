@@ -103,9 +103,6 @@ class HNSWVectorStore(VectorStore):
         self._key_to_label.name = str(dim)
         self._index.add_items(embeddings, row_indices)
         self._index.set_ef(min(QUERY_EF, self.size()))
-        print('key to labels writing...', self._key_to_label)
-        print('row indices:', row_indices, self.size(), embeddings)
-        print('get=', self._index.get_items(row_indices))
 
   @override
   def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
@@ -113,12 +110,9 @@ class HNSWVectorStore(VectorStore):
       self._index is not None and self._key_to_label is not None
     ), 'No embeddings exist in this store.'
     with self._lock:
-      print('getting with keys=', keys)
       if not keys:
         return np.array(self._index.get_items(self._key_to_label.values), dtype=np.float32)
       locs = self._key_to_label.loc[cast(list[str], keys)].values
-      print('returning...', np.array(self._index.get_items(locs), dtype=np.float32))
-      print('key to labels:', self._key_to_label)
       return np.array(self._index.get_items(locs), dtype=np.float32)
 
   @override

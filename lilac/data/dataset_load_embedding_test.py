@@ -188,3 +188,28 @@ def test_load_embedding_overwrite(make_test_data: TestDataMaker) -> None:
     np.testing.assert_array_almost_equal(
       embedding[EMBEDDING_KEY], [multiplier * x for x in EMBEDDINGS[row['id']]]
     )
+
+
+def test_load_embedding_throws_twice_no_overwrite(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data(ITEMS)
+
+  multiplier = 1.0
+
+  def _load_embedding(item: Item) -> np.ndarray:
+    # Return a full-doc np.array embedding.
+    return multiplier * np.array(EMBEDDINGS[item['id']])
+
+  # Call load_embedding once.
+  dataset.load_embedding(_load_embedding, index_path='str', embedding_name='test_embedding')
+
+  # Make sure the row-level embeddings match the embeddings we explicitly passed.
+  rows = list(dataset.select_rows(['*', ROWID]))
+  assert len(rows) == 3
+  for row in rows:
+    [embedding] = dataset.get_embeddings('test_embedding', row[ROWID], 'str')
+
+    np.testing.assert_array_almost_equal(embedding[EMBEDDING_KEY], EMBEDDINGS[row['id']])
+
+  # Calling load_embedding again with the same embedding name throws.
+  with pytest.raises(ValueError, match='blah blah'):
+    dataset.load_embedding(_load_embedding, index_path='str', embedding_name='test_embedding')
