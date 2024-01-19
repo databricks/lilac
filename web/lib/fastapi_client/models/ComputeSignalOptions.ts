@@ -11,5 +11,6 @@ import type { Signal } from './Signal';
 export type ComputeSignalOptions = {
     signal: Signal;
     leaf_path: (Array<string> | string);
+    overwrite?: boolean;
 };
 

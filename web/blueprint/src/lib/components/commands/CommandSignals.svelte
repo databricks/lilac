@@ -27,7 +27,13 @@
     type Signal,
     type SignalInfoWithTypedSchema
   } from '$lilac';
-  import {ComposedModal, ModalBody, ModalFooter, ModalHeader} from 'carbon-components-svelte';
+  import {
+    ComposedModal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
+    Toggle
+  } from 'carbon-components-svelte';
   import type {JSONSchema4Type, JSONSchema7} from 'json-schema';
   import type {JSONError} from 'json-schema-library';
   import {SvelteComponent, createEventDispatcher, getContext, setContext} from 'svelte';
@@ -58,6 +64,8 @@
   let signalInfo: SignalInfoWithTypedSchema | undefined;
   let signalPropertyValues: Record<string, Record<string, JSONSchema4Type>> = {};
   let errors: JSONError[] = [];
+
+  let overwrite = false;
 
   const HIDDEN_PROPERTIES = [
     // Hide the signal name as it's just used for type coersion.
@@ -193,6 +201,10 @@
               hiddenProperties={HIDDEN_PROPERTIES}
               customComponents={customComponents[signalInfo?.name]}
             />
+            <div class="mt-8">
+              <div class="label text-s mb-2 font-medium text-gray-700">Overwrite</div>
+              <Toggle labelA={'False'} labelB={'True'} bind:toggled={overwrite} hideLabel />
+            </div>
           {/key}
         {:else}
           No signal selected

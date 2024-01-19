@@ -224,6 +224,11 @@ class TextEmbeddingSignal(TextSignal):
     """
     return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
+  @override
+  def key(self, is_computed_signal: Optional[bool] = False) -> str:
+    """Get the key for an embedding. This is exactly the embedding name, regardless of garden."""
+    return self.name
+
 
 def _vector_signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
   """Add the enum values for embeddings."""

@@ -7,7 +7,6 @@ datasets:
     settings:
       ui:
         media_paths:
-          - input
           - - conversation
             - '*'
             - input
