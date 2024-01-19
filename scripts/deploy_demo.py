@@ -35,7 +35,7 @@ from lilac.db_manager import list_datasets
 from lilac.deploy import deploy_project
 from lilac.env import env
 from lilac.load import load
-from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
+from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id, log
 
 
 @click.command()
@@ -105,7 +105,7 @@ def deploy_demo(
       if repo_id not in hf_dataset_repos:
         continue
 
-      print(f'Downloading dataset from HuggingFace "{repo_id}": ', dataset)
+      log(f'Downloading dataset from HuggingFace "{repo_id}": ', dataset)
       snapshot_download(
         repo_id=repo_id,
         repo_type='dataset',

@@ -20,29 +20,29 @@ from .text_statistics import TextStatisticsSignal
 def register_default_signals() -> None:
   """Register all the default signals."""
   # Concepts.
-  register_signal(ConceptSignal)
-  register_signal(ConceptLabelsSignal)
+  register_signal(ConceptSignal, exists_ok=True)
+  register_signal(ConceptLabelsSignal, exists_ok=True)
 
   # Text.
-  register_signal(PIISignal)
-  register_signal(TextStatisticsSignal)
-  register_signal(SpacyNER)
-  register_signal(NearDuplicateSignal)
-  register_signal(LangDetectionSignal)
-  register_signal(MarkdownCodeBlockSignal)
+  register_signal(PIISignal, exists_ok=True)
+  register_signal(TextStatisticsSignal, exists_ok=True)
+  register_signal(SpacyNER, exists_ok=True)
+  register_signal(NearDuplicateSignal, exists_ok=True)
+  register_signal(LangDetectionSignal, exists_ok=True)
+  register_signal(MarkdownCodeBlockSignal, exists_ok=True)
 
   # Embeddings.
-  register_signal(Cohere)
+  register_signal(Cohere, exists_ok=True)
 
-  register_signal(SBERT)
+  register_signal(SBERT, exists_ok=True)
 
-  register_signal(OpenAIEmbedding)
+  register_signal(OpenAIEmbedding, exists_ok=True)
 
-  register_signal(PaLM)
+  register_signal(PaLM, exists_ok=True)
 
-  register_signal(GTETiny)
-  register_signal(GTESmall)
-  register_signal(GTEBase)
+  register_signal(GTETiny, exists_ok=True)
+  register_signal(GTESmall, exists_ok=True)
+  register_signal(GTEBase, exists_ok=True)
 
-  register_signal(JinaV2Small)
-  register_signal(JinaV2Base)
+  register_signal(JinaV2Small, exists_ok=True)
+  register_signal(JinaV2Base, exists_ok=True)

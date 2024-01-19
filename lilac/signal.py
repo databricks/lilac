@@ -222,25 +222,6 @@ class TextEmbeddingSignal(TextSignal):
     return field(fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})])
 
 
-def create_user_text_embedding_signal(embedding_name: str) -> TextEmbeddingSignal:
-  """Create a user text embedding signal."""
-
-  class UserTextEmbeddingSignal(TextEmbeddingSignal):
-    """This class is a shim for user-provided text embeddings.
-
-    The entire app assumes that when embeddings are computed, they are from an embedding signal, so
-    we create this dummy user text embedding signal just to make sure that the app doesn't break.
-    """
-
-    name: ClassVar[str] = embedding_name
-
-    @override
-    def compute(self, docs: list[str]) -> list[Optional[Item]]:
-      raise ValueError('User text embeddings cannot be computed.')
-
-  return UserTextEmbeddingSignal()
-
-
 def _vector_signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None:
   """Add the enum values for embeddings."""
   embeddings: list[str] = []
@@ -332,12 +313,22 @@ def get_signals_by_type(signal_type: Type[Tsignal]) -> list[Type[Tsignal]]:
 SIGNAL_REGISTRY: dict[str, Type[Signal]] = {}
 
 
-def register_signal(signal_cls: Type[Signal]) -> None:
-  """Register a signal in the global registry."""
-  if signal_cls.name in SIGNAL_REGISTRY:
+def register_signal(signal_cls: Type[Signal], exists_ok: bool = False) -> None:
+  """Register a signal in the global registry.
+
+  Args:
+    signal_cls: The signal class to register.
+    exists_ok: Whether to allow overwriting an existing signal.
+  """
+  if signal_cls.name in SIGNAL_REGISTRY and not exists_ok:
     raise ValueError(f'Signal "{signal_cls.name}" has already been registered!')
 
   SIGNAL_REGISTRY[signal_cls.name] = signal_cls
+
+
+def register_embedding(embedding_cls: Type[TextEmbeddingSignal], exists_ok: bool = False) -> None:
+  """Register an embedding in the global registry."""
+  register_signal(embedding_cls, exists_ok)
 
 
 def get_signal_cls(signal_name: str) -> Optional[Type[Signal]]:

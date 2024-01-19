@@ -517,7 +517,7 @@ class Dataset(abc.ABC):
     self,
     load_fn: Callable[[Item], Union[np.ndarray, list[SpanVector]]],
     index_path: Path,
-    embedding_name: str,
+    embedding: str,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
   ) -> None:
@@ -526,7 +526,7 @@ class Dataset(abc.ABC):
     Args:
       load_fn: A function that takes an item and returns an embedding.
       index_path: The path to the index to load the embeddings into.
-      embedding_name: The name of the embedding. This is just used for naming.
+      embedding: The name of the embedding to load under. This should be a registered embedding.
       overwrite: Whether to overwrite an existing embedding.
       task_id: The TaskManager `task_id` for this process run. This is used to update the progress
         of the task.

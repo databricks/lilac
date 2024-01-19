@@ -92,7 +92,6 @@ from ..signal import (
   TextEmbeddingSignal,
   TopicFn,
   VectorSignal,
-  create_user_text_embedding_signal,
   get_signal_by_type,
   resolve_signal,
 )
@@ -1262,7 +1261,7 @@ class DatasetDuckDB(Dataset):
     self,
     load_fn: Callable[[Item], Union[np.ndarray, list[SpanVector]]],
     index_path: Path,
-    embedding_name: str,
+    embedding: str,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
   ) -> None:
@@ -1280,7 +1279,15 @@ class DatasetDuckDB(Dataset):
       raise ValueError(f'`index_path` "{index_path}" must be a string field.')
 
     # We create an implicit embedding signal for user-loaded embeddings.
-    signal = create_user_text_embedding_signal(embedding_name)
+    try:
+      signal_cls = get_signal_by_type(embedding, TextEmbeddingSignal)
+    except Exception:
+      raise ValueError(
+        f'Embedding "{embedding}" not found. You must register an embedding with '
+        '`ll.register_embedding()` before loading embeddings. For more details, see: '
+        'https://docs.lilacml.com/datasets/dataset_embeddings.html'
+      )
+    signal = signal_cls()
     signal.setup()
 
     signal_col = Column(path=index_path, alias='value', signal_udf=signal)
@@ -1292,10 +1299,10 @@ class DatasetDuckDB(Dataset):
     assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
     if manifest.data_schema.has_field(output_path):
       if overwrite:
-        self.delete_embedding(embedding_name, index_path)
+        self.delete_embedding(embedding, index_path)
       else:
         raise ValueError(
-          f'Embedding "{embedding_name}" already exists at path {index_path}. '
+          f'Embedding "{embedding}" already exists at path {index_path}. '
           'Use overwrite=True to overwrite.'
         )
 
@@ -1307,7 +1314,7 @@ class DatasetDuckDB(Dataset):
     else:
       progress_bar = get_progress_bar(
         estimated_len=estimated_len,
-        task_description=f'Load embedding {embedding_name} on {self.dataset_name}:{index_path}',
+        task_description=f'Load embedding {embedding} on {self.dataset_name}:{index_path}',
       )
 
     jsonl_cache_filepath = _jsonl_cache_filepath(
@@ -1351,10 +1358,7 @@ class DatasetDuckDB(Dataset):
       )
     )
 
-    output_items = list(output_items)
-    print('oi', output_items)
-
-    vector_index = self._get_vector_db_index(embedding_name, index_path)
+    vector_index = self._get_vector_db_index(embedding, index_path)
     write_embeddings_to_disk(
       vector_index=vector_index,
       signal_items=output_items,

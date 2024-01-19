@@ -27,6 +27,7 @@ from .schema import *  # noqa: F403
 from .schema import Field, SpanVector, chunk_embedding, span
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
+from .signals import register_embedding, register_signal
 from .source import Source
 from .sources import *  # noqa: F403
 from .splitters import *  # noqa: F403
@@ -75,4 +76,6 @@ __all__ = [
   'OpenChat',
   'download',
   'upload',
+  'register_embedding',
+  'register_signal',
 ]

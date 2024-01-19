@@ -25,7 +25,13 @@ from .env import set_project_dir
 from .load import load
 from .project import PROJECT_CONFIG_FILENAME, init
 from .schema import EMBEDDING_KEY, Field, Item, RichData, chunk_embedding, field, schema
-from .signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
+from .signal import (
+  TextEmbeddingSignal,
+  TextSignal,
+  clear_signal_registry,
+  register_embedding,
+  register_signal,
+)
 from .source import Source, SourceSchema, clear_source_registry, register_source
 from .utils import to_yaml
 
@@ -99,7 +105,7 @@ def setup_teardown() -> Iterable[None]:
   # Setup.
   register_source(TestSource)
   register_signal(TestSignal)
-  register_signal(TestEmbedding)
+  register_embedding(TestEmbedding)
 
   # Unit test runs.
   yield

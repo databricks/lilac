@@ -34,7 +34,7 @@ from ..signal import (
   TopicFn,
 )
 from ..tasks import TaskId, TaskInfo, get_task_manager
-from ..utils import DebugTimer, chunks
+from ..utils import DebugTimer, chunks, log
 from .dataset import Dataset
 from .dataset_utils import (
   get_callable_name,
@@ -138,8 +138,8 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
         return title.title
       except IncompleteOutputException:
         max_tokens = max_tokens * 2
-        print(f'Retrying with max_tokens={max_tokens}')
-    print(f'Could not generate a reasonable title for input:\n{input}')
+        log(f'Retrying with max_tokens={max_tokens}')
+    log(f'Could not generate a reasonable title for input:\n{input}')
     return 'FAILED_TO_GENERATE'
 
   return request_with_retries()
@@ -546,7 +546,7 @@ def _hdbscan_cluster(
       noisy_vectors.append(all_vectors[i])
   num_noisy = len(noisy_vectors)
   perc_noisy = 100 * num_noisy / len(clusterer.labels_)
-  print(f'{num_noisy} noise points ({perc_noisy:.1f}%) will be assigned to nearest cluster.')
+  log(f'{num_noisy} noise points ({perc_noisy:.1f}%) will be assigned to nearest cluster.')
 
   noisy_labels: list[np.ndarray] = []
   noisy_probs: list[np.ndarray] = []

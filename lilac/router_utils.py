@@ -10,6 +10,7 @@ from .auth import UserInfo
 from .concepts.db_concept import DISK_CONCEPT_DB, DISK_CONCEPT_MODEL_DB
 from .schema import Item, RichData
 from .signals.concept_scorer import ConceptSignal
+from .utils import log
 
 
 class RouteErrorHandler(APIRoute):
@@ -26,8 +27,8 @@ class RouteErrorHandler(APIRoute):
         if isinstance(ex, HTTPException):
           raise ex
 
-        print('Route error:', request.url)
-        print(traceback.format_exc())
+        log('Route error:', request.url)
+        log(traceback.format_exc())
 
         # wrap error into pretty 500 exception
         detail = ''.join(traceback.format_exception_only(type(ex), ex))

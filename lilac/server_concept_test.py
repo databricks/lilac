@@ -31,7 +31,7 @@ from .router_concept import (
 )
 from .schema import Item, RichData, chunk_embedding, span
 from .server import app
-from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
+from .signal import TextEmbeddingSignal, clear_signal_registry, register_embedding
 from .test_utils import fake_uuid
 
 client = TestClient(app)
@@ -61,7 +61,7 @@ class TestEmbedding(TextEmbeddingSignal):
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
-  register_signal(TestEmbedding)
+  register_embedding(TestEmbedding)
   # Unit test runs.
   yield
   # Teardown.

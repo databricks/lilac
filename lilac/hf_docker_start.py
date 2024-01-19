@@ -94,7 +94,7 @@ def _hf_docker_start() -> None:
   datasets_dir = get_datasets_dir(get_project_dir())
   os.makedirs(datasets_dir, exist_ok=True)
   for lilac_hf_dataset in hf_config.get('datasets', []):
-    print('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
+    log('Downloading dataset from HuggingFace: ', lilac_hf_dataset)
     snapshot_download(
       repo_id=lilac_hf_dataset,
       repo_type='dataset',
