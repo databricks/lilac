@@ -127,7 +127,7 @@ def clustering_spacy_chunker(
     target_num_groups = max(1, int((len(text) ** 0.33) / 1.5))
   res = group_by_embedding(text, chunks, target_num_groups, max_len)
   if not res:
-    # If the clustering failed, just return the original text.
+    # If the clustering of chunks didn't produce text, return the original text.
     text = text[:max_len]
     return [(text, (0, len(text)))]
   return res
