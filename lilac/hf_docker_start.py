@@ -100,6 +100,7 @@ def _hf_docker_start() -> None:
       repo_type='dataset',
       token=env('HF_ACCESS_TOKEN'),
       local_dir=datasets_dir,
+      local_dir_use_symlinks=True,
       ignore_patterns=['.gitattributes', 'README.md'],
     )
 

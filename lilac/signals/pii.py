@@ -1,10 +1,11 @@
 """Compute text statistics for a document."""
-from typing import ClassVar, Iterable, Iterator, Optional
+from typing import ClassVar, Optional
 
 from typing_extensions import override
 
 from ..schema import Field, Item, RichData, SignalInputType, field
 from ..signal import TextSignal
+from ..tasks import TaskExecutionType
 
 SECRETS_KEY = 'secrets'
 # Selected categories. For all categories, see:
@@ -29,6 +30,10 @@ class PIISignal(TextSignal):
 
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
+  local_batch_size: ClassVar[Optional[int]] = 128
+  local_parallelism: ClassVar[int] = -1
+  local_strategy: ClassVar[TaskExecutionType] = 'processes'
+
   @override
   def fields(self) -> Field:
     return field(
@@ -39,7 +44,7 @@ class PIISignal(TextSignal):
     )
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+  def compute(self, data: list[RichData]) -> list[Optional[Item]]:
     try:
       from .pii_presidio import find_pii
       from .pii_secrets import find_secrets
@@ -48,11 +53,13 @@ class PIISignal(TextSignal):
         'Could not import dependencies for the "PII" signal. '
         'Please install optional dependencies via `pip install lilac[pii]`.'
       )
+    res: list[Optional[Item]] = []
     for text in data:
       if not isinstance(text, str):
-        yield None
+        res.append(None)
         continue
 
       secrets = list(find_secrets(text))
       pii_dict = find_pii(text)
-      yield {**pii_dict, SECRETS_KEY: secrets}
+      res.append({**pii_dict, SECRETS_KEY: secrets})
+    return res

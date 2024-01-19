@@ -1,12 +1,13 @@
 """Language detection of a document."""
 import re
-from typing import Any, ClassVar, Iterable, Iterator, Optional, cast
+from typing import Any, ClassVar, Optional
 
 from pydantic import Field as PydanticField
 from typing_extensions import override
 
-from ..schema import Field, Item, RichData, SignalInputType, field, span
+from ..schema import Field, Item, SignalInputType, field, span
 from ..signal import TextSignal
+from ..tasks import TaskExecutionType
 
 LANG_CODE = 'lang_code'
 TEXT_LEN_THRESHOLD = 40
@@ -29,6 +30,10 @@ class LangDetectionSignal(TextSignal):
   split_by_paragraph: bool = PydanticField(
     default=False, description='Compute language scores for each paragraph.'
   )
+
+  local_batch_size: ClassVar[Optional[int]] = 1024
+  local_parallelism: ClassVar[int] = -1
+  local_strategy: ClassVar[TaskExecutionType] = 'processes'
 
   def _detect(self, text: str, langdetect: Any) -> Optional[str]:
     if len(text) < TEXT_LEN_THRESHOLD:
@@ -57,16 +62,16 @@ class LangDetectionSignal(TextSignal):
     return field('string')
 
   @override
-  def compute(self, data: Iterable[RichData]) -> Iterator[Optional[Item]]:
+  def compute(self, data: list[str]) -> list[Optional[Item]]:
     import langdetect
 
-    data = cast(Iterable[str], data)
     # Split on paragraphs.
     split_symbol = re.compile('(\r?\n){2,}')
+    results: list[Optional[Item]] = []
 
     for text in data:
       if not self.split_by_paragraph:
-        yield self._detect(text, langdetect)
+        results.append(self._detect(text, langdetect))
         continue
 
       prev_end = 0
@@ -88,4 +93,6 @@ class LangDetectionSignal(TextSignal):
         if lang_code:
           result.append(span(prev_end, len(text), {LANG_CODE: lang_code}))
 
-      yield result
+      results.append(result)
+
+    return results
