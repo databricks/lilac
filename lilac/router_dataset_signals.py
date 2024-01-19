@@ -11,7 +11,7 @@ from .auth import UserInfo, get_session_user, get_user_access
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
 from .schema import Path
-from .signal import Signal, TextEmbeddingSignal, resolve_signal
+from .signal import Signal, resolve_signal
 from .tasks import TaskId, get_task_manager, launch_task
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -24,6 +24,8 @@ class ComputeSignalOptions(BaseModel):
 
   # The leaf path to compute the signal on.
   leaf_path: Path
+
+  overwrite: bool = False
 
   @field_validator('signal', mode='before')
   @classmethod
@@ -67,8 +69,7 @@ def compute_signal(
     dataset.compute_signal(
       signal,
       options.leaf_path,
-      # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
-      overwrite=isinstance(options.signal, TextEmbeddingSignal),
+      overwrite=options.overwrite,
       task_id=task_id,
       use_garden=signal.use_garden,
     )

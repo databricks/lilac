@@ -7,7 +7,6 @@ datasets:
     settings:
       ui:
         media_paths:
-          - input
           - - conversation
             - '*'
             - input
@@ -15,12 +14,19 @@ datasets:
             - '*'
             - output
         markdown_paths: []
+      tags: [dataset]
     embeddings:
       - embedding: gte-small
         path:
           - conversation
           - '*'
           - input
+        use_garden: true
+      - embedding: gte-small
+        path:
+          - conversation
+          - '*'
+          - output
         use_garden: true
 
   - namespace: lilac
@@ -151,6 +157,13 @@ concept_model_cache_embeddings:
   # - palm
 
 clusters:
+  - dataset_namespace: lilac
+    dataset_name: Capybara
+    input_path:
+      - conversation
+      - '*'
+      - input
+    use_garden: true
   - dataset_namespace: lilac
     dataset_name: glaive
     input_path:

@@ -78,13 +78,14 @@
               task.total_progress != null && task.total_len != null
                 ? task.total_progress / task.total_len
                 : undefined}
+            {@const message = task.error ?? task.message}
             <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
               <div class="text-s flex flex-row">
                 <div class="mr-2">{task.name}</div>
               </div>
               <div class="progress-container mt-3">
                 <ProgressBar
-                  labelText={task.message || ''}
+                  labelText={message || ''}
                   helperText={task.status != 'completed' ? task.details || undefined : ''}
                   value={task.status === 'completed' ? 1.0 : progressValue}
                   max={1.0}
