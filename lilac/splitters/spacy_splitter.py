@@ -125,4 +125,9 @@ def clustering_spacy_chunker(
     # These magic numbers were chosen by manually chunking 40 texts spanning 50-5000 characters in
     # length, and eyeballing a best-fit line from #num chunks vs. #length on a log-log plot.
     target_num_groups = max(1, int((len(text) ** 0.33) / 1.5))
-  return group_by_embedding(text, chunks, target_num_groups, max_len)
+  res = group_by_embedding(text, chunks, target_num_groups, max_len)
+  if not res:
+    # If the clustering failed, just return the original text.
+    text = text[:max_len]
+    return [(text, (0, len(text)))]
+  return res

@@ -53,6 +53,9 @@ class SBERT(TextEmbeddingSignal):
 
   @override
   def teardown(self) -> None:
+    if not hasattr(self, '_model'):
+      return
+
     self._model.cpu()
     del self._model
     gc.collect()
