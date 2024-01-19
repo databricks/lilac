@@ -6,6 +6,7 @@
     DELETED_LABEL_KEY,
     childFields,
     isClusterField,
+    isEmbeddingField,
     isLabelField,
     isLabelRootField,
     isMapField,
@@ -83,9 +84,7 @@
 
   function getFields(schema: LilacSchema) {
     const allFields = childFields(schema);
-    const petalFields = petals(schema).filter(
-      f => !childFields(f).some(f => f.dtype?.type === 'embedding')
-    );
+    const petalFields = petals(schema).filter(f => !isEmbeddingField(f));
 
     const labelFields = allFields.filter(f => isLabelRootField(f));
     const enrichedFields = allFields
