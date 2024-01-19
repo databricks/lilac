@@ -41,8 +41,8 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
   """
   if hasattr(signal, 'display_name'):
     schema['title'] = signal.display_name
-  if not signal.supports_garden and 'remote' in schema['properties']:
-    del schema['properties']['remote']
+  if not signal.supports_garden and 'use_garden' in schema['properties']:
+    del schema['properties']['use_garden']
 
   signal_prop: dict[str, Any]
   if hasattr(signal, 'name'):
@@ -79,9 +79,12 @@ class Signal(BaseModel):
   local_parallelism: ClassVar[int] = 1
   local_strategy: ClassVar[TaskExecutionType] = 'threads'
 
+  # True when the signal supports accelerated computation remotely on Lilac Garden.
   supports_garden: ClassVar[bool] = False
 
-  remote: bool = PydanticField(default=False, description='Accelerate computation on Lilac Garden')
+  use_garden: bool = PydanticField(
+    default=False, description='Accelerate computation by running remotely on Lilac Garden.'
+  )
 
   @model_serializer(mode='wrap', when_used='always')
   def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:
@@ -130,8 +133,8 @@ class Signal(BaseModel):
     """
     raise NotImplementedError
 
-  def compute_remote(self, data: Iterator[Any]) -> Iterator[Any]:
-    """Compute a signal over a field, but on a remote machine.
+  def compute_garden(self, data: Iterator[Any]) -> Iterator[Any]:
+    """Compute a signal over a field, accelerated through Lilac Garden.
 
     This method gets an iterator of the entire data, and should return an iterator of the same
     length, with the processed results.
@@ -161,7 +164,7 @@ class Signal(BaseModel):
     """Setup the signal."""
     pass
 
-  def setup_remote(self) -> None:
+  def setup_garden(self) -> None:
     """Setup the signal for remote execution."""
     pass
 

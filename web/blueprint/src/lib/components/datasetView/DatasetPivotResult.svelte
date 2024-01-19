@@ -78,7 +78,7 @@
           class="md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
         >
           <div
-            class="card-title h-16 text-center text-base font-light leading-5 tracking-tight text-neutral-900"
+            class="card-title h-16 text-center text-xl font-light leading-5 tracking-tight text-neutral-900"
           >
             {#each innerGroup.textHighlights as highlight}
               {#if highlight.isBold}

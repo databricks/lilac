@@ -1,4 +1,5 @@
 """The DuckDB implementation of the dataset database."""
+import csv
 import functools
 import gc
 import glob
@@ -22,6 +23,7 @@ from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequenc
 import duckdb
 import joblib
 import numpy as np
+import orjson
 import pandas as pd
 import yaml
 from pandas.api.types import is_object_dtype
@@ -41,6 +43,7 @@ from ..dataset_format import DatasetFormatInputSelector, infer_formats
 from ..db_manager import remove_dataset_from_cache
 from ..embeddings.vector_store import VectorDBIndex
 from ..env import env
+from ..parquet_writer import ParquetWriter
 from ..project import (
   add_project_dataset_config,
   add_project_embedding_config,
@@ -1002,7 +1005,7 @@ class DatasetDuckDB(Dataset):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
-    remote: bool = False,
+    use_garden: bool = False,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
       return self.compute_embedding(
@@ -1013,7 +1016,7 @@ class DatasetDuckDB(Dataset):
         include_deleted=include_deleted,
         overwrite=overwrite,
         task_id=task_id,
-        remote=remote,
+        use_garden=use_garden,
       )
 
     input_path = normalize_path(path)
@@ -1042,7 +1045,7 @@ class DatasetDuckDB(Dataset):
       self.project_dir,
     )
 
-    signal.setup_remote() if remote else signal.setup()
+    signal.setup_garden() if use_garden else signal.setup()
 
     jsonl_cache_filepath = _jsonl_cache_filepath(
       namespace=self.namespace,
@@ -1064,14 +1067,14 @@ class DatasetDuckDB(Dataset):
         task_description=f'Compute signal {signal} on {self.dataset_name}:{path}',
       )
 
-    n_jobs = 1 if remote else signal.local_parallelism
-    prefer = 'threads' if remote else signal.local_strategy
+    n_jobs = 1 if use_garden else signal.local_parallelism
+    prefer = 'threads' if use_garden else signal.local_strategy
     compute_fn = (
-      signal.compute_remote
-      if remote
+      signal.compute_garden
+      if use_garden
       else (signal.vector_compute if isinstance(signal, VectorSignal) else signal.compute)
     )
-    batch_size = -1 if remote else signal.local_batch_size
+    batch_size = -1 if use_garden else signal.local_batch_size
     _consume_iterator(
       progress_bar(
         self._dispatch_workers(
@@ -1132,7 +1135,7 @@ class DatasetDuckDB(Dataset):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
-    remote: bool = False,
+    use_garden: bool = False,
   ) -> None:
     input_path = normalize_path(path)
     add_project_embedding_config(
@@ -1149,9 +1152,9 @@ class DatasetDuckDB(Dataset):
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
 
-    signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
+    signal = get_signal_by_type(embedding, TextEmbeddingSignal)(use_garden=use_garden)
 
-    signal.setup_remote() if remote else signal.setup()
+    signal.setup_garden() if use_garden else signal.setup()
 
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
 
@@ -1190,10 +1193,10 @@ class DatasetDuckDB(Dataset):
         task_description=f'Compute embedding {signal} on {self.dataset_name}:{path}',
       )
 
-    n_jobs = 1 if remote else signal.local_parallelism
-    prefer = 'threads' if remote else signal.local_strategy
-    compute_fn = signal.compute_remote if remote else signal.compute
-    batch_size = -1 if remote else signal.local_batch_size
+    n_jobs = 1 if use_garden else signal.local_parallelism
+    prefer = 'threads' if use_garden else signal.local_strategy
+    compute_fn = signal.compute_garden if use_garden else signal.compute
+    batch_size = -1 if use_garden else signal.local_batch_size
 
     output_items = progress_bar(
       self._dispatch_workers(
@@ -2947,36 +2950,6 @@ class DatasetDuckDB(Dataset):
       filters.append(Filter(path=(label,), op='not_exists'))
     return filters
 
-  def _get_selection(
-    self,
-    columns: Optional[Sequence[ColumnId]] = None,
-  ) -> str:
-    """Get the selection clause for download a dataset.
-
-    filter_sql enables the user to specify arbitrary SQL filters, for clauses that break the column
-    filtering abstraction.
-    """
-    manifest = self.manifest()
-    cols = self._normalize_columns(columns, manifest.data_schema, combine_columns=False)
-    schema = manifest.data_schema
-    self._validate_columns(cols, manifest.data_schema, schema)
-
-    select_queries: list[str] = []
-    for column in cols:
-      col_name = column.alias or _unique_alias(column)
-      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns=False)
-      if not duckdb_paths:
-        raise ValueError(f'Cannot download path {column.path} which does not exist in the dataset.')
-      if len(duckdb_paths) > 1:
-        raise ValueError(
-          f'Cannot download path {column.path} which spans multiple parquet files: {duckdb_paths}'
-        )
-      _, duckdb_path = duckdb_paths[0]
-      sql = _select_sql(duckdb_path, flatten=False, unnest=False, path=column.path, schema=schema)
-      select_queries.append(f'{sql} AS {escape_string_literal(col_name)}')
-    selection = ', '.join(select_queries)
-    return f'SELECT {selection} FROM t'
-
   def _compile_select_options(self, query_options: Optional[DuckDBQueryParams]) -> str:
     """Compiles SQL WHERE/ORDER BY/LIMIT clauses for select queries."""
     if query_options is None:
@@ -3200,12 +3173,12 @@ class DatasetDuckDB(Dataset):
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
-    remote: bool = False,
+    use_garden: bool = False,
     task_id: Optional[TaskId] = None,
   ) -> None:
     topic_fn = topic_fn or clustering.summarize_request
     return cluster_impl(
-      self, input, output_path, min_cluster_size, topic_fn, overwrite, remote, task_id=task_id
+      self, input, output_path, min_cluster_size, topic_fn, overwrite, use_garden, task_id=task_id
     )
 
   @override
@@ -3217,20 +3190,23 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=True)
+    rows = self.select_rows(
+      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
     )
     filepath = os.path.expanduser(filepath)
-    self._execute(
-      f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' "
-      f"(FORMAT JSON, ARRAY {'FALSE' if jsonl else 'TRUE'})"
-    )
+    with open_file(filepath, 'wb') as file:
+      if jsonl:
+        for row in rows:
+          file.write(orjson.dumps(row))
+          file.write('\n'.encode('utf-8'))
+      else:
+        file.write(orjson.dumps(rows))
     log(f'Dataset exported to {filepath}')
 
   @override
@@ -3240,16 +3216,16 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> pd.DataFrame:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=True)
+    rows = self.select_rows(
+      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
     )
-    return self._query_df(f'{select_from_clause} {options_clauses}')
+    return pd.DataFrame.from_records(list(rows))
 
   @override
   def to_csv(
@@ -3259,19 +3235,23 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
+    manifest = self.manifest()
     filters, _ = self._normalize_filters(
-      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=manifest
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=True)
+    select_schema = self.select_rows_schema(columns, combine_columns=True)
+    rows = self.select_rows(
+      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
     )
+    fieldnames = list(select_schema.data_schema.fields.keys())
     filepath = os.path.expanduser(filepath)
-    self._execute(
-      f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT CSV, HEADER)"
-    )
+    with open_file(filepath, 'w') as file:
+      writer = csv.DictWriter(file, fieldnames=fieldnames)
+      writer.writeheader()
+      writer.writerows(rows)
     log(f'Dataset exported to {filepath}')
 
   @override
@@ -3282,18 +3262,23 @@ class DatasetDuckDB(Dataset):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    select_from_clause = self._get_selection(columns)
-    options_clauses = self._compile_select_options(
-      DuckDBQueryParams(filters=filters, include_deleted=True)
+    select_schema = self.select_rows_schema(columns, combine_columns=True)
+    rows = self.select_rows(
+      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
     )
     filepath = os.path.expanduser(filepath)
-    self._execute(f"COPY ({select_from_clause} {options_clauses}) TO '{filepath}' (FORMAT PARQUET)")
-    log(f'Dataset exported to {filepath}')
+    with open_file(filepath, 'wb') as f:
+      writer = ParquetWriter(select_schema.data_schema)
+      writer.open(f)
+      for row in rows:
+        writer.write(row)
+      writer.close()
 
   def _assert_embedding_exists(self, path: PathTuple, embedding: str) -> None:
     manifest = self.manifest()

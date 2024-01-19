@@ -139,7 +139,7 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
       except IncompleteOutputException:
         max_tokens = max_tokens * 2
         log(f'Retrying with max_tokens={max_tokens}')
-    log(f'Could not generate a reasonable title for input:\n{input}')
+    log(f'Could not generate a short title for input:\n{input}')
     return 'FAILED_TO_GENERATE'
 
   return request_with_retries()
@@ -259,7 +259,7 @@ def cluster_impl(
   min_cluster_size: int = 5,
   topic_fn: TopicFn = summarize_request,
   overwrite: bool = False,
-  remote: bool = False,
+  use_garden: bool = False,
   task_id: Optional[TaskId] = None,
   recompute_titles: bool = False,
 ) -> None:
@@ -349,7 +349,7 @@ def cluster_impl(
       items, items2 = itertools.tee(items)
       docs: Iterator[Optional[str]] = (item.get(TEXT_COLUMN) for item in items)
       cluster_items = sparse_to_dense_compute(
-        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, remote)
+        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, use_garden)
       )
       for item, cluster_item in zip(items2, cluster_items):
         yield {**item, **(cluster_item or {})}
@@ -402,7 +402,7 @@ def cluster_impl(
       items, items2 = itertools.tee(items)
       docs = (item.get(CLUSTER_TITLE) for item in items)
       cluster_items = sparse_to_dense_compute(
-        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, remote)
+        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, use_garden)
       )
       for item, cluster_item in zip(items2, cluster_items):
         item[CATEGORY_ID] = (cluster_item or {}).get(CLUSTER_ID, -1)
@@ -457,7 +457,7 @@ def cluster_impl(
         },
         cluster=ClusterInfo(
           min_cluster_size=min_cluster_size,
-          remote=remote,
+          use_garden=use_garden,
           input_path=(get_callable_name(input_fn_or_path),) if callable(input_fn_or_path) else path,
           input_format_selector=ClusterInputFormatSelectorInfo(
             format=manifest.dataset_format.name,
@@ -473,10 +473,10 @@ def cluster_impl(
 def _hdbscan_cluster(
   docs: Iterator[str],
   min_cluster_size: int = MIN_CLUSTER_SIZE,
-  remote: bool = False,
+  use_garden: bool = False,
 ) -> Iterator[Item]:
   """Cluster docs with HDBSCAN."""
-  if remote:
+  if use_garden:
     remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
     with DebugTimer('Compressing docs for clustering remotely'):
       gzipped_docs = compress_docs(list(docs))

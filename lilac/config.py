@@ -62,7 +62,9 @@ class EmbeddingConfig(BaseModel):
 
   path: PathTuple
   embedding: str
-  remote: bool = False  # Whether to compute the cluster via remote service.
+  use_garden: bool = PydanticField(
+    default=False, description='Accelerate computation by running remotely on Lilac Garden.'
+  )
 
   model_config = ConfigDict(extra='forbid')
 
@@ -151,7 +153,9 @@ class ClusterConfig(BaseModel):
   input_selector: Optional[ClusterInputSelectorConfig] = None
   output_path: Optional[PathTuple] = None
   min_cluster_size: int = 5
-  remote: bool = False  # Whether to compute the cluster via remote service.
+  use_garden: bool = PydanticField(
+    default=False, description='Accelerate computation by running remotely on Lilac Garden.'
+  )
 
   @field_validator('input_selector')
   def check_inputs(

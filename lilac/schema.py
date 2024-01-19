@@ -250,7 +250,7 @@ class ClusterInfo(BaseModel):
   """Holds information about clustering operation that was run on a dataset."""
 
   min_cluster_size: Optional[int] = None
-  remote: Optional[bool] = None
+  use_garden: Optional[bool] = None
   input_path: Optional[PathTuple] = None
   input_format_selector: Optional[ClusterInputFormatSelectorInfo] = None
 

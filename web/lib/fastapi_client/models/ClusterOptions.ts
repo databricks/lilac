@@ -9,7 +9,10 @@
 export type ClusterOptions = {
     input: (Array<string> | string);
     output_path?: (Array<string> | string | null);
-    remote?: boolean;
+    /**
+     * Accelerate computation by running remotely on Lilac Garden.
+     */
+    use_garden?: boolean;
     overwrite?: boolean;
 };
 

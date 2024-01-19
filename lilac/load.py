@@ -210,7 +210,7 @@ def load(
           cluster_input,
           output_path=c.output_path,
           min_cluster_size=c.min_cluster_size,
-          remote=c.remote,
+          use_garden=c.use_garden,
         )
 
   log()
@@ -269,7 +269,7 @@ def _compute_embedding(
     embedding=embedding_config.embedding,
     path=embedding_config.path,
     overwrite=True,
-    remote=embedding_config.remote,
+    use_garden=embedding_config.use_garden,
   )
   remove_dataset_from_cache(namespace, name)
   del dataset

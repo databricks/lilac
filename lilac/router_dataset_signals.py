@@ -5,6 +5,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from pydantic import BaseModel, SerializeAsAny, field_validator
+from pydantic import Field as PydanticField
 
 from .auth import UserInfo, get_session_user, get_user_access
 from .db_manager import get_dataset
@@ -69,7 +70,7 @@ def compute_signal(
       # Overwrite for text embeddings since we don't have UI to control deleting embeddings.
       overwrite=isinstance(options.signal, TextEmbeddingSignal),
       task_id=task_id,
-      remote=signal.remote,
+      use_garden=signal.use_garden,
     )
 
   launch_task(task_id, run)
@@ -82,7 +83,9 @@ class ClusterOptions(BaseModel):
 
   input: Path
   output_path: Optional[Path] = None
-  remote: bool = False
+  use_garden: bool = PydanticField(
+    default=False, description='Accelerate computation by running remotely on Lilac Garden.'
+  )
   overwrite: bool = False
 
 
@@ -112,7 +115,7 @@ def cluster(
     dataset.cluster(
       options.input,
       options.output_path,
-      remote=options.remote,
+      use_garden=options.use_garden,
       overwrite=options.overwrite,
       task_id=task_id,
     )

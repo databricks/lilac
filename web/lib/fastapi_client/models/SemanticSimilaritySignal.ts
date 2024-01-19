@@ -12,9 +12,9 @@
 export type SemanticSimilaritySignal = {
     signal_name: 'semantic_similarity';
     /**
-     * Accelerate computation on Lilac Garden
+     * Accelerate computation by running remotely on Lilac Garden.
      */
-    remote?: boolean;
+    use_garden?: boolean;
     /**
      * The name of the pre-computed embedding.
      */

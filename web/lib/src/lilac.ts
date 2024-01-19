@@ -307,6 +307,26 @@ export function isLabelField(field: LilacField): boolean {
   return getLabel(field) != null;
 }
 
+/** Determine if a field is produced by a embedding. */
+export function isEmbeddingField(field: LilacField): boolean {
+  return hasSignalParent(field) && hasEmbeddingChild(field);
+}
+
+function hasSignalParent(field: LilacField): boolean {
+  const parentHasSignal = field.parent != null && field.parent.signal != null;
+  if (parentHasSignal) {
+    return true;
+  }
+  if (field.parent) {
+    return hasSignalParent(field.parent);
+  }
+  return false;
+}
+
+function hasEmbeddingChild(field: LilacField): boolean {
+  return childFields(field).some(f => f.dtype?.type === 'embedding');
+}
+
 export function getSchemaLabels(schema: LilacSchema | LilacField): string[] {
   return childFields(schema)
     .map(f => f.label)

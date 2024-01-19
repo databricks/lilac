@@ -67,7 +67,7 @@ def test_signal_serialization() -> None:
   assert signal.model_dump(exclude_none=True) == {
     'signal_name': 'test_signal',
     'query': 'test',
-    'remote': False,
+    'use_garden': False,
   }
 
 
