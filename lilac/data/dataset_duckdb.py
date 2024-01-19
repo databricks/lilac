@@ -587,7 +587,7 @@ class DatasetDuckDB(Dataset):
       latest_mtime_micro_sec = int(latest_mtime * 1e6)
       return self._recompute_joint_table(latest_mtime_micro_sec)
 
-  def count(self, query_options: Optional[DuckDBQueryParams]) -> int:
+  def count(self, query_options: Optional[DuckDBQueryParams] = None) -> int:
     """Count the number of rows."""
     if query_options is None:
       option_sql = ''
@@ -1312,8 +1312,7 @@ class DatasetDuckDB(Dataset):
           'Use overwrite=True to overwrite.'
         )
 
-    query_params = DuckDBQueryParams()
-    estimated_len = self.count(query_params)
+    estimated_len = self.count()
 
     if task_id is not None:
       progress_bar = get_progress_bar(estimated_len=estimated_len, task_id=task_id)

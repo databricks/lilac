@@ -153,7 +153,7 @@ def test_config_compute_embedding(make_test_data: TestDataMaker) -> None:
   )
 
   # Computing the same embedding again should not change the config.
-  dataset.compute_embedding('test_embedding', 'text')
+  dataset.compute_embedding('test_embedding', 'text', overwrite=True)
 
   assert dataset.config() == DatasetConfig(
     namespace='test_namespace',

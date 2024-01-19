@@ -744,7 +744,7 @@ def test_embedding_signal_no_overwrite_throws(
   with pytest.raises(
     ValueError,
     match=re.escape(
-      'Embedding "test_embedding" already exists at path (\'str\',). '
+      'Embedding "test_embedding" already exists at path (\'text\',). '
       'Use overwrite=True to overwrite.'
     ),
   ):
