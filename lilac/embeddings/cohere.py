@@ -58,9 +58,12 @@ class Cohere(TextEmbeddingSignal):
     cohere_input_type = 'search_document' if self.embed_input_type == 'document' else 'search_query'
 
     def _embed_fn(docs: list[str]) -> list[np.ndarray]:
-      return self._model.embed(
-        docs, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
-      ).embeddings
+      return [
+        np.array(e)
+        for e in self._model.embed(
+          docs, truncate='END', model=COHERE_EMBED_MODEL, input_type=cohere_input_type
+        ).embeddings
+      ]
 
     return chunked_compute_embedding(
       _embed_fn, docs, self.local_batch_size, chunker=clustering_spacy_chunker

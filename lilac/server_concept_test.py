@@ -29,9 +29,9 @@ from .router_concept import (
   ScoreBody,
   ScoreExample,
 )
-from .schema import Item, RichData, lilac_embedding, span
+from .schema import Item, RichData, chunk_embedding, span
 from .server import app
-from .signal import TextEmbeddingSignal, clear_signal_registry, register_signal
+from .signal import TextEmbeddingSignal, clear_signal_registry, register_embedding
 from .test_utils import fake_uuid
 
 client = TestClient(app)
@@ -55,13 +55,13 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 @pytest.fixture(scope='module', autouse=True)
 def setup_teardown() -> Iterable[None]:
   # Setup.
-  register_signal(TestEmbedding)
+  register_embedding(TestEmbedding)
   # Unit test runs.
   yield
   # Teardown.

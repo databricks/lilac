@@ -92,6 +92,22 @@ datasets:
         path:
           - response
 
+  - namespace: lilac
+    name: dolphin
+    source:
+      dataset_name: cognitivecomputations/dolphin
+      config_name: flan1m-alpaca-uncensored
+      source_name: huggingface
+    settings:
+      ui:
+        media_paths:
+          - instruction
+          - input
+          - output
+          - - input__cluster
+            - text
+        markdown_paths: []
+
 signals:
   - signal_name: pii
   - signal_name: text_statistics
@@ -127,3 +143,7 @@ clusters:
     dataset_name: OpenOrca-100k
     input_path:
       - question
+  - dataset_namespace: lilac
+    dataset_name: dolphin
+    input_path:
+      - input

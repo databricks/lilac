@@ -13,7 +13,7 @@ from ..utils import DebugTimer, chunks
 if TYPE_CHECKING:
   from sentence_transformers import SentenceTransformer
 
-from ..schema import Item, lilac_embedding
+from ..schema import Item, chunk_embedding
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
@@ -92,7 +92,7 @@ class GTESmall(TextEmbeddingSignal):
             yield doc_embeddings
             doc_embeddings = []
             last_index = i
-          doc_embeddings.append(lilac_embedding(start, end, vector))
+          doc_embeddings.append(chunk_embedding(start, end, vector))
       yield doc_embeddings
 
   @override

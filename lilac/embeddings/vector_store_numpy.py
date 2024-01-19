@@ -1,5 +1,6 @@
 """NumpyVectorStore class for storing vectors in numpy arrays."""
 
+import os
 from typing import Iterable, Optional, cast
 
 import numpy as np
@@ -22,6 +23,11 @@ class NumpyVectorStore(VectorStore):
     self._embeddings: Optional[np.ndarray] = None
     # Maps a `VectorKey` to a row index in `_embeddings`.
     self._key_to_index: Optional[pd.Series] = None
+
+  @override
+  def delete(self, base_path: str) -> None:
+    os.remove(base_path + _EMBEDDINGS_SUFFIX)
+    os.remove(base_path + _LOOKUP_SUFFIX)
 
   @override
   def size(self) -> int:

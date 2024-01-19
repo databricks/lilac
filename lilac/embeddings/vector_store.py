@@ -33,6 +33,11 @@ class VectorStore(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def delete(self, base_path: str) -> None:
+    """Delete the vector store."""
+    pass
+
+  @abc.abstractmethod
   def add(self, keys: list[VectorKey], embeddings: np.ndarray) -> None:
     """Add or edit the given keyed embeddings to the store.
 
@@ -89,6 +94,11 @@ class VectorDBIndex:
     # Map a path key to spans for that path.
     self._id_to_spans: dict[PathKey, list[tuple[int, int]]] = {}
     self._rowid_to_path_keys: dict[str, list[PathKey]] = {}
+
+  def delete(self, base_path: str) -> None:
+    """Delete the vector store."""
+    self._vector_store.delete(os.path.join(base_path, self._vector_store.name))
+    os.remove(os.path.join(base_path, _SPANS_PICKLE_NAME))
 
   def load(self, base_path: str) -> None:
     """Load the vector index from disk."""

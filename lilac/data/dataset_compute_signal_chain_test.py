@@ -15,8 +15,8 @@ from ..schema import (
   RichData,
   SignalInputType,
   SpanVector,
+  chunk_embedding,
   field,
-  lilac_embedding,
   schema,
   span,
 )
@@ -82,7 +82,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class TestEmbeddingSumSignal(VectorSignal):
@@ -166,7 +166,9 @@ def test_missing_embedding_signal(make_test_data: TestDataMaker, mocker: MockerF
 
   # The embedding is missing for 'text'.
   embedding_sum_signal = TestEmbeddingSumSignal(embedding=TestEmbedding.name)
-  with pytest.raises(ValueError, match="No embedding found for path \\('text',\\)"):
+  with pytest.raises(
+    ValueError, match='Embedding "test_embedding" not found for path \\(\'text\',\\)'
+  ):
     dataset.compute_signal(embedding_sum_signal, 'text')
 
 

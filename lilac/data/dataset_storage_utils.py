@@ -59,7 +59,7 @@ def download(
   cache_dir = get_lilac_cache_dir(project_dir)
   os.makedirs(datasets_dir, exist_ok=True)
 
-  print(f'Downloading "{repo_id}" from HuggingFace to {datasets_dir}')
+  log(f'Downloading "{repo_id}" from HuggingFace to {datasets_dir}')
   repo_subdir = os.path.join(cache_dir, 'hf_download', repo_id)
   snapshot_download(
     repo_id=repo_id,
@@ -90,7 +90,7 @@ def download(
           'Use --overwrite to overwrite it.'
         )
       else:
-        print(f'Overwriting existing dataset {dataset_namespace}/{dataset_name}')
+        log(f'Overwriting existing dataset {dataset_namespace}/{dataset_name}')
         shutil.rmtree(os.path.join(datasets_dir, dataset_namespace, dataset_name))
 
   dataset_dir = os.path.join(datasets_dir, dataset_namespace, dataset_name)
@@ -107,7 +107,7 @@ def download(
 
   add_project_dataset_config(dataset_config, project_dir, overwrite=True)
 
-  print('Wrote dataset to', dataset_dir)
+  log('Wrote dataset to', dataset_dir)
 
 
 def upload(
@@ -154,7 +154,7 @@ def upload(
     repo_id = _dataset_repo_id(dataset)
 
   dataset_link = f'https://huggingface.co/datasets/{repo_id}'
-  print(f'Uploading "{dataset}" to HuggingFace dataset repo ' f'{dataset_link}')
+  log(f'Uploading "{dataset}" to HuggingFace dataset repo ' f'{dataset_link}')
 
   hf_api.create_repo(
     repo_id,

@@ -17,8 +17,8 @@ from ..schema import (
   RichData,
   SignalInputType,
   SpanVector,
+  chunk_embedding,
   field,
-  lilac_embedding,
   span,
 )
 from ..signal import (
@@ -54,7 +54,7 @@ class TestEmbedding(TextEmbeddingSignal):
       if example == '':
         yield None
         continue
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class LengthSignal(TextSignal):
@@ -265,7 +265,9 @@ def test_udf_throws_without_precomputing(make_test_data: TestDataMaker) -> None:
 
   signal_col = Column('text', signal_udf=TestEmbeddingSumSignal(embedding='test_embedding'))
 
-  with pytest.raises(ValueError, match="No embedding found for path \\('text',\\)"):
+  with pytest.raises(
+    ValueError, match='Embedding "test_embedding" not found for path \\(\'text\',\\)'
+  ):
     dataset.select_rows(['text', signal_col])
 
 

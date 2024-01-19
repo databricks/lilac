@@ -17,8 +17,8 @@ from ..schema import (
   Item,
   RichData,
   SignalInputType,
+  chunk_embedding,
   field,
-  lilac_embedding,
   schema,
   span,
 )
@@ -144,7 +144,7 @@ class TestEmbedding(TextEmbeddingSignal):
     """Call the embedding function."""
     for example in data:
       example = cast(str, example)
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[example]))]
 
 
 class ComputedKeySignal(TextSignal):
@@ -701,6 +701,56 @@ def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) 
   assert list(result) == expected_result
 
 
+def test_embedding_signal_overwrite(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
+
+  embedding_signal = TestEmbedding()
+  dataset.compute_signal(embedding_signal, 'text')
+
+  dataset.compute_signal(embedding_signal, 'text', overwrite=True)
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_embedding': field(
+              signal=embedding_signal.model_dump(exclude_none=True),
+              fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+            )
+          },
+        )
+      }
+    ),
+    num_items=2,
+    source=TestSource(),
+  )
+
+
+def test_embedding_signal_no_overwrite_throws(
+  make_test_data: TestDataMaker, mocker: MockerFixture
+) -> None:
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
+
+  # Reduce the chunk size to 1 so we test iteratively writing to the embedding index.
+  mocker.patch(f'{dataset_utils_module.__name__}.EMBEDDINGS_WRITE_CHUNK_SIZE', 1)
+
+  embedding_signal = TestEmbedding()
+  dataset.compute_signal(embedding_signal, 'text')
+
+  with pytest.raises(
+    ValueError,
+    match=re.escape(
+      'Embedding "test_embedding" already exists at path (\'text\',). '
+      'Use overwrite=True to overwrite.'
+    ),
+  ):
+    dataset.compute_signal(embedding_signal, 'text')
+
+
 def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'hello. hello2.'}, {'text': 'hello world. hello world2.'}])
 
@@ -710,6 +760,50 @@ def test_compute_embedding_over_non_string(make_test_data: TestDataMaker) -> Non
   test_embedding = TestEmbedding()
   with pytest.raises(ValueError, match='Cannot compute embedding over a non-string field.'):
     dataset.compute_signal(test_embedding, ('text', 'test_split', '*'))
+
+
+def test_delete_embedding(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
+  dataset = make_test_data([{'text': 'hello.'}, {'text': 'hello2.'}])
+
+  # Reduce the chunk size to 1 so we test iteratively writing to the embedding index.
+  mocker.patch(f'{dataset_utils_module.__name__}.EMBEDDINGS_WRITE_CHUNK_SIZE', 1)
+
+  embedding_signal = TestEmbedding()
+  dataset.compute_signal(embedding_signal, 'text')
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema(
+      {
+        'text': field(
+          'string',
+          fields={
+            'test_embedding': field(
+              signal=embedding_signal.model_dump(exclude_none=True),
+              fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+            )
+          },
+        )
+      }
+    ),
+    num_items=2,
+    source=TestSource(),
+  )
+
+  dataset.delete_embedding('test_embedding', 'text')
+
+  assert dataset.manifest() == DatasetManifest(
+    namespace=TEST_NAMESPACE,
+    dataset_name=TEST_DATASET_NAME,
+    data_schema=schema({'text': 'string'}),
+    num_items=2,
+    source=TestSource(),
+  )
+
+  result = dataset.select_rows(combine_columns=True)
+  expected_result = [{'text': 'hello.'}, {'text': 'hello2.'}]
+  assert list(result) == expected_result
 
 
 def test_compute_signal_over_non_string(make_test_data: TestDataMaker) -> None:

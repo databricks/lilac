@@ -313,12 +313,22 @@ def get_signals_by_type(signal_type: Type[Tsignal]) -> list[Type[Tsignal]]:
 SIGNAL_REGISTRY: dict[str, Type[Signal]] = {}
 
 
-def register_signal(signal_cls: Type[Signal]) -> None:
-  """Register a signal in the global registry."""
-  if signal_cls.name in SIGNAL_REGISTRY:
+def register_signal(signal_cls: Type[Signal], exists_ok: bool = False) -> None:
+  """Register a signal in the global registry.
+
+  Args:
+    signal_cls: The signal class to register.
+    exists_ok: Whether to allow overwriting an existing signal.
+  """
+  if signal_cls.name in SIGNAL_REGISTRY and not exists_ok:
     raise ValueError(f'Signal "{signal_cls.name}" has already been registered!')
 
   SIGNAL_REGISTRY[signal_cls.name] = signal_cls
+
+
+def register_embedding(embedding_cls: Type[TextEmbeddingSignal], exists_ok: bool = False) -> None:
+  """Register an embedding in the global registry."""
+  register_signal(embedding_cls, exists_ok)
 
 
 def get_signal_cls(signal_name: str) -> Optional[Type[Signal]]:

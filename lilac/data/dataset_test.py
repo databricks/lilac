@@ -16,13 +16,15 @@ from ..config import (
 from ..schema import (
   EMBEDDING_KEY,
   ROWID,
+  SPAN_KEY,
   Field,
   Item,
   MapType,
   RichData,
+  chunk_embedding,
   field,
-  lilac_embedding,
   schema,
+  span,
 )
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
@@ -60,7 +62,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
+      yield [chunk_embedding(0, len(example), np.array(STR_EMBEDDINGS[cast(str, example)]))]
 
 
 class LengthSignal(TextSignal):
@@ -668,16 +670,16 @@ def test_get_embeddings(make_test_data: TestDataMaker) -> None:
 
   rows = list(dataset.select_rows([ROWID]))
 
-  span_vectors = dataset.get_embeddings('test_embedding', rows[0][ROWID], 'text')
-  assert len(span_vectors) == 1
-  assert span_vectors[0]['span'] == (0, 6)
+  chunk_embeddings = dataset.get_embeddings('test_embedding', rows[0][ROWID], 'text')
+  assert len(chunk_embeddings) == 1
+  assert chunk_embeddings[0][SPAN_KEY] == span(0, 6)[SPAN_KEY]
   np.testing.assert_array_equal(
-    span_vectors[0]['vector'], np.array([1.0, 0.0, 0.0], dtype=np.float32)
+    chunk_embeddings[0][EMBEDDING_KEY], np.array([1.0, 0.0, 0.0], dtype=np.float32)
   )
 
-  span_vectors = dataset.get_embeddings('test_embedding', rows[1][ROWID], 'text')
-  assert len(span_vectors) == 1
-  assert span_vectors[0]['span'] == (0, 12)
+  chunk_embeddings = dataset.get_embeddings('test_embedding', rows[1][ROWID], 'text')
+  assert len(chunk_embeddings) == 1
+  assert chunk_embeddings[0][SPAN_KEY] == span(0, 12)[SPAN_KEY]
   np.testing.assert_array_equal(
-    span_vectors[0]['vector'], np.array([1.0, 1.0, 1.0], dtype=np.float32)
+    chunk_embeddings[0][EMBEDDING_KEY], np.array([1.0, 1.0, 1.0], dtype=np.float32)
   )

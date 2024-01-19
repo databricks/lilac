@@ -5,6 +5,7 @@ Usage:
 
 """
 import os
+import shutil
 import subprocess
 import tempfile
 from importlib import resources
@@ -12,7 +13,6 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from .concepts.db_concept import CONCEPTS_DIR, DiskConceptDB, get_concept_output_dir
 from .config import Config
-from .data.dataset_storage_utils import upload
 from .env import get_project_dir
 from .project import PROJECT_CONFIG_FILENAME, read_project_config, write_project_config
 from .utils import get_hf_dataset_repo_id, get_lilac_cache_dir, log, to_yaml
@@ -27,12 +27,12 @@ if TYPE_CHECKING:
 
 def deploy_project(
   hf_space: str,
+  project_config: Optional[Config] = None,
   project_dir: Optional[str] = None,
-  datasets: Optional[list[str]] = None,
-  make_datasets_public: Optional[bool] = False,
   concepts: Optional[list[str]] = None,
-  skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
+  deploy_at_head: bool = False,
+  skip_ts_build: bool = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
@@ -42,13 +42,13 @@ def deploy_project(
 
   Args:
     hf_space: The huggingface space. Should be formatted like `SPACE_ORG/SPACE_NAME`.
-    project_dir: The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`.
-    datasets: The names of datasets to upload. Defaults to all datasets.
-    make_datasets_public: When true, and when --load_on_space is False, sets the HuggingFace
-      datasets that reflect local datasets to public. Defaults to false.
+    project_config: A project config for the space; defaults to config file found in project_dir.
+    project_dir: The project directory to grab data from. Defaults to `env.LILAC_PROJECT_DIR`.
     concepts: The names of concepts to upload. Defaults to all concepts.
-    skip_data_upload: When true, kicks the server without uploading data.
     skip_concept_upload: When true, skips uploading concepts.
+    deploy_at_head: If true, deploys the latest code from your machine. Otherwise, deploys from
+      PyPI's latest published package.
+    skip_ts_build: (Only relevant when deploy_at_head=True) - Skips building frontend assets.
     create_space: When True, creates the HuggingFace space if it doesnt exist. The space will be
       created with the storage type defined by --hf_space_storage.
     load_on_space: When True, loads the datasets from your project in the space and does not upload
@@ -73,17 +73,18 @@ def deploy_project(
       '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.'
     )
 
+  project_config = project_config or read_project_config(project_dir)
   hf_api = HfApi(token=hf_token)
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = deploy_project_operations(
     hf_api=hf_api,
     project_dir=project_dir,
     hf_space=hf_space,
-    datasets=datasets,
-    make_datasets_public=make_datasets_public,
+    project_config=project_config,
     concepts=concepts,
-    skip_data_upload=skip_data_upload,
     skip_concept_upload=skip_concept_upload,
+    deploy_at_head=deploy_at_head,
+    skip_ts_build=skip_ts_build,
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,
@@ -106,11 +107,11 @@ def deploy_project_operations(
   hf_api: 'HfApi',
   project_dir: str,
   hf_space: str,
-  datasets: Optional[list[str]] = None,
-  make_datasets_public: Optional[bool] = False,
+  project_config: Config,
   concepts: Optional[list[str]] = None,
-  skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
+  deploy_at_head: bool = False,
+  skip_ts_build: bool = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
@@ -172,78 +173,54 @@ def deploy_project_operations(
       )
     )
 
-  ##
-  ##  Create the empty wheel directory. If uploading a local wheel, use scripts.deploy_staging.
-  ##
-  operations.extend(_make_wheel_dir(hf_api, hf_space))
+  operations.extend(
+    _make_wheel_dir(hf_api, hf_space, deploy_at_head=deploy_at_head, skip_ts_build=skip_ts_build)
+  )
 
   ##
-  ##  Upload datasets.
+  ##  Upload the HuggingFace application file (README.md) with uploaded datasets.
   ##
-  project_config = read_project_config(project_dir)
-  # When datasets aren't explicitly defined, read all datasets and upload them.
-  if datasets is None:
-    datasets = [f'{d.namespace}/{d.name}' for d in project_config.datasets]
-
-  if not skip_data_upload and not load_on_space:
-    lilac_hf_datasets = _upload_datasets(
-      api=hf_api,
-      project_dir=project_dir,
-      hf_space=hf_space,
-      datasets=datasets,
-      make_datasets_public=make_datasets_public,
+  hf_space_org, hf_space_name = hf_space.split('/')
+  dataset_repos = [
+    get_hf_dataset_repo_id(hf_space_org, hf_space_name, d.namespace, d.name)
+    for d in project_config.datasets
+  ]
+  readme = (
+    '---\n'
+    + to_yaml(
+      {
+        'title': 'Lilac',
+        'emoji': '🌷',
+        'colorFrom': 'purple',
+        'colorTo': 'purple',
+        'sdk': 'docker',
+        'app_port': 5432,
+        'datasets': dataset_repos,
+      }
     )
-  else:
-    lilac_hf_datasets = []
+    + '\n---'
+  )
+  readme_filename = 'README.md'
+  if hf_api.file_exists(hf_space, readme_filename, repo_type='space'):
+    operations.append(CommitOperationDelete(path_in_repo=readme_filename))
 
-  ##
-  ##  Upload the HuggingFace application file (README.md) with uploaded datasets so they are synced
-  ##  to storage when the docker image boots up.
-  ##
-  if (lilac_hf_datasets and not skip_data_upload) or load_on_space:
-    readme = (
-      '---\n'
-      + to_yaml(
-        {
-          'title': 'Lilac',
-          'emoji': '🌷',
-          'colorFrom': 'purple',
-          'colorTo': 'purple',
-          'sdk': 'docker',
-          'app_port': 5432,
-          'datasets': [d for d in lilac_hf_datasets],
-        }
-      )
-      + '\n---'
-    )
-    readme_filename = 'README.md'
-    if hf_api.file_exists(hf_space, readme_filename, repo_type='space'):
-      operations.append(CommitOperationDelete(path_in_repo=readme_filename))
-
-    operations.append(
-      CommitOperationAdd(path_in_repo=readme_filename, path_or_fileobj=readme.encode())
-    )
+  operations.append(
+    CommitOperationAdd(path_in_repo=readme_filename, path_or_fileobj=readme.encode())
+  )
   ##
   ##  Upload the lilac.yml project configuration.
   ##
-  if datasets and not skip_data_upload:
-    project_config_filename = f'data/{PROJECT_CONFIG_FILENAME}'
-    # Filter datasets that aren't explicitly defined.
-    project_config.datasets = [
-      dataset
-      for dataset in project_config.datasets
-      if f'{dataset.namespace}/{dataset.name}' in datasets
-    ]
-    if hf_api.file_exists(hf_space, project_config_filename, repo_type='space'):
-      operations.append(CommitOperationDelete(path_in_repo=project_config_filename))
-    operations.append(
-      CommitOperationAdd(
-        path_in_repo=project_config_filename,
-        path_or_fileobj=to_yaml(
-          project_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
-        ).encode(),
-      )
+  project_config_filename = f'data/{PROJECT_CONFIG_FILENAME}'
+  if hf_api.file_exists(hf_space, project_config_filename, repo_type='space'):
+    operations.append(CommitOperationDelete(path_in_repo=project_config_filename))
+  operations.append(
+    CommitOperationAdd(
+      path_in_repo=project_config_filename,
+      path_or_fileobj=to_yaml(
+        project_config.model_dump(exclude_defaults=True, exclude_none=True, exclude_unset=True)
+      ).encode(),
     )
+  )
 
   ##
   ##  Upload concepts.
@@ -276,10 +253,14 @@ def deploy_project_operations(
   return operations
 
 
-def _make_wheel_dir(api: Any, hf_space: str) -> list:
-  """Creates the wheel directory README. This does not upload local wheels.
+def _make_wheel_dir(
+  api: Any, hf_space: str, deploy_at_head: bool, skip_ts_build: bool = False
+) -> list:
+  """Makes the wheel directory for the HuggingFace Space commit.
 
-  For local wheels, use deploy_local.
+  An empty directory (README only) is used by default; the dockerfile will then fall back to the
+  public pip package. When deploy_at_head is True, a wheel with the latest code on your machine is
+  built and uploaded.
   """
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
@@ -293,29 +274,53 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
-  # Make an empty readme in py_dist_dir.
   os.makedirs(PY_DIST_DIR, exist_ok=True)
-  with open(os.path.join(PY_DIST_DIR, 'README.md'), 'w') as f:
-    f.write(
-      'This directory is used for locally built whl files.\n'
-      'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
-    )
 
-  readme_contents = (
-    'This directory is used for locally built whl files.\n'
-    'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
-  ).encode()
-
-  # Remove everything that exists in dist.
+  # Clean the remote dist dir.
   remote_readme_filepath = os.path.join(PY_DIST_DIR, 'README.md')
   if hf_api.file_exists(hf_space, remote_readme_filepath, repo_type='space'):
     operations.append(CommitOperationDelete(path_in_repo=f'{PY_DIST_DIR}/'))
 
+  # Add a file to the dist/ dir so that it's not empty.
+  readme_contents = (
+    'This directory is used for locally built whl files.\n'
+    'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
+  ).encode()
   operations.append(
     # The path in the remote doesn't os.path.join as it is specific to Linux.
     CommitOperationAdd(path_in_repo=f'{PY_DIST_DIR}/README.md', path_or_fileobj=readme_contents)
   )
 
+  if deploy_at_head:
+    ##
+    ##  Build the web server Svelte & TypeScript.
+    ##
+    if not skip_ts_build:
+      log('Building webserver...')
+      run('./scripts/build_server_prod.sh')
+
+    # Clean local dist dir before building
+    if os.path.exists(PY_DIST_DIR):
+      shutil.rmtree(PY_DIST_DIR)
+    os.makedirs(PY_DIST_DIR, exist_ok=True)
+
+    # Build the wheel for pip.
+    # We have to bump the version number so that Dockerfile sees this wheel as "newer" than PyPI.
+    current_lilac_version = run('poetry version -s', capture_output=True).stdout.strip()
+    temp_new_version = '1337.0.0'
+
+    run(f'poetry version "{temp_new_version}"')
+    run('poetry build -f wheel')
+    run(f'poetry version "{current_lilac_version}"')
+
+    # Add wheel files to the commit.
+    for upload_file in os.listdir(PY_DIST_DIR):
+      operations.append(
+        CommitOperationAdd(
+          path_in_repo=os.path.join(PY_DIST_DIR, upload_file),
+          path_or_fileobj=os.path.join(PY_DIST_DIR, upload_file),
+        )
+      )
   return operations
 
 
@@ -414,50 +419,6 @@ def _upload_concepts(
   log('Uploading concepts: ', concepts)
   log()
   return operations, concepts
-
-
-def _upload_datasets(
-  api: Any,
-  project_dir: str,
-  hf_space: str,
-  datasets: list[str],
-  make_datasets_public: Optional[bool] = False,
-) -> list[str]:
-  """Uploads local datasets to HuggingFace datasets."""
-  if not make_datasets_public:
-    make_datasets_public = False
-  try:
-    from huggingface_hub import HfApi
-
-  except ImportError:
-    raise ImportError(
-      'Could not import the "huggingface_hub" python package. '
-      'Please install it with `pip install "huggingface_hub".'
-    )
-  hf_api: HfApi = api
-
-  hf_space_org, hf_space_name = hf_space.split('/')
-
-  log('Uploading datasets: ', datasets)
-
-  lilac_hf_datasets: list[str] = []
-  # Upload datasets to HuggingFace. We do this after uploading code to avoid clobbering the data
-  # directory.
-  # NOTE(nsthorat): This currently doesn't write to persistent storage directly.
-  for d in datasets:
-    namespace, name = d.split('/')
-    dataset_repo_id = get_hf_dataset_repo_id(hf_space_org, hf_space_name, namespace, name)
-
-    upload(
-      dataset=d,
-      project_dir=project_dir,
-      url_or_repo=dataset_repo_id,
-      public=make_datasets_public,
-      hf_token=hf_api.token,
-    )
-
-    lilac_hf_datasets.append(dataset_repo_id)
-  return lilac_hf_datasets
 
 
 def deploy_config(

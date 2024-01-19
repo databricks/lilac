@@ -14,7 +14,7 @@ from .db_manager import get_dataset, list_datasets, remove_dataset_from_cache
 from .env import get_project_dir
 from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
-from .schema import ROWID, PathTuple
+from .schema import PathTuple
 from .utils import DebugTimer, get_datasets_dir, log
 
 
@@ -78,7 +78,7 @@ def load(
   total_num_rows = 0
   for d in datasets_to_load:
     dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
-    num_rows = dataset.select_rows([ROWID], limit=1).total_num_rows
+    num_rows = dataset.count(query_options=None)
     log(f'{d.namespace}/{d.name} loaded with {num_rows:,} rows.')
 
     # Free up RAM.
@@ -163,6 +163,11 @@ def load(
   log('*** Compute clusters ***')
   with DebugTimer('Computing clusters'):
     for c in config.clusters:
+      if not any(
+        c.dataset_namespace == d.namespace and c.dataset_name == d.name for d in config.datasets
+      ):
+        print('Skipping cluster for non-existent dataset:', c)
+        continue
       dataset = DatasetDuckDB(c.dataset_namespace, c.dataset_name, project_dir=project_dir)
       manifest = dataset.manifest()
       schema = manifest.data_schema

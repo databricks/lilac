@@ -16,7 +16,7 @@ import numpy as np
 from numpy.linalg import norm
 from typing_extensions import override
 
-from ..schema import Item, lilac_embedding
+from ..schema import Item, chunk_embedding
 from ..signal import TextEmbeddingSignal
 
 # See readme in https://huggingface.co/jinaai/jina-embeddings-v2-small-en
@@ -117,7 +117,7 @@ class JinaV2Small(TextEmbeddingSignal):
     for batch in jina_batch.remote_gen({'gzipped_docs': gzipped_docs}):
       batch /= norm(batch, axis=1, keepdims=True)
       for vector in batch:
-        yield [lilac_embedding(start=0, end=doc_lengths[index], embedding=vector)]
+        yield [chunk_embedding(start=0, end=doc_lengths[index], embedding=vector)]
         index += 1
 
 

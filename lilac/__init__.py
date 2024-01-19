@@ -24,9 +24,10 @@ from .load_dataset import create_dataset, from_dicts, from_huggingface
 from .project import init
 from .rag import *  # noqa: F403
 from .schema import *  # noqa: F403
-from .schema import Field, SpanVector, span
+from .schema import Field, SpanVector, chunk_embedding, span
 from .server import start_server, stop_server
 from .signals import *  # noqa: F403
+from .signals import register_embedding, register_signal
 from .source import Source
 from .sources import *  # noqa: F403
 from .splitters import *  # noqa: F403
@@ -55,6 +56,7 @@ __all__ = [
   'list_datasets',
   'init',
   'span',
+  'chunk_embedding',
   'load',
   'set_project_dir',
   'get_project_dir',
@@ -74,4 +76,6 @@ __all__ = [
   'OpenChat',
   'download',
   'upload',
+  'register_embedding',
+  'register_signal',
 ]

@@ -13,7 +13,7 @@ from ..config import (
   EmbeddingConfig,
   SignalConfig,
 )
-from ..schema import Field, Item, RichData, field, lilac_embedding
+from ..schema import Field, Item, RichData, chunk_embedding, field
 from ..signal import TextEmbeddingSignal, TextSignal, clear_signal_registry, register_signal
 from ..source import clear_source_registry, register_source
 from .dataset_test_utils import TestDataMaker, TestSource
@@ -52,7 +52,7 @@ class TestEmbedding(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array([1.0]))]
+      yield [chunk_embedding(0, len(example), np.array([1.0]))]
 
 
 class TestEmbedding2(TextEmbeddingSignal):
@@ -64,7 +64,7 @@ class TestEmbedding2(TextEmbeddingSignal):
   def compute(self, data: Iterable[RichData]) -> Iterator[Item]:
     """Call the embedding function."""
     for example in data:
-      yield [lilac_embedding(0, len(example), np.array([2.0]))]
+      yield [chunk_embedding(0, len(example), np.array([2.0]))]
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -153,7 +153,7 @@ def test_config_compute_embedding(make_test_data: TestDataMaker) -> None:
   )
 
   # Computing the same embedding again should not change the config.
-  dataset.compute_embedding('test_embedding', 'text')
+  dataset.compute_embedding('test_embedding', 'text', overwrite=True)
 
   assert dataset.config() == DatasetConfig(
     namespace='test_namespace',

@@ -21,16 +21,14 @@ Args:
 
 """
 
-import os
-import shutil
-import subprocess
-from typing import Optional, Union
+from typing import Optional
 
 import click
-from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
-from lilac.deploy import PY_DIST_DIR, deploy_project_operations
+from lilac.data.dataset_storage_utils import upload
+from lilac.deploy import deploy_project
 from lilac.env import env
-from lilac.utils import log
+from lilac.project import read_project_config
+from lilac.utils import get_hf_dataset_repo_id
 
 
 @click.command()
@@ -63,12 +61,6 @@ from lilac.utils import log
   default=False,
 )
 @click.option(
-  '--skip_data_upload',
-  help='When true, only uploads the wheel files without any other changes.',
-  is_flag=True,
-  default=False,
-)
-@click.option(
   '--skip_concept_upload',
   help='Skip uploading custom concepts.',
   type=bool,
@@ -79,26 +71,18 @@ def deploy_staging(
   hf_space: Optional[str] = None,
   dataset: Optional[list[str]] = None,
   concept: Optional[list[str]] = None,
-  skip_ts_build: Optional[bool] = False,
-  skip_data_upload: Optional[bool] = False,
+  skip_ts_build: bool = False,
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
 ) -> None:
   """Generate the huggingface space app."""
+  # For local deployments, we hard-code the project_dir dir.
+  project_dir = 'data'
   hf_space = hf_space or env('HF_STAGING_DEMO_REPO')
   if not hf_space:
     raise ValueError('Must specify --hf_space or set env.HF_STAGING_DEMO_REPO')
 
-  operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
-
-  hf_api = HfApi(token=env('HF_ACCESS_TOKEN'))
-
-  ##
-  ##  Build the web server Svelte & TypeScript.
-  ##
-  if not skip_ts_build:
-    log('Building webserver...')
-    run('./scripts/build_server_prod.sh')
+  hf_token = env('HF_ACCESS_TOKEN')
 
   # When datasets are not defined, don't upload any datasets.
   if dataset is None:
@@ -107,63 +91,35 @@ def deploy_staging(
   if concept is None:
     concept = []
 
-  operations.extend(
-    deploy_project_operations(
-      hf_api,
-      # For local deployments, we hard-code the 'data' dir.
-      project_dir='data',
-      hf_space=hf_space,
-      datasets=dataset,
-      concepts=concept,
-      # Never make datasets public when uploading locally.
-      make_datasets_public=False,
-      skip_data_upload=skip_data_upload,
-      skip_concept_upload=skip_concept_upload,
-      hf_space_storage=None,
-      create_space=create_space,
-    )
-  )
-
-  # Unconditionally remove dist. dist is unconditionally uploaded so it is empty when using
-  # the public package.
-  if os.path.exists(PY_DIST_DIR):
-    shutil.rmtree(PY_DIST_DIR)
-  os.makedirs(PY_DIST_DIR, exist_ok=True)
-
-  # Build the wheel for pip.
-  # We have to change the version to a dev version so that the huggingface demo does not try to
-  # install the public pip package.
-  current_lilac_version = run('poetry version -s', capture_output=True).stdout.strip()
-  # Bump the version to something extremely large so we never accidentally install the same version
-  # when a bump happens.
-  temp_new_version = '1337.0.0'
-
-  run(f'poetry version "{temp_new_version}"')
-  run('poetry build -f wheel')
-  run(f'poetry version "{current_lilac_version}"')
-
-  for upload_file in os.listdir(PY_DIST_DIR):
-    operations.append(
-      CommitOperationAdd(
-        path_in_repo=os.path.join(PY_DIST_DIR, upload_file),
-        path_or_fileobj=os.path.join(PY_DIST_DIR, upload_file),
-      )
+  ##
+  ##  Upload datasets.
+  ##
+  for d in dataset:
+    upload(
+      dataset=d,
+      project_dir=project_dir,
+      url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
+      public=False,
+      hf_token=hf_token,
     )
 
-  # Atomically commit all the operations so we don't kick the server multiple times.
-  hf_api.create_commit(
-    repo_id=hf_space,
-    repo_type='space',
-    operations=operations,
-    commit_message='Push to HF space',
+  # For staging deployments, we strip down the project config to only the specified datasets
+  project_config = read_project_config(project_dir)
+  project_config.datasets = [
+    d for d in project_config.datasets if f'{d.namespace}/{d.name}' in dataset
+  ]
+  deploy_project(
+    hf_space,
+    project_config=project_config,
+    project_dir=project_dir,
+    concepts=concept,
+    skip_concept_upload=skip_concept_upload,
+    deploy_at_head=True,
+    skip_ts_build=skip_ts_build,
+    hf_space_storage=None,
+    create_space=create_space,
+    hf_token=hf_token,
   )
-
-  log(f'Done! View your space at https://huggingface.co/spaces/{hf_space}')
-
-
-def run(cmd: str, capture_output=False) -> subprocess.CompletedProcess[str]:
-  """Run a command and return the result."""
-  return subprocess.run(cmd, shell=True, check=True, capture_output=capture_output, text=True)
 
 
 if __name__ == '__main__':
