@@ -12,9 +12,9 @@ from .deploy import deploy_project
 from .env import env, get_project_dir
 from .hf_docker_start import hf_docker_start
 from .load import load
-from .project import dir_is_project, init, project_dir_from_args
+from .project import dir_is_project, init, project_dir_from_args, read_project_config
 from .server import start_server
-from .utils import log
+from .utils import get_hf_dataset_repo_id, log
 
 
 @click.command()
@@ -186,22 +186,30 @@ def deploy_project_command(
   hf_token: Optional[str],
 ) -> None:
   """Deploy a project directory to a HuggingFace Space."""
-  # When datasets aren't define, set to None so we upload all datasets.
-  if not dataset:
-    dataset = None
+  # When datasets aren't defined, upload all datasets by default.
+  if dataset is None:
+    project_config = read_project_config(project_dir)
+    dataset = [f'{d.namespace}/{d.name}' for d in project_config.datasets]
   # When datasets aren't defined, set to None so we upload all datasets.
   if not concept:
     concept = None
 
   hf_token = hf_token or env('HF_ACCESS_TOKEN')
 
+  if not skip_data_upload:
+    for d in dataset:
+      upload(
+        dataset=d,
+        project_dir=project_dir,
+        url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
+        public=make_datasets_public,
+        hf_token=hf_token,
+      )
+
   deploy_project(
     project_dir=project_dir,
     hf_space=hf_space,
-    datasets=dataset,
     concepts=concept,
-    make_datasets_public=make_datasets_public,
-    skip_data_upload=skip_data_upload,
     skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,

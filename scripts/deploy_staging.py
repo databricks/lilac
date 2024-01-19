@@ -28,9 +28,11 @@ from typing import Optional, Union
 
 import click
 from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
+from lilac.data.dataset_storage_utils import upload
 from lilac.deploy import PY_DIST_DIR, deploy_project_operations
 from lilac.env import env
-from lilac.utils import log
+from lilac.project import read_project_config
+from lilac.utils import get_hf_dataset_repo_id, log
 
 
 @click.command()
@@ -63,12 +65,6 @@ from lilac.utils import log
   default=False,
 )
 @click.option(
-  '--skip_data_upload',
-  help='When true, only uploads the wheel files without any other changes.',
-  is_flag=True,
-  default=False,
-)
-@click.option(
   '--skip_concept_upload',
   help='Skip uploading custom concepts.',
   type=bool,
@@ -80,11 +76,12 @@ def deploy_staging(
   dataset: Optional[list[str]] = None,
   concept: Optional[list[str]] = None,
   skip_ts_build: Optional[bool] = False,
-  skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
 ) -> None:
   """Generate the huggingface space app."""
+  # For local deployments, we hard-code the project_dir dir.
+  project_dir = 'data'
   hf_space = hf_space or env('HF_STAGING_DEMO_REPO')
   if not hf_space:
     raise ValueError('Must specify --hf_space or set env.HF_STAGING_DEMO_REPO')
@@ -107,17 +104,31 @@ def deploy_staging(
   if concept is None:
     concept = []
 
+  ##
+  ##  Upload datasets.
+  ##
+  for d in dataset:
+    upload(
+      dataset=d,
+      project_dir=project_dir,
+      url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
+      public=False,
+      hf_token=hf_api.token,
+    )
+
+  # For staging deployments, we strip down the project config to only the specified datasets
+  project_config = read_project_config(project_dir)
+  project_config.datasets = [
+    d for d in project_config.datasets if f'{d.namespace}/{d.name}' in dataset
+  ]
+
   operations.extend(
     deploy_project_operations(
       hf_api,
-      # For local deployments, we hard-code the 'data' dir.
-      project_dir='data',
+      project_config=project_config,
+      project_dir=project_dir,
       hf_space=hf_space,
-      datasets=dataset,
       concepts=concept,
-      # Never make datasets public when uploading locally.
-      make_datasets_public=False,
-      skip_data_upload=skip_data_upload,
       skip_concept_upload=skip_concept_upload,
       hf_space_storage=None,
       create_space=create_space,

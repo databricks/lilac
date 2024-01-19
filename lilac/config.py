@@ -212,7 +212,7 @@ class Config(BaseModel):
 
   # When defined, uses this list of signals to run over every dataset, over all media paths, unless
   # signals is overridden by a specific dataset.
-  signals: list[Signal] = PydanticField(
+  signals: SerializeAsAny[list[Signal]] = PydanticField(
     description='The signals to run for every dataset.', default=[]
   )
 
