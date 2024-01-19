@@ -51,7 +51,7 @@ def test_fewer_than_desired_groups() -> None:
   assert clean_textchunks(split_items) == expected_spans
 
 
-def test_no_chunks_emitted() -> None:
+def test_original_text_emitted() -> None:
   text = ''
   split_items = clustering_spacy_chunker(text, target_num_groups=4)
-  assert split_items == []
+  assert split_items == [('', (0, 0))]
