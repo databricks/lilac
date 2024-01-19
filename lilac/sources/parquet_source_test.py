@@ -3,7 +3,6 @@
 import os
 import pathlib
 
-import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -229,14 +228,15 @@ def test_parquet_with_map_of_string_to_array_of_ints(tmp_path: pathlib.Path) -> 
   create_project_and_set_env(str(tmp_path))
   arrow_schema = pa.schema(
     {
+      'id': pa.int32(),
       'name': pa.map_(pa.string(), pa.list_(pa.int32())),
     }
   )
   table = pa.Table.from_pylist(
     [
-      {'name': {'key1': [1, 2, 3]}},
-      {'name': {'key2': [2, 3]}},
-      {'name': {'key1': [3, 4], 'key2': [5, 6]}},
+      {'id': 0, 'name': {'key1': [1, 2, 3]}},
+      {'id': 1, 'name': {'key2': [2, 3]}},
+      {'id': 2, 'name': {'key1': [3, 4], 'key2': [5, 6]}},
     ],
     schema=arrow_schema,
   )
@@ -254,15 +254,16 @@ def test_parquet_with_map_of_string_to_array_of_ints(tmp_path: pathlib.Path) -> 
         dtype=expected_map_dtype,
         # All the unique keys of the map got extracted as sub-fields in the Lilac schema.
         fields={'key1': ['int32'], 'key2': ['int32']},
-      )
+      ),
+      'id': 'int32',
     }
   )
   df = dataset.to_pandas()
-  expected_df = pd.DataFrame(
-    [
-      {'name': {'key': ['key1'], 'value': [[1, 2, 3]]}},
-      {'name': {'key': ['key2'], 'value': [[2, 3]]}},
-      {'name': {'key': ['key1', 'key2'], 'value': [[3, 4], [5, 6]]}},
-    ]
-  )
-  pd.testing.assert_frame_equal(df, expected_df)
+  # Sort rows by id so that the test is deterministic.
+  rows = sorted([row.to_dict() for _, row in df.iterrows()], key=lambda x: x['id'])
+  expected_rows = [
+    {'id': 0, 'name': {'key': ['key1'], 'value': [[1, 2, 3]]}},
+    {'id': 1, 'name': {'key': ['key2'], 'value': [[2, 3]]}},
+    {'id': 2, 'name': {'key': ['key1', 'key2'], 'value': [[3, 4], [5, 6]]}},
+  ]
+  assert rows == expected_rows
