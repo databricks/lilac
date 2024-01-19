@@ -8,5 +8,6 @@
  */
 export type TextSignal = {
     signal_name: string;
+    supports_garden?: any;
 };
 

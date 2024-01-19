@@ -9,10 +9,6 @@
 export type ConceptSignal = {
     signal_name: 'concept_score';
     /**
-     * Accelerate computation by running remotely on Lilac Garden.
-     */
-    use_garden?: boolean;
-    /**
      * The name of the pre-computed embedding.
      */
     embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base';

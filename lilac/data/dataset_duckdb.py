@@ -238,6 +238,9 @@ class SignalManifest(BaseModel):
   # The lilac python version that produced this signal.
   py_version: Optional[str] = None
 
+  # True when the signal was computed on Lilac Garden.
+  use_garden: bool = False
+
   @field_validator('signal', mode='before')
   @classmethod
   def parse_signal(cls, signal: dict) -> Signal:
@@ -1119,6 +1122,7 @@ class DatasetDuckDB(Dataset):
       enriched_path=input_path,
       parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
       py_version=metadata.version('lilac'),
+      use_garden=use_garden,
     )
     with open_file(signal_manifest_filepath, 'w') as f:
       f.write(signal_manifest.model_dump_json(exclude_none=True, indent=2))
@@ -1238,6 +1242,7 @@ class DatasetDuckDB(Dataset):
       parquet_id=make_signal_parquet_id(signal, input_path, is_computed_signal=True),
       vector_store=self.vector_store,
       py_version=metadata.version('lilac'),
+      use_garden=use_garden,
     )
 
     with open_file(signal_manifest_filepath, 'w') as f:
@@ -1390,6 +1395,7 @@ class DatasetDuckDB(Dataset):
       parquet_id=make_signal_parquet_id(signal, index_path, is_computed_signal=True),
       vector_store=self.vector_store,
       py_version=metadata.version('lilac'),
+      use_garden=False,
     )
 
     with open_file(signal_manifest_filepath, 'w') as f:

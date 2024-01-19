@@ -8,6 +8,7 @@
  */
 export type SubstringSignal = {
     signal_name: 'substring_search';
+    supports_garden?: any;
     query: string;
 };
 
