@@ -134,7 +134,8 @@
         command.datasetName,
         {
           leaf_path: path || [],
-          signal
+          signal,
+          overwrite
         }
       ]);
     } else if (command.command === Command.PreviewConcept) {
