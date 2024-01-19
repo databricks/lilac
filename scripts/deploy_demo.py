@@ -69,6 +69,21 @@ from lilac.utils import get_datasets_dir, get_hf_dataset_repo_id
   default=False,
 )
 @click.option(
+  '--deploy_at_head',
+  help='Deploy the current working directory, instead of latest PyPI release.',
+  type=bool,
+  is_flag=True,
+  default=False,
+)
+@click.option(
+  '--skip_ts_build',
+  help='Skip building the web server TypeScript. '
+  'Useful to speed up deploy_at_head if you are only changing python or data.',
+  type=bool,
+  is_flag=True,
+  default=False,
+)
+@click.option(
   '--skip_deploy',
   help='Skip deploying to HuggingFace. Useful to test locally.',
   type=bool,
@@ -97,6 +112,8 @@ def deploy_demo(
   skip_sync: bool,
   skip_load: bool,
   skip_data_upload: bool,
+  deploy_at_head: bool,
+  skip_ts_build: bool,
   skip_deploy: bool,
   create_space: bool,
   dataset: Optional[list[str]] = None,
@@ -161,6 +178,8 @@ def deploy_demo(
       concepts=[],
       # We only use public concepts in demos.
       skip_concept_upload=True,
+      deploy_at_head=deploy_at_head,
+      skip_ts_build=skip_ts_build,
       create_space=create_space,
       hf_space_storage='small',
       load_on_space=False,

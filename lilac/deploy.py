@@ -5,6 +5,7 @@ Usage:
 
 """
 import os
+import shutil
 import subprocess
 import tempfile
 from importlib import resources
@@ -30,6 +31,8 @@ def deploy_project(
   project_dir: Optional[str] = None,
   concepts: Optional[list[str]] = None,
   skip_concept_upload: Optional[bool] = False,
+  deploy_at_head: bool = False,
+  skip_ts_build: bool = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
@@ -43,6 +46,9 @@ def deploy_project(
     project_dir: The project directory to grab data from. Defaults to `env.LILAC_PROJECT_DIR`.
     concepts: The names of concepts to upload. Defaults to all concepts.
     skip_concept_upload: When true, skips uploading concepts.
+    deploy_at_head: If true, deploys the latest code from your machine. Otherwise, deploys from
+      PyPI's latest published package.
+    skip_ts_build: (Only relevant when deploy_at_head=True) - Skips building frontend assets.
     create_space: When True, creates the HuggingFace space if it doesnt exist. The space will be
       created with the storage type defined by --hf_space_storage.
     load_on_space: When True, loads the datasets from your project in the space and does not upload
@@ -67,6 +73,7 @@ def deploy_project(
       '--project_dir or the environment variable `LILAC_PROJECT_DIR` must be defined.'
     )
 
+  project_config = project_config or read_project_config(project_dir)
   hf_api = HfApi(token=hf_token)
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = deploy_project_operations(
@@ -76,6 +83,8 @@ def deploy_project(
     project_config=project_config,
     concepts=concepts,
     skip_concept_upload=skip_concept_upload,
+    deploy_at_head=deploy_at_head,
+    skip_ts_build=skip_ts_build,
     create_space=create_space,
     load_on_space=load_on_space,
     hf_space_storage=hf_space_storage,
@@ -98,15 +107,16 @@ def deploy_project_operations(
   hf_api: 'HfApi',
   project_dir: str,
   hf_space: str,
-  project_config: Optional[Config] = None,
+  project_config: Config,
   concepts: Optional[list[str]] = None,
   skip_concept_upload: Optional[bool] = False,
+  deploy_at_head: bool = False,
+  skip_ts_build: bool = False,
   create_space: Optional[bool] = False,
   load_on_space: Optional[bool] = False,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]] = None,
 ) -> list:
   """The commit operations for a project deployment."""
-  project_config = project_config or read_project_config(project_dir)
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete
     from huggingface_hub.utils._errors import RepositoryNotFoundError
@@ -163,10 +173,9 @@ def deploy_project_operations(
       )
     )
 
-  ##
-  ##  Create the empty wheel directory. If uploading a local wheel, use scripts.deploy_staging.
-  ##
-  operations.extend(_make_wheel_dir(hf_api, hf_space))
+  operations.extend(
+    _make_wheel_dir(hf_api, hf_space, deploy_at_head=deploy_at_head, skip_ts_build=skip_ts_build)
+  )
 
   ##
   ##  Upload the HuggingFace application file (README.md) with uploaded datasets.
@@ -244,10 +253,14 @@ def deploy_project_operations(
   return operations
 
 
-def _make_wheel_dir(api: Any, hf_space: str) -> list:
-  """Creates the wheel directory README. This does not upload local wheels.
+def _make_wheel_dir(
+  api: Any, hf_space: str, deploy_at_head: bool, skip_ts_build: bool = False
+) -> list:
+  """Makes the wheel directory for the HuggingFace Space commit.
 
-  For local wheels, use deploy_local.
+  An empty directory (README only) is used by default; the dockerfile will then fall back to the
+  public pip package. When deploy_at_head is True, a wheel with the latest code on your machine is
+  built and uploaded.
   """
   try:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
@@ -261,29 +274,53 @@ def _make_wheel_dir(api: Any, hf_space: str) -> list:
 
   operations: list[Union[CommitOperationDelete, CommitOperationAdd]] = []
 
-  # Make an empty readme in py_dist_dir.
   os.makedirs(PY_DIST_DIR, exist_ok=True)
-  with open(os.path.join(PY_DIST_DIR, 'README.md'), 'w') as f:
-    f.write(
-      'This directory is used for locally built whl files.\n'
-      'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
-    )
 
-  readme_contents = (
-    'This directory is used for locally built whl files.\n'
-    'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
-  ).encode()
-
-  # Remove everything that exists in dist.
+  # Clean the remote dist dir.
   remote_readme_filepath = os.path.join(PY_DIST_DIR, 'README.md')
   if hf_api.file_exists(hf_space, remote_readme_filepath, repo_type='space'):
     operations.append(CommitOperationDelete(path_in_repo=f'{PY_DIST_DIR}/'))
 
+  # Add a file to the dist/ dir so that it's not empty.
+  readme_contents = (
+    'This directory is used for locally built whl files.\n'
+    'We write a README.md to ensure an empty folder is uploaded when there is no whl.'
+  ).encode()
   operations.append(
     # The path in the remote doesn't os.path.join as it is specific to Linux.
     CommitOperationAdd(path_in_repo=f'{PY_DIST_DIR}/README.md', path_or_fileobj=readme_contents)
   )
 
+  if deploy_at_head:
+    ##
+    ##  Build the web server Svelte & TypeScript.
+    ##
+    if not skip_ts_build:
+      log('Building webserver...')
+      run('./scripts/build_server_prod.sh')
+
+    # Clean local dist dir before building
+    if os.path.exists(PY_DIST_DIR):
+      shutil.rmtree(PY_DIST_DIR)
+    os.makedirs(PY_DIST_DIR, exist_ok=True)
+
+    # Build the wheel for pip.
+    # We have to bump the version number so that Dockerfile sees this wheel as "newer" than PyPI.
+    current_lilac_version = run('poetry version -s', capture_output=True).stdout.strip()
+    temp_new_version = '1337.0.0'
+
+    run(f'poetry version "{temp_new_version}"')
+    run('poetry build -f wheel')
+    run(f'poetry version "{current_lilac_version}"')
+
+    # Add wheel files to the commit.
+    for upload_file in os.listdir(PY_DIST_DIR):
+      operations.append(
+        CommitOperationAdd(
+          path_in_repo=os.path.join(PY_DIST_DIR, upload_file),
+          path_or_fileobj=os.path.join(PY_DIST_DIR, upload_file),
+        )
+      )
   return operations
 
 
