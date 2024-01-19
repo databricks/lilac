@@ -389,7 +389,7 @@ class Dataset(abc.ABC):
   def config(self) -> DatasetConfig:
     """Return the dataset config for this dataset."""
     manifest = self.manifest()
-    project_config = read_project_config(get_project_dir())
+    project_config = read_project_config(self.project_dir)
     dataset_config = get_dataset_config(project_config, self.namespace, self.dataset_name)
     if not dataset_config:
       raise ValueError(

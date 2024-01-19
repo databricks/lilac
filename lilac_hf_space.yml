@@ -160,9 +160,9 @@ clusters:
   - dataset_namespace: lilac
     dataset_name: Capybara
     input_path:
-      - - conversation
-        - '*'
-        - input
+      - conversation
+      - '*'
+      - input
     use_garden: true
   - dataset_namespace: lilac
     dataset_name: glaive
