@@ -65,12 +65,6 @@ from lilac.utils import get_hf_dataset_repo_id, log
   default=False,
 )
 @click.option(
-  '--skip_data_upload',
-  help='When true, only uploads the wheel files without any other changes.',
-  is_flag=True,
-  default=False,
-)
-@click.option(
   '--skip_concept_upload',
   help='Skip uploading custom concepts.',
   type=bool,
@@ -82,7 +76,6 @@ def deploy_staging(
   dataset: Optional[list[str]] = None,
   concept: Optional[list[str]] = None,
   skip_ts_build: Optional[bool] = False,
-  skip_data_upload: Optional[bool] = False,
   skip_concept_upload: Optional[bool] = False,
   create_space: Optional[bool] = False,
 ) -> None:
@@ -114,15 +107,14 @@ def deploy_staging(
   ##
   ##  Upload datasets.
   ##
-  if not skip_data_upload:
-    for d in dataset:
-      upload(
-        dataset=d,
-        project_dir=project_dir,
-        url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
-        public=False,
-        hf_token=hf_api.token,
-      )
+  for d in dataset:
+    upload(
+      dataset=d,
+      project_dir=project_dir,
+      url_or_repo=get_hf_dataset_repo_id(*hf_space.split('/'), *d.split('/')),
+      public=False,
+      hf_token=hf_api.token,
+    )
 
   # For staging deployments, we strip down the project config to only the specified datasets
   project_config = read_project_config(project_dir)
