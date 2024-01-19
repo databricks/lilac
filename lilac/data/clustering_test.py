@@ -188,7 +188,7 @@ def test_simple_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -
             CATEGORY_MEMBERSHIP_PROB: 'float32',
             CATEGORY_TITLE: 'string',
           },
-          cluster=ClusterInfo(min_cluster_size=2, remote=False, input_path=('text',)),
+          cluster=ClusterInfo(min_cluster_size=2, use_garden=False, input_path=('text',)),
         ),
       }
     ),

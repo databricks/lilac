@@ -993,7 +993,7 @@ class DatasetDuckDB(Dataset):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
-    remote: bool = False,
+    use_garden: bool = False,
   ) -> None:
     if isinstance(signal, TextEmbeddingSignal):
       return self.compute_embedding(
@@ -1004,7 +1004,7 @@ class DatasetDuckDB(Dataset):
         include_deleted=include_deleted,
         overwrite=overwrite,
         task_id=task_id,
-        remote=remote,
+        use_garden=use_garden,
       )
 
     input_path = normalize_path(path)
@@ -1030,7 +1030,7 @@ class DatasetDuckDB(Dataset):
       self.project_dir,
     )
 
-    signal.setup_remote() if remote else signal.setup()
+    signal.setup_garden() if use_garden else signal.setup()
 
     jsonl_cache_filepath = _jsonl_cache_filepath(
       namespace=self.namespace,
@@ -1052,14 +1052,14 @@ class DatasetDuckDB(Dataset):
         task_description=f'Compute signal {signal} on {self.dataset_name}:{path}',
       )
 
-    n_jobs = 1 if remote else signal.local_parallelism
-    prefer = 'threads' if remote else signal.local_strategy
+    n_jobs = 1 if use_garden else signal.local_parallelism
+    prefer = 'threads' if use_garden else signal.local_strategy
     compute_fn = (
-      signal.compute_remote
-      if remote
+      signal.compute_garden
+      if use_garden
       else (signal.vector_compute if isinstance(signal, VectorSignal) else signal.compute)
     )
-    batch_size = -1 if remote else signal.local_batch_size
+    batch_size = -1 if use_garden else signal.local_batch_size
     _consume_iterator(
       progress_bar(
         self._dispatch_workers(
@@ -1120,7 +1120,7 @@ class DatasetDuckDB(Dataset):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
-    remote: bool = False,
+    use_garden: bool = False,
   ) -> None:
     input_path = normalize_path(path)
     add_project_embedding_config(
@@ -1137,9 +1137,9 @@ class DatasetDuckDB(Dataset):
 
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
 
-    signal = get_signal_by_type(embedding, TextEmbeddingSignal)()
+    signal = get_signal_by_type(embedding, TextEmbeddingSignal)(use_garden=use_garden)
 
-    signal.setup_remote() if remote else signal.setup()
+    signal.setup_garden() if use_garden else signal.setup()
 
     signal_col = Column(path=input_path, alias='value', signal_udf=signal)
 
@@ -1169,10 +1169,10 @@ class DatasetDuckDB(Dataset):
         task_description=f'Compute embedding {signal} on {self.dataset_name}:{path}',
       )
 
-    n_jobs = 1 if remote else signal.local_parallelism
-    prefer = 'threads' if remote else signal.local_strategy
-    compute_fn = signal.compute_remote if remote else signal.compute
-    batch_size = -1 if remote else signal.local_batch_size
+    n_jobs = 1 if use_garden else signal.local_parallelism
+    prefer = 'threads' if use_garden else signal.local_strategy
+    compute_fn = signal.compute_garden if use_garden else signal.compute
+    batch_size = -1 if use_garden else signal.local_batch_size
 
     output_items = progress_bar(
       self._dispatch_workers(
@@ -3025,12 +3025,12 @@ class DatasetDuckDB(Dataset):
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
-    remote: bool = False,
+    use_garden: bool = False,
     task_id: Optional[TaskId] = None,
   ) -> None:
     topic_fn = topic_fn or clustering.summarize_request
     return cluster_impl(
-      self, input, output_path, min_cluster_size, topic_fn, overwrite, remote, task_id=task_id
+      self, input, output_path, min_cluster_size, topic_fn, overwrite, use_garden, task_id=task_id
     )
 
   @override

@@ -1,5 +1,29 @@
 datasets:
   - namespace: lilac
+    name: Capybara
+    source:
+      dataset_name: LDJnr/Capybara
+      source_name: huggingface
+    settings:
+      ui:
+        media_paths:
+          - input
+          - - conversation
+            - '*'
+            - input
+          - - conversation
+            - '*'
+            - output
+        markdown_paths: []
+    embeddings:
+      - embedding: gte-small
+        path:
+          - conversation
+          - '*'
+          - input
+        use_garden: true
+
+  - namespace: lilac
     name: glaive
     source:
       dataset_name: glaiveai/glaive-code-assistant
@@ -131,19 +155,24 @@ clusters:
     dataset_name: glaive
     input_path:
       - question
+    use_garden: true
   - dataset_namespace: lilac
     dataset_name: open-asssistant-conversations
     input_path:
       - text
+    use_garden: true
   - dataset_namespace: lilac
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
       - original-instruction
+    use_garden: true
   - dataset_namespace: lilac
     dataset_name: OpenOrca-100k
     input_path:
       - question
+    use_garden: true
   - dataset_namespace: lilac
     dataset_name: dolphin
     input_path:
       - input
+    use_garden: true

@@ -6,7 +6,7 @@
     datasetName: string;
     input: Path;
     output_path?: Path;
-    remote?: boolean;
+    use_garden?: boolean;
     overwrite?: boolean;
   };
 
@@ -47,7 +47,7 @@
       options.datasetName,
       {
         input: options.input,
-        remote: options.remote,
+        use_garden: options.use_garden,
         output_path: options.output_path,
         overwrite: options.overwrite
       }
@@ -80,7 +80,7 @@
             disabled={!canComputeRemotely}
             labelA={'False'}
             labelB={'True'}
-            bind:toggled={options.remote}
+            bind:toggled={options.use_garden}
             hideLabel
           />
         </div>

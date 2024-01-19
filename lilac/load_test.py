@@ -248,7 +248,7 @@ def test_load_embeddings(tmp_path: pathlib.Path) -> None:
         namespace='namespace',
         name='test',
         source=TestSource(),
-        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding', remote=False)],
+        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding', use_garden=False)],
       )
     ]
   )
@@ -296,7 +296,7 @@ def test_load_twice_no_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureF
         name='test',
         source=TestSource(),
         signals=[SignalConfig(path=('str',), signal=test_signal)],
-        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding', remote=False)],
+        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding', use_garden=False)],
       )
     ]
   )
@@ -330,7 +330,7 @@ def test_load_twice_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixt
         name='test',
         source=TestSource(),
         signals=[SignalConfig(path=('str',), signal=test_signal)],
-        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding', remote=False)],
+        embeddings=[EmbeddingConfig(path=('str',), embedding='test_embedding', use_garden=False)],
       )
     ]
   )
@@ -370,7 +370,7 @@ def test_load_clusters(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture) ->
     ],
     clusters=[
       ClusterConfig(
-        dataset_namespace='namespace', dataset_name='test', input_path=('str',), remote=False
+        dataset_namespace='namespace', dataset_name='test', input_path=('str',), use_garden=False
       )
     ],
   )
@@ -478,7 +478,7 @@ def test_load_clusters_format_selector(
         ),
         output_path=('cluster',),
         min_cluster_size=2,
-        remote=False,
+        use_garden=False,
       )
     ],
   )

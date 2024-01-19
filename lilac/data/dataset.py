@@ -449,7 +449,7 @@ class Dataset(abc.ABC):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
-    remote: bool = False,
+    use_garden: bool = False,
   ) -> None:
     """Compute a signal for a column.
 
@@ -462,7 +462,7 @@ class Dataset(abc.ABC):
       overwrite: Whether to overwrite an existing signal computed at this path.
       task_id: The TaskManager `task_id` for this process run. This is used to update
         the progress of the task.
-      remote: Whether to run the computation remotely on Lilac Garden.
+      use_garden: Whether to run the computation remotely on Lilac Garden.
     """
     pass
 
@@ -474,7 +474,7 @@ class Dataset(abc.ABC):
     min_cluster_size: int = 5,
     topic_fn: Optional[TopicFn] = None,
     overwrite: bool = False,
-    remote: bool = False,
+    use_garden: bool = False,
     task_id: Optional[TaskId] = None,
   ) -> None:
     """Compute clusters for a field of the dataset.
@@ -489,7 +489,7 @@ class Dataset(abc.ABC):
         (doc, membership_score) tuples and returns a single topic. This is used to compute the topic
         for a given cluster of docs. It defaults to a function that summarizes user's requests.
       overwrite: Whether to overwrite an existing output.
-      remote: Whether to run the clustering remotely on Lilac Garden.
+      use_garden: Whether to run the clustering remotely on Lilac Garden.
       task_id: The TaskManager `task_id` for this process run. This is used to update the progress
         of the task.
 
@@ -506,9 +506,21 @@ class Dataset(abc.ABC):
     include_deleted: bool = False,
     overwrite: bool = False,
     task_id: Optional[TaskId] = None,
-    remote: bool = False,
+    use_garden: bool = False,
   ) -> None:
-    """Compute an embedding for a given field path."""
+    """Compute an embedding for a given field path.
+
+    Args:
+      embedding: The name of the embedding to compute.
+      path: The path to compute the embedding on.
+      filters: Filters to apply to the row; only matching rows will have the embedding computed.
+      limit: Limit the number of rows to compute the embedding on.
+      include_deleted: Whether to include deleted rows in the computation.
+      overwrite: Whether to overwrite an existing embedding computed at this path.
+      task_id: The TaskManager `task_id` for this process run. This is used to update
+        the progress of the task.
+      use_garden: Whether to run the computation remotely on Lilac Garden.
+    """
     pass
 
   def compute_concept(

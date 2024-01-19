@@ -101,7 +101,7 @@ class JinaV2Small(TextEmbeddingSignal):
     )
 
   @override
-  def compute_remote(self, docs: Iterator[str]) -> Iterator[Item]:
+  def compute_garden(self, docs: Iterator[str]) -> Iterator[Item]:
     trimmed_docs: list[str] = []
     doc_lengths: list[int] = []
     for doc in docs:

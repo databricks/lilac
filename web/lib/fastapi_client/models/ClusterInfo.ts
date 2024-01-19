@@ -10,7 +10,7 @@ import type { ClusterInputFormatSelectorInfo } from './ClusterInputFormatSelecto
  */
 export type ClusterInfo = {
     min_cluster_size?: (number | null);
-    remote?: (boolean | null);
+    use_garden?: (boolean | null);
     input_path?: (Array<string> | null);
     input_format_selector?: (ClusterInputFormatSelectorInfo | null);
 };
