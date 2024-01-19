@@ -1358,7 +1358,7 @@ class DatasetDuckDB(Dataset):
         batch_size=None,
         select_path=None,  # Select the entire row.
         overwrite=overwrite,
-        query_options=query_params,
+        query_options=None,
         checkpoint_progress=False,
       )
     )
