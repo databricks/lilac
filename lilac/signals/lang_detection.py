@@ -31,7 +31,7 @@ class LangDetectionSignal(TextSignal):
     default=False, description='Compute language scores for each paragraph.'
   )
 
-  local_batch_size: ClassVar[Optional[int]] = 128
+  local_batch_size: ClassVar[Optional[int]] = 1024
   local_parallelism: ClassVar[int] = -1
   local_strategy: ClassVar[TaskExecutionType] = 'processes'
 
