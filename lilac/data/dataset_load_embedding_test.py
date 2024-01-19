@@ -111,8 +111,8 @@ def test_load_embedding_full_doc(make_test_data: TestDataMaker) -> None:
     source=TestSource(),
   )
 
-  rows = dataset.select_rows(combine_columns=True)
-  assert list(rows) == ITEMS
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == ITEMS
 
   # Make sure the row-level embeddings match the embeddings we explicitly passed.
   rows = list(dataset.select_rows(['*', ROWID]))
@@ -161,8 +161,8 @@ def test_load_embedding_chunks(make_test_data: TestDataMaker) -> None:
     source=TestSource(),
   )
 
-  rows = dataset.select_rows(combine_columns=True)
-  assert list(rows) == ITEMS
+  rows = list(dataset.select_rows(combine_columns=True))
+  assert rows == ITEMS
 
   # Make sure the row-level embeddings match the embeddings we explicitly passed.
   rows = list(dataset.select_rows(['*', ROWID]))
