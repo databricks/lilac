@@ -70,7 +70,6 @@
   let useGarden = false;
 
   $: supportsGarden = signalInfo?.json_schema?.properties?.['supports_garden'];
-  $: console.log('supports_garden', supportsGarden);
 
   const HIDDEN_PROPERTIES = [
     // Hide the signal name as it's just used for type coersion.
