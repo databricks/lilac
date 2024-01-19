@@ -21,6 +21,12 @@ datasets:
           - '*'
           - input
         use_garden: true
+      - embedding: gte-small
+        path:
+          - conversation
+          - '*'
+          - output
+        use_garden: true
 
   - namespace: lilac
     name: glaive
