@@ -12,7 +12,7 @@ import pytest
 from freezegun import freeze_time
 from typing_extensions import override
 
-from ..schema import ROWID, Field, Item, RichData, field
+from ..schema import ROWID, VALUE_KEY, Field, Item, RichData, field
 from ..signal import TextSignal, clear_signal_registry, register_signal
 from .dataset import DELETED_LABEL_NAME
 from .dataset_test_utils import TestDataMaker
@@ -52,8 +52,8 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
-    {'text': 'hello', 'text.test_signal.len': 5, 'text.test_signal.flen': 5.0},
-    {'text': 'everybody', 'text.test_signal.len': 9, 'text.test_signal.flen': 9.0},
+    {'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}},
+    {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}},
   ]
 
   # Download a subset of columns with filter.
@@ -67,7 +67,9 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
-  assert parsed_items == [{'text': 'everybody', 'text.test_signal.flen': 9.0}]
+  assert parsed_items == [
+    {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}}
+  ]
 
   filepath = tmp_path / 'dataset3.json'
   dataset.to_json(filepath, filters=[('text.test_signal.flen', 'less_equal', '5')])
@@ -75,9 +77,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
-  assert parsed_items == [
-    {'text': 'hello', 'text.test_signal.len': 5, 'text.test_signal.flen': 5.0}
-  ]
+  assert parsed_items == [{'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}}]
 
 
 def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
@@ -92,9 +92,69 @@ def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) ->
     rows = list(csv.reader(f))
 
   assert rows == [
-    ['text', 'text.test_signal.len', 'text.test_signal.flen'],
-    ['hello', '5', '5.0'],
-    ['everybody', '9', '9.0'],
+    ['text'],  # Header
+    ["{'__value__': 'hello', 'test_signal': {'len': 5, 'flen': 5.0}}"],
+    ["{'__value__': 'everybody', 'test_signal': {'len': 9, 'flen': 9.0}}"],
+  ]
+
+
+def test_export_to_csv_subset_source_columns(
+  make_test_data: TestDataMaker, tmp_path: pathlib.Path
+) -> None:
+  dataset = make_test_data(
+    [
+      {'text': 'hello', 'age': 4, 'metric': 1},
+      {'text': 'everybody', 'age': 5, 'metric': 2},
+    ]
+  )
+
+  # Download all columns.
+  filepath = tmp_path / 'dataset.csv'
+  dataset.to_csv(filepath, columns=['age', 'metric'])
+
+  with open(filepath) as f:
+    rows = list(csv.reader(f))
+
+  assert rows == [
+    ['age', 'metric'],  # Header
+    ['4', '1'],
+    ['5', '2'],
+  ]
+
+
+def test_export_to_csv_subset_of_nested_data(
+  make_test_data: TestDataMaker, tmp_path: pathlib.Path
+) -> None:
+  dataset = make_test_data(
+    [
+      {
+        'doc': {
+          'title': 'hello',
+          'content': 'a',
+          'paragraphs': [{'text': 'p1', 'size': 1}, {'text': 'p2', 'size': 2}],
+        }
+      },
+      {
+        'doc': {
+          'title': 'hello2',
+          'content': 'b',
+          'paragraphs': [{'text': 'p3', 'size': 3}, {'text': 'p4', 'size': 4}],
+        }
+      },
+    ]
+  )
+
+  # Download all columns.
+  filepath = tmp_path / 'dataset.csv'
+  dataset.to_csv(filepath, columns=['doc.content', 'doc.paragraphs.*.text'])
+
+  with open(filepath) as f:
+    rows = list(csv.reader(f))
+
+  assert rows == [
+    ['doc'],  # Header
+    ["{'content': 'a', 'paragraphs': [{'text': 'p1'}, {'text': 'p2'}]}"],
+    ["{'content': 'b', 'paragraphs': [{'text': 'p3'}, {'text': 'p4'}]}"],
   ]
 
 
@@ -109,16 +169,8 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
   df = pd.read_parquet(filepath)
   expected_df = pd.DataFrame(
     [
-      {
-        'text': 'hello',
-        'text.test_signal.len': np.int32(5),
-        'text.test_signal.flen': np.float32(5.0),
-      },
-      {
-        'text': 'everybody',
-        'text.test_signal.len': np.int32(9),
-        'text.test_signal.flen': np.float32(9.0),
-      },
+      {'text': {VALUE_KEY: 'hello', 'test_signal': {'len': 5, 'flen': 5.0}}},
+      {'text': {VALUE_KEY: 'everybody', 'test_signal': {'len': 9, 'flen': 9.0}}},
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)
@@ -130,28 +182,20 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
 
   # Download all columns.
   df = dataset.to_pandas()
-  expected_df = pd.DataFrame(
+  expected_df = pd.DataFrame.from_records(
     [
-      {
-        'text': 'hello',
-        'text.test_signal.len': np.int32(5),
-        'text.test_signal.flen': np.float32(5.0),
-      },
-      {
-        'text': 'everybody',
-        'text.test_signal.len': np.int32(9),
-        'text.test_signal.flen': np.float32(9.0),
-      },
+      {'text': {VALUE_KEY: 'hello', 'test_signal': {'len': 5, 'flen': 5.0}}},
+      {'text': {VALUE_KEY: 'everybody', 'test_signal': {'len': 9, 'flen': 9.0}}},
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)
 
   # Select only some columns, including pseudocolumn rowid.
-  df = dataset.to_pandas([ROWID, 'text', 'text.test_signal.flen'])
+  df = dataset.to_pandas([ROWID, 'text.test_signal.flen'])
   expected_df = pd.DataFrame(
     [
-      {ROWID: '00001', 'text': 'hello', 'text.test_signal.flen': np.float32(5.0)},
-      {ROWID: '00002', 'text': 'everybody', 'text.test_signal.flen': np.float32(9.0)},
+      {ROWID: '00001', 'text': {'test_signal': {'flen': np.float32(5.0)}}},
+      {ROWID: '00002', 'text': {'test_signal': {'flen': np.float32(9.0)}}},
     ]
   )
   pd.testing.assert_frame_equal(df, expected_df)
@@ -171,33 +215,30 @@ def test_label_and_export_by_excluding(
   dataset = make_test_data([{'text': 'a'}, {'text': 'b'}, {'text': 'c'}])
   dataset.delete_rows(['00002', '00003'])
 
-  # Download all, except the 'deleted' label.
+  # Download without deleted label.
   filepath = tmp_path / 'dataset.json'
-  dataset.to_json(filepath, exclude_labels=[DELETED_LABEL_NAME])
+  dataset.to_json(filepath)
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{f'{DELETED_LABEL_NAME}': None, 'text': 'a'}]
+
+  # Include deleted.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, include_deleted=True)
 
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
-    {f'{DELETED_LABEL_NAME}.created': None, f'{DELETED_LABEL_NAME}.label': None, 'text': 'a'}
-  ]
-
-  # Download only the 'deleted' label.
-  filepath = tmp_path / 'dataset.json'
-  dataset.to_json(filepath, include_labels=[DELETED_LABEL_NAME])
-
-  with open(filepath) as f:
-    parsed_items = [json.loads(line) for line in f.readlines()]
-
-  assert parsed_items == [
+    {DELETED_LABEL_NAME: None, 'text': 'a'},
     {
-      f'{DELETED_LABEL_NAME}.created': str(TEST_TIME),
-      f'{DELETED_LABEL_NAME}.label': 'true',
+      DELETED_LABEL_NAME: {'created': '2023-08-15T01:23:45', 'label': 'true'},
       'text': 'b',
     },
     {
-      f'{DELETED_LABEL_NAME}.created': str(TEST_TIME),
-      f'{DELETED_LABEL_NAME}.label': 'true',
+      DELETED_LABEL_NAME: {'created': '2023-08-15T01:23:45', 'label': 'true'},
       'text': 'c',
     },
   ]

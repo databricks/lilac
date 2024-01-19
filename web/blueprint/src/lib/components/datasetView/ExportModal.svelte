@@ -75,7 +75,7 @@
       ? querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
           columns: exportFields.map(x => x.path),
           limit: 3,
-          combine_columns: false
+          combine_columns: true
         })
       : null;
   $: exportDisabled =

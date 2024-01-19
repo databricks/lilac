@@ -939,6 +939,7 @@ class Dataset(abc.ABC):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     """Export the dataset to a JSON file.
 
@@ -949,6 +950,7 @@ class Dataset(abc.ABC):
       filters: The filters to apply to the query.
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
+      include_deleted: Whether to include deleted rows in the export.
     """
     pass
 
@@ -959,6 +961,7 @@ class Dataset(abc.ABC):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> pd.DataFrame:
     """Export the dataset to a pandas DataFrame.
 
@@ -967,6 +970,7 @@ class Dataset(abc.ABC):
       filters: The filters to apply to the query.
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
+      include_deleted: Whether to include deleted rows in the export.
     """
     pass
 
@@ -978,6 +982,7 @@ class Dataset(abc.ABC):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     """Export the dataset to a parquet file.
 
@@ -987,6 +992,7 @@ class Dataset(abc.ABC):
       filters: The filters to apply to the query.
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
+      include_deleted: Whether to include deleted rows in the export.
     """
     pass
 
@@ -998,6 +1004,7 @@ class Dataset(abc.ABC):
     filters: Optional[Sequence[FilterLike]] = None,
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
   ) -> None:
     """Export the dataset to a csv file.
 
@@ -1007,6 +1014,7 @@ class Dataset(abc.ABC):
       filters: The filters to apply to the query.
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
+      include_deleted: Whether to include deleted rows in the export.
     """
     pass
 

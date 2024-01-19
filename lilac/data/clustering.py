@@ -139,7 +139,7 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
       except IncompleteOutputException:
         max_tokens = max_tokens * 2
         print(f'Retrying with max_tokens={max_tokens}')
-    print(f'Could not generate a reasonable title for input:\n{input}')
+    print(f'Could not generate a short title for input:\n{input}')
     return 'FAILED_TO_GENERATE'
 
   return request_with_retries()
