@@ -218,7 +218,10 @@
                 text: !supportsGarden ? 'Signal does not support Lilac Garden.' : ''
               }}
             >
-              <div class="label text-s mb-2 font-medium text-gray-700">Run on Lilac Garden</div>
+              <div class="label mb-2 font-medium text-gray-700">Use Garden</div>
+              <div class="label mb-2 text-sm text-gray-700">
+                Accelerate computation by running remotely on Lilac Garden
+              </div>
               <Toggle
                 disabled={!supportsGarden}
                 labelA={'False'}
