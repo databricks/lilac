@@ -40,6 +40,7 @@
   import SvelteMarkdown from 'svelte-markdown';
   import {writable, type Readable} from 'svelte/store';
   import JsonSchemaForm from '../JSONSchema/JSONSchemaForm.svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import {
     Command,
     type ComputeEmbeddingCommand,
@@ -66,10 +67,14 @@
   let errors: JSONError[] = [];
 
   let overwrite = false;
+  let useGarden = false;
+
+  $: supportsGarden = signalInfo?.json_schema?.properties?.['supports_garden'];
 
   const HIDDEN_PROPERTIES = [
     // Hide the signal name as it's just used for type coersion.
     '/signal_name',
+    '/supports_garden',
     // Hide the embedding input type from the compute embedding menu as we're always computing
     // document level embeddings.
     '/embed_input_type'
@@ -135,7 +140,8 @@
         {
           leaf_path: path || [],
           signal,
-          overwrite
+          overwrite,
+          use_garden: useGarden
         }
       ]);
     } else if (command.command === Command.PreviewConcept) {
@@ -205,6 +211,24 @@
             <div class="mt-8">
               <div class="label text-s mb-2 font-medium text-gray-700">Overwrite</div>
               <Toggle labelA={'False'} labelB={'True'} bind:toggled={overwrite} hideLabel />
+            </div>
+            <div
+              class="mt-8"
+              use:hoverTooltip={{
+                text: !supportsGarden ? 'Signal does not support Lilac Garden.' : ''
+              }}
+            >
+              <div class="label mb-2 font-medium text-gray-700">Use Garden</div>
+              <div class="label mb-2 text-sm text-gray-700">
+                Accelerate computation by running remotely on Lilac Garden
+              </div>
+              <Toggle
+                disabled={!supportsGarden}
+                labelA={'False'}
+                labelB={'True'}
+                bind:toggled={useGarden}
+                hideLabel
+              />
             </div>
           {/key}
         {:else}

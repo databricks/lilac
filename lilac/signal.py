@@ -41,15 +41,17 @@ def _signal_schema_extra(schema: dict[str, Any], signal: Type['Signal']) -> None
   """
   if hasattr(signal, 'display_name'):
     schema['title'] = signal.display_name
-  if not signal.supports_garden and 'use_garden' in schema['properties']:
-    del schema['properties']['use_garden']
 
   signal_prop: dict[str, Any]
   if hasattr(signal, 'name'):
     signal_prop = {'enum': [signal.name]}
   else:
     signal_prop = {'type': 'string'}
-  schema['properties'] = {'signal_name': signal_prop, **schema['properties']}
+  schema['properties'] = {
+    'signal_name': signal_prop,
+    'supports_garden': signal.supports_garden,
+    **schema['properties'],
+  }
   if 'required' not in schema:
     schema['required'] = []
   schema['required'].append('signal_name')
@@ -81,10 +83,6 @@ class Signal(BaseModel):
 
   # True when the signal supports accelerated computation remotely on Lilac Garden.
   supports_garden: ClassVar[bool] = False
-
-  use_garden: bool = PydanticField(
-    default=False, description='Accelerate computation by running remotely on Lilac Garden.'
-  )
 
   @model_serializer(mode='wrap', when_used='always')
   def serialize_model(self, serializer: Callable[..., dict[str, Any]]) -> dict[str, Any]:

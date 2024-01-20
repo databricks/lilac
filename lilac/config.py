@@ -62,9 +62,6 @@ class EmbeddingConfig(BaseModel):
 
   path: PathTuple
   embedding: str
-  use_garden: bool = PydanticField(
-    default=False, description='Accelerate computation by running remotely on Lilac Garden.'
-  )
 
   model_config = ConfigDict(extra='forbid')
 
@@ -153,9 +150,6 @@ class ClusterConfig(BaseModel):
   input_selector: Optional[ClusterInputSelectorConfig] = None
   output_path: Optional[PathTuple] = None
   min_cluster_size: int = 5
-  use_garden: bool = PydanticField(
-    default=False, description='Accelerate computation by running remotely on Lilac Garden.'
-  )
 
   @field_validator('input_selector')
   def check_inputs(
@@ -212,6 +206,12 @@ class Config(BaseModel):
 
   datasets: list[DatasetConfig] = PydanticField(
     description='The configurations for the datasets in the project.', default=[]
+  )
+
+  use_garden: bool = PydanticField(
+    default=False,
+    description='Accelerate computation by running remotely on Lilac Garden. '
+    'Signals, embeddings, and clusters will be run remotely if they support Lilac Garden.',
   )
 
   # When defined, uses this list of signals to run over every dataset, over all media paths, unless

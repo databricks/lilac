@@ -64,11 +64,7 @@ def test_signal_serialization() -> None:
   signal = TestSignal(query='test')
 
   # The class variables should not be included.
-  assert signal.model_dump(exclude_none=True) == {
-    'signal_name': 'test_signal',
-    'query': 'test',
-    'use_garden': False,
-  }
+  assert signal.model_dump(exclude_none=True) == {'signal_name': 'test_signal', 'query': 'test'}
 
 
 def test_get_signal_cls() -> None:

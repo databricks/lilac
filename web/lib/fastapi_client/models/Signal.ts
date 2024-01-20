@@ -8,5 +8,6 @@
  */
 export type Signal = {
     signal_name: string;
+    supports_garden?: any;
 };
 

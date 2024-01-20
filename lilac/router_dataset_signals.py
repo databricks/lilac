@@ -26,6 +26,7 @@ class ComputeSignalOptions(BaseModel):
   leaf_path: Path
 
   overwrite: bool = False
+  use_garden: bool = False
 
   @field_validator('signal', mode='before')
   @classmethod
@@ -71,7 +72,7 @@ def compute_signal(
       options.leaf_path,
       overwrite=options.overwrite,
       task_id=task_id,
-      use_garden=signal.use_garden,
+      use_garden=options.use_garden,
     )
 
   launch_task(task_id, run)

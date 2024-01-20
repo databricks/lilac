@@ -15,6 +15,7 @@ from .env import get_project_dir
 from .load_dataset import process_source
 from .project import PROJECT_CONFIG_FILENAME
 from .schema import PathTuple
+from .signal import TextEmbeddingSignal, get_signal_by_type, get_signal_cls
 from .utils import DebugTimer, get_datasets_dir, log
 
 
@@ -107,12 +108,7 @@ def load(
         field = manifest.data_schema.get_field(e.path)
         embedding_field = (field.fields or {}).get(e.embedding)
         if embedding_field is None or overwrite:
-          _compute_embedding(
-            d.namespace,
-            d.name,
-            e,
-            project_dir,
-          )
+          _compute_embedding(d.namespace, d.name, e, project_dir, config.use_garden)
         else:
           log(f'Embedding {e.embedding} already exists for {d.name}:{e.path}. Skipping.')
 
@@ -151,6 +147,7 @@ def load(
               d.name,
               s,
               project_dir,
+              config.use_garden,
               overwrite,
             )
           else:
@@ -210,7 +207,7 @@ def load(
           cluster_input,
           output_path=c.output_path,
           min_cluster_size=c.min_cluster_size,
-          use_garden=c.use_garden,
+          use_garden=config.use_garden,
         )
 
   log()
@@ -235,6 +232,7 @@ def _compute_signal(
   name: str,
   signal_config: SignalConfig,
   project_dir: Union[str, pathlib.Path],
+  use_garden: bool,
   overwrite: bool = False,
 ) -> None:
   # Turn off debug logging.
@@ -242,10 +240,14 @@ def _compute_signal(
     del os.environ['DEBUG']
 
   dataset = get_dataset(namespace, name, project_dir)
+  signal = get_signal_cls(signal_config.signal.name)
+  assert signal is not None
+
   dataset.compute_signal(
     signal=signal_config.signal,
     path=signal_config.path,
     overwrite=overwrite,
+    use_garden=use_garden and signal.supports_garden,
   )
 
   # Free up RAM.
@@ -259,17 +261,20 @@ def _compute_embedding(
   name: str,
   embedding_config: EmbeddingConfig,
   project_dir: Union[str, pathlib.Path],
+  use_garden: bool,
 ) -> None:
   # Turn off debug logging.
   if 'DEBUG' in os.environ:
     del os.environ['DEBUG']
 
   dataset = get_dataset(namespace, name, project_dir)
+
+  embedding = get_signal_by_type(embedding_config.embedding, TextEmbeddingSignal)
   dataset.compute_embedding(
     embedding=embedding_config.embedding,
     path=embedding_config.path,
     overwrite=True,
-    use_garden=embedding_config.use_garden,
+    use_garden=use_garden and embedding.supports_garden,
   )
   remove_dataset_from_cache(namespace, name)
   del dataset

@@ -1,3 +1,6 @@
+# Accelerate signals, embeddings, and clustering on Lilac Garden.
+use_garden: true
+
 datasets:
   - namespace: lilac
     name: Capybara
@@ -14,20 +17,18 @@ datasets:
             - '*'
             - output
         markdown_paths: []
-      tags: [dataset]
+      tags: [datasets]
     embeddings:
       - embedding: gte-small
         path:
           - conversation
           - '*'
           - input
-        use_garden: true
       - embedding: gte-small
         path:
           - conversation
           - '*'
           - output
-        use_garden: true
 
   - namespace: lilac
     name: glaive
@@ -163,29 +164,23 @@ clusters:
       - conversation
       - '*'
       - input
-    use_garden: true
   - dataset_namespace: lilac
     dataset_name: glaive
     input_path:
       - question
-    use_garden: true
   - dataset_namespace: lilac
     dataset_name: open-asssistant-conversations
     input_path:
       - text
-    use_garden: true
   - dataset_namespace: lilac
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
       - original-instruction
-    use_garden: true
   - dataset_namespace: lilac
     dataset_name: OpenOrca-100k
     input_path:
       - question
-    use_garden: true
   - dataset_namespace: lilac
     dataset_name: dolphin
     input_path:
       - input
-    use_garden: true

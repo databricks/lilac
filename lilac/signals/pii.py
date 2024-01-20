@@ -40,6 +40,8 @@ class PIISignal(TextSignal):
   local_strategy: ClassVar[TaskExecutionType] = 'processes'
   supports_garden: ClassVar[bool] = True
 
+  supports_garden: ClassVar[bool] = True
+
   @override
   def fields(self) -> Field:
     return field(

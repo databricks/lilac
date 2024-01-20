@@ -8,6 +8,7 @@
  */
 export type ConceptLabelsSignal = {
     signal_name: 'concept_labels';
+    supports_garden?: any;
     namespace: string;
     concept_name: string;
     version?: (number | null);

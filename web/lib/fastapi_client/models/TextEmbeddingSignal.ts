@@ -8,6 +8,7 @@
  */
 export type TextEmbeddingSignal = {
     signal_name: string;
+    supports_garden?: any;
     /**
      * The input type to the embedding.
      */
