@@ -241,6 +241,7 @@ def _compute_signal(
 
   dataset = get_dataset(namespace, name, project_dir)
   signal = get_signal_cls(signal_config.signal.name)
+  assert signal is not None
 
   dataset.compute_signal(
     signal=signal_config.signal,
