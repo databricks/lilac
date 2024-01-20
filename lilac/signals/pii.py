@@ -4,6 +4,7 @@ from typing import ClassVar, Iterator, Optional
 import modal
 from typing_extensions import override
 
+from ..batch_utils import compress_docs
 from ..schema import Field, Item, RichData, SignalInputType, field
 from ..signal import TextSignal
 from ..tasks import TaskExecutionType
@@ -74,6 +75,7 @@ class PIISignal(TextSignal):
     pii = modal.Function.lookup('pii', 'PII.detect')
     with DebugTimer('Computing PII on Lilac Garden'):
       batches = chunks(docs, PII_REMOTE_BATCH_SIZE)
-      for response in pii.map(batches, order_outputs=True):
+      requests = ({'gzipped_docs': compress_docs(b)} for b in batches)
+      for response in pii.map(requests, order_outputs=True):
         for item in response['result']:
           yield item

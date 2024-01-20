@@ -564,7 +564,7 @@ class DatasetDuckDB(Dataset):
     """Adds the keys of a map to the schema."""
     value_column = 'key'
     duckdb_path = self._leaf_path_to_duckdb_path(path, merged_schema)
-    inner_select = _select_sql(
+    inner_select = self._select_sql(
       duckdb_path, flatten=False, unnest=True, path=path, schema=merged_schema
     )
     query = f"""
@@ -694,7 +694,7 @@ class DatasetDuckDB(Dataset):
       span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
-        sql = _select_sql(
+        sql = self._select_sql(
           duckdb_path,
           flatten=False,
           unnest=False,
@@ -972,7 +972,7 @@ class DatasetDuckDB(Dataset):
     if ROWID in schema.fields:
       del schema.fields[ROWID]
 
-    select_str = _select_sql(
+    select_str = self._select_sql(
       output_path, flatten=False, unnest=False, path=output_path, schema=manifest.data_schema
     )
     return get_json_query(select_str), schema, parquet_filepath
@@ -1640,7 +1640,7 @@ class DatasetDuckDB(Dataset):
       )
 
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
-    inner_select = _select_sql(
+    inner_select = self._select_sql(
       duckdb_path,
       flatten=True,
       unnest=True,
@@ -1783,7 +1783,7 @@ class DatasetDuckDB(Dataset):
 
     limit_query = f'LIMIT {limit}' if limit else ''
     duckdb_path = self._leaf_path_to_duckdb_path(path, manifest.data_schema)
-    inner_select = _select_sql(
+    inner_select = self._select_sql(
       duckdb_path,
       flatten=True,
       unnest=True,
@@ -1869,7 +1869,7 @@ class DatasetDuckDB(Dataset):
     inner_column = 'inner'
 
     inner_duckdb_path = self._leaf_path_to_duckdb_path(inner_path, manifest.data_schema)
-    inner_select = _select_sql(
+    inner_select = self._select_sql(
       inner_duckdb_path,
       flatten=True,
       unnest=True,
@@ -1879,7 +1879,7 @@ class DatasetDuckDB(Dataset):
     )
 
     outer_duckdb_path = self._leaf_path_to_duckdb_path(outer_path, manifest.data_schema)
-    outer_select = _select_sql(
+    outer_select = self._select_sql(
       outer_duckdb_path,
       flatten=True,
       unnest=True,
@@ -2164,7 +2164,7 @@ class DatasetDuckDB(Dataset):
       span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
-        sql = _select_sql(
+        sql = self._select_sql(
           duckdb_path,
           flatten=False,
           unnest=False,
@@ -2181,7 +2181,7 @@ class DatasetDuckDB(Dataset):
 
         udf_schema = column.signal_udf and column.signal_udf.fields()
         if span_from and udf_schema and _schema_has_spans(udf_schema):
-          sql = _select_sql(
+          sql = self._select_sql(
             duckdb_path,
             flatten=False,
             unnest=False,
@@ -2218,7 +2218,7 @@ class DatasetDuckDB(Dataset):
       else:
         sql_path = udf_path
 
-      sort_sql = _select_sql(sql_path, flatten=True, unnest=False, path=path, schema=schema)
+      sort_sql = self._select_sql(sql_path, flatten=True, unnest=False, path=path, schema=schema)
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in sql_path)
       if has_repeated_field:
         sort_sql = (
@@ -2571,9 +2571,7 @@ class DatasetDuckDB(Dataset):
   def media(self, item_id: str, leaf_path: Path) -> MediaResult:
     raise NotImplementedError('Media is not yet supported for the DuckDB implementation.')
 
-  def _resolve_span(
-    self, span_path: PathTuple, manifest: DatasetManifest
-  ) -> Optional[tuple[Optional[str], PathTuple]]:
+  def _resolve_span(self, span_path: PathTuple, manifest: DatasetManifest) -> Optional[PathTuple]:
     schema = manifest.data_schema
     if not schema.has_field(span_path):
       return None
@@ -2582,27 +2580,16 @@ class DatasetDuckDB(Dataset):
       return None
 
     if span_field.map and span_field.map.input_path:
-      return (metadata.version('lilac'), span_field.map.input_path)
-
-    # Find the manifest that contains the span path.
-    manifests: list[Union[SignalManifest, MapManifest]] = (
-      self._signal_manifests + self._map_manifests
-    )
-    span_manifest = next(
-      filter(
-        lambda s: schema_contains_path(s.data_schema, span_path),
-        manifests,
-      )
-    )
+      return span_field.map.input_path
 
     # Find the original text, which is the closest parent of `path` above the signal root.
     for i in reversed(range(len(span_path))):
       sub_path = span_path[:i]
       sub_field = schema.get_field(sub_path)
       if sub_field.map and sub_field.map.input_path:
-        return (span_manifest.py_version, sub_field.map.input_path)
+        return sub_field.map.input_path
       if sub_field.dtype == STRING:
-        return (span_manifest.py_version, sub_path)
+        return sub_path
 
     raise ValueError('Cannot find the source path for the enriched path: {path}')
 
@@ -2802,7 +2789,7 @@ class DatasetDuckDB(Dataset):
         sql_filter_queries.append(f.path[0])
         continue
       duckdb_path = self._leaf_path_to_duckdb_path(f.path, manifest.data_schema)
-      select_str = _select_sql(
+      select_str = self._select_sql(
         duckdb_path,
         flatten=True,
         unnest=False,
@@ -2975,7 +2962,7 @@ class DatasetDuckDB(Dataset):
     if sort_path:
       self._validate_sort_path(sort_path, manifest.data_schema)
       sql_path = self._leaf_path_to_duckdb_path(sort_path, manifest.data_schema)
-      sort_sql = _select_sql(
+      sort_sql = self._select_sql(
         sql_path, flatten=True, unnest=False, path=sort_path, schema=manifest.data_schema
       )
       has_repeated_field = any(subpath == PATH_WILDCARD for subpath in sql_path)
@@ -3286,46 +3273,89 @@ class DatasetDuckDB(Dataset):
     if not manifest.data_schema.has_field(embedding_path):
       raise ValueError(f'Embedding "{embedding}" not found for path {path}.')
 
+  def _inner_select(
+    self,
+    sub_paths: list[PathTuple],
+    path: PathTuple,
+    schema: Schema,
+    inner_var: Optional[str] = None,
+    empty: bool = False,
+    span_from: Optional[PathTuple] = None,
+  ) -> str:
+    """Recursively generate the inner select statement for a list of sub paths."""
+    current_sub_path = sub_paths[0]
+    lambda_var = inner_var + 'x' if inner_var else 'x'
+    if not inner_var:
+      lambda_var = 'x'
+      inner_var = escape_col_name(current_sub_path[0])
+      current_sub_path = current_sub_path[1:]
+    # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
+    path_key = inner_var + ''.join([f'[{escape_string_literal(p)}]' for p in current_sub_path])
+    if len(sub_paths) == 1:
+      if span_from:
+        duckdb_path = self._leaf_path_to_duckdb_path(span_from, schema)
+        derived_col = self._select_sql(
+          duckdb_path, flatten=False, unnest=False, path=path, schema=schema
+        )
+        path_key = (
+          f'{derived_col}[{path_key}.{SPAN_KEY}.{TEXT_SPAN_START_FEATURE}+1:'
+          f'{path_key}.{SPAN_KEY}.{TEXT_SPAN_END_FEATURE}]'
+        )
+      return 'NULL' if empty else path_key
+    return (
+      f'list_transform({path_key}, {lambda_var} -> '
+      f'{self._inner_select(sub_paths[1:], path, schema, lambda_var, empty, span_from)})'
+    )
+
+  def _select_sql(
+    self,
+    sql_path: tuple[str, ...],
+    flatten: bool,
+    unnest: bool,
+    path: PathTuple,
+    schema: Schema,
+    empty: bool = False,
+    span_from: Optional[PathTuple] = None,
+  ) -> str:
+    """Create a select column for a path.
+
+    Args:
+      sql_path: An internal sql path to the joined wide duckdb table. E.g. ['a', 'b', 'c'].
+      flatten: Whether to flatten the result.
+      unnest: Whether to unnest the result.
+      path: The original path.
+      schema: The schema of the dataset.
+      empty: Whether to return an empty list (used for embedding signals that don't need the data).
+      span_from: The path this span is derived from. If specified, the span will be resolved
+        to a substring of the original string.
+    """
+    sub_paths = _split_path_into_subpaths_of_lists(sql_path)
+    selection = self._inner_select(sub_paths, path, schema, None, empty, span_from)
+    # We only flatten when the result is a deeply nested list to avoid segfault.
+    # The nesting list level is a func of subpaths, e.g. subPaths = [[a, b, c], *, *] is 2 levels.
+    nesting_level = len(sub_paths) - 1
+
+    # If the parent field is a map, accessing a key returns a list, which increases nesting level:
+    # https://duckdb.org/docs/sql/data_types/map.html
+    if len(path) > 1 and schema.has_field(path[:-1]):
+      parent_field = schema.get_field(path[:-1])
+      if parent_field.dtype and parent_field.dtype.type == 'map':
+        nesting_level += 1
+
+    is_result_nested_list = nesting_level >= 2
+    if flatten and is_result_nested_list:
+      selection = f'flatten({selection})'
+    # We only unnest when the result is a list. // E.g. subPaths = [[a, b, c], *].
+    is_result_a_list = nesting_level >= 1
+    if unnest and is_result_a_list:
+      selection = f'unnest({selection})'
+    return selection
+
 
 def _escape_like_value(value: str) -> str:
   value = value.replace('%', '\\%').replace('_', '\\_')
   value = escape_string_literal(f'%{value}%')
   return f"{value} ESCAPE '\\'"
-
-
-def _inner_select(
-  sub_paths: list[PathTuple],
-  path: PathTuple,
-  schema: Schema,
-  inner_var: Optional[str] = None,
-  empty: bool = False,
-  span_from: Optional[tuple[Optional[str], PathTuple]] = None,
-) -> str:
-  """Recursively generate the inner select statement for a list of sub paths."""
-  current_sub_path = sub_paths[0]
-  lambda_var = inner_var + 'x' if inner_var else 'x'
-  if not inner_var:
-    lambda_var = 'x'
-    inner_var = escape_col_name(current_sub_path[0])
-    current_sub_path = current_sub_path[1:]
-  # Select the path inside structs. E.g. x['a']['b']['c'] given current_sub_path = [a, b, c].
-  path_key = inner_var + ''.join([f'[{escape_string_literal(p)}]' for p in current_sub_path])
-  if len(sub_paths) == 1:
-    if span_from:
-      py_version, span_path = span_from
-      # Older signal manifests (w/o py_version) store spans under `VALUE_KEY` instead of `SPAN_KEY`.
-      # TODO(smilkov): Remove this once we bump the semver to breaking.
-      span_key = SPAN_KEY if py_version else VALUE_KEY
-      derived_col = _select_sql(span_path, flatten=False, unnest=False, path=path, schema=schema)
-      path_key = (
-        f'{derived_col}[{path_key}.{span_key}.{TEXT_SPAN_START_FEATURE}+1:'
-        f'{path_key}.{span_key}.{TEXT_SPAN_END_FEATURE}]'
-      )
-    return 'NULL' if empty else path_key
-  return (
-    f'list_transform({path_key}, {lambda_var} -> '
-    f'{_inner_select(sub_paths[1:], path, schema, lambda_var, empty, span_from)})'
-  )
 
 
 def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
@@ -3345,50 +3375,6 @@ def _split_path_into_subpaths_of_lists(leaf_path: PathTuple) -> list[PathTuple]:
     sub_paths.append(sub_path)
     offset = new_offset + 1
   return sub_paths
-
-
-def _select_sql(
-  sql_path: tuple[str, ...],
-  flatten: bool,
-  unnest: bool,
-  path: PathTuple,
-  schema: Schema,
-  empty: bool = False,
-  span_from: Optional[tuple[Optional[str], PathTuple]] = None,
-) -> str:
-  """Create a select column for a path.
-
-  Args:
-    sql_path: An internal sql path to the joined wide duckdb table. E.g. ['a', 'b', 'c'].
-    flatten: Whether to flatten the result.
-    unnest: Whether to unnest the result.
-    path: The original path.
-    schema: The schema of the dataset.
-    empty: Whether to return an empty list (used for embedding signals that don't need the data).
-    span_from: The path this span is derived from. If specified, the span will be resolved
-      to a substring of the original string.
-  """
-  sub_paths = _split_path_into_subpaths_of_lists(sql_path)
-  selection = _inner_select(sub_paths, path, schema, None, empty, span_from)
-  # We only flatten when the result is a deeply nested list to avoid segfault.
-  # The nesting list level is a func of subpaths, e.g. subPaths = [[a, b, c], *, *] is 2 levels.
-  nesting_level = len(sub_paths) - 1
-
-  # If the parent field is a map, accessing a key returns a list, which increases the nesting level:
-  # https://duckdb.org/docs/sql/data_types/map.html
-  if len(path) > 1 and schema.has_field(path[:-1]):
-    parent_field = schema.get_field(path[:-1])
-    if parent_field.dtype and parent_field.dtype.type == 'map':
-      nesting_level += 1
-
-  is_result_nested_list = nesting_level >= 2
-  if flatten and is_result_nested_list:
-    selection = f'flatten({selection})'
-  # We only unnest when the result is a list. // E.g. subPaths = [[a, b, c], *].
-  is_result_a_list = nesting_level >= 1
-  if unnest and is_result_a_list:
-    selection = f'unnest({selection})'
-  return selection
 
 
 def read_source_manifest(dataset_path: str) -> SourceManifest:

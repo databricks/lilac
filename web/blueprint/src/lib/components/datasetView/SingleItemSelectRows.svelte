@@ -38,14 +38,19 @@
       !$rowsQuery.isPreviousData &&
       !$rowsQuery.isFetching
     ) {
-      rowsResponse = {
-        total_num_rows: $rowsQuery.data.total_num_rows,
-        rows: $rowsQuery.data.rows.slice(0, -1)
-      };
-      lookAheadRowId = L.value(
-        $rowsQuery.data.rows?.[$rowsQuery.data.rows.length - 1]?.[ROWID],
-        'string'
-      );
+      if ($rowsQuery.data.rows.length <= limit) {
+        lookAheadRowId = null;
+        rowsResponse = $rowsQuery.data;
+      } else {
+        rowsResponse = {
+          total_num_rows: $rowsQuery.data.total_num_rows,
+          rows: $rowsQuery.data.rows.slice(0, -1)
+        };
+        lookAheadRowId = L.value(
+          $rowsQuery.data.rows?.[$rowsQuery.data.rows.length - 1]?.[ROWID],
+          'string'
+        );
+      }
     } else {
       rowsResponse = undefined;
       lookAheadRowId = null;
