@@ -978,6 +978,26 @@ class Dataset(abc.ABC):
     )
 
   @abc.abstractmethod
+  def to_huggingface(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
+  ) -> HuggingFaceDataset:
+    """Export the dataset to a huggingface dataset.
+
+    Args:
+      columns: The columns to export.
+      filters: The filters to apply to the query.
+      include_labels: The labels to include in the export.
+      exclude_labels: The labels to exclude in the export.
+      include_deleted: Whether to include deleted rows in the export.
+    """
+    pass
+
+  @abc.abstractmethod
   def to_json(
     self,
     filepath: Union[str, pathlib.Path],

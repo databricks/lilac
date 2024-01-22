@@ -11,7 +11,11 @@ npm run dev --workspace web/blueprint -- --open &
 pid[2]=$!
 
 # Run the FastAPI server.
-export LILAC_PROJECT_DIR='./data'
+if [ "$1" ]; then
+  export LILAC_PROJECT_DIR="$1"
+else
+  export LILAC_PROJECT_DIR="./data"
+fi
 poetry run uvicorn lilac.server:app --reload --port 5432 --host 0.0.0.0 \
   --reload-dir lilac &
 pid[1]=$!

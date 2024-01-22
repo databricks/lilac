@@ -54,6 +54,26 @@ datasets:
         path:
           - answer
 
+  - name: glaive-function-calling-v2
+    namespace: lilac
+    source:
+      dataset_name: lilacai/glaive-function-calling-v2-sharegpt
+      source_name: huggingface
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - - conversations
+            - '*'
+            - value
+        markdown_paths: []
+    embeddings:
+      - embedding: gte-small
+        path:
+          - conversations
+          - '*'
+          - value
+
   - name: open-assistant-conversations-2
     namespace: lilac
     settings:
@@ -196,6 +216,13 @@ clusters:
     dataset_name: glaive-code-assistant
     input_path:
       - question
+  - dataset_namespace: lilac
+    dataset_name: glaive-function-calling-v2
+    input_selector:
+      format: sharegpt
+      selector: user
+    output_path:
+      - conversation_clusters
   - dataset_namespace: lilac
     dataset_name: open-assistant-conversations-2
     input_path:
