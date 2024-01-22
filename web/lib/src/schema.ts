@@ -19,7 +19,6 @@ export const VALUE_KEY = '__value__';
 export const SPAN_KEY = '__span__';
 export const DELETED_LABEL_KEY = '__deleted__';
 
-export const CLUSTER_PARENT_SUFFIX = '__cluster';
 export const CLUSTER_TITLE_FIELD = 'cluster_title';
 export const CLUSTER_CATEGORY_FIELD = 'category_title';
 export const CLUSTER_MEMBERSHIP_PROB = 'cluster_membership_prob';
