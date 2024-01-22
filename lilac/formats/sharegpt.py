@@ -13,7 +13,7 @@ def _sharegpt_selector(item: Item, conv_from: str) -> str:
   # Get the __value__ key version of text if it's enriched.
   values = [value if isinstance(value, str) else value.get(VALUE_KEY) for value in values]
 
-  return '\n'.join(conv['value'] for conv in item['conversations'] if conv['from'] == conv_from)
+  return '\n'.join(values)
 
 
 _SYSTEM_SELECTOR = DatasetFormatInputSelector(
