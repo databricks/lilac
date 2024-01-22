@@ -10,6 +10,7 @@ from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequenc
 
 import numpy as np
 import pandas as pd
+from datasets import Dataset as HuggingFaceDataset
 from pydantic import (
   BaseModel,
   ConfigDict,

@@ -3188,6 +3188,7 @@ class DatasetDuckDB(Dataset):
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
+    print('filters=', filters)
     rows = self.select_rows(
       columns, filters=filters, combine_columns=True, include_deleted=include_deleted
     )
