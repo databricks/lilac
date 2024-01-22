@@ -1,8 +1,7 @@
 """Registers all available dataset formats."""
 
-from lilac.formats.openai_json import OpenAIJSON
-
 from ..dataset_format import register_dataset_format
+from .openai_json import OpenAIJSON
 from .openchat import OpenChat
 from .sharegpt import ShareGPT
 
