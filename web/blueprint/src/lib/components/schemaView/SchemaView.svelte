@@ -1,19 +1,32 @@
 <script lang="ts">
-  import {querySelectRows, querySelectRowsSchema} from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
+  import {queryConfig, querySelectRows, querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {DELETED_LABEL_KEY, ROWID, formatValue} from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
-  import {TrashCan, View, ViewOff} from 'carbon-icons-svelte';
+  import {Modal, SkeletonText, TextArea} from 'carbon-components-svelte';
+  import {Information, TrashCan, View, ViewOff} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import RestoreRowsButton from '../datasetView/RestoreRowsButton.svelte';
   import SchemaField from './SchemaField.svelte';
 
   const datasetViewStore = getDatasetViewContext();
+
+  $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    selectOptions
   );
+
+  $: rowsQuery = querySelectRows(
+    $datasetViewStore.namespace,
+    $datasetViewStore.datasetName,
+    {
+      columns: [ROWID],
+      limit: 1
+    },
+    $selectRowsSchema.data?.schema
+  );
+
   $: hasDeletedLabel = Object.keys($selectRowsSchema.data?.schema?.fields || {}).includes(
     DELETED_LABEL_KEY
   );
@@ -41,9 +54,34 @@
           key => key !== DELETED_LABEL_KEY && key !== ROWID
         )
       : [];
+
+  let configModalOpen = false;
+  $: config = configModalOpen
+    ? queryConfig($datasetViewStore.namespace, $datasetViewStore.datasetName, 'yaml')
+    : null;
 </script>
 
 <div class="schema flex h-full flex-col overflow-y-auto">
+  <!-- Dataset information -->
+  <div
+    class="flex w-full flex-row items-center justify-between gap-x-2 border-b border-gray-300 bg-neutral-300 bg-opacity-20 p-2 px-4"
+  >
+    <div class="flex flex-row items-center">
+      {#if $rowsQuery.isFetching}
+        <SkeletonText paragraph lines={1} />
+      {:else if $rowsQuery.data?.rows != null}
+        {formatValue($rowsQuery.data?.total_num_rows)} rows
+      {/if}
+    </div>
+    <div>
+      <button
+        on:click={() => (configModalOpen = true)}
+        use:hoverTooltip={{text: 'Dataset information'}}
+      >
+        <Information />
+      </button>
+    </div>
+  </div>
   <!-- Deleted rows. -->
   {#if numDeletedRows}
     <div
@@ -84,6 +122,36 @@
     {/each}
   {/if}
 </div>
+
+{#if configModalOpen}
+  <Modal
+    open
+    modalHeading="Dataset config"
+    primaryButtonText="Ok"
+    secondaryButtonText="Cancel"
+    on:click:button--secondary={() => (configModalOpen = false)}
+    on:close={() => (configModalOpen = false)}
+    on:submit={() => (configModalOpen = false)}
+  >
+    <div class="mb-4 text-sm">
+      This dataset configuration represents the transformations that created the dataset, including
+      signals, embeddings, and user settings. This can be used with lilac.load to generate the
+      dataset with the same view as presented.
+    </div>
+    <div class="font-mono text-xs">config.yml</div>
+    {#if $config?.isFetching}
+      <SkeletonText />
+    {:else if $config?.data}
+      <TextArea
+        value={`${$config.data}`}
+        readonly
+        rows={15}
+        placeholder="3 rows of data for previewing the response"
+        class="mb-2 font-mono"
+      />
+    {/if}
+  </Modal>
+{/if}
 
 <style>
   :global(.schema .bx--tab-content) {

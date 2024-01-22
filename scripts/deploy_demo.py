@@ -122,7 +122,7 @@ def deploy_demo(
   # For the public demo, the lilac_hf_space.yml is _always_ uploaded to the HF space
   original_parsed_config = read_config(config)
   # If a dataset is specified, we only sync/load/upload that dataset.
-  if dataset is not None:
+  if dataset:
     config_to_load = original_parsed_config.model_copy()
     datasets_to_load = [d for d in config_to_load.datasets if f'{d.namespace}/{d.name}' in dataset]
     if not datasets_to_load:

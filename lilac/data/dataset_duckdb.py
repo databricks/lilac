@@ -519,7 +519,10 @@ class DatasetDuckDB(Dataset):
          (SELECT CAST(0 AS bigint) AS mtime);"""
       )
       db_mtime = self.con.execute('SELECT mtime FROM mtime_cache').fetchone()[0]  # type: ignore
-      if db_mtime < latest_mtime_micro_sec:
+      table_exists = self.con.execute(
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 't'"
+      ).fetchone()[0]  # type: ignore
+      if db_mtime != latest_mtime_micro_sec or not table_exists:
         with DebugTimer(f'Recomputing table+index for {self.dataset_name}...'):
           self.con.execute('UPDATE mtime_cache SET mtime = ?', (latest_mtime_micro_sec,))
           self.con.execute(f'CREATE OR REPLACE TABLE t AS (SELECT {select_sql} FROM {join_sql})')

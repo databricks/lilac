@@ -65,7 +65,7 @@
   }
 </script>
 
-<div class="relative mx-5 my-2 flex items-center justify-between">
+<div class="relative mx-8 my-2 flex items-center justify-between pr-4">
   <div class="flex w-full justify-between gap-x-6 gap-y-2">
     <div class="flex w-full flex-row gap-x-4">
       <div class="flex items-center gap-x-2">

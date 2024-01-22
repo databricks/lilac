@@ -157,7 +157,7 @@
 
 <div class="flex h-full flex-col">
   <div class="mb-8 flex h-16 w-full flex-row justify-between justify-items-center gap-x-4">
-    <div class="ml-16 mt-4 w-96">
+    <div class="ml-8 mt-4 w-96">
       <Search
         value={searchText}
         on:input={searchInput}
@@ -167,7 +167,7 @@
         on:clear={clearSearch}
       />
     </div>
-    <div class="mx-16 flex flex-row gap-x-4 py-2">
+    <div class="mr-8 flex flex-row gap-x-4 py-2 pr-4">
       <div class="flex flex-col gap-y-2">
         <div>Explore</div>
         <DropdownPill
@@ -209,7 +209,7 @@
     </div>
   </div>
 
-  <div class="flex flex-row overflow-y-scroll">
+  <div class="flex flex-row overflow-y-scroll px-8">
     {#if innerLeafPath == null}
       <div class="mx-20 mt-8 w-full text-lg text-gray-600">Select a field to explore.</div>
     {:else if outerLeafPath == null}
@@ -230,7 +230,7 @@
           })}
 
           <div class="flex w-full flex-row">
-            <div class="mx-11 flex w-48 flex-col items-center justify-center gap-y-4 py-1">
+            <div class="flex w-48 flex-col items-center justify-center gap-y-4 py-1">
               <div class="mx-2 whitespace-break-spaces text-center text-2xl">
                 {#each group.textHighlights as highlight}
                   {#if highlight.isBold}<span class="font-bold">{highlight.text}</span>

@@ -5,28 +5,18 @@
   import ScrollView from '$lib/components/datasetView/ScrollView.svelte';
   import SearchPanel from '$lib/components/datasetView/SearchPanel.svelte';
   import SchemaView from '$lib/components/schemaView/SchemaView.svelte';
-  import {queryConfig, queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
+  import {queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
   import {
-    ComposedModal,
-    Modal,
-    ModalBody,
-    ModalFooter,
-    ModalHeader,
-    SkeletonText,
-    Tag,
-    TextArea
-  } from 'carbon-components-svelte';
-  import {
-    Export,
-    IbmWatsonKnowledgeStudio,
-    Information,
-    Settings,
-    Share,
-    TableOfContents
-  } from 'carbon-icons-svelte';
+    CLUSTER_CATEGORY_FIELD,
+    CLUSTER_TITLE_FIELD,
+    childFields,
+    isClusterRootField
+  } from '$lilac';
+  import {ComposedModal, ModalBody, ModalFooter, ModalHeader, Tag} from 'carbon-components-svelte';
+  import {EdgeCluster, Export, Settings, Share, TableOfContents} from 'carbon-icons-svelte';
   import {fade} from 'svelte/transition';
   import ComputeClusterModal from '../ComputeClusterModal.svelte';
   import DatasetPivotViewer from './DatasetPivotViewer.svelte';
@@ -60,21 +50,26 @@
 
   $: link = datasetLink(namespace, datasetName);
 
-  let configModalOpen = false;
-  $: config = configModalOpen ? queryConfig(namespace, datasetName, 'yaml') : null;
+  // Determine whether the dataset has clusters.
+  $: clusterFields = childFields($schema.data).filter(f => isClusterRootField(f));
+  // For now, choose the first cluster.
+  $: clusterField = clusterFields && clusterFields.length > 0 ? clusterFields[0] : null;
+  function openClusters() {
+    if (clusterField == null) return;
+    if ($datasetViewStore.viewPivot) {
+      goto(link);
+      return;
+    }
+
+    datasetViewStore.openPivotViewer(
+      [...clusterField.path, CLUSTER_CATEGORY_FIELD],
+      [...clusterField.path, CLUSTER_TITLE_FIELD]
+    );
+  }
 </script>
 
 <Page>
-  <div slot="header-subtext" class="flex flex-row items-center gap-x-1">
-    <button
-      class="mr-2"
-      class:bg-blue-100={!schemaCollapsed}
-      class:outline-blue-400={!schemaCollapsed}
-      class:outline={!schemaCollapsed}
-      use:hoverTooltip={{text: schemaCollapsed ? 'Show Schema' : 'Hide Schema'}}
-      on:click={toggleSchemaCollapsed}
-      on:keypress={toggleSchemaCollapsed}><TableOfContents /></button
-    >
+  <div slot="header-subtext" class="flex flex-row items-center gap-x-2">
     <Tag type="outline">
       <div class="dataset-name">
         <a class="font-semibold text-black" href={link} on:click={() => goto(link)}
@@ -83,17 +78,31 @@
       </div>
     </Tag>
     <button
-      on:click={() => (configModalOpen = true)}
-      use:hoverTooltip={{text: 'Dataset information'}}
+      class:bg-blue-100={!schemaCollapsed}
+      class:outline-blue-400={!schemaCollapsed}
+      class:outline={!schemaCollapsed}
+      use:hoverTooltip={{text: schemaCollapsed ? 'Show Schema' : 'Hide Schema'}}
+      on:click={toggleSchemaCollapsed}
+      on:keypress={toggleSchemaCollapsed}><TableOfContents /></button
     >
-      <Information />
-    </button>
     <button
-      use:hoverTooltip={{text: 'Dataset insights'}}
-      on:click={() => datasetViewStore.setInsightsOpen(true)}
+      class:disabled={clusterField == null}
+      class:cursor-default={clusterField == null}
+      class:opacity-30={clusterField == null}
+      class:bg-blue-100={$datasetViewStore.viewPivot}
+      class:outline-blue-400={$datasetViewStore.viewPivot}
+      class:outline={$datasetViewStore.viewPivot}
+      use:hoverTooltip={{
+        text:
+          clusterField == null
+            ? 'Clusters have not been computed for this dataset.'
+            : !$datasetViewStore.viewPivot
+            ? 'Open clusters'
+            : 'Back to items'
+      }}
+      on:click={openClusters}
+      on:keypress={openClusters}><EdgeCluster /></button
     >
-      <IbmWatsonKnowledgeStudio />
-    </button>
   </div>
   <div slot="header-center" class="flex w-full items-center">
     <SearchPanel />
@@ -196,35 +205,6 @@
     </ComposedModal>
   {/if}
 
-  {#if configModalOpen}
-    <Modal
-      open
-      modalHeading="Dataset config"
-      primaryButtonText="Ok"
-      secondaryButtonText="Cancel"
-      on:click:button--secondary={() => (configModalOpen = false)}
-      on:close={() => (configModalOpen = false)}
-      on:submit={() => (configModalOpen = false)}
-    >
-      <div class="mb-4 text-sm">
-        This dataset configuration represents the transformations that created the dataset,
-        including signals, embeddings, and user settings. This can be used with lilac.load to
-        generate the dataset with the same view as presented.
-      </div>
-      <div class="font-mono text-xs">config.yml</div>
-      {#if $config?.isFetching}
-        <SkeletonText />
-      {:else if $config?.data}
-        <TextArea
-          value={`${$config.data}`}
-          readonly
-          rows={15}
-          placeholder="3 rows of data for previewing the response"
-          class="mb-2 font-mono"
-        />
-      {/if}
-    </Modal>
-  {/if}
   <ComputeClusterModal />
 </Page>
 
