@@ -71,7 +71,7 @@
   );
   $: removeLabels = $schema.data != null ? removeLabelsMutation($schema.data) : null;
 
-  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+  $: selectOptions = getSelectRowsOptions($datasetViewStore, $schema.data);
   $: rowQuery = queryRowMetadata(
     namespace,
     datasetName,

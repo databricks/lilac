@@ -43,7 +43,7 @@
       )
     : null;
 
-  $: selectOptions = getSelectRowsOptions($store);
+  $: selectOptions = getSelectRowsOptions($store, $selectRowsSchema.data?.schema);
   $: rowsQuery = querySelectRows(
     $store.namespace,
     $store.datasetName,

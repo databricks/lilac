@@ -27,14 +27,14 @@
 
   $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
-  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+  $: selectOptions = getSelectRowsOptions($datasetViewStore, $schema.data);
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, undefined, $schema.data)
   );
 
   $: highlightedFields = getHighlightedFields($datasetViewStore.query, $selectRowsSchema?.data);

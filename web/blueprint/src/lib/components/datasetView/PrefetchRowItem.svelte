@@ -12,12 +12,12 @@
   const datasetViewStore = getDatasetViewContext();
   $: namespace = $datasetViewStore.namespace;
   $: datasetName = $datasetViewStore.datasetName;
-  $: selectOptions = getSelectRowsOptions($datasetViewStore);
   $: selectRowsSchema = querySelectRowsSchema(
     namespace,
     datasetName,
     getSelectRowsSchemaOptions($datasetViewStore)
   );
+  $: selectOptions = getSelectRowsOptions($datasetViewStore, $selectRowsSchema.data?.schema);
   $: rowQuery =
     !$selectRowsSchema.isFetching &&
     $selectRowsSchema?.data?.schema != null &&

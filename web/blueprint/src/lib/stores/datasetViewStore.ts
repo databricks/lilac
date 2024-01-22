@@ -2,10 +2,10 @@ import {
   CATEGORY_MEMBERSHIP_PROB,
   CLUSTER_CATEGORY_FIELD,
   CLUSTER_MEMBERSHIP_PROB,
-  CLUSTER_PARENT_SUFFIX,
   CLUSTER_TITLE_FIELD,
   DELETED_LABEL_KEY,
   ROWID,
+  getField,
   isColumn,
   pathIncludes,
   pathIsEqual,
@@ -13,6 +13,7 @@ import {
   type Column,
   type Filter,
   type LeafValue,
+  type LilacSchema,
   type LilacSelectRowsSchema,
   type MetadataSearch,
   type Path,
@@ -394,7 +395,10 @@ export function getDatasetViewContext() {
  * Get the options to pass to the selectRows API call
  * based on the current state of the dataset view store
  */
-export function getSelectRowsOptions(viewState: DatasetViewState): SelectRowsOptions {
+export function getSelectRowsOptions(
+  viewState: DatasetViewState,
+  schema?: LilacSchema
+): SelectRowsOptions {
   const columns = ['*', ROWID, ...(viewState.query.columns ?? [])];
   // If we're viewing the trash, add the deleted label filter.
   if (viewState.viewTrash) {
@@ -414,11 +418,11 @@ export function getSelectRowsOptions(viewState: DatasetViewState): SelectRowsOpt
   if (viewState.groupBy?.value != null) {
     const groupByPath = viewState.groupBy.path;
     const fieldName = groupByPath.at(-1);
-    const parentFieldName = groupByPath.at(-2);
+    const groupByField = schema != null ? getField(schema, groupByPath) : null;
+    const parentGroupBy = groupByField?.parent;
     if (
       options.sort_by == null &&
-      parentFieldName != null &&
-      parentFieldName.endsWith(CLUSTER_PARENT_SUFFIX) &&
+      parentGroupBy?.cluster != null &&
       (fieldName == CLUSTER_TITLE_FIELD || fieldName == CLUSTER_CATEGORY_FIELD)
     ) {
       const membershipProbPath = groupByPath
@@ -446,9 +450,10 @@ export function getSelectRowsOptions(viewState: DatasetViewState): SelectRowsOpt
 
 export function getSelectRowsSchemaOptions(
   datasetViewStore: DatasetViewState,
-  selectRowsOptions?: SelectRowsOptions
+  selectRowsOptions?: SelectRowsOptions,
+  schema?: LilacSchema
 ): SelectRowsSchemaOptions {
-  const options = selectRowsOptions || getSelectRowsOptions(datasetViewStore);
+  const options = selectRowsOptions || getSelectRowsOptions(datasetViewStore, schema);
   return {
     columns: options.columns,
     searches: options.searches,

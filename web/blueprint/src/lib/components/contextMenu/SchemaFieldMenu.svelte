@@ -35,7 +35,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     namespace,
     datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, undefined, $schema.data)
   );
 
   const deleteSignal = deleteSignalMutation();

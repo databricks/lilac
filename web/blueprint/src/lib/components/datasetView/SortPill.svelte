@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {queryDatasetSchema, querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {
     getDatasetViewContext,
     getSelectRowsSchemaOptions,
@@ -27,10 +27,11 @@
   import {hoverTooltip} from '../common/HoverTooltip';
 
   let datasetViewStore = getDatasetViewContext();
+  $: schemaQuery = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, undefined, $schemaQuery.data)
   );
 
   let open = false;

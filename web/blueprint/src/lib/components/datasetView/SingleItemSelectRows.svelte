@@ -1,5 +1,9 @@
 <script lang="ts">
-  import {querySelectRows, querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {
+    queryDatasetSchema,
+    querySelectRows,
+    querySelectRowsSchema
+  } from '$lib/queries/datasetQueries';
   import {
     getDatasetViewContext,
     getSelectRowsOptions,
@@ -12,13 +16,14 @@
   export let lookAheadRowId: string | null = null;
 
   const store = getDatasetViewContext();
+  const schema = queryDatasetSchema($store.namespace, $store.datasetName);
 
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
     $store.datasetName,
-    getSelectRowsSchemaOptions($store)
+    getSelectRowsSchemaOptions($store, undefined, $schema.data)
   );
-  $: selectOptions = getSelectRowsOptions($store);
+  $: selectOptions = getSelectRowsOptions($store, $schema.data);
   $: rowsQuery = querySelectRows(
     $store.namespace,
     $store.datasetName,
