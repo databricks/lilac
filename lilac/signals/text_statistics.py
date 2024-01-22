@@ -1,4 +1,5 @@
 """Compute text statistics for a document."""
+import logging
 from typing import TYPE_CHECKING, ClassVar, Iterable, Optional, cast
 
 from typing_extensions import override
@@ -8,7 +9,7 @@ from ..signal import TextSignal
 
 SPACY_LANG_MODEL = 'en_core_web_sm'
 SPACY_BATCH_SIZE = 128
-SPACY_MAX_LENGTH = 2_000_000
+SPACY_MAX_LENGTH = 4_000_000
 
 NUM_CHARS = 'num_characters'
 READABILITY = 'readability'
@@ -53,6 +54,10 @@ class TextStatisticsSignal(TextSignal):
         'Could not import the "spacy" python package. '
         'Please install it with `pip install spacy`.'
       )
+
+    # Ignore spacy warnings that spam the console.
+    logger = logging.getLogger('textacy')
+    logger.setLevel(logging.ERROR)
 
     if not spacy.util.is_package(SPACY_LANG_MODEL):
       spacy.cli.download(SPACY_LANG_MODEL)

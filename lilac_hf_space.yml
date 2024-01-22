@@ -2,12 +2,13 @@
 use_garden: true
 
 datasets:
-  - namespace: lilac
-    name: Capybara
+  - name: Capybara
+    namespace: lilac
     source:
       dataset_name: LDJnr/Capybara
       source_name: huggingface
     settings:
+      tags: [datasets]
       ui:
         media_paths:
           - - conversation
@@ -17,7 +18,6 @@ datasets:
             - '*'
             - output
         markdown_paths: []
-      tags: [datasets]
     embeddings:
       - embedding: gte-small
         path:
@@ -30,21 +30,21 @@ datasets:
           - '*'
           - output
 
-  - namespace: lilac
-    name: glaive
+  - name: glaive-code-assistant
+    namespace: lilac
     source:
       dataset_name: glaiveai/glaive-code-assistant
       source_name: huggingface
     settings:
-      tags: [machine-learning]
-      ui:
-        view_type: 'single_item'
+      tags: [datasets]
       ui:
         media_paths:
           - question
           - answer
-          - - answer_formatted
-            - answer
+          # TODO(nsthorat): Run the map for answer_formatted here and reupload. This is from the
+          # blog post about curating a coding dataset.
+          # - - answer_formatted
+          #   - answer
         markdown_paths: []
     embeddings:
       - embedding: gte-small
@@ -54,22 +54,41 @@ datasets:
         path:
           - answer
 
-  - name: open-asssistant-conversations
+  - name: open-assistant-conversations-2
     namespace: lilac
     settings:
-      tags: [machine-learning]
+      tags: [datasets]
       ui:
         media_paths:
           - text
-      preferred_embedding: 'gte-small'
     source:
       source_name: huggingface
-      dataset_name: OpenAssistant/oasst1
+      dataset_name: OpenAssistant/oasst2
     embeddings:
       - embedding: gte-small
         path:
           - text
 
+  - name: lmsys-chat-1m
+    namespace: lilac
+    settings:
+      tags: [logs]
+      ui:
+        media_paths:
+          - - conversation
+            - '*'
+            - content
+    source:
+      source_name: huggingface
+      dataset_name: OpenAssistant/oasst2
+    embeddings:
+      - embedding: gte-small
+        path:
+          - conversation
+          - '*'
+          - content
+
+  ## Old datasets to be cleaned up.
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
     settings:
@@ -102,6 +121,23 @@ datasets:
         path:
           - original-response
 
+  - name: 'OpenOrca'
+    namespace: lilac
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - question
+          - response
+      preferred_embedding: 'gte-small'
+    source:
+      source_name: huggingface
+      dataset_name: Open-Orca/OpenOrca
+    embeddings:
+      - embedding: gte-small
+        path:
+          - question
+
   - name: 'OpenOrca-100k'
     namespace: lilac
     settings:
@@ -125,6 +161,7 @@ datasets:
 
   - namespace: lilac
     name: dolphin
+    tags: [datasets]
     source:
       dataset_name: cognitivecomputations/dolphin
       config_name: flan1m-alpaca-uncensored
@@ -140,22 +177,13 @@ datasets:
         markdown_paths: []
 
 signals:
-  - signal_name: pii
   - signal_name: text_statistics
   - signal_name: lang_detection
-  - signal_name: concept_score
-    namespace: lilac
-    concept_name: profanity
-    embedding: gte-small
-
-concept_model_cache_embeddings:
-  - gte-small
-  - gte-base
-  - sbert
-  - openai
-  - cohere
-  # PALM is currently timing-out.
-  # - palm
+  # NOTE: This is currently bugging.
+  # - signal_name: concept_score
+  #   namespace: lilac
+  #   concept_name: profanity
+  #   embedding: gte-small
 
 clusters:
   - dataset_namespace: lilac
@@ -165,13 +193,24 @@ clusters:
       - '*'
       - input
   - dataset_namespace: lilac
-    dataset_name: glaive
+    dataset_name: glaive-code-assistant
     input_path:
       - question
   - dataset_namespace: lilac
-    dataset_name: open-asssistant-conversations
+    dataset_name: open-assistant-conversations-2
     input_path:
       - text
+  - dataset_namespace: lilac
+    dataset_name: lmsys-chat-1m
+    input_selector:
+      format: openai_json
+      selector: user
+    output_path:
+      - conversation__clusters
+  - dataset_namespace: lilac
+    dataset_name: OpenOrca
+    input_path:
+      - question
   - dataset_namespace: lilac
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
@@ -184,3 +223,12 @@ clusters:
     dataset_name: dolphin
     input_path:
       - input
+
+concept_model_cache_embeddings:
+  - gte-small
+  - gte-base
+  - sbert
+  - openai
+  - cohere
+  # PALM is currently timing-out.
+  # - palm

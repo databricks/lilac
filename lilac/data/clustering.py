@@ -287,7 +287,10 @@ def cluster_impl(
       raise ValueError(f'Path {path} must be a string field.')
 
   elif not output_path:
-    raise ValueError('output_path must be provided if input is a function.')
+    raise ValueError(
+      '`output_path` must be provided to `Dataset.cluster()` when `input` is a user-provided '
+      'method.'
+    )
 
   # Output the cluster enrichment to a sibling path, unless an output path is provided by the user.
   if output_path:

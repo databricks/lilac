@@ -34,7 +34,7 @@ class PIISignal(TextSignal):
   local_parallelism: ClassVar[int] = -1
   local_strategy: ClassVar[TaskExecutionType] = 'processes'
 
-  supports_garden: ClassVar[bool] = True
+  supports_garden: ClassVar[bool] = False
 
   @override
   def fields(self) -> Field:

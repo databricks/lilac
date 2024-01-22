@@ -2,12 +2,17 @@
 from typing import ClassVar
 
 from ..dataset_format import DatasetFormat, DatasetFormatInputSelector
-from ..schema import PATH_WILDCARD, Item, PathTuple, Schema, schema
+from ..schema import PATH_WILDCARD, VALUE_KEY, Item, PathTuple, Schema, schema
 
 
 def _sharegpt_selector(item: Item, conv_from: str) -> str:
   """Selector for ShareGPT."""
   # TODO(nsthorat): Make this return an array, and not pre-join with newlines.
+  values = [conv['value'] for conv in item['conversations'] if conv['from'] == conv_from]
+
+  # Get the __value__ key version of text if it's enriched.
+  values = [value.get(VALUE_KEY, value) for value in values]
+
   return '\n'.join(conv['value'] for conv in item['conversations'] if conv['from'] == conv_from)
 
 
