@@ -453,7 +453,8 @@ def cluster_impl(
 
   def drop_temp_text_column(items: Iterator[Item]) -> Iterator[Item]:
     for item in items:
-      del item[TEXT_COLUMN]
+      if TEXT_COLUMN in item:
+        del item[TEXT_COLUMN]
       yield item
 
   # Drop the temporary newline-concatenated text column and write the final output.
