@@ -1,4 +1,5 @@
 """Unit tests for dataset.cluster()."""
+import re
 from typing import ClassVar, Iterable, Iterator
 
 import pytest
@@ -341,7 +342,13 @@ def test_clusters_with_fn(make_test_data: TestDataMaker, mocker: MockerFixture) 
       return 'simplification'
     return 'other'
 
-  with pytest.raises(ValueError, match='output_path must be provided if input is a function'):
+  with pytest.raises(
+    ValueError,
+    match=re.escape(
+      '`output_path` must be provided to `Dataset.cluster()` when `input` is a '
+      'user-provided method.'
+    ),
+  ):
     dataset.cluster(lambda row: '\n'.join(row['texts']), min_cluster_size=2, topic_fn=topic_fn)
 
   dataset.cluster(

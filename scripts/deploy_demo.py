@@ -124,11 +124,16 @@ def deploy_demo(
   # If a dataset is specified, we only sync/load/upload that dataset.
   if dataset is not None:
     config_to_load = original_parsed_config.model_copy()
-    config_to_load.datasets = [
-      d for d in config_to_load.datasets if f'{d.namespace}/{d.name}' in dataset
-    ]
+    datasets_to_load = [d for d in config_to_load.datasets if f'{d.namespace}/{d.name}' in dataset]
+    if not datasets_to_load:
+      raise ValueError(
+        f'No datasets found with name {dataset}. Available datasets: ',
+        [f'{d.namespace}/{d.name}' for d in config_to_load.datasets],
+      )
+    config_to_load.datasets = datasets_to_load
   else:
     config_to_load = original_parsed_config
+
   hf_space_org, hf_space_name = hf_space.split('/')
 
   if not skip_sync:
