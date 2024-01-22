@@ -1,4 +1,4 @@
-"""Tests for the openchat format."""
+"""Tests for the openai_json format."""
 
 
 from ..data.dataset_test_utils import TestDataMaker
