@@ -397,7 +397,7 @@ export function getDatasetViewContext() {
  */
 export function getSelectRowsOptions(
   viewState: DatasetViewState,
-  schema?: LilacSchema
+  schema: LilacSchema | undefined
 ): SelectRowsOptions {
   const columns = ['*', ROWID, ...(viewState.query.columns ?? [])];
   // If we're viewing the trash, add the deleted label filter.
@@ -450,7 +450,7 @@ export function getSelectRowsOptions(
 
 export function getSelectRowsSchemaOptions(
   datasetViewStore: DatasetViewState,
-  schema?: LilacSchema
+  schema: LilacSchema | undefined
 ): SelectRowsSchemaOptions {
   const options = getSelectRowsOptions(datasetViewStore, schema);
   return {

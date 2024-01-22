@@ -67,7 +67,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     namespace,
     datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, $schema.data)
   );
   $: removeLabels = $schema.data != null ? removeLabelsMutation($schema.data) : null;
 

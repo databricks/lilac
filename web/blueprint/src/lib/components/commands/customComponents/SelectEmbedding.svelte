@@ -11,7 +11,7 @@
   export let value: string;
 
   const datasetViewStore = getDatasetViewContext();
-  const schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
   // Get the current field from the context, set by the CommandSignals component
   const ctx = getCommandSignalContext();

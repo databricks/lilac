@@ -1,5 +1,9 @@
 <script lang="ts">
-  import {querySelectRowsSchema, querySettings} from '$lib/queries/datasetQueries';
+  import {
+    queryDatasetSchema,
+    querySelectRowsSchema,
+    querySettings
+  } from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {getHighlightedFields, getMediaFields} from '$lib/view_utils';
   import {L, ROWID, type SelectRowsResponse} from '$lilac';
@@ -12,6 +16,8 @@
   export let modalOpen = false;
 
   const store = getDatasetViewContext();
+  $: schema = queryDatasetSchema($store.namespace, $store.datasetName);
+
   const DEFAULT_LIMIT_SELECT_ROW_IDS = 5;
 
   let limit = DEFAULT_LIMIT_SELECT_ROW_IDS;
@@ -21,7 +27,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
     $store.datasetName,
-    getSelectRowsSchemaOptions($store)
+    getSelectRowsSchemaOptions($store, $schema.data)
   );
 
   $: rows = rowsResponse?.rows;

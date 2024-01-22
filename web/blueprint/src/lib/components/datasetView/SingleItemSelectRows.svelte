@@ -16,7 +16,7 @@
   export let lookAheadRowId: string | null = null;
 
   const store = getDatasetViewContext();
-  const schema = queryDatasetSchema($store.namespace, $store.datasetName);
+  $: schema = queryDatasetSchema($store.namespace, $store.datasetName);
 
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,

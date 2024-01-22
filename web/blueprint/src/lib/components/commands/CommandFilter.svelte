@@ -28,7 +28,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     command.namespace,
     command.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, $schema.data)
   );
 
   // Create list of fields, and include current count of filters

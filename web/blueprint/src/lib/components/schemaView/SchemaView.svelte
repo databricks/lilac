@@ -1,6 +1,11 @@
 <script lang="ts">
-  import {queryConfig, querySelectRows, querySelectRowsSchema} from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
+  import {
+    queryConfig,
+    queryDatasetSchema,
+    querySelectRows,
+    querySelectRowsSchema
+  } from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {DELETED_LABEL_KEY, ROWID, formatValue} from '$lilac';
   import {Modal, SkeletonText, TextArea} from 'carbon-components-svelte';
   import {Information, TrashCan, View, ViewOff} from 'carbon-icons-svelte';
@@ -9,12 +14,11 @@
   import SchemaField from './SchemaField.svelte';
 
   const datasetViewStore = getDatasetViewContext();
-
-  $: selectOptions = getSelectRowsOptions($datasetViewStore);
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    selectOptions
+    getSelectRowsSchemaOptions($datasetViewStore, $schema.data)
   );
 
   $: rowsQuery = querySelectRows(

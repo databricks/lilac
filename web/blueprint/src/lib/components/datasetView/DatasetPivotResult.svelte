@@ -19,6 +19,7 @@
 <script lang="ts">
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
 
+  import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {datasetLink} from '$lib/utils';
   import type {BinaryFilter, Path, UnaryFilter} from '$lilac';
   import {Information} from 'carbon-icons-svelte';
@@ -50,8 +51,8 @@
   });
 
   const store = getDatasetViewContext();
-
-  $: selectOptions = getSelectRowsOptions($store);
+  $: schema = queryDatasetSchema($store.namespace, $store.datasetName);
+  $: selectOptions = getSelectRowsOptions($store, $schema?.data);
   $: filters = [filter, ...(selectOptions.filters || [])];
 
   function getPercentage(count: number, total: number | undefined) {

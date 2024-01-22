@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     queryDatasetManifest,
+    queryDatasetSchema,
     querySelectRowsSchema,
     querySettings
   } from '$lib/queries/datasetQueries';
@@ -86,17 +87,18 @@
   }
   $: isLeaf = childPathParts.length === 0;
 
-  $: schema = querySelectRowsSchema(
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
+  $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, $schema.data)
   );
 
   $: isRepeatedParent = pathIsRepeated(rootPath?.slice(0, -1));
   $: isRepeated = pathIsRepeated(rootPath);
   function pathIsRepeated(path?: Path | null) {
-    return $schema.data != null && path != null
-      ? getField($schema.data.schema, path)?.repeated_field != null
+    return $selectRowsSchema.data != null && path != null
+      ? getField($selectRowsSchema.data.schema, path)?.repeated_field != null
       : false;
   }
 
@@ -162,7 +164,9 @@
   // NOTE: We do not use media paths here to allow the user to compare to a field they didn't
   // necessarily add to the media fields.
   $: stringPetals =
-    $schema.data != null ? petals($schema.data.schema).filter(p => p.dtype?.type === 'string') : [];
+    $selectRowsSchema.data != null
+      ? petals($selectRowsSchema.data.schema).filter(p => p.dtype?.type === 'string')
+      : [];
 
   $: compareMediaPaths = stringPetals
     .map(f => f.path)
@@ -185,11 +189,13 @@
     datasetViewStore.addCompareColumn([rootPath!, event.detail.id]);
   }
 
-  $: computedEmbeddings = getComputedEmbeddings($schema.data?.schema, rootPath);
+  $: computedEmbeddings = getComputedEmbeddings($selectRowsSchema.data?.schema, rootPath);
   $: noEmbeddings = computedEmbeddings.length === 0;
 
   $: field =
-    $schema.data != null && rootPath != null ? getField($schema.data.schema, rootPath) : null;
+    $selectRowsSchema.data != null && rootPath != null
+      ? getField($selectRowsSchema.data.schema, rootPath)
+      : null;
   $: spanValuePaths = field != null ? getSpanValuePaths(field, highlightedFields) : null;
 
   function findSimilar(searchText: DataTypeCasted) {

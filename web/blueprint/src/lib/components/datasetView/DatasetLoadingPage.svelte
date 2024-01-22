@@ -45,7 +45,11 @@
 
   $: schema = loadTaskComplete ? queryDatasetSchema(namespace, datasetName) : null;
   $: selectRowsSchema = loadTaskComplete
-    ? querySelectRowsSchema(namespace, datasetName, getSelectRowsSchemaOptions($datasetViewStore))
+    ? querySelectRowsSchema(
+        namespace,
+        datasetName,
+        getSelectRowsSchemaOptions($datasetViewStore, $schema?.data)
+      )
     : null;
 
   $: firstRow =

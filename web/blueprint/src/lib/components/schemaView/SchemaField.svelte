@@ -65,7 +65,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, schema)
   );
 
   $: path = field.path;

@@ -1,5 +1,10 @@
 <script lang="ts">
-  import {DATASETS_TAG, querySelectRows, querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {
+    DATASETS_TAG,
+    queryDatasetSchema,
+    querySelectRows,
+    querySelectRowsSchema
+  } from '$lib/queries/datasetQueries';
   import {createApiQuery} from '$lib/queries/queryUtils';
   import {
     getDatasetViewContext,
@@ -30,11 +35,11 @@
   let innerLeafPath: Path | undefined = undefined;
 
   const store = getDatasetViewContext();
-
+  $: schema = queryDatasetSchema($store.namespace, $store.datasetName);
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
     $store.datasetName,
-    getSelectRowsSchemaOptions($store)
+    getSelectRowsSchemaOptions($store, $schema.data)
   );
 
   $: fields = $selectRowsSchema.data?.schema

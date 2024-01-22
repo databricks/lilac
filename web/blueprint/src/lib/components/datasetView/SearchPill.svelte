@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {querySelectRowsSchema} from '$lib/queries/datasetQueries';
+  import {queryDatasetSchema, querySelectRowsSchema} from '$lib/queries/datasetQueries';
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {getDisplayPath} from '$lib/view_utils';
   import type {KeywordSearch, MetadataSearch, Search, SearchType, SemanticSearch} from '$lilac';
@@ -20,10 +20,11 @@
   };
 
   const datasetViewStore = getDatasetViewContext();
+  $: schema = queryDatasetSchema($datasetViewStore.namespace, $datasetViewStore.datasetName);
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore)
+    getSelectRowsSchemaOptions($datasetViewStore, $schema.data)
   );
 
   function getPillText(search: Search) {
