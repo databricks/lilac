@@ -446,28 +446,41 @@ def cluster_impl(
       output_path=cluster_output_path,
       sort_by=(*cluster_output_path, CATEGORY_ID),
       overwrite=True,
-      schema=field(
-        fields={
-          CLUSTER_ID: field('int32', categorical=True),
-          CLUSTER_MEMBERSHIP_PROB: 'float32',
-          CLUSTER_TITLE: 'string',
-          CATEGORY_ID: field('int32', categorical=True),
-          CATEGORY_MEMBERSHIP_PROB: 'float32',
-          CATEGORY_TITLE: 'string',
-        },
-        cluster=ClusterInfo(
-          min_cluster_size=min_cluster_size,
-          use_garden=use_garden,
-          input_path=(get_callable_name(input_fn_or_path),) if callable(input_fn_or_path) else path,
-          input_format_selector=ClusterInputFormatSelectorInfo(
-            format=manifest.dataset_format.name,
-            selector=dataset_format_input_selector.name,
-          )
-          if dataset_format_input_selector and manifest.dataset_format
-          else None,
-        ),
-      ),
     )
+
+  def drop_temp_text_column(items: Iterator[Item]) -> Iterator[Item]:
+    for item in items:
+      del item[TEXT_COLUMN]
+      yield item
+
+  # Drop the temporary newline-concatenated text column and write the final output.
+  dataset.transform(
+    drop_temp_text_column,
+    input_path=cluster_output_path,
+    output_path=cluster_output_path,
+    overwrite=True,
+    schema=field(
+      fields={
+        CLUSTER_ID: field('int32', categorical=True),
+        CLUSTER_MEMBERSHIP_PROB: 'float32',
+        CLUSTER_TITLE: 'string',
+        CATEGORY_ID: field('int32', categorical=True),
+        CATEGORY_MEMBERSHIP_PROB: 'float32',
+        CATEGORY_TITLE: 'string',
+      },
+      cluster=ClusterInfo(
+        min_cluster_size=min_cluster_size,
+        use_garden=use_garden,
+        input_path=(get_callable_name(input_fn_or_path),) if callable(input_fn_or_path) else path,
+        input_format_selector=ClusterInputFormatSelectorInfo(
+          format=manifest.dataset_format.name,
+          selector=dataset_format_input_selector.name,
+        )
+        if dataset_format_input_selector and manifest.dataset_format
+        else None,
+      ),
+    ),
+  )
 
 
 def _hdbscan_cluster(

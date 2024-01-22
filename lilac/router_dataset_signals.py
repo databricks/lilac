@@ -1,5 +1,4 @@
 """Routing endpoints for running signals on datasets."""
-from threading import Thread
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -122,8 +121,7 @@ def cluster(
       task_id=task_id,
     )
 
-  thread = Thread(target=run, daemon=True)
-  thread.start()
+  launch_task(task_id, run)
   return ClusterResponse(task_id=task_id)
 
 

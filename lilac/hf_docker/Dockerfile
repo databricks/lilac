@@ -2,6 +2,8 @@ FROM python:3.11-slim-bullseye
 
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
+# Fixes "invalid instruction" runtime error on AMD machines (specifically HF Upgraded CPU Space).
+ENV HNSWLIB_NO_NATIVE 1
 
 # Adds GCC and other build tools so we can compile hnswlib and other native/C++ deps.
 RUN apt-get update --fix-missing && apt-get install -y --fix-missing build-essential && \
