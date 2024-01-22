@@ -520,7 +520,7 @@ class DatasetDuckDB(Dataset):
       )
       db_mtime = self.con.execute('SELECT mtime FROM mtime_cache').fetchone()[0]  # type: ignore
       table_exists = self.con.execute(
-        'SELECT COUNT(*) FROM information_schema.tables WHERE table_name = "t"'
+        "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 't'"
       ).fetchone()[0]  # type: ignore
       if db_mtime != latest_mtime_micro_sec or not table_exists:
         with DebugTimer(f'Recomputing table+index for {self.dataset_name}...'):
