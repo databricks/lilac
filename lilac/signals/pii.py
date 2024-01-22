@@ -1,11 +1,14 @@
 """Compute text statistics for a document."""
-from typing import ClassVar, Optional
+from typing import ClassVar, Iterator, Optional
 
+import modal
 from typing_extensions import override
 
+from ..batch_utils import compress_docs
 from ..schema import Field, Item, RichData, SignalInputType, field
 from ..signal import TextSignal
 from ..tasks import TaskExecutionType
+from ..utils import DebugTimer, chunks
 
 SECRETS_KEY = 'secrets'
 # Selected categories. For all categories, see:
@@ -20,6 +23,8 @@ PII_CATEGORIES = {
   'IP_ADDRESS': 'ip_address',
   'PHONE_NUMBER': 'phone_number',
 }
+PII_LOCAL_BATCH_SIZE = 128
+PII_REMOTE_BATCH_SIZE = 512
 
 
 class PIISignal(TextSignal):
@@ -30,11 +35,10 @@ class PIISignal(TextSignal):
 
   input_type: ClassVar[SignalInputType] = SignalInputType.TEXT
 
-  local_batch_size: ClassVar[Optional[int]] = 128
+  local_batch_size: ClassVar[Optional[int]] = PII_LOCAL_BATCH_SIZE
   local_parallelism: ClassVar[int] = -1
   local_strategy: ClassVar[TaskExecutionType] = 'processes'
-
-  supports_garden: ClassVar[bool] = False
+  supports_garden: ClassVar[bool] = True
 
   @override
   def fields(self) -> Field:
@@ -65,3 +69,13 @@ class PIISignal(TextSignal):
       pii_dict = find_pii(text)
       res.append({**pii_dict, SECRETS_KEY: secrets})
     return res
+
+  @override
+  def compute_garden(self, docs: Iterator[str]) -> Iterator[Item]:
+    pii = modal.Function.lookup('pii', 'PII.detect')
+    with DebugTimer('Computing PII on Lilac Garden'):
+      batches = chunks(docs, PII_REMOTE_BATCH_SIZE)
+      requests = ({'gzipped_docs': compress_docs(b)} for b in batches)
+      for response in pii.map(requests, order_outputs=True):
+        for item in response['result']:
+          yield item
