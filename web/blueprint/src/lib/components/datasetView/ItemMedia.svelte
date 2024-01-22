@@ -49,7 +49,6 @@
   import ItemMediaDiff from './ItemMediaDiff.svelte';
   import ItemMediaTextContent from './ItemMediaTextContent.svelte';
 
-  export let mediaPath: Path;
   export let row: LilacValueNode | undefined | null = undefined;
   export let highlightedFields: LilacField[];
   export let mediaFields: LilacField[];
@@ -186,7 +185,7 @@
     datasetViewStore.addCompareColumn([rootPath!, event.detail.id]);
   }
 
-  $: computedEmbeddings = getComputedEmbeddings($schema.data?.schema, mediaPath);
+  $: computedEmbeddings = getComputedEmbeddings($schema.data?.schema, rootPath);
   $: noEmbeddings = computedEmbeddings.length === 0;
 
   $: field =
@@ -229,10 +228,11 @@
     }
   }
   function removeComparison() {
-    datasetViewStore.removeCompareColumn(mediaPath);
+    if (rootPath == null) return;
+    datasetViewStore.removeCompareColumn(rootPath);
   }
   $: datasetSettingsMarkdown =
-    $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, mediaPath)) != null;
+    $settings.data?.ui?.markdown_paths?.find(p => pathIsEqual(p, rootPath)) != null;
   $: viewType = $settings.data?.ui?.view_type || 'single_item';
 
   $: markdown = userPreview !== undefined ? userPreview : datasetSettingsMarkdown;
@@ -365,6 +365,7 @@
       <div
         class={borderColor}
         class:mx-4={!isRepeated && displayPath}
+        class:py-1={!childIsRepeated}
         class:m-2={!childIsRepeated}
         class:border-b={i < childPathParts.length - 1}
       >
@@ -373,7 +374,6 @@
           {mediaFields}
           {row}
           {highlightedFields}
-          {mediaPath}
         />
       </div>
     {/each}

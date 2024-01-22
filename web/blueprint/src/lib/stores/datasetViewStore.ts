@@ -358,6 +358,7 @@ export function createDatasetViewStore(
     },
     removeCompareColumn(path: Path) {
       update(state => {
+        console.log('removing compare column', path, state.compareColumns);
         state.compareColumns = state.compareColumns.filter(c => !pathIsEqual(c.column, path));
         return state;
       });
