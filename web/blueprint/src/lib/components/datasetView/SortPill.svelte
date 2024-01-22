@@ -31,7 +31,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore, undefined, $schemaQuery.data)
+    getSelectRowsSchemaOptions($datasetViewStore, $schemaQuery.data)
   );
 
   let open = false;

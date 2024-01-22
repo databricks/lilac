@@ -21,7 +21,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     $store.namespace,
     $store.datasetName,
-    getSelectRowsSchemaOptions($store, undefined, $schema.data)
+    getSelectRowsSchemaOptions($store, $schema.data)
   );
   $: selectOptions = getSelectRowsOptions($store, $schema.data);
   $: rowsQuery = querySelectRows(

@@ -34,7 +34,7 @@
   $: selectRowsSchema = querySelectRowsSchema(
     $datasetViewStore.namespace,
     $datasetViewStore.datasetName,
-    getSelectRowsSchemaOptions($datasetViewStore, undefined, $schema.data)
+    getSelectRowsSchemaOptions($datasetViewStore, $schema.data)
   );
 
   $: highlightedFields = getHighlightedFields($datasetViewStore.query, $selectRowsSchema?.data);

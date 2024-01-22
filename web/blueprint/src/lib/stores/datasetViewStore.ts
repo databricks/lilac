@@ -450,10 +450,9 @@ export function getSelectRowsOptions(
 
 export function getSelectRowsSchemaOptions(
   datasetViewStore: DatasetViewState,
-  selectRowsOptions?: SelectRowsOptions,
   schema?: LilacSchema
 ): SelectRowsSchemaOptions {
-  const options = selectRowsOptions || getSelectRowsOptions(datasetViewStore, schema);
+  const options = getSelectRowsOptions(datasetViewStore, schema);
   return {
     columns: options.columns,
     searches: options.searches,
