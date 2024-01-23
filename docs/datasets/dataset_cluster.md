@@ -50,7 +50,7 @@ When the clustering is complete, you can view the cluster results in the UI, by 
 
 ## From Python
 
-You can cluster a dataset from Python in 1 line of code:
+You can cluster a dataset from Python in 1 line of code using [`dataset.cluster`](#Dataset.cluster):
 
 ```python
 dataset.cluster(input='conversation.*.input', use_garden=True)
