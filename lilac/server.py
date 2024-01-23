@@ -261,7 +261,7 @@ def start_server(
 
   block = False
   try:
-    asyncio.get_event_loop()
+    asyncio.get_running_loop()
   except RuntimeError:
     block = True
 
