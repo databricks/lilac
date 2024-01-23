@@ -24,7 +24,7 @@ Clustering is an expensive operation. To dramatically speed up the computation, 
 [Lilac waitlist](https://forms.gle/Gz9cpeKJccNar5Lq8) to get access to
 [Lilac Garden](https://lilacml.com/garden), our platform for accelerated data processing. Lilac
 Garden uses powerful GPUs to embed, cluster and annotate one million documents in about 20-30 mins.
-Once you have access to Lilac Garden, you can select the "Use Lilac Garden" option to accelerate
+Once you have access to Lilac Garden, you can select the "Use Garden" option to accelerate
 clustering.
 
 <img width=600 alt="The clustering modal dialog" src="../_static/dataset/dataset_cluster_modal.png">
