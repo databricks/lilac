@@ -175,6 +175,19 @@ datasets:
             - text
         markdown_paths: []
 
+  - namespace: lilac
+    name: mosaic-instruct-v3
+    tags: [datasets]
+    source:
+      dataset_name: mosaicml/instruct-v3
+      source_name: huggingface
+    settings:
+      ui:
+        media_paths:
+          - prompt
+          - response
+        markdown_paths: []
+
 signals:
   - signal_name: text_statistics
   - signal_name: lang_detection
@@ -225,6 +238,10 @@ clusters:
     dataset_name: dolphin
     input_path:
       - input
+  - dataset_namespace: lilac
+    dataset_name: mosaic-instruct-v3
+    input_path:
+      - prompt
 
 concept_model_cache_embeddings:
   - gte-small
