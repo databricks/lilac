@@ -199,7 +199,7 @@ clusters:
     dataset_name: glaive-function-calling-v2
     input_selector:
       format: sharegpt
-      selector: user
+      selector: human
     output_path:
       - conversation_clusters
   - dataset_namespace: lilac
