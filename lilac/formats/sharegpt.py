@@ -24,6 +24,10 @@ _HUMAN_SELECTOR = DatasetFormatInputSelector(
   name='human',
   selector=lambda item: _sharegpt_selector(item, 'human'),
 )
+_TOOL_SELECTOR = DatasetFormatInputSelector(
+  name='tool',
+  selector=lambda item: _sharegpt_selector(item, 'tool'),
+)
 _GPT_SELECTOR = DatasetFormatInputSelector(
   name='gpt',
   selector=lambda item: _sharegpt_selector(item, 'gpt'),
@@ -50,8 +54,10 @@ class ShareGPT(DatasetFormat):
 
   system: ClassVar[DatasetFormatInputSelector] = _SYSTEM_SELECTOR
   human: ClassVar[DatasetFormatInputSelector] = _HUMAN_SELECTOR
+  tool: ClassVar[DatasetFormatInputSelector] = _TOOL_SELECTOR
   gpt: ClassVar[DatasetFormatInputSelector] = _GPT_SELECTOR
 
   input_selectors: ClassVar[dict[str, DatasetFormatInputSelector]] = {
-    selector.name: selector for selector in [_SYSTEM_SELECTOR, _HUMAN_SELECTOR, _GPT_SELECTOR]
+    selector.name: selector
+    for selector in [_SYSTEM_SELECTOR, _HUMAN_SELECTOR, _GPT_SELECTOR, _TOOL_SELECTOR]
   }

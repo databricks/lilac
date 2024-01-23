@@ -158,27 +158,6 @@ datasets:
         path:
           - question
 
-  - name: 'OpenOrca-100k'
-    namespace: lilac
-    settings:
-      tags: [machine-learning]
-      ui:
-        media_paths:
-          - question
-          - response
-      preferred_embedding: 'gte-small'
-    source:
-      source_name: huggingface
-      dataset_name: Open-Orca/OpenOrca
-      sample_size: 100000
-    embeddings:
-      - embedding: gte-small
-        path:
-          - question
-      - embedding: gte-small
-        path:
-          - response
-
   - namespace: lilac
     name: dolphin
     tags: [datasets]
@@ -242,10 +221,6 @@ clusters:
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
       - original-instruction
-  - dataset_namespace: lilac
-    dataset_name: OpenOrca-100k
-    input_path:
-      - question
   - dataset_namespace: lilac
     dataset_name: dolphin
     input_path:

@@ -9,7 +9,7 @@
 
   const tryDataset = {
     namespace: 'lilac',
-    name: 'OpenOrca-100k',
+    name: 'OpenOrca',
     displayName: 'OpenOrca',
     originalLink: 'https://huggingface.co/datasets/Open-Orca/OpenOrca'
   };
