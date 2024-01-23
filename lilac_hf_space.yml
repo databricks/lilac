@@ -100,7 +100,7 @@ datasets:
             - content
     source:
       source_name: huggingface
-      dataset_name: OpenAssistant/oasst2
+      dataset_name: lmsys/lmsys-chat-1m
     embeddings:
       - embedding: gte-small
         path:
