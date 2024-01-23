@@ -2704,13 +2704,13 @@ files = [
 
 [[package]]
 name = "instructor"
-version = "0.4.5"
-description = "Helper functions that allow us to improve openai's function_call ergonomics"
+version = "0.4.7"
+description = "structured outputs for llm"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "instructor-0.4.5-py3-none-any.whl", hash = "sha256:6aa924226d6e6db345e28ceea8a1f353cca5a4b3ee1c4db10348c7680a0e070c"},
-    {file = "instructor-0.4.5.tar.gz", hash = "sha256:a694e34319ae1446ee17f0e43a90480dad8cbd33886ba476bcb69633ebfee4d2"},
+    {file = "instructor-0.4.7-py3-none-any.whl", hash = "sha256:55835a4c794c430a9e55ce775f4a94c75bccbde87c9dd71519a672019957cd72"},
+    {file = "instructor-0.4.7.tar.gz", hash = "sha256:5a56598f468d41409013fd1f7f66e02e1a32936cb6511989bde68f4204260207"},
 ]
 
 [package.dependencies]
@@ -4342,7 +4342,6 @@ files = [
     {file = "numpy-1.26.3-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:3c67423b3703f8fbd90f5adaa37f85b5794d3366948efe9a5190a5f3a83fc34e"},
     {file = "numpy-1.26.3-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:46f47ee566d98849323f01b349d58f2557f02167ee301e5e28809a8c0e27a2d0"},
     {file = "numpy-1.26.3-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:a8474703bffc65ca15853d5fd4d06b18138ae90c17c8d12169968e998e448bb5"},
-    {file = "numpy-1.26.3.tar.gz", hash = "sha256:697df43e2b6310ecc9d95f05d5ef20eacc09c7c4ecc9da3f235d39e71b7da1e4"},
 ]
 
 [[package]]

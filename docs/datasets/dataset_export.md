@@ -23,7 +23,8 @@ Click "Download" to download the results as a JSON file from the browser.
 ## From Python
 
 In Python, we can export to different formats using the [](#Dataset.to_pandas),
-[](#Dataset.to_json), [](#Dataset.to_parquet) and [](#Dataset.to_csv) methods.
+[](#Dataset.to_json), [](#Dataset.to_parquet), [](#Dataset.to_csv) and [](#Dataset.to_huggingface)
+methods.
 
 Let's export the `text` and `text.language_detection` to a pandas dataframe:
 
