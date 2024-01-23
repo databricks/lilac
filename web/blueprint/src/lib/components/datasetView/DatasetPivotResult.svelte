@@ -75,8 +75,18 @@
         {@const innerGroup = castToInnerPivot(item)}
         {@const groupPercentage = getPercentage(innerGroup.count, group.count)}
         {@const totalPercentage = getPercentage(innerGroup.count, numRowsInQuery)}
+        {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
+          ...$store,
+          viewPivot: false,
+          pivot: undefined,
+          query: {
+            ...$store.query,
+            filters
+          },
+          groupBy: {path, value: innerGroup.value}
+        })}
         <div
-          class="md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
+          class="md:1/2 flex h-full w-full max-w-sm flex-grow flex-col items-center justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
         >
           <div
             class="card-title h-16 py-0.5 text-center text-lg font-light leading-5 tracking-tight text-neutral-900"
@@ -89,12 +99,10 @@
               {/if}
             {/each}
           </div>
-          <div
-            class="flex flex-row items-center justify-center gap-x-2 font-light leading-none text-neutral-600"
-          >
+          <div class="flex flex-row gap-x-2 font-light leading-none text-neutral-600">
             <div class="leading-2 text-lg">
               <div class="flex flex-col py-2">
-                <div class="leading-2 flex flex-row items-center gap-x-1 text-xl text-neutral-800">
+                <div class="leading-2 flex flex-row gap-x-1 text-xl text-neutral-800">
                   {groupPercentage}%
                   <div
                     use:hoverTooltip={{
@@ -111,39 +119,7 @@
               </div>
             </div>
           </div>
-          <div class="w-full text-center">
-            <a
-              target="_blank"
-              href={datasetLink($store.namespace, $store.datasetName, {
-                ...$store,
-                viewPivot: false,
-                pivot: undefined,
-                query: {
-                  ...$store.query,
-                  filters
-                },
-                groupBy: {path, value: innerGroup.value}
-              })}
-              class="inline-flex items-center text-blue-600 hover:underline"
-            >
-              Explore
-              <svg
-                class="ms-2.5 h-3 w-3 rtl:rotate-[270deg]"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 18 18"
-              >
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 11v4.833A1.166 1.166 0 0 1 13.833 17H2.167A1.167 1.167 0 0 1 1 15.833V4.167A1.166 1.166 0 0 1 2.167 3h4.618m4.447-2H17v5.768M9.111 8.889l7.778-7.778"
-                />
-              </svg>
-            </a>
-          </div>
+          <a class="flex flex-row" href={groupLink}> <button>Explore</button></a>
         </div>
       </div>
     </Carousel>
