@@ -217,8 +217,7 @@ export function getTaggedDatasets(
   });
 
   const namespaceSortPriorities = ['lilac'];
-  // TODO(nsthorat): Don't hard-code this. Let's make this a config.
-  const pinnedDatasets = ['OpenOrca-100k'];
+  const pinnedDatasets: string[] = [];
 
   // Sort each tag by namespace and then dataset name.
   const taggedDatasetGroups: NavigationTagGroup<DatasetInfo>[] = [];

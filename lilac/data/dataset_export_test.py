@@ -40,6 +40,41 @@ def setup_teardown() -> Iterable[None]:
   clear_signal_registry()  # Teardown.
 
 
+def test_export_to_huggingface(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
+  dataset.compute_signal(TestSignal(), 'text')
+
+  hf_dataset = dataset.to_huggingface()
+
+  assert list(hf_dataset) == [
+    {'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}},
+    {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}},
+  ]
+
+
+def test_export_to_huggingface_filters(
+  make_test_data: TestDataMaker, tmp_path: pathlib.Path
+) -> None:
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
+  dataset.compute_signal(TestSignal(), 'text')
+
+  # Download a subset of columns with filter.
+  hf_dataset = dataset.to_huggingface(
+    columns=['text', 'text.test_signal.flen'],
+    filters=[('text.test_signal.len', 'greater', 6)],
+  )
+
+  assert list(hf_dataset) == [
+    {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}}
+  ]
+
+  hf_dataset = dataset.to_huggingface(filters=[('text.test_signal.flen', 'less_equal', '5')])
+
+  assert list(hf_dataset) == [
+    {'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}}
+  ]
+
+
 def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
   dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   dataset.compute_signal(TestSignal(), 'text')

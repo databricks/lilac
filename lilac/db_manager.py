@@ -47,6 +47,24 @@ def get_dataset(
     return _CACHED_DATASETS[cache_key]
 
 
+def has_dataset(
+  namespace: str, dataset_name: str, project_dir: Optional[Union[str, pathlib.Path]] = None
+) -> bool:
+  """Get the dataset instance."""
+  if not _DEFAULT_DATASET_CLS:
+    raise ValueError('Default dataset class not set.')
+
+  project_dir = project_dir or get_project_dir()
+  try:
+    # This will try to load the dataset, and throw an error if it doesn't exist because when the
+    # dataset is not in the cache, it will try to call the constructor, which will error if the
+    # dataset does not exist.
+    get_dataset(namespace, dataset_name, project_dir)
+    return True
+  except ValueError:
+    return False
+
+
 def remove_dataset_from_cache(
   namespace: str, dataset_name: str, project_dir: Optional[Union[str, pathlib.Path]] = None
 ) -> None:

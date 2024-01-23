@@ -26,6 +26,7 @@ import numpy as np
 import orjson
 import pandas as pd
 import yaml
+from datasets import Dataset as HuggingFaceDataset
 from pandas.api.types import is_object_dtype
 from pydantic import BaseModel, SerializeAsAny, field_validator
 from typing_extensions import override
@@ -3176,6 +3177,29 @@ class DatasetDuckDB(Dataset):
     return cluster_impl(
       self, input, output_path, min_cluster_size, topic_fn, overwrite, use_garden, task_id=task_id
     )
+
+  @override
+  def to_huggingface(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
+  ) -> HuggingFaceDataset:
+    filters, _ = self._normalize_filters(
+      filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
+    )
+    filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
+    rows = self.select_rows(
+      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
+    )
+
+    def _gen() -> Iterator[Item]:
+      for row in rows:
+        yield row
+
+    return cast(HuggingFaceDataset, HuggingFaceDataset.from_generator(_gen))
 
   @override
   def to_json(

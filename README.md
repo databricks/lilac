@@ -121,7 +121,7 @@ If you prefer, you can load datasets directly from the UI without writing any Py
 
 ### 🔎 Explore
 
-> [🔗 Try OpenOrca-100K before installing!](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca-100k)
+> [🔗 Try OpenOrca before installing!](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca)
 
 Once we've loaded a dataset, we can explore it from the UI and get a sense for what's in the data.
 More documentation [here](https://docs.lilacml.com/datasets/dataset_explore.html).

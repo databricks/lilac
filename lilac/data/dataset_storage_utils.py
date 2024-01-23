@@ -34,8 +34,8 @@ def download(
 
   Args:
     url_or_repo: A remote URL to a Lilac-processed dataset. Currently only supports HuggingFace
-      dataset URLs. Can be a full URL: https://huggingface.co/datasets/lilacai/lilac-OpenOrca-100k
-      or a repo_id: lilacai/lilac-OpenOrca-100k.
+      dataset URLs. Can be a full URL: https://huggingface.co/datasets/lilacai/lilac-OpenOrca
+      or a repo_id: lilacai/lilac-OpenOrca.
     project_dir: The project directory to use for the demo. Defaults to `env.LILAC_PROJECT_DIR`
       which can be set with `ll.set_project_dir()`.
     dataset_namespace: The local namespace to use. Defaults to 'local'.

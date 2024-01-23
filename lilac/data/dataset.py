@@ -10,6 +10,7 @@ from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Sequenc
 
 import numpy as np
 import pandas as pd
+from datasets import Dataset as HuggingFaceDataset
 from pydantic import (
   BaseModel,
   ConfigDict,
@@ -976,6 +977,26 @@ class Dataset(abc.ABC):
       embedding=embedding,
       schema=schema,
     )
+
+  @abc.abstractmethod
+  def to_huggingface(
+    self,
+    columns: Optional[Sequence[ColumnId]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
+    include_labels: Optional[Sequence[str]] = None,
+    exclude_labels: Optional[Sequence[str]] = None,
+    include_deleted: bool = False,
+  ) -> HuggingFaceDataset:
+    """Export the dataset to a huggingface dataset.
+
+    Args:
+      columns: The columns to export.
+      filters: The filters to apply to the query.
+      include_labels: The labels to include in the export.
+      exclude_labels: The labels to exclude in the export.
+      include_deleted: Whether to include deleted rows in the export.
+    """
+    pass
 
   @abc.abstractmethod
   def to_json(
