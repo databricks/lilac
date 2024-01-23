@@ -267,8 +267,8 @@ def start_server(
 
   config = uvicorn.Config(app, host=host, port=port, access_log=False)
   SERVER = Server(config)
-  print('block', block)
   SERVER.start(block=block)
+
   return SERVER
 
 
