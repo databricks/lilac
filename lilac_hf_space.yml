@@ -177,16 +177,20 @@ datasets:
 
   - namespace: lilac
     name: mosaic-instruct-v3
-    tags: [datasets]
     source:
       dataset_name: mosaicml/instruct-v3
       source_name: huggingface
     settings:
+      tags: [datasets]
       ui:
         media_paths:
           - prompt
           - response
         markdown_paths: []
+    embeddings:
+      - embedding: gte-small
+        path:
+          - prompt
 
 signals:
   - signal_name: text_statistics
