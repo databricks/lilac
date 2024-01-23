@@ -36,6 +36,7 @@
    datasets/dataset_load.md
    datasets/dataset_explore.md
    datasets/dataset_configure.md
+   datasets/dataset_cluster.md
    datasets/dataset_delete_rows.md
    datasets/dataset_edit.md
    datasets/dataset_labels.md

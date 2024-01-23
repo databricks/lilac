@@ -19,6 +19,7 @@
 
 <script lang="ts">
   import {computeSignalMutation} from '$lib/queries/datasetQueries';
+  import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {
     SIGNAL_INPUT_TYPE_TO_VALID_DTYPES,
@@ -172,6 +173,9 @@
       : command.command === Command.ComputeEmbedding
       ? 'Compute Embedding'
       : 'Preview Signal';
+
+  const authInfo = queryAuthInfo();
+  $: canComputeRemotely = $authInfo.data?.access.dataset.execute_remotely;
 </script>
 
 <ComposedModal open on:submit={submit} on:close={close}>
@@ -223,12 +227,20 @@
                 Accelerate computation by running remotely on Lilac Garden
               </div>
               <Toggle
-                disabled={!supportsGarden}
+                disabled={!supportsGarden || !canComputeRemotely}
                 labelA={'False'}
                 labelB={'True'}
                 bind:toggled={useGarden}
                 hideLabel
               />
+              {#if !canComputeRemotely}
+                <div class="mt-2">
+                  <a href="https://forms.gle/Gz9cpeKJccNar5Lq8" target="_blank">
+                    Sign up for Lilac Garden
+                  </a>
+                  to enable this feature.
+                </div>
+              {/if}
             </div>
           {/key}
         {:else}

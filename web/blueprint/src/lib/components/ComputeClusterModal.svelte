@@ -29,7 +29,6 @@
     Toggle
   } from 'carbon-components-svelte';
   import FieldSelect from './commands/selectors/FieldSelect.svelte';
-  import {hoverTooltip} from './common/HoverTooltip';
   $: options = $store;
 
   const clusterQuery = clusterMutation();
@@ -69,22 +68,25 @@
         />
       </div>
       <div class="mt-8">
-        <div class="label text-s mb-2 font-medium text-gray-700">Remote</div>
-        <div
-          class="w-20"
-          use:hoverTooltip={{
-            text: !canComputeRemotely ? 'Sign up for Lilac Garden to enable this feature.' : ''
-          }}
-        >
-          <Toggle
-            disabled={!canComputeRemotely}
-            labelA={'False'}
-            labelB={'True'}
-            bind:toggled={options.use_garden}
-            hideLabel
-          />
+        <div class="label mb-2 font-medium text-gray-700">Use Garden</div>
+        <div class="label mb-2 text-sm text-gray-700">
+          Accelerate computation by running remotely on Lilac Garden
         </div>
-        <div class="text-sm text-gray-600">Accelerated computation on Lilac Garden.</div>
+        <Toggle
+          disabled={!canComputeRemotely}
+          labelA={'False'}
+          labelB={'True'}
+          bind:toggled={options.use_garden}
+          hideLabel
+        />
+        {#if !canComputeRemotely}
+          <div class="mt-2">
+            <a href="https://forms.gle/Gz9cpeKJccNar5Lq8" target="_blank">
+              Sign up for Lilac Garden
+            </a>
+            to enable this feature.
+          </div>
+        {/if}
       </div>
       <div class="mt-8">
         <div class="label text-s mb-2 font-medium text-gray-700">Overwrite</div>

@@ -6,7 +6,7 @@ set -e
 pushd docs > /dev/null
 
 poetry update lilac
-poetry install
+poetry install --no-root
 # Activate the current py virtual env.
 source $(poetry env info --path)/bin/activate
 
