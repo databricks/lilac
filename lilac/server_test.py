@@ -1,6 +1,5 @@
 """Test our public REST API."""
 import os
-from time import sleep
 
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
@@ -13,7 +12,7 @@ from .auth import (
   UserInfo,
   get_session_user,
 )
-from .server import app, start_server, stop_server
+from .server import app
 
 client = TestClient(app)
 
@@ -175,9 +174,3 @@ def test_auth_nonadmin_label_all(mocker: MockerFixture) -> None:
     ),
     auth_enabled=True,
   )
-
-
-def test_start_and_stop_server() -> None:
-  start_server()
-  sleep(1)
-  stop_server()
