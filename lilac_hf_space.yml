@@ -108,6 +108,87 @@ datasets:
           - '*'
           - content
 
+  - name: 'OpenOrca'
+    namespace: lilac
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - question
+          - response
+      preferred_embedding: 'gte-small'
+    source:
+      source_name: huggingface
+      dataset_name: Open-Orca/OpenOrca
+    embeddings:
+      - embedding: gte-small
+        path:
+          - question
+
+  ## Eval datasets
+  - namespace: lilac
+    name: MMLU
+    source:
+      dataset_name: cais/mmlu
+      config_name: all
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - choices
+            - '*'
+          - answer
+        markdown_paths: []
+  - namespace: lilac
+    name: ARC-Easy
+    source:
+      dataset_name: allenai/ai2_arc
+      config_name: ARC-Easy
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - choices
+            - text
+            - '*'
+          - answerKey
+        markdown_paths: []
+  - namespace: lilac
+    name: ARC-Challenge
+    source:
+      dataset_name: allenai/ai2_arc
+      config_name: ARC-Challenge
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - choices
+            - text
+            - '*'
+          - answerKey
+        markdown_paths: []
+  - namespace: lilac
+    name: HellaSwag
+    source:
+      dataset_name: Rowan/hellaswag
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - ctx
+          - ctx_a
+          - ctx_b
+          - - endings
+            - '*'
+        markdown_paths: []
+
   ## Old datasets to be cleaned up.
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
@@ -140,23 +221,6 @@ datasets:
       - embedding: gte-small
         path:
           - original-response
-
-  - name: 'OpenOrca'
-    namespace: lilac
-    settings:
-      tags: [datasets]
-      ui:
-        media_paths:
-          - question
-          - response
-      preferred_embedding: 'gte-small'
-    source:
-      source_name: huggingface
-      dataset_name: Open-Orca/OpenOrca
-    embeddings:
-      - embedding: gte-small
-        path:
-          - question
 
   - namespace: lilac
     name: dolphin
@@ -221,6 +285,25 @@ clusters:
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
       - original-instruction
+  ## Eval datasets
+  - dataset_namespace: lilac
+    dataset_name: MMLU
+    input_path:
+      - question
+  - dataset_namespace: lilac
+    dataset_name: ARC-Easy
+    input_path:
+      - question
+  - dataset_namespace: lilac
+    dataset_name: ARC-Challenge
+    input_path:
+      - question
+  - dataset_namespace: lilac
+    dataset_name: HellaSwag
+    input_path:
+      - ctx
+
+  ## Other datasets
   - dataset_namespace: lilac
     dataset_name: dolphin
     input_path:
