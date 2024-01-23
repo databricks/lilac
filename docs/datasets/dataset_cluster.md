@@ -18,7 +18,7 @@ you can continue to detect, track, and address these data points in the future.
 To cluster a text field, open the schema view, click the expand icon for the field you want to
 cluster and select "Compute clusters".
 
-<img alt="image" src="../_static/dataset/dataset_cluster.png">
+<img width=400 alt="Clustering a dataset field" src="../_static/dataset/dataset_cluster.png">
 
 Clustering is an expensive operation. To dramatically speed up the computation, join the
 [Lilac waitlist](https://forms.gle/Gz9cpeKJccNar5Lq8) to get access to
@@ -27,17 +27,17 @@ Garden uses powerful GPUs to embed, cluster and annotate one million documents i
 Once you have access to Lilac Garden, you can select the "Use Lilac Garden" option to accelerate
 clustering.
 
-<img alt="image" src="../_static/dataset/dataset_cluster_modal.png">
+<img width=600 alt="The clustering modal dialog" src="../_static/dataset/dataset_cluster_modal.png">
 
 When the clustering is complete, you can view the cluster results in the UI, by clicking on the
 "Open clusters" button in the header, next to the "Open schema" button.
 
-<img alt="image" src="../_static/dataset/dataset_open_clusters.png">
+<img width=300 alt="Opening the Cluster view" src="../_static/dataset/dataset_open_clusters.png">
 
 This will open the Cluster view, which shows high level categories and their detailed clusters. From
 this view you can open a cluster to see the examples in it, and take actions on the cluster.
 
-<img alt="image" src="../_static/dataset/dataset_cluster_view.png">
+<img alt="A view of the categories and clusters" src="../_static/dataset/dataset_cluster_view.png">
 
 ## From Python
 
@@ -47,7 +47,7 @@ You can cluster a dataset from Python in 1 line of code:
 dataset.cluster(input='conversation.*.input', use_garden=True)
 ```
 
-Argument details:
+Arguments:
 
 - `input` can be a field path or a function that takes an example and returns a text content.
 - `output_path`, optional. Defaults to the input path suffixed with `__cluster`.
@@ -55,8 +55,9 @@ Argument details:
   clustering.
 - `min_cluster_size`, optional. Defaults to 5. This is the minimum number of examples in a cluster.
   Clusters with fewer examples will be merged into the nearest cluster.
-- `topic_fn`: optional. function that returns a topic summary for each cluster. It takes a list of
-  (doc, membership_score) tuples and returns a single topic. This is used to compute the topic for a
-  given cluster of docs. It defaults to a function that summarizes user's requests.
+- `topic_fn`: optional. Function that returns a topic summary for each cluster. It takes a list of
+  `(text, membership_score)` tuples and returns a single topic. This is used to compute the topic
+  for a given cluster of docs. It defaults to a function that summarizes the common topic across
+  several examples from the cluster.
 
-When the clustering is complete, you can view the cluster results in the UI.
+When the clustering is complete, you can view the cluster results in the UI (see previous section).
