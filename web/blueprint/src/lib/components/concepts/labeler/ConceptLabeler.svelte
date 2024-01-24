@@ -3,7 +3,7 @@
   import {maybeQueryDatasetSchema} from '$lib/queries/datasetQueries';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {serializePath, type Concept, type LilacSchema} from '$lilac';
+  import type {Concept, LilacSchema} from '$lilac';
   import {Button, ToastNotification} from 'carbon-components-svelte';
   import {ArrowUpRight} from 'carbon-icons-svelte';
   import {get} from 'svelte/store';
@@ -23,15 +23,14 @@
       : null;
 
   $: schema = $schemaQuery?.data;
-  $: pathId = path ? serializePath(path) : undefined;
 
   function openDataset() {
-    if (pathId == null || embedding == null || dataset == null) {
+    if (path == null || embedding == null || dataset == null) {
       return;
     }
     const store = createDatasetViewStore(dataset.namespace, dataset.name);
     store.addSearch({
-      path: [pathId],
+      path,
       type: 'concept',
       concept_namespace: concept.namespace,
       concept_name: concept.concept_name,
@@ -46,7 +45,7 @@
     <div class="flex-grow">
       <DatasetFieldEmbeddingSelector bind:dataset bind:path bind:embedding />
     </div>
-    {#if pathId != null && embedding != null}
+    {#if path != null && embedding != null}
       <Button
         class="dataset-link top-7 h-8"
         icon={ArrowUpRight}

@@ -9,7 +9,7 @@
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {serializePath, type Concept} from '$lilac';
+  import type {Concept} from '$lilac';
   import {Button, ToastNotification} from 'carbon-components-svelte';
   import {View, ViewOff} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
@@ -48,13 +48,12 @@
   let applyPath: string[] | undefined;
   let applyEmbedding: string | undefined = undefined;
   function openDataset() {
-    const pathId = applyPath ? serializePath(applyPath) : undefined;
-    if (pathId == null || applyEmbedding == null || applyDataset == null) {
+    if (applyPath == null || applyEmbedding == null || applyDataset == null) {
       return;
     }
     const store = createDatasetViewStore(applyDataset.namespace, applyDataset.name);
     store.addSearch({
-      path: [pathId],
+      path: applyPath,
       type: 'concept',
       concept_namespace: concept.namespace,
       concept_name: concept.concept_name,
@@ -125,8 +124,8 @@
       {#if applyDataset != null && applyPath != null && applyEmbedding != null}
         <div class="mt-4">
           <Button iconDescription={'Open dataset and apply concept.'} on:click={() => openDataset()}
-            >Search by concept</Button
-          >
+            >Search by concept
+          </Button>
         </div>
       {:else}
         <ToastNotification

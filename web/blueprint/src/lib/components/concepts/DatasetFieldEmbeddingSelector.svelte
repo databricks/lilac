@@ -26,14 +26,23 @@
 
   $: embeddingPriority = [$settings.embedding, 'gte-small', 'gte-base', 'openai', 'sbert'];
 
-  const datasets = queryDatasets();
+  const datasetsQuery = queryDatasets();
+
+  // Sort datasets by name.
+  $: datasets = $datasetsQuery.data?.sort((a, b) => {
+    if (a.namespace === b.namespace) {
+      return a.dataset_name.localeCompare(b.dataset_name);
+    }
+    return a.namespace.localeCompare(b.namespace);
+  });
+
   $: schemaQuery =
     dataset != null ? maybeQueryDatasetSchema(dataset?.namespace, dataset?.name) : null;
 
   $: {
     // Auto-select the first dataset.
-    if ($datasets.data && $datasets.data.length > 0 && dataset === undefined) {
-      dataset = {namespace: $datasets.data[0].namespace, name: $datasets.data[0].dataset_name};
+    if (datasets && datasets.length > 0 && dataset === undefined) {
+      dataset = {namespace: datasets[0].namespace, name: datasets[0].dataset_name};
     }
   }
 
@@ -125,19 +134,19 @@
 
 <div class="flex w-full flex-row gap-x-4">
   <div class="w-1/3">
-    {#if $datasets.isLoading}
+    {#if $datasetsQuery.isLoading}
       <SelectSkeleton />
-    {:else if $datasets.isError}
+    {:else if $datasetsQuery.isError}
       <InlineNotification
         kind="error"
         title="Error"
-        subtitle={$datasets.error.message}
+        subtitle={$datasetsQuery.error.message}
         hideCloseButton
       />
-    {:else if $datasets.data.length > 0}
+    {:else if datasets && datasets.length > 0}
       <Select size={inputSize} labelText="Dataset" on:change={datasetSelected} selected={datasetId}>
         <SelectItem value="" text="none" />
-        {#each $datasets.data as dataset}
+        {#each datasets as dataset}
           <SelectItem value={`${dataset.namespace}/${dataset.dataset_name}`} />
         {/each}
       </Select>
