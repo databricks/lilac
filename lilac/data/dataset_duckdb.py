@@ -3654,7 +3654,7 @@ def _replace_nan_with_none(df: pd.DataFrame) -> pd.DataFrame:
   # TODO(https://github.com/duckdb/duckdb/issues/4066): Remove this once duckdb fixes upstream.
   for col in df.columns:
     if is_object_dtype(df[col]):
-      df[col].replace(np.nan, None, inplace=True)
+      df[col] = df[col].replace(np.nan, None)
   return df
 
 
