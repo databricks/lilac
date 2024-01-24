@@ -23,12 +23,14 @@
     type Path,
     type PivotResult
   } from '$lilac';
-  import {Search, SkeletonText} from 'carbon-components-svelte';
+  import {SkeletonText, TextInput} from 'carbon-components-svelte';
   import type {
     DropdownItem,
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
+  import {Close, Search} from 'carbon-icons-svelte';
   import DropdownPill from '../common/DropdownPill.svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import DatasetPivotResult, {type OuterPivot} from './DatasetPivotResult.svelte';
 
   let outerLeafPath: Path | undefined = undefined;
@@ -65,6 +67,9 @@
     inner_path: innerLeafPath!,
     filters: selectOptions.filters
   });
+
+  // The search text after a user presses the search button or enter.
+  $: searchText = $store.pivot?.searchText;
 
   function getGroups(
     pivotTable: PivotResult | undefined,
@@ -142,16 +147,12 @@
 
   // The bound input text from the search box.
   let inputSearchText: string | undefined = undefined;
-  function searchInput(e: Event) {
-    const value = (e.target as HTMLInputElement).value;
-    inputSearchText = value != null ? value : undefined;
+  function searchInput(e: CustomEvent<string | number | null>) {
+    inputSearchText = e.detail?.toString();
   }
 
-  // The search text after a user presses the search button or enter.
-  $: searchText = $store.pivot?.searchText;
   function search() {
-    searchText = inputSearchText != null ? inputSearchText : undefined;
-    $store.pivot = {...$store.pivot, searchText};
+    $store.pivot = {...$store.pivot, searchText: inputSearchText};
   }
 
   function clearSearch() {
@@ -162,15 +163,18 @@
 
 <div class="flex h-full flex-col">
   <div class="mb-8 flex h-16 w-full flex-row justify-between justify-items-center gap-x-4">
-    <div class="ml-8 mt-4 w-96">
-      <Search
+    <div class="ml-8 mt-4 flex w-96 items-center gap-x-2">
+      <Search />
+      <TextInput
         value={searchText}
         on:input={searchInput}
-        placeholder={`Search`}
-        labelText={'text text'}
+        placeholder="Search all categories and titles"
         on:change={search}
-        on:clear={clearSearch}
+        size="xl"
       />
+      <div use:hoverTooltip={{text: 'Clear search query'}}>
+        <button on:click={clearSearch}><Close /></button>
+      </div>
     </div>
     <div class="mr-8 flex flex-row gap-x-4 py-2 pr-4">
       <div class="flex flex-col gap-y-2">

@@ -676,6 +676,11 @@ export interface SearchHighlight {
   text: string;
   isBold: boolean;
 }
+
+function escapeRegExp(query: string) {
+  return query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function getSearchHighlighting(
   text: string | null | undefined,
   query: string | undefined
@@ -685,7 +690,7 @@ export function getSearchHighlighting(
     return [{text: text || 'N/A', isBold: false}];
   }
 
-  const regex = new RegExp(`(${query})`, 'gi');
+  const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
   const matches = text.split(regex);
 
   const searchHighlights: SearchHighlight[] = matches
