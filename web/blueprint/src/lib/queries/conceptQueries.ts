@@ -38,6 +38,8 @@ export const editConceptMetadataMutation = createApiMutation(ConceptsService.edi
 
 export const deleteConceptMutation = createApiMutation(ConceptsService.deleteConcept, {
   onSuccess: () => {
+    // Invalidate the query after the redirect to avoid invalid queries to the
+    // concept after it's deleted.
     goto(homeLink()).then(() => queryClient.invalidateQueries([CONCEPTS_TAG]));
   }
 });

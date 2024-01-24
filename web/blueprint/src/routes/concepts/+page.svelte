@@ -20,7 +20,6 @@
     if ($urlHashStore.page === 'concepts' && $urlHashStore.identifier != null) {
       const [newNamespace, newConceptName] = $urlHashStore.identifier.split('/');
       if (namespace != newNamespace || conceptName != newConceptName) {
-        console.log(namespace, conceptName, newNamespace, newConceptName);
         namespace = newNamespace;
         conceptName = newConceptName;
       }
