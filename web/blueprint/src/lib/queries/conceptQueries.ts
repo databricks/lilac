@@ -1,5 +1,3 @@
-import {goto} from '$app/navigation';
-import {homeLink} from '$lib/utils';
 import {ConceptsService} from '$lilac';
 import {DATASETS_TAG} from './datasetQueries';
 import {queryClient} from './queryClient';
@@ -36,12 +34,6 @@ export const editConceptMetadataMutation = createApiMutation(ConceptsService.edi
   }
 });
 
-export const deleteConceptMutation = createApiMutation(ConceptsService.deleteConcept, {
-  onSuccess: () => {
-    // Invalidate the query after the redirect to avoid invalid queries to the
-    // concept after it's deleted.
-    goto(homeLink()).then(() => queryClient.invalidateQueries([CONCEPTS_TAG]));
-  }
-});
+export const deleteConceptMutation = createApiMutation(ConceptsService.deleteConcept);
 
 export const queryConceptScore = createApiQuery(ConceptsService.score, CONCEPTS_TAG);
