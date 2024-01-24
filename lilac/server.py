@@ -201,6 +201,9 @@ class Server(uvicorn.Server):
   def __init__(self, config: Config) -> None:
     super().__init__(config)
 
+  def start(self, block: bool = True) -> None:
+    """Start the server in a separate thread."""
+
     def run() -> None:
       try:
         loop = asyncio.get_event_loop()
@@ -208,13 +211,11 @@ class Server(uvicorn.Server):
       except RuntimeError:
         self.run()
 
-    self.thread = Thread(target=run)
-
-  def start(self, block: bool = True) -> None:
-    """Start the server in a separate thread."""
-    self.thread.start()
     if block:
-      self.thread.join()
+      run()
+    else:
+      self.thread = Thread(target=run, daemon=True)
+      self.thread.start()
 
   def stop(self) -> None:
     """Stop the server."""

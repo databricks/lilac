@@ -50,10 +50,6 @@ modal = "^0.56.4396"
 
 # LLM providers.
 cohere = { version = "^4.32", optional = true }
-google-generativeai = { version = "^0.1.0", optional = true } # PaLM / MakerSuite.
-google-cloud-aiplatform = { version = "^1.35.0", optional = true, extras = [
-  "grpcio",
-] } # PaLM via GCP
 openai = { version = "^1.7.1", optional = true }
 sentence-transformers = { version = "^2.2.2", optional = true } # SBERT on-device embeddings.
 
@@ -95,8 +91,6 @@ all = [
   "google-api-python-client",
   "google-auth-httplib2",
   "google-auth-oauthlib",
-  "google-cloud-aiplatform",
-  "google-generativeai",
   "hdbscan",
   "langdetect",
   "langsmith",
@@ -110,13 +104,7 @@ all = [
   "umap-learn",
 ]
 
-embeddings = [
-  "cohere",
-  "google-generativeai",
-  "google-cloud-aiplatform",
-  "openai",
-  "sentence-transformers",
-]
+embeddings = ["cohere", "openai", "sentence-transformers"]
 llms = ["openai"]
 
 # Sources.
@@ -144,7 +132,6 @@ text_stats = ["textacy"]                      # Text statistics.
 gte = ["sentence-transformers"]
 sbert = ["sentence-transformers"]
 cohere = ["cohere"]
-palm = ["google-generativeai", "google-cloud-aiplatform"]
 openai = ["openai"]
 
 [tool.poetry.group.dev] # Deps for development.

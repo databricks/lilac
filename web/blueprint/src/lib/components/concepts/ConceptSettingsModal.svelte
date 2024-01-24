@@ -1,12 +1,10 @@
 <script lang="ts">
-  import {goto} from '$app/navigation';
   import {
     deleteConceptMutation,
     editConceptMetadataMutation,
     queryConcepts
   } from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {homeLink} from '$lib/utils';
   import {conceptDisplayName} from '$lib/view_utils';
   import {
     Checkbox,
@@ -136,10 +134,7 @@
                   class:outline={deleteConceptInputName == displayName}
                   class:opacity-50={deleteConceptInputName != displayName}
                   disabled={deleteConceptInputName != displayName}
-                  on:click={() =>
-                    $deleteConcept.mutate([namespace, conceptName], {
-                      onSuccess: () => goto(homeLink())
-                    })}
+                  on:click={() => $deleteConcept.mutate([namespace, conceptName])}
                 >
                   I understand, delete this concept
                   <TrashCan />

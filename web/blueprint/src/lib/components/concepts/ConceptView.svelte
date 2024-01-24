@@ -99,7 +99,13 @@
 
   <Expandable expanded>
     <div slot="above" class="text-md font-semibold">Try it</div>
-    <ConceptPreview example={randomPositive} {concept} slot="below" />
+    <div slot="below">
+      {#if randomPositive}
+        <ConceptPreview example={randomPositive} {concept} />
+      {:else}
+        <div class="text-gray-600">No examples to preview. Please add examples.</div>
+      {/if}
+    </div>
   </Expandable>
 
   <Expandable>

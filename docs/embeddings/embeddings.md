@@ -19,8 +19,6 @@ Lilac has built-in **remote** embeddings. Using these will _send data to an exte
   need to define `OPENAI_API_KEY` in your environment variables.
 - [`cohere`](https://docs.cohere.com/docs/embeddings): Cohere embeddings. You will need to define
   `COHERE_API_KEY` in your environment variables.
-- [`palm`](https://cloud.google.com/vertex-ai/docs/generative-ai/embeddings/get-text-embeddings)
-  PaLM embeddings. You will need to define `PALM_API_KEY` in your environment variables.
 
 ## Register your own embedding
 

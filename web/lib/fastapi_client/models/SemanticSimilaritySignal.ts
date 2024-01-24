@@ -14,7 +14,7 @@ export type SemanticSimilaritySignal = {
     /**
      * The name of the pre-computed embedding.
      */
-    embedding: 'cohere' | 'sbert' | 'openai' | 'palm' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base';
+    embedding: 'cohere' | 'sbert' | 'openai' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base';
     query: string;
     /**
      * The input type of the query, used for the query embedding.

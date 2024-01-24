@@ -84,8 +84,7 @@ and usable with data staying on-premise. Lilac Concepts utilize powerful on-devi
 [GTE](https://huggingface.co/thenlper/gte-small). However if your application is not sensitive to
 data privacy (e.g. using open-source datasets), you may choose to use more powerful embeddings like
 [OpenAI](https://platform.openai.com/docs/guides/embeddings),
-[Cohere](https://docs.cohere.com/docs/embeddings), [PaLM](https://developers.generativeai.google/),
-or your own! For more information on embeddings,
+[Cohere](https://docs.cohere.com/docs/embeddings), or your own! For more information on embeddings,
 [see our documentation](https://docs.lilacml.com/embeddings/embeddings.html).
 
 ### HuggingFace demo

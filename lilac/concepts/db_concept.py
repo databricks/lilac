@@ -437,6 +437,7 @@ class DiskConceptDB(ConceptDB):
       return None
 
     with open_file(concept_json_path) as f:
+      print(f'Loading concept from {concept_json_path}')
       obj: dict[str, Any] = json.load(f)
       if 'namespace' not in obj:
         obj['namespace'] = namespace

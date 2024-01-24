@@ -232,5 +232,3 @@ concept_model_cache_embeddings:
   - sbert
   - openai
   - cohere
-  # PALM is currently timing-out.
-  # - palm

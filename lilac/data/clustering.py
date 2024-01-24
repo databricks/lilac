@@ -324,7 +324,7 @@ def cluster_impl(
       # Filter out Nones
       texts = (t for t in texts if t)
       # Deal with enriched items.
-      texts = (t[VALUE_KEY] if VALUE_KEY in t else t for t in texts)
+      texts = (t[VALUE_KEY] if (isinstance(t, dict) and VALUE_KEY in t) else t for t in texts)
       return '\n'.join(texts)
 
     def extract_text(item: Item) -> Item:

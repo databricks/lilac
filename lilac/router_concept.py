@@ -29,7 +29,7 @@ router = APIRouter(route_class=RouteErrorHandler)
 
 @router.get('/', response_model_exclude_none=True)
 def get_concepts(
-  user: Annotated[Optional[UserInfo], Depends(get_session_user)]
+  user: Annotated[Optional[UserInfo], Depends(get_session_user)],
 ) -> list[ConceptInfo]:
   """List the concepts."""
   return DISK_CONCEPT_DB.list(user)
@@ -271,8 +271,9 @@ def generate_examples(description: str) -> list[str]:
     client = instructor.patch(openai.OpenAI())
 
     completion = client.chat.completions.create(
-      model='gpt-3.5-turbo',
-      functions=[Examples.openai_schema],
+      model='gpt-3.5-turbo-1106',
+      response_model=Examples,
+      temperature=0.0,
       messages=[
         {
           'role': 'system',
@@ -284,8 +285,7 @@ def generate_examples(description: str) -> list[str]:
         },
       ],
     )
-    result = Examples.from_response(completion)
-    return result.examples
+    return completion.examples
 
   except openai.AuthenticationError:
     raise ValueError(

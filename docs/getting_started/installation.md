@@ -42,4 +42,3 @@ To use hosted services for computing embeddings, add the following environment v
 - `OPENAI_API_KEY`: OpenAI API key. You can get one
   [here](https://platform.openai.com/account/api-keys).
 - `COHERE_API_KEY`: Cohere API key. You can get one [here](https://dashboard.cohere.ai/api-keys).
-- `PALM_API_KEY`: PaLM API key. You can get one [here](https://makersuite.google.com/app/apikey).

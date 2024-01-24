@@ -47,9 +47,6 @@ class LilacEnvironment(BaseModel):
   COHERE_API_KEY: str = PydanticField(
     description='The Cohere API key, used for computing `cohere` embeddings.'
   )
-  PALM_API_KEY: str = PydanticField(
-    description='The PaLM API key, used for computing `palm` embeddings.'
-  )
 
   # HuggingFace demo.
   HF_ACCESS_TOKEN: str = PydanticField(

@@ -4,7 +4,6 @@ from ..embeddings.cohere import Cohere
 from ..embeddings.gte import GTEBase, GTESmall, GTETiny
 from ..embeddings.jina import JinaV2Base, JinaV2Small
 from ..embeddings.openai import OpenAIEmbedding
-from ..embeddings.palm import PaLM
 from ..embeddings.sbert import SBERT
 from ..signal import register_signal
 from .concept_labels import ConceptLabelsSignal
@@ -37,8 +36,6 @@ def register_default_signals() -> None:
   register_signal(SBERT, exists_ok=True)
 
   register_signal(OpenAIEmbedding, exists_ok=True)
-
-  register_signal(PaLM, exists_ok=True)
 
   register_signal(GTETiny, exists_ok=True)
   register_signal(GTESmall, exists_ok=True)
