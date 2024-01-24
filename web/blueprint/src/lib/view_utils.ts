@@ -677,6 +677,7 @@ export interface SearchHighlight {
   isBold: boolean;
 }
 
+// https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
 function escapeRegExp(query: string) {
   return query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
