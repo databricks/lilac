@@ -13,6 +13,8 @@ from ..utils import DebugTimer, chunks
 if TYPE_CHECKING:
   from sentence_transformers import SentenceTransformer
 
+import functools
+
 from ..schema import Item, chunk_embedding
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
@@ -26,6 +28,18 @@ GTE_BASE = 'thenlper/gte-base'
 GTE_TINY = 'TaylorAI/gte-tiny'
 GTE_CONTEXT_SIZE = 512
 GTE_REMOTE_BATCH_SIZE = 1024 * 16
+
+
+@functools.cache
+def _get_and_cache_model(model_name: str) -> 'SentenceTransformer':
+  try:
+    from sentence_transformers import SentenceTransformer
+  except ImportError:
+    raise ImportError(
+      'Could not import the "sentence_transformers" python package. '
+      'Please install it with `pip install "sentence_transformers".'
+    )
+  return setup_model_device(SentenceTransformer(model_name), model_name)
 
 
 class GTESmall(TextEmbeddingSignal):
@@ -47,14 +61,7 @@ class GTESmall(TextEmbeddingSignal):
 
   @override
   def setup(self) -> None:
-    try:
-      from sentence_transformers import SentenceTransformer
-    except ImportError:
-      raise ImportError(
-        'Could not import the "sentence_transformers" python package. '
-        'Please install it with `pip install "sentence_transformers".'
-      )
-    self._model = setup_model_device(SentenceTransformer(self._model_name), self._model_name)
+    self._model = _get_and_cache_model(self._model_name)
 
   @override
   def compute(self, docs: list[str]) -> list[Optional[Item]]:

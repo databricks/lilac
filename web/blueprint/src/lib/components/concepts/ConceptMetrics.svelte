@@ -1,6 +1,6 @@
 <script lang="ts">
-  import {conceptModelMutation, queryConceptModel} from '$lib/queries/conceptQueries';
-  import type {Concept} from '$lilac';
+  import {conceptModelMutation} from '$lib/queries/conceptQueries';
+  import type {Concept, ConceptModelInfo} from '$lilac';
   import {Button, InlineLoading} from 'carbon-components-svelte';
   import {Chip} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -10,7 +10,8 @@
   export let concept: Concept;
   export let embedding: string;
 
-  $: model = queryConceptModel(concept.namespace, concept.concept_name, embedding);
+  export let model: ConceptModelInfo | undefined;
+  export let isFetching: boolean;
 
   const modelMutation = conceptModelMutation();
 </script>
@@ -20,21 +21,21 @@
   style="height: 103px"
 >
   <div class="text-gray-500">{embedding}</div>
-  {#if $model.isFetching}
+  {#if isFetching}
     <div class="flex flex-col items-center">
       <InlineLoading />
     </div>
-  {:else if $model?.data?.metrics}
+  {:else if model?.metrics}
     <div
       class="concept-score-pill cursor-default text-2xl font-light {scoreToColor[
-        $model.data.metrics.overall
+        model.metrics.overall
       ]}"
       use:hoverTooltip={{
         component: ConceptHoverPill,
-        props: {metrics: $model.data.metrics}
+        props: {metrics: model.metrics}
       }}
     >
-      {scoreToText[$model.data.metrics.overall]}
+      {scoreToText[model.metrics.overall]}
     </div>
   {:else}
     {@const createModelIfNotExists = true}

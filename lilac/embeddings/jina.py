@@ -1,4 +1,5 @@
 """Jina embeddings. Open-source, designed to run on device, with 8K context."""
+import functools
 import gc
 from typing import TYPE_CHECKING, Any, ClassVar, Iterator, Optional, cast
 
@@ -31,6 +32,22 @@ JINA_BATCH_SIZE = 1
 JINA_CONTEXT_SIZE = 8192
 
 
+@functools.cache
+def _get_and_cache_model(model_name: str) -> 'AutoModel':
+  try:
+    from transformers import AutoModel
+  except ImportError:
+    raise ImportError(
+      'Could not import the `transformers` python package. '
+      'Please install it with `pip install transformers`.'
+    )
+  # trust_remote_code is needed to use the encode method.
+  model_name = f'jinaai/{model_name}'
+  return setup_model_device(
+    AutoModel.from_pretrained(model_name, trust_remote_code=True), model_name
+  )
+
+
 class JinaV2Small(TextEmbeddingSignal):
   """Jina V2 Embeddings with 8K context.
 
@@ -50,18 +67,7 @@ class JinaV2Small(TextEmbeddingSignal):
 
   @override
   def setup(self) -> None:
-    try:
-      from transformers import AutoModel
-    except ImportError:
-      raise ImportError(
-        'Could not import the `transformers` python package. '
-        'Please install it with `pip install transformers`.'
-      )
-    # trust_remote_code is needed to use the encode method.
-    model_name = f'jinaai/{_SIZE_TO_MODEL[self._size]}'
-    self._model = setup_model_device(
-      AutoModel.from_pretrained(model_name, trust_remote_code=True), model_name
-    )
+    self._model = _get_and_cache_model(_SIZE_TO_MODEL[self._size])
 
   @override
   def teardown(self) -> None:
