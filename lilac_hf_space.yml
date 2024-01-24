@@ -17,7 +17,6 @@ datasets:
           - - conversation
             - '*'
             - output
-        markdown_paths: []
     embeddings:
       - embedding: gte-small
         path:
@@ -45,7 +44,6 @@ datasets:
           # blog post about curating a coding dataset.
           # - - answer_formatted
           #   - answer
-        markdown_paths: []
     embeddings:
       - embedding: gte-small
         path:
@@ -66,7 +64,6 @@ datasets:
           - - conversations
             - '*'
             - value
-        markdown_paths: []
     embeddings:
       - embedding: gte-small
         path:
@@ -108,6 +105,187 @@ datasets:
           - '*'
           - content
 
+  - name: 'OpenOrca'
+    namespace: lilac
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - question
+          - response
+      preferred_embedding: 'gte-small'
+    source:
+      source_name: huggingface
+      dataset_name: Open-Orca/OpenOrca
+    embeddings:
+      - embedding: gte-small
+        path:
+          - question
+
+  ## Eval datasets
+  - namespace: lilac
+    name: MMLU
+    source:
+      dataset_name: cais/mmlu
+      config_name: all
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - choices
+            - '*'
+          - answer
+
+  - namespace: lilac
+    name: ARC-Easy
+    source:
+      dataset_name: allenai/ai2_arc
+      config_name: ARC-Easy
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - choices
+            - text
+            - '*'
+          - answerKey
+
+  - namespace: lilac
+    name: ARC-Challenge
+    source:
+      dataset_name: allenai/ai2_arc
+      config_name: ARC-Challenge
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - choices
+            - text
+            - '*'
+          - answerKey
+
+  - namespace: lilac
+    name: HellaSwag
+    source:
+      dataset_name: Rowan/hellaswag
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - ctx
+          - ctx_a
+          - ctx_b
+          - - endings
+            - '*'
+
+  - namespace: lilac
+    name: HumanEval
+    source:
+      dataset_name: openai_humaneval
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - prompt
+          - canonical_solution
+          - test
+
+  - namespace: lilac
+    name: mbpp
+    source:
+      dataset_name: mbpp
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - code
+          - text
+
+  - namespace: lilac
+    name: TruthfulQA-MultipleChoice
+    source:
+      dataset_name: truthful_qa
+      config_name: multiple_choice
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - mc1_targets
+            - choices
+            - '*'
+          - - mc2_targets
+            - choices
+            - '*'
+
+  - namespace: lilac
+    name: TruthfulQA-Generation
+    source:
+      dataset_name: truthful_qa
+      config_name: generation
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - - correct_answers
+            - '*'
+          - - incorrect_answers
+            - '*'
+          - source
+
+  - namespace: lilac
+    name: GSM8K-main
+    source:
+      dataset_name: gsm8k
+      config_name: main
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - answer
+
+  - namespace: lilac
+    name: GSM8K-socratic
+    source:
+      dataset_name: gsm8k
+      config_name: socratic
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - question
+          - answer
+
+  - namespace: lilac
+    name: WinoGrande
+    source:
+      dataset_name: winogrande
+      config_name: winogrande_xl
+      source_name: huggingface
+    settings:
+      tags: [eval]
+      ui:
+        media_paths:
+          - sentence
+          - option1
+          - option2
+          - answer
+
   ## Old datasets to be cleaned up.
   - name: databricks-dolly-15k-curated-en
     namespace: lilac
@@ -141,23 +319,6 @@ datasets:
         path:
           - original-response
 
-  - name: 'OpenOrca'
-    namespace: lilac
-    settings:
-      tags: [datasets]
-      ui:
-        media_paths:
-          - question
-          - response
-      preferred_embedding: 'gte-small'
-    source:
-      source_name: huggingface
-      dataset_name: Open-Orca/OpenOrca
-    embeddings:
-      - embedding: gte-small
-        path:
-          - question
-
   - namespace: lilac
     name: dolphin
     tags: [datasets]
@@ -173,7 +334,6 @@ datasets:
           - output
           - - input__cluster
             - text
-        markdown_paths: []
 
   - namespace: lilac
     name: mosaic-instruct-v3
@@ -212,6 +372,7 @@ clusters:
     dataset_name: glaive-code-assistant
     input_path:
       - question
+
   - dataset_namespace: lilac
     dataset_name: glaive-function-calling-v2
     input_selector:
@@ -219,10 +380,12 @@ clusters:
       selector: human
     output_path:
       - conversation_clusters
+
   - dataset_namespace: lilac
     dataset_name: open-assistant-conversations-2
     input_path:
       - text
+
   - dataset_namespace: lilac
     dataset_name: lmsys-chat-1m
     input_selector:
@@ -230,14 +393,73 @@ clusters:
       selector: user
     output_path:
       - conversation__clusters
+
   - dataset_namespace: lilac
     dataset_name: OpenOrca
     input_path:
       - question
+
   - dataset_namespace: lilac
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
       - original-instruction
+
+  ## Eval datasets
+  - dataset_namespace: lilac
+    dataset_name: MMLU
+    input_path:
+      - question
+
+  - dataset_namespace: lilac
+    dataset_name: ARC-Easy
+    input_path:
+      - question
+
+  - dataset_namespace: lilac
+    dataset_name: ARC-Challenge
+    input_path:
+      - question
+  - dataset_namespace: lilac
+    dataset_name: HellaSwag
+    input_path:
+      - ctx
+
+  - dataset_namespace: lilac
+    dataset_name: HumanEval
+    input_path:
+      - prompt
+
+  - dataset_namespace: lilac
+    dataset_name: mbpp
+    input_path:
+      - text
+
+  - dataset_namespace: lilac
+    dataset_name: TruthfulQA-Generation
+    input_path:
+      - question
+
+  - dataset_namespace: lilac
+    dataset_name: TruthfulQA-MultipleChoice
+    input_path:
+      - question
+
+  - dataset_namespace: lilac
+    dataset_name: GSM8K-main
+    input_path:
+      - question
+
+  - dataset_namespace: lilac
+    dataset_name: GSM8K-socratic
+    input_path:
+      - question
+
+  - dataset_namespace: lilac
+    dataset_name: WinoGrande
+    input_path:
+      - sentence
+
+  ## Other datasets
   - dataset_namespace: lilac
     dataset_name: dolphin
     input_path:
