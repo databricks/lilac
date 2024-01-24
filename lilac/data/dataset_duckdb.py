@@ -68,6 +68,7 @@ from ..schema import (
   TIMESTAMP,
   VALUE_KEY,
   Bin,
+  EmbeddingInfo,
   Field,
   Item,
   MapFn,
@@ -1168,7 +1169,8 @@ class DatasetDuckDB(Dataset):
 
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
     output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
-    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema)
+    embedding_info = EmbeddingInfo(input_path=input_path, embedding=embedding)
+    signal_schema = create_signal_schema(signal, input_path, manifest.data_schema, embedding_info)
 
     assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
 

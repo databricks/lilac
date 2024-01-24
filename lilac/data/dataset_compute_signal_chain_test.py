@@ -10,6 +10,7 @@ from typing_extensions import override
 
 from ..schema import (
   EMBEDDING_KEY,
+  EmbeddingInfo,
   Field,
   Item,
   RichData,
@@ -144,6 +145,7 @@ def test_manual_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFi
             'test_embedding': field(
               signal=TestEmbedding().model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('text',), embedding='test_embedding'),
             ),
           },
         )

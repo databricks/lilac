@@ -9,6 +9,7 @@ from typing_extensions import override
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
+  EmbeddingInfo,
   Field,
   Item,
   RichData,
@@ -382,6 +383,7 @@ def test_search_semantic_schema(make_test_data: TestDataMaker) -> None:
             'test_embedding': field(
               signal=test_embedding.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('text',), embedding='test_embedding'),
             ),
             expected_world_signal.key(): field(
               signal=expected_world_signal.model_dump(exclude_none=True),
@@ -437,6 +439,7 @@ def test_search_concept_schema(make_test_data: TestDataMaker) -> None:
             'test_embedding': field(
               signal=test_embedding.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('text',), embedding='test_embedding'),
             ),
             expected_world_signal.key(): field(
               signal=expected_world_signal.model_dump(exclude_none=True),

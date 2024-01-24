@@ -26,6 +26,7 @@ from ..schema import (
   STRING,
   TEXT_SPAN_END_FEATURE,
   TEXT_SPAN_START_FEATURE,
+  EmbeddingInfo,
   Field,
   Item,
   MapFn,
@@ -132,7 +133,10 @@ def create_json_map_output_schema(map_schema: Field, output_path: PathTuple) -> 
 
 
 def create_signal_schema(
-  signal: Signal, source_path: PathTuple, current_schema: Schema
+  signal: Signal,
+  source_path: PathTuple,
+  current_schema: Schema,
+  embedding_info: Optional[EmbeddingInfo] = None,
 ) -> Optional[Schema]:
   """Create a signal schema describing the enriched fields.
 
@@ -148,6 +152,8 @@ def create_signal_schema(
     return None
 
   signal_schema.signal = signal.model_dump(exclude_none=True)
+  if embedding_info:
+    signal_schema.embedding = embedding_info
 
   enriched_schema = field(fields={signal.key(is_computed_signal=True): signal_schema})
 

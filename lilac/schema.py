@@ -255,6 +255,13 @@ class ClusterInfo(BaseModel):
   input_format_selector: Optional[ClusterInputFormatSelectorInfo] = None
 
 
+class EmbeddingInfo(BaseModel):
+  """Holds information about an embedding operation that was run on a dataset."""
+
+  input_path: Optional[PathTuple] = None
+  embedding: str
+
+
 class MapType(DataType):
   """The map dtype parameterized by the key and value types."""
 
@@ -288,6 +295,7 @@ class Field(BaseModel):
   bins: Optional[list[Bin]] = None
   categorical: Optional[bool] = None
   cluster: Optional[ClusterInfo] = None
+  embedding: Optional[EmbeddingInfo] = None
 
   @field_validator('fields')
   @classmethod
@@ -447,6 +455,7 @@ def field(
   label: Optional[str] = None,
   map: Optional[MapInfo] = None,
   cluster: Optional[ClusterInfo] = None,
+  embedding: Optional[EmbeddingInfo] = None,
 ) -> Field:
   """Parse a field-like object to a Field object."""
   field = _parse_field_like(fields or {}, dtype)
@@ -456,6 +465,8 @@ def field(
     field.map = map
   if cluster:
     field.cluster = cluster
+  if embedding:
+    field.embedding = embedding
   if label:
     field.label = label
   if dtype:

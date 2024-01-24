@@ -13,6 +13,7 @@ from ..concepts.db_concept import ConceptUpdate, DiskConceptDB
 from ..schema import (
   EMBEDDING_KEY,
   PATH_WILDCARD,
+  EmbeddingInfo,
   Field,
   Item,
   RichData,
@@ -687,6 +688,7 @@ def test_embedding_signal(make_test_data: TestDataMaker, mocker: MockerFixture) 
             'test_embedding': field(
               signal=embedding_signal.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('text',), embedding='test_embedding'),
             )
           },
         )
@@ -720,6 +722,7 @@ def test_embedding_signal_overwrite(make_test_data: TestDataMaker, mocker: Mocke
             'test_embedding': field(
               signal=embedding_signal.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('text',), embedding='test_embedding'),
             )
           },
         )
@@ -782,6 +785,7 @@ def test_delete_embedding(make_test_data: TestDataMaker, mocker: MockerFixture) 
             'test_embedding': field(
               signal=embedding_signal.model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('text',), embedding='test_embedding'),
             )
           },
         )

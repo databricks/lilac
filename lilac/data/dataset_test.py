@@ -17,6 +17,7 @@ from ..schema import (
   EMBEDDING_KEY,
   ROWID,
   SPAN_KEY,
+  EmbeddingInfo,
   Field,
   Item,
   MapType,
@@ -611,6 +612,7 @@ def test_config_from_dataset(make_test_data: TestDataMaker) -> None:
             'test_embedding': field(
               signal=TestEmbedding().model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('text',), embedding='test_embedding'),
             ),
           },
         )

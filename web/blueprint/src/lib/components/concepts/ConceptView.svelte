@@ -139,7 +139,7 @@
   {#if $embeddings.data}
     <Expandable expanded>
       <div slot="above" class="text-md font-semibold">Metrics</div>
-      <div slot="below" class="model-metrics flex gap-x-4">
+      <div slot="below" class="model-metrics flex flex-wrap gap-x-4 gap-y-4">
         {#each $embeddings.data as embedding}
           <ConceptMetrics {concept} embedding={embedding.name} />
         {/each}

@@ -24,7 +24,16 @@ from .db_manager import get_dataset
 from .env import set_project_dir
 from .load import load
 from .project import PROJECT_CONFIG_FILENAME, init
-from .schema import EMBEDDING_KEY, Field, Item, RichData, chunk_embedding, field, schema
+from .schema import (
+  EMBEDDING_KEY,
+  EmbeddingInfo,
+  Field,
+  Item,
+  RichData,
+  chunk_embedding,
+  field,
+  schema,
+)
 from .signal import (
   TextEmbeddingSignal,
   TextSignal,
@@ -275,6 +284,7 @@ def test_load_embeddings(tmp_path: pathlib.Path) -> None:
             'test_embedding': field(
               signal=TestEmbedding().model_dump(exclude_none=True),
               fields=[field('string_span', fields={EMBEDDING_KEY: 'embedding'})],
+              embedding=EmbeddingInfo(input_path=('str',), embedding='test_embedding'),
             )
           },
         ),

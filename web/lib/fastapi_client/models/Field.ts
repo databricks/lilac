@@ -5,6 +5,7 @@
 
 import type { ClusterInfo } from './ClusterInfo';
 import type { DataType } from './DataType';
+import type { EmbeddingInfo } from './EmbeddingInfo';
 import type { MapInfo } from './MapInfo';
 import type { MapType } from './MapType';
 
@@ -21,5 +22,6 @@ export type Field = {
     bins?: (Array<any[]> | null);
     categorical?: (boolean | null);
     cluster?: (ClusterInfo | null);
+    embedding?: (EmbeddingInfo | null);
 };
 

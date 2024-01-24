@@ -40,6 +40,7 @@ export type { DataType } from './models/DataType';
 export type { DeleteRowsOptions } from './models/DeleteRowsOptions';
 export type { DeleteSignalOptions } from './models/DeleteSignalOptions';
 export type { DeleteSignalResponse } from './models/DeleteSignalResponse';
+export type { EmbeddingInfo } from './models/EmbeddingInfo';
 export type { Example } from './models/Example';
 export type { ExampleIn } from './models/ExampleIn';
 export type { ExampleOrigin } from './models/ExampleOrigin';
