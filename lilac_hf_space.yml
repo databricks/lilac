@@ -122,6 +122,23 @@ datasets:
         path:
           - question
 
+  - namespace: lilac
+    name: mosaic-instruct-v3
+    source:
+      dataset_name: mosaicml/instruct-v3
+      source_name: huggingface
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - prompt
+          - response
+        markdown_paths: []
+    embeddings:
+      - embedding: gte-small
+        path:
+          - prompt
+
   ## Eval datasets
   - namespace: lilac
     name: MMLU
@@ -386,6 +403,11 @@ clusters:
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
       - original-instruction
+
+  - dataset_namespace: lilac
+    dataset_name: mosaic-instruct-v3
+    input_path:
+      - prompt
 
   ## Eval datasets
   - dataset_namespace: lilac
