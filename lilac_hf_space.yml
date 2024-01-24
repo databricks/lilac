@@ -122,6 +122,23 @@ datasets:
         path:
           - question
 
+  - namespace: lilac
+    name: mosaic-instruct-v3
+    source:
+      dataset_name: mosaicml/instruct-v3
+      source_name: huggingface
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - prompt
+          - response
+        markdown_paths: []
+    embeddings:
+      - embedding: gte-small
+        path:
+          - prompt
+
   ## Eval datasets
   - namespace: lilac
     name: MMLU
@@ -335,23 +352,6 @@ datasets:
           - - input__cluster
             - text
 
-  - namespace: lilac
-    name: mosaic-instruct-v3
-    source:
-      dataset_name: mosaicml/instruct-v3
-      source_name: huggingface
-    settings:
-      tags: [datasets]
-      ui:
-        media_paths:
-          - prompt
-          - response
-        markdown_paths: []
-    embeddings:
-      - embedding: gte-small
-        path:
-          - prompt
-
 signals:
   - signal_name: text_statistics
   - signal_name: lang_detection
@@ -403,6 +403,11 @@ clusters:
     dataset_name: databricks-dolly-15k-curated-en
     input_path:
       - original-instruction
+
+  - dataset_namespace: lilac
+    dataset_name: mosaic-instruct-v3
+    input_path:
+      - prompt
 
   ## Eval datasets
   - dataset_namespace: lilac
@@ -464,10 +469,6 @@ clusters:
     dataset_name: dolphin
     input_path:
       - input
-  - dataset_namespace: lilac
-    dataset_name: mosaic-instruct-v3
-    input_path:
-      - prompt
 
 concept_model_cache_embeddings:
   - gte-small
