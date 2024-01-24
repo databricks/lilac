@@ -7,7 +7,6 @@ from typing import TypedDict
 import yaml
 
 from .concepts.db_concept import DiskConceptDB, get_concept_output_dir
-from .db_manager import get_dataset, list_datasets
 from .env import env, get_project_dir
 from .project import PROJECT_CONFIG_FILENAME
 from .utils import DebugTimer, get_datasets_dir, get_lilac_cache_dir, log
@@ -137,10 +136,3 @@ def _hf_docker_start() -> None:
     shutil.rmtree(persistent_output_dir, ignore_errors=True)
     shutil.copytree(spaces_concept_output_dir, persistent_output_dir, dirs_exist_ok=True)
     shutil.rmtree(spaces_concept_output_dir, ignore_errors=True)
-
-  # Compute dataset indices, if indices are enabled:
-  if env('USE_TABLE_INDEX', default=False):
-    for dataset_info in list_datasets():
-      ds_namespace, ds_name = dataset_info.namespace, dataset_info.dataset_name
-      ds = get_dataset(ds_namespace, ds_name)
-      ds.manifest()
