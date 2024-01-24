@@ -88,6 +88,24 @@ export function valueAtPath(item: LilacValueNode, path: Path): LilacValueNode | 
   return valueAtPath(item[key], rest);
 }
 
+export function valuesAtPath(
+  item: LilacValueNode | LilacValueNode[],
+  path: Path
+): LilacValueNode[] {
+  if (item == null) {
+    return [];
+  }
+  const [key, ...rest] = path;
+  if (key == PATH_WILDCARD) {
+    return (item as LilacValueNode[]).flatMap(v => valuesAtPath(v, rest));
+  }
+  item = item as LilacValueNode;
+  if (rest.length === 0) {
+    return [item[key]];
+  }
+  return valuesAtPath(item[key], rest);
+}
+
 /**
  * Cast a value node to an internal value node
  */

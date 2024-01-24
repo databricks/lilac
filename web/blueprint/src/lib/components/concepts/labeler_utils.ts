@@ -3,6 +3,7 @@ import {
   L,
   ROWID,
   valueAtPath,
+  valuesAtPath,
   type Concept,
   type DataTypeCasted,
   type LilacValueNode
@@ -47,55 +48,53 @@ export function getCandidates(
       continue;
     }
     rowids.add(rowid);
-    const textNode = valueAtPath(row, fieldPath);
-    if (textNode == null) {
-      continue;
-    }
-    const text = L.value(textNode, 'string');
-    if (text == null) {
-      continue;
-    }
-    const conceptId = `${concept.namespace}/${concept.concept_name}`;
-    const spanNodes = valueAtPath(textNode, [
-      `${conceptId}/${embedding}/preview`
-    ]) as unknown as LilacValueNode[];
-    if (spanNodes == null) {
-      continue;
-    }
-
-    const labelNodes = valueAtPath(textNode, [
-      `${conceptId}/labels`
-    ]) as unknown as LilacValueNode[];
-    const labeledSpans: NonNullable<DataTypeCasted<'string_span'>>[] = [];
-    if (labelNodes != null) {
-      for (const labelNode of labelNodes) {
-        const span = L.span(labelNode);
-        if (span != null) {
-          labeledSpans.push(span);
+    const textNodes = valuesAtPath(row, fieldPath);
+    for (const textNode of textNodes) {
+      const text = L.value(textNode, 'string');
+      if (text == null) {
+        continue;
+      }
+      const conceptId = `${concept.namespace}/${concept.concept_name}`;
+      const spanNodes = valueAtPath(textNode, [
+        `${conceptId}/${embedding}/preview`
+      ]) as unknown as LilacValueNode[];
+      if (spanNodes == null) {
+        continue;
+      }
+      const labelNodes = valueAtPath(textNode, [
+        `${conceptId}/labels/preview`
+      ]) as unknown as LilacValueNode[];
+      const labeledSpans: NonNullable<DataTypeCasted<'string_span'>>[] = [];
+      if (labelNodes != null) {
+        for (const labelNode of labelNodes) {
+          const span = L.span(labelNode);
+          if (span != null) {
+            labeledSpans.push(span);
+          }
         }
       }
-    }
-    for (const spanNode of spanNodes) {
-      const span = L.span(spanNode);
-      if (span == null) {
-        continue;
-      }
+      for (const spanNode of spanNodes) {
+        const span = L.span(spanNode);
+        if (span == null) {
+          continue;
+        }
 
-      // Skip spans that overlap with labeled pieces.
-      const noOverlap = labeledSpans.every(l => l.start > span.end || l.end < span.start);
-      if (!noOverlap) {
-        continue;
-      }
+        // Skip spans that overlap with labeled pieces.
+        const noOverlap = labeledSpans.every(l => l.start > span.end || l.end < span.start);
+        if (!noOverlap) {
+          continue;
+        }
 
-      const scoreNode = valueAtPath(spanNode, ['score']);
-      if (scoreNode == null) {
-        continue;
+        const scoreNode = valueAtPath(spanNode, ['score']);
+        if (scoreNode == null) {
+          continue;
+        }
+        const score = L.value(scoreNode, 'float32');
+        if (score == null) {
+          continue;
+        }
+        spans.push({rowid, text, span, score});
       }
-      const score = L.value(scoreNode, 'float32');
-      if (score == null) {
-        continue;
-      }
-      spans.push({rowid, text, span, score});
     }
   }
 
