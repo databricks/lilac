@@ -17,6 +17,7 @@
 
 <div
   class="flex w-36 flex-col items-center gap-y-2 rounded-md border border-b-0 border-gray-200 p-4 shadow-md"
+  style="height: 103px"
 >
   <div class="text-gray-500">{embedding}</div>
   {#if $model.isFetching}
