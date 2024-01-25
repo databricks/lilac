@@ -42,7 +42,7 @@ blazing fast dataset-level computations.
 
 <img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
 
-> [!IMPORTANT] See our [3min walkthrough video](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
+> See our [3min walkthrough video](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
 
 ## 🔥 Getting started
 
