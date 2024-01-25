@@ -58,21 +58,23 @@
   }
 </script>
 
-<DropdownPill
-  title="Group by"
-  {items}
-  bind:open
-  direction="left"
-  on:select={selectItem}
-  {selectedId}
-  tooltip={selectedPath ? `Grouping by ${getDisplayPath(selectedPath)}` : null}
-  let:item
->
-  <div slot="icon"><Folder title="Group by" /></div>
-  {@const groupByItem = items?.find(x => x === item)}
-  {#if groupByItem}
-    <div class="flex items-center justify-between gap-x-1">
-      <span title={groupByItem.text} class="truncate text-sm">{groupByItem.text}</span>
-    </div>
-  {/if}
-</DropdownPill>
+<div class="flex items-center gap-x-1">
+  <DropdownPill
+    title="Group by"
+    {items}
+    bind:open
+    direction="left"
+    on:select={selectItem}
+    {selectedId}
+    tooltip={selectedPath ? `Grouping by ${getDisplayPath(selectedPath)}` : null}
+    let:item
+  >
+    <div slot="icon"><Folder title="Group by" /></div>
+    {@const groupByItem = items?.find(x => x === item)}
+    {#if groupByItem}
+      <div class="flex items-center justify-between gap-x-1">
+        <span title={groupByItem.text} class="truncate text-sm">{groupByItem.text}</span>
+      </div>
+    {/if}
+  </DropdownPill>
+</div>

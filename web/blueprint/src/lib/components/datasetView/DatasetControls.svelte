@@ -7,17 +7,14 @@
   import {getSearches} from '$lib/view_utils';
   import type {Search, SearchType} from '$lilac';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
-  import {ArrowUpRight, Filter, TagGroup, TagNone, TrashCan} from 'carbon-icons-svelte';
-  import {Command, triggerCommand} from '../commands/Commands.svelte';
-  import RemovableTag from '../common/RemovableTag.svelte';
+  import {ArrowUpRight, TagGroup, TagNone} from 'carbon-icons-svelte';
   import ConceptView from '../concepts/ConceptView.svelte';
   import DeleteRowsButton from './DeleteRowsButton.svelte';
   import EditLabel from './EditLabel.svelte';
-  import FilterPill from './FilterPill.svelte';
+  import FilterControls from './FilterControls.svelte';
+  import GroupByControls from './GroupByControls.svelte';
   import GroupByPanel from './GroupByPanel.svelte';
-  import GroupByPill from './GroupByPill.svelte';
-  import SearchPill from './SearchPill.svelte';
-  import SortPill from './SortPill.svelte';
+  import SortControls from './SortControls.svelte';
 
   export let numRowsInQuery: number | undefined;
 
@@ -66,8 +63,8 @@
 </script>
 
 <div class="relative mx-8 my-2 flex items-center justify-between pr-4">
-  <div class="flex w-full justify-between gap-x-6 gap-y-2">
-    <div class="flex w-full flex-row gap-x-4">
+  <div class="flex w-full items-center justify-between gap-x-6 gap-y-2">
+    <div class="flex w-full flex-row items-center gap-x-4">
       <div class="flex items-center gap-x-2">
         <EditLabel
           totalNumRows={numRowsInQuery}
@@ -94,71 +91,9 @@
       </div>
     </div>
     <div class="flex grow flex-row gap-x-4">
-      <!-- Filters -->
-      <div class="flex items-center gap-x-1 rounded border border-neutral-300 px-2">
-        <div><Filter /></div>
-        {#if $datasetViewStore.viewTrash}
-          <div class="flex flex-grow flex-row gap-x-4">
-            <div class="filter-group rounded bg-slate-50 px-2 shadow-sm">
-              <RemovableTag
-                interactive
-                type="red"
-                on:remove={() => datasetViewStore.showTrash(false)}
-              >
-                <div class="flex flex-row gap-x-1">Trash <TrashCan /></div>
-              </RemovableTag>
-            </div>
-          </div>
-        {/if}
-        {#if searches.length > 0 || (filters && filters.length > 0)}
-          <div class="flex flex-grow flex-row gap-x-4">
-            <!-- Search groups -->
-            {#each searchTypeOrder as searchType}
-              {#if searchesByType[searchType]}
-                <div class="filter-group rounded bg-slate-50 px-2 shadow-sm">
-                  <div class="text-xs font-light">{searchTypeDisplay[searchType]}</div>
-                  <div class="flex flex-row gap-x-1">
-                    {#each searchesByType[searchType] as search}
-                      <SearchPill {search} on:click={() => openSearchPill(search)} />
-                    {/each}
-                  </div>
-                </div>
-              {/if}
-            {/each}
-            <!-- Filters group -->
-            {#if filters != null && filters.length > 0}
-              <div class="filter-group rounded bg-slate-50 px-2 shadow-sm">
-                <div class="text-xs font-light">Filters</div>
-                <div class="flex flex-row gap-x-1">
-                  {#if $schema.data}
-                    {#each filters as filter}
-                      <FilterPill schema={$schema.data} {filter} />
-                    {/each}
-                  {:else}
-                    <SkeletonText />
-                  {/if}
-                </div>
-              </div>
-            {/if}
-          </div>
-        {:else}
-          <button
-            on:click={() =>
-              triggerCommand({
-                command: Command.EditFilter,
-                namespace: $datasetViewStore.namespace,
-                datasetName: $datasetViewStore.datasetName
-              })}>Filters</button
-          >
-        {/if}
-      </div>
-
-      <div class="rounded border border-neutral-300">
-        <GroupByPill />
-      </div>
-      <div class="rounded border border-neutral-300">
-        <SortPill />
-      </div>
+      <FilterControls />
+      <GroupByControls />
+      <SortControls />
     </div>
   </div>
 </div>

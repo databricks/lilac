@@ -159,9 +159,11 @@ templates = Jinja2Templates(directory=os.path.join(current_dir, 'templates'))
 
 
 @app.get('/_data{path:path}', response_class=HTMLResponse, include_in_schema=False)
-def list_files(request: Request, path: str) -> Response:
+def list_files(
+  request: Request, path: str, user: Annotated[Optional[UserInfo], Depends(get_session_user)]
+) -> Response:
   """List files in the data directory."""
-  if env('LILAC_AUTH_ENABLED', False):
+  if env('LILAC_AUTH_ENABLED', False) and not get_user_access(user).is_admin:
     return Response(status_code=401)
   path = os.path.join(get_project_dir(), f'.{path}')
   if not os.path.exists(path):

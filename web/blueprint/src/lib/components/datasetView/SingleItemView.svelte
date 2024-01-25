@@ -7,7 +7,7 @@
   import {getDatasetViewContext, getSelectRowsSchemaOptions} from '$lib/stores/datasetViewStore';
   import {getHighlightedFields, getMediaFields} from '$lib/view_utils';
   import {L, ROWID, type SelectRowsResponse} from '$lilac';
-  import FilterPanel from './FilterPanel.svelte';
+  import DatasetControls from './DatasetControls.svelte';
   import PrefetchRowItem from './PrefetchRowItem.svelte';
   import RowItem from './RowItem.svelte';
   import SingleItemSelectRows from './SingleItemSelectRows.svelte';
@@ -97,7 +97,7 @@
   }
 </script>
 
-<FilterPanel numRowsInQuery={rowsResponse?.total_num_rows} />
+<DatasetControls numRowsInQuery={rowsResponse?.total_num_rows} />
 
 <SingleItemSelectRows {limit} bind:rowsResponse bind:lookAheadRowId />
 

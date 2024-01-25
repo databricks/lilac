@@ -28,16 +28,6 @@
 
 <div class="flex w-full flex-col">
   <div class="flex w-full flex-row">
-    <div class="flex flex-shrink items-center">
-      <button
-        class:invisible={prevPageDisabled}
-        class:opacity-50={prevPageDisabled}
-        class="mx-1"
-        on:click={() => showPrevPage()}
-        ><ChevronLeft />
-      </button>
-    </div>
-
     <div class="flex h-full grow flex-row gap-x-2">
       {#if itemsVisible != null}
         {#each itemsVisible as item}
@@ -53,34 +43,28 @@
         {/each}
       {/if}
     </div>
-
-    <div class="flex flex-shrink items-center">
+  </div>
+  <div class="mx-auto mt-2 flex flex-row items-center gap-x-4 px-16 font-light">
+    <div>
       <button
-        class:invisible={nextPageDisabled}
-        class:opacity-50={nextPageDisabled}
+        disabled={prevPageDisabled}
+        class:opacity-20={prevPageDisabled}
+        class="mx-1"
+        on:click={() => showPrevPage()}
+        ><ChevronLeft />
+      </button>
+    </div>
+    <div class="w-16 text-center">
+      {currentPage + 1} of {pages.length}
+    </div>
+    <div>
+      <button
+        disabled={nextPageDisabled}
+        class:opacity-20={nextPageDisabled}
         class="mx-1"
         on:click={() => showNextPage()}
         ><ChevronRight />
       </button>
-    </div>
-  </div>
-  <div class="mx-auto px-16">
-    <div class="mt-4 flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1">
-      {#if pages.length > 1}
-        {#each pages as _, i}
-          {@const isCurrentPage = i === currentPage}
-          {@const sizePx = isCurrentPage ? 10 : 8}
-          <button
-            class="mx-0.5 rounded-full p-0"
-            style={`width: ${sizePx}px; height: ${sizePx}px;`}
-            class:bg-blue-300={isCurrentPage}
-            class:outline-blue-400={isCurrentPage}
-            class:outline={isCurrentPage}
-            class:bg-neutral-300={!isCurrentPage}
-            on:click={() => (currentPage = i)}
-          />
-        {/each}
-      {/if}
     </div>
   </div>
 </div>

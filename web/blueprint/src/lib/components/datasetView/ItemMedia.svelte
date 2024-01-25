@@ -214,8 +214,12 @@
         embedding = preferred;
       }
     }
+    // Find the media field that matches the root path.
+    const rootMediaField = mediaFields.find(f => pathIsMatching(f.path, rootPath));
+    if (rootMediaField == null) return;
+    // Find the media field
     datasetViewStore.addSearch({
-      path: rootPath,
+      path: rootMediaField?.path,
       type: 'semantic',
       query: searchText as string,
       query_type: 'document',

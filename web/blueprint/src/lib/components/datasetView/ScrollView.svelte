@@ -20,7 +20,7 @@
   import {setContext} from 'svelte';
   import InfiniteScroll from 'svelte-infinite-scroll';
   import {writable} from 'svelte/store';
-  import FilterPanel from './FilterPanel.svelte';
+  import DatasetControls from './DatasetControls.svelte';
   import RowItem from './RowItem.svelte';
 
   const datasetViewStore = getDatasetViewContext();
@@ -62,7 +62,7 @@
   $: writableStore.set(itemScrollContainer);
 </script>
 
-<FilterPanel numRowsInQuery={totalNumRows} />
+<DatasetControls numRowsInQuery={totalNumRows} />
 
 {#if $rows.isError}
   <InlineNotification

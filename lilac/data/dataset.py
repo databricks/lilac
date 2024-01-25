@@ -528,6 +528,7 @@ class Dataset(abc.ABC):
   def load_embedding(
     self,
     load_fn: Callable[[Item], Union[np.ndarray, list[Item]]],
+    # TODO(nsthorat): Rename this to text_path during the 0.4.0 update.
     index_path: Path,
     embedding: str,
     overwrite: bool = False,

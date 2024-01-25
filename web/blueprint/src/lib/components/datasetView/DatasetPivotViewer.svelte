@@ -28,8 +28,10 @@
     DropdownItem,
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
+  import {ArrowUpRight} from 'carbon-icons-svelte';
   import DropdownPill from '../common/DropdownPill.svelte';
   import DatasetPivotResult, {type OuterPivot} from './DatasetPivotResult.svelte';
+  import FilterControls from './FilterControls.svelte';
 
   let outerLeafPath: Path | undefined = undefined;
   let innerLeafPath: Path | undefined = undefined;
@@ -162,7 +164,7 @@
 
 <div class="flex h-full flex-col">
   <div class="mb-8 flex h-16 w-full flex-row justify-between justify-items-center gap-x-4">
-    <div class="ml-8 mt-4 w-96">
+    <div class="search-container ml-8 mt-4 w-96">
       <Search
         value={searchText}
         on:input={searchInput}
@@ -172,7 +174,7 @@
         on:clear={clearSearch}
       />
     </div>
-    <div class="mr-8 flex flex-row gap-x-4 py-2 pr-4">
+    <div class="h-18 mr-8 flex flex-row items-end gap-x-4 pr-4">
       <div class="flex flex-col gap-y-2">
         <div>Explore</div>
         <DropdownPill
@@ -181,7 +183,7 @@
           direction="left"
           on:select={selectInnerPath}
           selectedId={innerLeafPath && serializePath(innerLeafPath)}
-          tooltip={innerLeafPath ? `Grouping by ${getDisplayPath(innerLeafPath)}` : null}
+          tooltip={innerLeafPath ? `Exploring ${getDisplayPath(innerLeafPath)}` : null}
           let:item
         >
           {@const slotItem = dropdownFields?.find(x => x === item)}
@@ -211,6 +213,9 @@
           {/if}
         </DropdownPill>
       </div>
+      <div>
+        <FilterControls />
+      </div>
     </div>
   </div>
 
@@ -234,29 +239,34 @@
             groupBy: outerLeafPath ? {path: outerLeafPath, value: group.value} : undefined
           })}
 
-          <div class="flex w-full flex-row">
-            <div class="mb-4 flex w-48 flex-col items-center justify-between gap-y-4 p-6">
+          <div class="flex w-full flex-row gap-x-4 rounded py-2">
+            <div
+              class="flex h-full w-72 flex-col justify-between gap-y-4 self-start rounded-lg px-4 pt-4"
+            >
               <div
-                class="mx-2 h-16 whitespace-break-spaces py-0.5 text-center text-2xl leading-7 tracking-tight"
+                title={group.value}
+                class="card-outer-title w-16 whitespace-break-spaces text-3xl leading-9 tracking-tight"
               >
                 {#each group.textHighlights as highlight}
                   {#if highlight.isBold}<span class="font-bold">{highlight.text}</span>
                   {:else}<span>{highlight.text}</span>{/if}
                 {/each}
               </div>
-              <div class="flex w-full flex-col items-center font-light">
-                <span class="ml-2 text-xl text-neutral-800">
+              <div class="flex w-full flex-col font-light">
+                <span class="text-3xl text-neutral-600">
                   {group.percentage}%
                 </span>
-                <span class="ml-2 text-neutral-500">
+                <span class="text-lg text-neutral-500">
                   {group.count.toLocaleString()} rows
                 </span>
               </div>
               <a class="flex flex-row" href={groupLink}>
-                <button class="border border-neutral-300">Explore</button></a
+                <button
+                  class="flex flex-row items-center gap-x-2 border border-neutral-300 bg-violet-200 bg-opacity-70 font-light text-black shadow"
+                  >Explore <ArrowUpRight /></button
+                ></a
               >
             </div>
-
             {#if outerLeafPath && innerLeafPath && numRowsInQuery}
               <DatasetPivotResult
                 filter={group.value == null
@@ -275,3 +285,16 @@
     {/if}
   </div>
 </div>
+
+<style lang="postcss">
+  .card-outer-title {
+    width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  :global(.search-container .bx--search .bx--search-input) {
+    outline: 1px solid #a3a3a3;
+  }
+</style>

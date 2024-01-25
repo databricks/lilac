@@ -33,7 +33,7 @@
 </script>
 
 <div
-  class="drop-pill flex items-center px-2"
+  class="drop-pill flex items-center rounded border border-neutral-300 px-2"
   class:drop-pill-left={direction === 'left'}
   class:active={selectedId != null}
   use:hoverTooltip={!open && tooltip ? {text: tooltip} : {text: ''}}
@@ -61,9 +61,6 @@
 </div>
 
 <style lang="postcss">
-  .active {
-    @apply rounded-lg bg-neutral-100 outline outline-1 outline-neutral-400;
-  }
   :global(.drop-pill .bx--list-box__menu) {
     max-height: 26rem !important;
     width: unset;

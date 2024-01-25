@@ -22,7 +22,7 @@
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
   import {datasetLink} from '$lib/utils';
   import type {BinaryFilter, Path, UnaryFilter} from '$lilac';
-  import {Information} from 'carbon-icons-svelte';
+  import {ArrowUpRight} from 'carbon-icons-svelte';
   import {onDestroy, onMount} from 'svelte';
   import Carousel from '../common/Carousel.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
@@ -68,7 +68,10 @@
   }
 </script>
 
-<div class="flex h-64 w-full flex-row flex-wrap" bind:this={root}>
+<div
+  class="flex h-full w-full flex-row flex-wrap rounded-lg border border-neutral-200 bg-violet-100 bg-opacity-50 px-4 pb-2 pt-4"
+  bind:this={root}
+>
   {#if isOnScreen}
     <Carousel items={group.inner} pageSize={ITEMS_PER_PAGE}>
       <div class="w-full" slot="item" let:item>
@@ -86,10 +89,11 @@
           groupBy: {path, value: innerGroup.value}
         })}
         <div
-          class="md:1/2 flex h-full w-full max-w-sm flex-grow flex-col items-center justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow"
+          class="md:1/2 flex h-full w-full max-w-sm flex-grow flex-col justify-between gap-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow"
         >
           <div
-            class="card-title h-16 py-0.5 text-center text-lg font-light leading-5 tracking-tight text-neutral-900"
+            title={innerGroup.value}
+            class="card-title h-16 py-0.5 text-base font-normal leading-5 tracking-tight text-neutral-900"
           >
             {#each innerGroup.textHighlights as highlight}
               {#if highlight.isBold}
@@ -100,28 +104,35 @@
             {/each}
           </div>
           <div class="flex flex-row gap-x-2 font-light leading-none text-neutral-600">
-            <div class="leading-2 text-lg">
-              <div class="flex flex-col py-2">
-                <div class="leading-2 flex flex-row items-center gap-x-1 text-xl text-neutral-800">
+            <div class="leading-2 flex w-full flex-row text-lg">
+              <div class="flex flex-col self-end">
+                <div
+                  class="leading-2 flex flex-row items-center gap-x-1 text-xl text-neutral-800"
+                  use:hoverTooltip={{
+                    text: `${groupPercentage}% of ${group.value}\n` + `${totalPercentage}% of total`
+                  }}
+                >
                   {groupPercentage}%
-                  <div
-                    use:hoverTooltip={{
-                      text:
-                        `${groupPercentage}% of ${group.value}\n` + `${totalPercentage}% of total`
-                    }}
-                  >
-                    <Information />
-                  </div>
                 </div>
                 <span class="text-sm text-neutral-700">
                   {innerGroup.count.toLocaleString()} rows
                 </span>
               </div>
             </div>
+            <div class="self-end">
+              <a
+                class="flex flex-row"
+                href={groupLink}
+                use:hoverTooltip={{
+                  text: `Explore ${innerGroup.value} in ${group.value}`
+                }}
+              >
+                <button class="h-8 border border-neutral-300 text-black shadow"
+                  ><ArrowUpRight /></button
+                ></a
+              >
+            </div>
           </div>
-          <a class="flex flex-row" href={groupLink}>
-            <button class="border border-neutral-300">Explore</button></a
-          >
         </div>
       </div>
     </Carousel>

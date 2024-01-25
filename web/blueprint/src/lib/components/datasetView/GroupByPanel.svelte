@@ -67,7 +67,7 @@
 <!-- A tab index let's us arrow through the groups when the group header is focused. -->
 <div
   tabindex="0"
-  class="mx-4 my-2 flex items-center justify-center gap-x-2 rounded-lg border border-neutral-300 bg-neutral-100 py-2"
+  class="mx-8 my-2 mr-12 flex items-center justify-center gap-x-2 rounded-lg border border-neutral-300 bg-neutral-100 py-2"
   on:keydown={onKeyDown}
 >
   <div class="flex-0">
