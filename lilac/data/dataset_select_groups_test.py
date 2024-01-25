@@ -263,6 +263,18 @@ def test_auto_bins_for_float(make_test_data: TestDataMaker) -> None:
   assert res.bins
 
 
+def test_auto_bins_for_missing_float(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [{'feature': 1.0}] + [{'feature': float('nan')}] * 5
+  dataset = make_test_data(items)
+  # The 1.0 row was just to get the right type inference going; desired dataset is a bunch of NaNs.
+  dataset.delete_rows(filters=[('feature', 'equals', 1.0)])
+
+  res = dataset.select_groups('feature')
+  assert res.counts == [(None, 5)]
+  assert res.too_many_distinct is False
+  assert res.bins == [('0', None, None)]
+
+
 def test_map_dtype(make_test_data: TestDataMaker) -> None:
   items = [
     {'column': {'a': 1.0, 'b': 2.0}},
