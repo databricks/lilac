@@ -54,18 +54,20 @@
   $: clusterFields = childFields($schema.data).filter(f => isClusterRootField(f));
   // For now, choose the first cluster.
   $: clusterField = clusterFields && clusterFields.length > 0 ? clusterFields[0] : null;
-  function openClusters() {
-    if (clusterField == null) return;
-    if ($datasetViewStore.viewPivot) {
-      goto(link);
-      return;
-    }
-
-    datasetViewStore.openPivotViewer(
-      [...clusterField.path, CLUSTER_CATEGORY_FIELD],
-      [...clusterField.path, CLUSTER_TITLE_FIELD]
-    );
-  }
+  $: clusterOuterPath = clusterField ? [...clusterField.path, CLUSTER_CATEGORY_FIELD] : null;
+  $: clusterInnerPath = clusterField ? [...clusterField.path, CLUSTER_TITLE_FIELD] : null;
+  $: clusterLink =
+    clusterOuterPath != null && clusterInnerPath != null
+      ? datasetLink($datasetViewStore.namespace, $datasetViewStore.datasetName, {
+          ...$datasetViewStore,
+          viewPivot: true,
+          query: {filters: undefined, searches: undefined},
+          groupBy: undefined,
+          rowId: undefined,
+          pivot: {outerPath: clusterOuterPath, innerPath: clusterInnerPath}
+        })
+      : null;
+  $: clusterToggleLink = $datasetViewStore.viewPivot ? link : clusterLink;
 </script>
 
 <Page>
@@ -85,24 +87,26 @@
       on:click={toggleSchemaCollapsed}
       on:keypress={toggleSchemaCollapsed}><TableOfContents /></button
     >
-    <button
-      class:disabled={clusterField == null}
-      class:cursor-default={clusterField == null}
-      class:opacity-30={clusterField == null}
-      class:bg-blue-100={$datasetViewStore.viewPivot}
-      class:outline-blue-400={$datasetViewStore.viewPivot}
-      class:outline={$datasetViewStore.viewPivot}
-      use:hoverTooltip={{
-        text:
-          clusterField == null
-            ? 'Clusters have not been computed for this dataset.'
-            : !$datasetViewStore.viewPivot
-            ? 'Open clusters'
-            : 'Back to items'
-      }}
-      on:click={openClusters}
-      on:keypress={openClusters}><EdgeCluster /></button
-    >
+    <a href={clusterToggleLink} class="text-black">
+      <button
+        class:disabled={clusterField == null}
+        class:cursor-default={clusterField == null}
+        class:opacity-30={clusterField == null}
+        class:bg-blue-100={$datasetViewStore.viewPivot}
+        class:outline-blue-400={$datasetViewStore.viewPivot}
+        class:outline={$datasetViewStore.viewPivot}
+        use:hoverTooltip={{
+          text:
+            clusterField == null
+              ? 'Clusters have not been computed for this dataset.'
+              : !$datasetViewStore.viewPivot
+              ? 'Open clusters'
+              : 'Back to items'
+        }}
+      >
+        <EdgeCluster /></button
+      >
+    </a>
   </div>
   <div slot="header-center" class="flex w-full items-center">
     <SearchPanel />
