@@ -23,21 +23,26 @@
     </a>
 </p>
 
-Lilac helps you **curate data** for LLMs, from RAGs to fine-tuning datasets.
+Lilac is a tool for exploration, curation and quality control of datasets for training, fine-tuning
+and monitoring LLMs.
 
-Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
+Lilac is used by companies like Cohere, Databricks and Nous Research to visualize, quantify and
+improve the quality of pre-training and fine-tuning data.
 
-- **Exploring** datasets with natural language (documents)
-- **Annotating & structuring** data (e.g. PII detection, profanity, text statistics)
-- **Semantic search** to find similar results to a query
-- **Conceptual search** to find and tag results that match a fuzzy concept (e.g. low command of
-  English language)
-- **Clustering** data semantically for understanding & deduplication
-- **Labeling** and **Bulk Labeling** to curate data
+Lilac runs **on-device** using open-source LLMs with a UI and Python API to:
 
-### 3 minute walkthrough
+- **Explore** text datasets with interactive UI
+- **Cluster** and title documents for understanding semantic structure
+- **Annotate & structure** data (e.g. PII detection, profanity, text statistics)
+- **Powerful search** with keyword, semantic and fuzzy concept search
+- **Bulk Label** for fast data curation
 
-[![Lilac: 3 minute walkthrough](https://i.ytimg.com/vi/RrcvVC3VYzQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
+Lilac can offload expensive computations to [Lilac Garden](#lilac-garden), our hosted platform for
+blazing fast dataset-level computations.
+
+<img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
+
+> [!IMPORTANT] See our [3min walkthrough video](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
 
 ## 🔥 Getting started
 
@@ -95,6 +100,16 @@ To build your own custom image run the following command, otherwise skip to the 
 docker build -t lilac .
 ```
 
+### Lilac Garden
+
+Lilac Garden is our hosted platform for running dataset-level computations. We utilize powerful GPUs
+to accelerate expensive signals like Clustering, Embedding, and PII.
+[Sign up](https://forms.gle/Gz9cpeKJccNar5Lq8) to join the pilot.
+
+- Cluster and title **a million** data points in **20 mins**
+- Embed your dataset at **half a billion** tokens per min
+- Run your own signal
+
 ### 📊 Load data
 
 Datasets can be loaded directly from HuggingFace, CSV, JSON,
@@ -128,6 +143,24 @@ More documentation [here](https://docs.lilacml.com/datasets/dataset_explore.html
 
 <img alt="image" src="docs/_static/dataset/dataset_explore.png">
 
+### ✨ Clustering
+
+Cluster any text column to get automated dataset insights:
+
+```python
+import lilac as ll
+
+ll.set_project_dir('~/my_project')
+dataset = ll.get_dataset('local', 'imdb')
+dataset.cluster('text') # add `use_garden=True` to offload to Lilac Garden
+```
+
+Clustering on device can be slow or impractical, especially on machines without a powerful GPU, or
+without large memory. Offloading the compute to [Lilac Garden](#lilac-garden), our hosted data
+processing platform, can speedup clustering by more than 100x.
+
+<img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
+
 ### ⚡ Annotate with Signals (PII, Text Statistics, Language Detection, Neardup, etc)
 
 Annotating data with signals will produce another column in your data.
@@ -157,7 +190,7 @@ print(dataset.manifest())
 
 We can also compute signals from the UI:
 
-<img width="600" alt="image" src="docs/_static/dataset/dataset_compute_signal_modal.png">
+<img width="400" alt="image" src="docs/_static/dataset/dataset_compute_signal_modal.png">
 
 ### 🔎 Search
 

@@ -31,8 +31,7 @@
   export let group: OuterPivot;
   export let path: Path;
   export let numRowsInQuery: number;
-
-  const ITEMS_PER_PAGE = 4;
+  export let itemsPerPage: number;
 
   let isOnScreen = false;
   let root: HTMLDivElement;
@@ -73,7 +72,7 @@
   bind:this={root}
 >
   {#if isOnScreen}
-    <Carousel items={group.inner} pageSize={ITEMS_PER_PAGE}>
+    <Carousel items={group.inner} pageSize={itemsPerPage}>
       <div class="w-full" slot="item" let:item>
         {@const innerGroup = castToInnerPivot(item)}
         {@const groupPercentage = getPercentage(innerGroup.count, group.count)}
