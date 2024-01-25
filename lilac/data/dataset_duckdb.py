@@ -1301,9 +1301,9 @@ class DatasetDuckDB(Dataset):
       )
 
     manifest = self.manifest()
-    index_field = manifest.data_schema.get_field(text_path)
+    index_field = manifest.data_schema.get_field(index_path)
     if index_field.dtype != STRING:
-      raise ValueError(f'`index_path` "{text_path}" must be a string field.')
+      raise ValueError(f'`index_path` "{index_path}" must be a string field.')
 
     # We create an implicit embedding signal for user-loaded embeddings.
     try:
@@ -1317,19 +1317,19 @@ class DatasetDuckDB(Dataset):
     signal = signal_cls()
     signal.setup()
 
-    signal_col = Column(path=text_path, alias='value', signal_udf=signal)
+    signal_col = Column(path=index_path, alias='value', signal_udf=signal)
 
     output_path = _col_destination_path(signal_col, is_computed_signal=True)
     output_dir = os.path.join(self.dataset_path, _signal_dir(output_path))
-    signal_schema = create_signal_schema(signal, text_path, manifest.data_schema)
+    signal_schema = create_signal_schema(signal, index_path, manifest.data_schema)
 
     assert signal_schema, 'Signal schema should be defined for `TextEmbeddingSignal`.'
     if manifest.data_schema.has_field(output_path):
       if overwrite:
-        self.delete_embedding(embedding, text_path)
+        self.delete_embedding(embedding, index_path)
       else:
         raise ValueError(
-          f'Embedding "{embedding}" already exists at path {text_path}. '
+          f'Embedding "{embedding}" already exists at path {index_path}. '
           'Use overwrite=True to overwrite.'
         )
 
@@ -1340,7 +1340,7 @@ class DatasetDuckDB(Dataset):
     else:
       progress_bar = get_progress_bar(
         estimated_len=estimated_len,
-        task_description=f'Load embedding {embedding} on {self.dataset_name}:{text_path}',
+        task_description=f'Load embedding {embedding} on {self.dataset_name}:{index_path}',
       )
 
     jsonl_cache_filepath = _jsonl_cache_filepath(
@@ -1354,7 +1354,7 @@ class DatasetDuckDB(Dataset):
       res = load_fn(item)
 
       if isinstance(res, np.ndarray):
-        texts = list(flatten_path_iter(item, path=text_path))
+        texts = list(flatten_path_iter(item, path=index_path))
         # We currently only support non-repeated texts.
         text = texts[0]
         return [chunk_embedding(0, len(text), res)]
@@ -1384,7 +1384,7 @@ class DatasetDuckDB(Dataset):
       )
     )
 
-    vector_index = self._get_vector_db_index(embedding, text_path)
+    vector_index = self._get_vector_db_index(embedding, index_path)
     write_embeddings_to_disk(
       vector_index=vector_index,
       signal_items=output_items,
@@ -1404,8 +1404,8 @@ class DatasetDuckDB(Dataset):
       files=[],
       data_schema=signal_schema,
       signal=signal,
-      enriched_path=text_path,
-      parquet_id=make_signal_parquet_id(signal, text_path, is_computed_signal=True),
+      enriched_path=index_path,
+      parquet_id=make_signal_parquet_id(signal, index_path, is_computed_signal=True),
       vector_store=self.vector_store,
       py_version=metadata.version('lilac'),
       use_garden=False,
