@@ -74,7 +74,8 @@
 
   function getGroups(
     pivotTable: PivotResult | undefined,
-    searchQuery: string | undefined
+    searchQuery: string | undefined,
+    numRowsInQuery: number | undefined
   ): OuterPivot[] | undefined {
     if (pivotTable == null) return undefined;
     searchQuery = searchQuery?.trim().toLowerCase();
@@ -99,7 +100,7 @@
     );
   }
 
-  $: groups = getGroups($pivotQuery?.data, $store.pivot?.searchText);
+  $: groups = getGroups($pivotQuery?.data, $store.pivot?.searchText, numRowsInQuery);
 
   function getPercentage(count: number, numRowsInQuery: number | undefined) {
     if (numRowsInQuery == null) return '';
