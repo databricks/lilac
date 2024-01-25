@@ -81,7 +81,7 @@
     const groups = pivotTable.outer_groups.map(outerGroup => ({
       value: outerGroup.value,
       count: outerGroup.count,
-      percentage: getPercentage(outerGroup.count),
+      percentage: getPercentage(outerGroup.count, numRowsInQuery),
       textHighlights: getSearchHighlighting(outerGroup.value, searchText),
       inner: outerGroup.inner
         .filter(x => searchQuery == null || x[0].toLowerCase().includes(searchQuery))
@@ -101,7 +101,7 @@
 
   $: groups = getGroups($pivotQuery?.data, $store.pivot?.searchText);
 
-  function getPercentage(count: number) {
+  function getPercentage(count: number, numRowsInQuery: number | undefined) {
     if (numRowsInQuery == null) return '';
     return ((count / numRowsInQuery) * 100).toFixed(2);
   }

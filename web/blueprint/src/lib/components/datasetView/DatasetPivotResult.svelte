@@ -32,7 +32,7 @@
   export let path: Path;
   export let numRowsInQuery: number;
 
-  const ITEMS_PER_PAGE = 5;
+  const ITEMS_PER_PAGE = 4;
 
   let isOnScreen = false;
   let root: HTMLDivElement;
