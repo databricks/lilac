@@ -224,7 +224,10 @@
             >
               <div class="label mb-2 font-medium text-gray-700">Use Garden</div>
               <div class="label mb-2 text-sm text-gray-700">
-                Accelerate computation by running remotely on Lilac Garden
+                Accelerate computation by running remotely on <a
+                  href="https://lilacml.com/garden"
+                  target="_blank">Lilac Garden</a
+                >
               </div>
               <Toggle
                 disabled={!supportsGarden || !canComputeRemotely}
