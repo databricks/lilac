@@ -12,7 +12,7 @@
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {getDisplayPath, getSearchHighlighting} from '$lib/view_utils';
+  import {getDisplayPath, getSearchHighlighting, shortFieldName} from '$lib/view_utils';
   import {
     DatasetsService,
     ROWID,
@@ -23,7 +23,7 @@
     type Path,
     type PivotResult
   } from '$lilac';
-  import {SkeletonText, TextInput} from 'carbon-components-svelte';
+  import {SkeletonText} from 'carbon-components-svelte';
   import type {
     DropdownItem,
     DropdownItemId
@@ -123,7 +123,7 @@
 
   $: dropdownFields = fields?.map(field => ({
     id: serializePath(field.path),
-    text: getDisplayPath(field.path)
+    text: shortFieldName(field.path)
   }));
 
   function selectInnerPath(
@@ -147,8 +147,8 @@
 
   // The bound input text from the search box.
   let inputSearchText: string | undefined = undefined;
-  function searchInput(e: CustomEvent<string | number | null>) {
-    inputSearchText = e.detail?.toString();
+  function searchInput(e: Event) {
+    inputSearchText = (e.target as HTMLInputElement)?.value;
   }
 
   function search() {
@@ -163,16 +163,20 @@
 
 <div class="flex h-full flex-col">
   <div class="mb-8 flex h-16 w-full flex-row justify-between justify-items-center gap-x-4">
-    <div class="ml-8 mt-4 flex w-96 items-center gap-x-2">
-      <Search />
-      <TextInput
-        value={searchText}
-        on:input={searchInput}
+    <div
+      class="search-box ml-8 mt-4 flex w-96 items-center gap-x-2 rounded-lg border border-gray-400 px-1"
+    >
+      <button use:hoverTooltip={{text: 'Search'}}><Search /></button>
+      <input
+        class="h-full w-full focus:border-none focus:outline-none"
         placeholder="Search all categories and titles"
         on:change={search}
-        size="xl"
+        on:input={searchInput}
       />
-      <div use:hoverTooltip={{text: 'Clear search query'}}>
+      <div
+        use:hoverTooltip={{text: 'Clear search query'}}
+        class:invisible={inputSearchText == null || inputSearchText === ''}
+      >
         <button on:click={clearSearch}><Close /></button>
       </div>
     </div>
@@ -279,3 +283,9 @@
     {/if}
   </div>
 </div>
+
+<style lang="postcss">
+  .search-box:focus-within {
+    @apply outline outline-1 outline-blue-500;
+  }
+</style>
