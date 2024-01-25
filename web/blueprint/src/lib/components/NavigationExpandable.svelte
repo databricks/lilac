@@ -63,6 +63,11 @@
         <slot name="below" />
         {#if linkItems.length > 0}
           {#each linkItems as linkItem}
+            {@const link = urlHashContext.getPageIdentifierLink(
+              linkItem.page,
+              linkItem.identifier,
+              $navigationStore
+            )}
             <div
               class={`flex w-full rounded ${!linkItem.isSelected ? 'hover:bg-gray-100' : ''}
           `}
@@ -70,11 +75,8 @@
               class:bg-neutral-100={linkItem.isSelected}
             >
               <a
-                href={urlHashContext.getPageIdentifierLink(
-                  linkItem.page,
-                  linkItem.identifier,
-                  $navigationStore
-                )}
+                data-sveltekit-reload
+                href={link}
                 class:text-black={linkItem.isSelected}
                 class:font-semibold={linkItem.isSelected}
                 class="w-full truncate px-1 py-1 text-xs text-black"
