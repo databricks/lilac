@@ -272,7 +272,7 @@
                   {group.count.toLocaleString()} rows
                 </span>
               </div>
-              <a class="flex flex-row" href={groupLink}>
+              <a class="mb-2 flex flex-row" href={groupLink}>
                 <button
                   class="flex flex-row items-center gap-x-2 border border-neutral-300 bg-violet-200 bg-opacity-70 font-light text-black shadow"
                   >Explore <ArrowUpRight /></button
