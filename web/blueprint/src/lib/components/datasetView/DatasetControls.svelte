@@ -5,7 +5,6 @@
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
   import {conceptLink} from '$lib/utils';
   import {getSearches} from '$lib/view_utils';
-  import type {Search, SearchType} from '$lilac';
   import {Button, Modal, SkeletonText} from 'carbon-components-svelte';
   import {ArrowUpRight, TagGroup, TagNone} from 'carbon-icons-svelte';
   import ConceptView from '../concepts/ConceptView.svelte';
@@ -32,34 +31,6 @@
   $: searches = getSearches($datasetViewStore);
 
   $: filters = $datasetViewStore.query.filters;
-
-  const searchTypeOrder: SearchType[] = ['keyword', 'semantic', 'concept'];
-  const searchTypeDisplay: {[searchType in SearchType]: string} = {
-    keyword: 'Keyword',
-    semantic: 'Semantic',
-    concept: 'Concepts',
-    metadata: 'Metadata'
-  };
-
-  // Separate the searches by type.
-  let searchesByType: {[searchType: string]: Search[]} = {};
-
-  $: {
-    searchesByType = {};
-    for (const search of searches) {
-      if (!search.type) continue;
-      if (!(search.type in searchesByType)) {
-        searchesByType[search.type] = [];
-      }
-      searchesByType[search.type].push(search);
-    }
-  }
-
-  function openSearchPill(search: Search) {
-    if (search.type === 'concept') {
-      openedConcept = {namespace: search.concept_namespace, name: search.concept_name};
-    }
-  }
 </script>
 
 <div class="relative mx-8 my-2 flex items-center justify-between pr-4">
@@ -123,10 +94,3 @@
     {/if}
   </Modal>
 {/if}
-
-<style lang="postcss">
-  .filter-group {
-    min-width: 6rem;
-    @apply flex flex-row items-center gap-x-2 px-2 shadow-sm;
-  }
-</style>
