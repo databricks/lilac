@@ -571,6 +571,7 @@ class DatasetDuckDB(Dataset):
   def _clear_joint_table_cache(self) -> None:
     """Clears the cache for the joint table."""
     self._recompute_joint_table.cache_clear()
+    self._pivot_cache = {}
     if env('USE_TABLE_INDEX', default=False):
       self.con.execute('DROP TABLE IF EXISTS mtime_cache')
 
