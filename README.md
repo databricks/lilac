@@ -29,13 +29,15 @@ and monitoring LLMs.
 Lilac is used by companies like Cohere, Databricks and Nous Research to visualize, quantify and
 improve the quality of pre-training and fine-tuning data.
 
-Lilac runs **on-device** using open-source LLMs with a UI and Python API to:
+Lilac runs **on-device** using open-source LLMs with a UI and Python API.
 
-- **Explore** text datasets with interactive UI
-- **Cluster** and title documents for understanding semantic structure
-- **Annotate & structure** data (e.g. PII detection, profanity, text statistics)
-- **Powerful search** with keyword, semantic and fuzzy concept search
-- **Bulk Label** for fast data curation
+## Why use Lilac?
+
+- Explore your data interactively with real-time search, filter, clustering and annotation.
+- Inspect and collaborate with your team on a single, centralized dataset to improve data quality.
+- Apply best practices for data curation, like removing duplicates, PII and obscure content to
+  reduce dataset size and lower training cost and time.
+- See how your data pipeline affects your data by diffing the changes.
 
 Lilac can offload expensive computations to [Lilac Garden](#lilac-garden), our hosted platform for
 blazing fast dataset-level computations.
