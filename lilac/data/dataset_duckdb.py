@@ -314,6 +314,9 @@ def _consume_iterator(iterator: Iterator[Any]) -> None:
     pass
 
 
+PivotCacheKey = tuple[PathTuple, PathTuple, GroupsSortBy, SortOrder]
+
+
 class DatasetDuckDB(Dataset):
   """The DuckDB implementation of the dataset database."""
 
@@ -344,6 +347,9 @@ class DatasetDuckDB(Dataset):
     self._config_lock = threading.Lock()
     self._vector_index_lock = threading.Lock()
     self._label_file_lock: dict[str, threading.Lock] = defaultdict(threading.Lock)
+
+    # Cache pivot results.
+    self._pivot_cache: dict[PivotCacheKey, PivotResult] = {}
 
     # Create a join table from all the parquet files.
     self.manifest()
@@ -565,6 +571,7 @@ class DatasetDuckDB(Dataset):
   def _clear_joint_table_cache(self) -> None:
     """Clears the cache for the joint table."""
     self._recompute_joint_table.cache_clear()
+    self._pivot_cache.clear()
     if env('USE_TABLE_INDEX', default=False):
       self.con.execute('DROP TABLE IF EXISTS mtime_cache')
 
@@ -1843,6 +1850,12 @@ class DatasetDuckDB(Dataset):
     sort_order = sort_order or SortOrder.DESC
     inner_path = normalize_path(inner_path)
     outer_path = normalize_path(outer_path)
+
+    pivot_key = (outer_path, inner_path, sort_by, sort_order)
+    use_cache = not filters
+    if use_cache and pivot_key in self._pivot_cache:
+      return self._pivot_cache[pivot_key]
+
     manifest = self.manifest()
     inner_leaf = manifest.data_schema.get_field(inner_path)
     outer_leaf = manifest.data_schema.get_field(outer_path)
@@ -1929,7 +1942,10 @@ class DatasetDuckDB(Dataset):
         (struct[value_column], struct[count_column]) for struct in inner_structs
       ]
       outer_groups.append(PivotResultOuterGroup(value=out_val, count=count, inner=inner))
-    return PivotResult(outer_groups=outer_groups)
+    result = PivotResult(outer_groups=outer_groups)
+    if use_cache:
+      self._pivot_cache[pivot_key] = result
+    return result
 
   def _topk_udf_to_sort_by(
     self,
@@ -2513,6 +2529,7 @@ class DatasetDuckDB(Dataset):
     # Any deleted rows will cause statistics to be out of date.
     if num_labels > 0 and name == DELETED_LABEL_NAME:
       self.stats.cache_clear()
+      self._pivot_cache.clear()
 
     return num_labels
 
@@ -2576,6 +2593,7 @@ class DatasetDuckDB(Dataset):
 
     if remove_row_ids and name == DELETED_LABEL_NAME:
       self.stats.cache_clear()
+      self._pivot_cache.clear()
 
     return len(remove_row_ids)
 

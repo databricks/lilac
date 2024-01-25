@@ -12,7 +12,7 @@
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
   import {datasetLink} from '$lib/utils';
-  import {getDisplayPath, getSearchHighlighting} from '$lib/view_utils';
+  import {getDisplayPath, getSearchHighlighting, shortFieldName} from '$lib/view_utils';
   import {
     DatasetsService,
     ROWID,
@@ -23,13 +23,14 @@
     type Path,
     type PivotResult
   } from '$lilac';
-  import {Search, SkeletonText} from 'carbon-components-svelte';
+  import {SkeletonText} from 'carbon-components-svelte';
   import type {
     DropdownItem,
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
-  import {ArrowUpRight} from 'carbon-icons-svelte';
+  import {ArrowUpRight, Close, Search} from 'carbon-icons-svelte';
   import DropdownPill from '../common/DropdownPill.svelte';
+  import {hoverTooltip} from '../common/HoverTooltip';
   import DatasetPivotResult, {type OuterPivot} from './DatasetPivotResult.svelte';
   import FilterControls from './FilterControls.svelte';
 
@@ -67,6 +68,9 @@
     inner_path: innerLeafPath!,
     filters: selectOptions.filters
   });
+
+  // The search text after a user presses the search button or enter.
+  $: searchText = $store.pivot?.searchText;
 
   function getGroups(
     pivotTable: PivotResult | undefined,
@@ -120,7 +124,8 @@
 
   $: dropdownFields = fields?.map(field => ({
     id: serializePath(field.path),
-    text: getDisplayPath(field.path)
+    text: shortFieldName(field.path),
+    displayPath: getDisplayPath(field.path)
   }));
 
   function selectInnerPath(
@@ -145,15 +150,11 @@
   // The bound input text from the search box.
   let inputSearchText: string | undefined = undefined;
   function searchInput(e: Event) {
-    const value = (e.target as HTMLInputElement).value;
-    inputSearchText = value != null ? value : undefined;
+    inputSearchText = (e.target as HTMLInputElement)?.value;
   }
 
-  // The search text after a user presses the search button or enter.
-  $: searchText = $store.pivot?.searchText;
   function search() {
-    searchText = inputSearchText != null ? inputSearchText : undefined;
-    $store.pivot = {...$store.pivot, searchText};
+    $store.pivot = {...$store.pivot, searchText: inputSearchText};
   }
 
   function clearSearch() {
@@ -163,16 +164,23 @@
 </script>
 
 <div class="flex h-full flex-col">
-  <div class="mb-8 flex h-16 w-full flex-row justify-between justify-items-center gap-x-4">
-    <div class="search-container ml-8 mt-4 w-96">
-      <Search
-        value={searchText}
-        on:input={searchInput}
-        placeholder={`Search`}
-        labelText={'text text'}
+  <div class="mb-8 mt-2 flex h-16 w-full flex-row justify-between justify-items-center gap-x-4">
+    <div
+      class="search-box ml-8 mt-4 flex w-96 items-center gap-x-2 rounded-lg border border-gray-400 px-1"
+    >
+      <button use:hoverTooltip={{text: 'Search'}}><Search /></button>
+      <input
+        class="h-full w-full focus:border-none focus:outline-none"
+        placeholder="Search all categories and titles"
         on:change={search}
-        on:clear={clearSearch}
+        on:input={searchInput}
       />
+      <div
+        use:hoverTooltip={{text: 'Clear search query'}}
+        class:invisible={$store.pivot?.searchText == null || $store.pivot.searchText === ''}
+      >
+        <button on:click={clearSearch}><Close /></button>
+      </div>
     </div>
     <div class="h-18 mr-8 flex flex-row items-end gap-x-4 pr-4">
       <div class="flex flex-col gap-y-2">
@@ -189,7 +197,9 @@
           {@const slotItem = dropdownFields?.find(x => x === item)}
           {#if slotItem}
             <div class="flex items-center justify-between gap-x-1">
-              <span title={slotItem.text} class="truncate text-sm">{slotItem.text}</span>
+              <span title={slotItem.displayPath} class="truncate text-sm">
+                {slotItem.displayPath}
+              </span>
             </div>
           {/if}
         </DropdownPill>
@@ -208,7 +218,9 @@
           {@const slotItem = dropdownFields?.find(x => x === item)}
           {#if slotItem}
             <div class="flex items-center justify-between gap-x-1">
-              <span title={slotItem.text} class="truncate text-sm">{slotItem.text}</span>
+              <span title={slotItem.displayPath} class="truncate text-sm">
+                {slotItem.displayPath}
+              </span>
             </div>
           {/if}
         </DropdownPill>
@@ -294,7 +306,7 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
   }
-  :global(.search-container .bx--search .bx--search-input) {
-    outline: 1px solid #a3a3a3;
+  .search-box:focus-within {
+    @apply outline outline-1 outline-blue-500;
   }
 </style>
