@@ -21,6 +21,7 @@ from .config import (
 from .data import clustering
 from .data.dataset import DatasetManifest
 from .db_manager import get_dataset
+from .embeddings.jina import JinaV2Small
 from .env import set_project_dir
 from .load import load
 from .project import PROJECT_CONFIG_FILENAME, init
@@ -370,7 +371,25 @@ def test_load_twice_overwrite(tmp_path: pathlib.Path, capsys: pytest.CaptureFixt
   assert first_manifest == second_manifest
 
 
-def test_load_clusters(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture) -> None:
+def _mock_jina(mocker: MockerFixture) -> None:
+  def compute(docs: list[str]) -> list[Item]:
+    result = []
+    for doc in docs:
+      if 'summar' in doc or 'hello' in doc or 'greeting' in doc:
+        result.append([chunk_embedding(0, len(doc), np.array([1, 1, 1]))])
+      elif 'simpl' in doc or 'whats' in doc or 'time' in doc:
+        result.append([chunk_embedding(0, len(doc), np.array([0, 0, 0]))])
+      else:
+        result.append([chunk_embedding(0, len(doc), np.array([0.5, 0.5, 0.5]))])
+    return result
+
+  mocker.patch.object(JinaV2Small, 'compute', side_effect=compute)
+  mocker.patch.object(JinaV2Small, 'setup', return_value=None)
+
+
+def test_load_clusters(
+  tmp_path: pathlib.Path, capsys: pytest.CaptureFixture, mocker: MockerFixture
+) -> None:
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.
@@ -388,6 +407,8 @@ def test_load_clusters(tmp_path: pathlib.Path, capsys: pytest.CaptureFixture) ->
       ClusterConfig(dataset_namespace='namespace', dataset_name='test', input_path=('str',))
     ],
   )
+
+  _mock_jina(mocker)
 
   # Load the project config from a config object.
   load(config=project_config)
@@ -457,6 +478,7 @@ def test_load_clusters_format_selector(
   tmp_path: pathlib.Path, capsys: pytest.CaptureFixture, mocker: MockerFixture
 ) -> None:
   mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
+  _mock_jina(mocker)
 
   topic_fn_calls: list[list[tuple[str, float]]] = []
 

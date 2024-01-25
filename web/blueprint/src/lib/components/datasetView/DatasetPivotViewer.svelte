@@ -176,7 +176,7 @@
       />
       <div
         use:hoverTooltip={{text: 'Clear search query'}}
-        class:invisible={inputSearchText == null || inputSearchText === ''}
+        class:invisible={$store.pivot?.searchText == null || $store.pivot.searchText === ''}
       >
         <button on:click={clearSearch}><Close /></button>
       </div>
