@@ -571,7 +571,7 @@ class DatasetDuckDB(Dataset):
   def _clear_joint_table_cache(self) -> None:
     """Clears the cache for the joint table."""
     self._recompute_joint_table.cache_clear()
-    self._pivot_cache = {}
+    self._pivot_cache.clear()
     if env('USE_TABLE_INDEX', default=False):
       self.con.execute('DROP TABLE IF EXISTS mtime_cache')
 
@@ -2529,6 +2529,7 @@ class DatasetDuckDB(Dataset):
     # Any deleted rows will cause statistics to be out of date.
     if num_labels > 0 and name == DELETED_LABEL_NAME:
       self.stats.cache_clear()
+      self._pivot_cache.clear()
 
     return num_labels
 
@@ -2592,6 +2593,7 @@ class DatasetDuckDB(Dataset):
 
     if remove_row_ids and name == DELETED_LABEL_NAME:
       self.stats.cache_clear()
+      self._pivot_cache.clear()
 
     return len(remove_row_ids)
 
