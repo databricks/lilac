@@ -335,7 +335,7 @@ class DatasetDuckDB(Dataset):
     self._signal_manifests: list[SignalManifest] = []
     self._map_manifests: list[MapManifest] = []
     self._label_schemas: dict[str, Schema] = {}
-    if env('USE_TABLE_INDEX', default=False):
+    if env('LILAC_USE_TABLE_INDEX', default=False):
       self.con = duckdb.connect(database=os.path.join(self.dataset_path, DUCKDB_CACHE_FILE))
     else:
       self.con = duckdb.connect(database=':memory:')
@@ -521,7 +521,7 @@ class DatasetDuckDB(Dataset):
       [SOURCE_VIEW_NAME]
       + [f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
     )
-    if env('USE_TABLE_INDEX', default=False):
+    if env('LILAC_USE_TABLE_INDEX', default=False):
       self.con.execute(
         """CREATE TABLE IF NOT EXISTS mtime_cache AS
          (SELECT CAST(0 AS bigint) AS mtime);"""
@@ -572,7 +572,7 @@ class DatasetDuckDB(Dataset):
     """Clears the cache for the joint table."""
     self._recompute_joint_table.cache_clear()
     self._pivot_cache.clear()
-    if env('USE_TABLE_INDEX', default=False):
+    if env('LILAC_USE_TABLE_INDEX', default=False):
       self.con.execute('DROP TABLE IF EXISTS mtime_cache')
 
   def _add_map_keys_to_schema(self, path: PathTuple, field: Field, merged_schema: Schema) -> None:
@@ -2901,7 +2901,7 @@ class DatasetDuckDB(Dataset):
             # So, we insert a range clause to limit the extent of the index scan. This optimization
             # works well because nearly all of our queries are sorted by rowid, meaning that min/max
             # will narrow down the index scan to a small range.
-            if env('USE_TABLE_INDEX', default=False) and ROWID in select_str:
+            if env('LILAC_USE_TABLE_INDEX', default=False) and ROWID in select_str:
               min_row, max_row = min(filter_list_val), max(filter_list_val)
               filter_query += f' AND {ROWID} BETWEEN {min_row} AND {max_row}'
               # wrap in parens to isolate from other filters, just in case?

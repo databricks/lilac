@@ -1,8 +1,7 @@
 <script lang="ts">
-  import ApiErrorModal from '$lib/components/ApiErrorModal.svelte';
-  import {apiErrors, queryClient} from '$lib/queries/queryClient';
+  import {queryClient} from '$lib/queries/queryClient';
   import TaskMonitor from '$lib/stores/TaskMonitor.svelte';
-  import {OpenAPI, type ApiError} from '$lilac';
+  import {OpenAPI} from '$lilac';
   import {QueryClientProvider} from '@tanstack/svelte-query';
   import {Theme, ToastNotification} from 'carbon-components-svelte';
   import {onMount} from 'svelte';
@@ -21,11 +20,10 @@
   import {slide} from 'svelte/transition';
 
   import {base} from '$app/paths';
+  import ErrorNotifications from '$lib/components/ErrorNotifications.svelte';
   import GoogleAnalytics from '$lib/components/GoogleAnalytics.svelte';
   import {SIDEBAR_TRANSITION_TIME_MS} from '$lib/view_utils';
   import '../app.css';
-
-  let showError: ApiError | undefined = undefined;
 
   // Set the base URL for the OpenAPI requests when the app is served from a subdir.
   OpenAPI.BASE = base;
@@ -138,24 +136,7 @@
     {/each}
   </div>
   <div class="absolute bottom-4 right-4" style="z-index: 1000">
-    {#each $apiErrors as error}
-      <ToastNotification
-        lowContrast
-        title={error.name || 'Error'}
-        subtitle={error.body.message || error.message}
-        on:close={() => {
-          $apiErrors = $apiErrors.filter(e => e !== error);
-        }}
-      >
-        <div slot="caption">
-          <button class="underline" on:click={() => (showError = error)}>Show error</button>
-        </div>
-      </ToastNotification>
-    {/each}
-
-    {#if showError}
-      <ApiErrorModal error={showError} />
-    {/if}
+    <ErrorNotifications />
   </div>
 
   <TaskMonitor />
