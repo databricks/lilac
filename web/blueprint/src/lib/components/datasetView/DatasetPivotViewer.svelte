@@ -123,7 +123,8 @@
 
   $: dropdownFields = fields?.map(field => ({
     id: serializePath(field.path),
-    text: shortFieldName(field.path)
+    text: shortFieldName(field.path),
+    displayPath: getDisplayPath(field.path)
   }));
 
   function selectInnerPath(
@@ -189,13 +190,15 @@
           direction="left"
           on:select={selectInnerPath}
           selectedId={innerLeafPath && serializePath(innerLeafPath)}
-          tooltip={innerLeafPath ? `Grouping by ${getDisplayPath(innerLeafPath)}` : null}
+          tooltip={innerLeafPath ? `Exploring ${getDisplayPath(innerLeafPath)}` : null}
           let:item
         >
           {@const slotItem = dropdownFields?.find(x => x === item)}
           {#if slotItem}
             <div class="flex items-center justify-between gap-x-1">
-              <span title={slotItem.text} class="truncate text-sm">{slotItem.text}</span>
+              <span title={slotItem.displayPath} class="truncate text-sm">
+                {slotItem.displayPath}
+              </span>
             </div>
           {/if}
         </DropdownPill>
@@ -214,7 +217,9 @@
           {@const slotItem = dropdownFields?.find(x => x === item)}
           {#if slotItem}
             <div class="flex items-center justify-between gap-x-1">
-              <span title={slotItem.text} class="truncate text-sm">{slotItem.text}</span>
+              <span title={slotItem.displayPath} class="truncate text-sm">
+                {slotItem.displayPath}
+              </span>
             </div>
           {/if}
         </DropdownPill>
