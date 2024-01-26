@@ -144,14 +144,8 @@ hosted data processing platform, can speedup clustering by more than 100x.
 Annotating data with signals will produce another column in your data.
 
 ```python
-import lilac as ll
-
-ll.set_project_dir('~/my_project')
-
 dataset = ll.get_dataset('local', 'imdb')
-
-# [Language detection] Detect the language of each document.
-dataset.compute_signal(ll.LangDetectionSignal(), 'text')
+dataset.compute_signal(ll.LangDetectionSignal(), 'text') # Detect language of each doc.
 
 # [PII] Find emails, phone numbers, ip addresses, and secrets.
 dataset.compute_signal(ll.PIISignal(), 'text')
