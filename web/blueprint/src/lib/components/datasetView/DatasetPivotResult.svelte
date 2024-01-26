@@ -173,7 +173,6 @@
     -webkit-box-orient: vertical;
   }
   .card-title {
-    width: 100%;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 3;

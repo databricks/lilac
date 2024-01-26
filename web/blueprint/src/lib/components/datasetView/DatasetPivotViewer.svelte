@@ -178,7 +178,7 @@
   const DEFAULT_ITEMS_PER_PAGE = 4;
   let carouselWidth: number | undefined = undefined;
   $: itemsPerPage = carouselWidth
-    ? Math.round(carouselWidth / WIDTH_PER_ITEM_PX) - 1
+    ? Math.max(1, Math.round(carouselWidth / WIDTH_PER_ITEM_PX) - 1)
     : DEFAULT_ITEMS_PER_PAGE;
 </script>
 
