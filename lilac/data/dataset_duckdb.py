@@ -581,16 +581,20 @@ class DatasetDuckDB(Dataset):
           ]
         )
         with DebugTimer(f'Recomputing table+index for {self.dataset_name}...'):
+          # Need to check a variety of transitions that could throw errors...
+          # What if cache_t exists but t does not?
+          # What if the type of t was VIEW but we replace it with a TABLE or vice-versa?
+          # What if the user deletes the duckdb.cache while server is up?
           self.con.execute('UPDATE mtime_cache SET mtime = ?', (latest_mtime_micro_sec,))
           self.con.execute(
             f'CREATE OR REPLACE TABLE cache_t AS (SELECT {table_select_sql} FROM {table_join_sql})'
           )
           self.con.execute('CREATE INDEX row_idx ON cache_t ("__rowid__")')
-          # If not checkpointed, the index will sometimes not be flushed to disk and be recomputed.
-          self.con.execute('CHECKPOINT')
           self.con.execute(
             f'CREATE OR REPLACE VIEW t AS (SELECT {view_select_sql} FROM {view_join_sql})'
           )
+          # If not checkpointed, the index will sometimes not be flushed to disk and be recomputed.
+          self.con.execute('CHECKPOINT')
     else:
       select_sql = ', '.join(
         [f'{SOURCE_VIEW_NAME}.*']
