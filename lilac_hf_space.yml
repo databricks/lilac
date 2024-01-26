@@ -176,10 +176,9 @@ datasets:
   - namespace: lilac
     name: hncomments-1m
     source:
-      filepaths:
-        - /Users/brian/dev/lilac/data/datasets/local/hncomments-duckprogress/data-00000-of-00001.parquet
+      dataset_name: OpenPipe/hacker-news
       sample_size: 1000000
-      source_name: parquet
+      source_name: huggingface
     settings:
       tags: [datasets]
       ui:
