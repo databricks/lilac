@@ -11,7 +11,6 @@
     getSelectRowsOptions,
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
-  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {getDisplayPath, getSearchHighlighting, shortFieldName} from '$lib/view_utils';
   import {
     DatasetsService,
@@ -40,7 +39,6 @@
       entry.target.dispatchEvent(new CustomEvent('intersect', {detail: entry.isIntersecting}));
     }
   });
-  const navState = getNavigationContext();
 
   onDestroy(() => {
     observer.disconnect();
