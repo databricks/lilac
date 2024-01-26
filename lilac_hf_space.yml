@@ -497,6 +497,11 @@ clusters:
     output_path:
       - messages__clusters
 
+  - dataset_namespace: lilac
+    dataset_name: hncomments-1m
+    input_path:
+      - text
+
   # NOTE: We cluster both prompt and completion because the roblox prompts are just small sections
   # of code which are not extremely descriptive.
   - dataset_namespace: lilac
