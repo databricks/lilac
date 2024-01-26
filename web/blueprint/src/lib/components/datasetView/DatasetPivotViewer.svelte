@@ -163,8 +163,12 @@
     search();
   }
 
+  const WIDTH_PER_ITEM_PX = 256;
+  const DEFAULT_ITEMS_PER_PAGE = 4;
   let carouselWidth: number | undefined = undefined;
-  $: itemsPerPage = carouselWidth ? Math.round(carouselWidth / 256) : 4;
+  $: itemsPerPage = carouselWidth
+    ? Math.round(carouselWidth / WIDTH_PER_ITEM_PX)
+    : DEFAULT_ITEMS_PER_PAGE;
 </script>
 
 <div class="flex h-full flex-col">
