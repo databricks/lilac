@@ -12,7 +12,6 @@
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
   import {getNavigationContext} from '$lib/stores/navigationStore';
-  import {datasetLink} from '$lib/utils';
   import {getDisplayPath, getSearchHighlighting, shortFieldName} from '$lib/view_utils';
   import {
     DatasetsService,
@@ -262,19 +261,8 @@
     {:else}
       <div class="flex w-full flex-col gap-y-10" bind:clientWidth={carouselWidth}>
         {#each groups as group}
-          {@const groupLink = datasetLink($store.namespace, $store.datasetName, $navState, {
-            ...$store,
-            viewPivot: false,
-            pivot: undefined,
-            query: {
-              ...$store.query
-            },
-            groupBy: outerLeafPath ? {path: outerLeafPath, value: group.value} : undefined
-          })}
-
           <DatasetPivotResult
             {observer}
-            {groupLink}
             filter={group.value == null
               ? {path: outerLeafPath, op: 'not_exists'}
               : {path: outerLeafPath, op: 'equals', value: group.value}}
@@ -282,6 +270,7 @@
             path={innerLeafPath}
             {numRowsInQuery}
             {itemsPerPage}
+            {outerLeafPath}
           />
         {:else}
           <div class="mx-20 mt-8 w-full text-lg text-gray-600">No results.</div>

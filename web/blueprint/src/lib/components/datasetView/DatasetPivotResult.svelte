@@ -34,7 +34,7 @@
   export let numRowsInQuery: number;
   export let itemsPerPage: number;
   export let observer: IntersectionObserver;
-  export let groupLink: string;
+  export let outerLeafPath: Path;
 
   let isOnScreen = false;
   let root: HTMLDivElement;
@@ -66,6 +66,16 @@
     // version that supports generics, so we have to do this type-cast.
     return item;
   }
+
+  $: outerGroupLink = datasetLink($store.namespace, $store.datasetName, $navState, {
+    ...$store,
+    viewPivot: false,
+    pivot: undefined,
+    query: {
+      ...$store.query
+    },
+    groupBy: outerLeafPath ? {path: outerLeafPath, value: group.value} : undefined
+  });
 </script>
 
 <div class="flex w-full flex-row gap-x-4 rounded py-2" bind:this={root} style="min-height: 244px">
@@ -88,7 +98,7 @@
           {group.count.toLocaleString()} rows
         </span>
       </div>
-      <a class="mb-2 flex flex-row" href={groupLink}>
+      <a class="mb-2 flex flex-row" href={outerGroupLink}>
         <button
           class="flex flex-row items-center gap-x-2 border border-neutral-300 bg-violet-200 bg-opacity-70 font-light text-black shadow"
           >Explore <ArrowUpRight /></button
@@ -103,7 +113,7 @@
           {@const innerGroup = castToInnerPivot(item)}
           {@const groupPercentage = getPercentage(innerGroup.count, group.count)}
           {@const totalPercentage = getPercentage(innerGroup.count, numRowsInQuery)}
-          {@const groupLink = datasetLink($store.namespace, $store.datasetName, $navState, {
+          {@const innerGroupLink = datasetLink($store.namespace, $store.datasetName, $navState, {
             ...$store,
             viewPivot: false,
             pivot: undefined,
@@ -148,7 +158,7 @@
               <div class="self-end">
                 <a
                   class="flex flex-row"
-                  href={groupLink}
+                  href={innerGroupLink}
                   use:hoverTooltip={{
                     text: `Explore ${innerGroup.value} in ${group.value}`
                   }}
