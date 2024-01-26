@@ -9,10 +9,10 @@
   let showError: ApiError | undefined = undefined;
 
   $: serverStatus = queryServerStatus();
-  $: isProdMode = $serverStatus.data?.prod_mode;
+  $: disableErrorNotifications = $serverStatus.data?.disable_error_notifications;
 </script>
 
-{#if !isProdMode}
+{#if !disableErrorNotifications}
   {#each $apiErrors as error}
     <ToastNotification
       lowContrast
