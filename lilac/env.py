@@ -44,7 +44,7 @@ class LilacEnvironment(BaseModel):
   LILAC_USE_TABLE_INDEX: str = PydanticField(
     description='Use persistent tables with rowid indexes.'
   )
-  LILAC_PROD_MODE: str = PydanticField(
+  LILAC_DISABLE_ERROR_NOTIFICATIONS: str = PydanticField(
     description='Set lilac in production mode. This will disable error messages in the UI.'
   )
 
