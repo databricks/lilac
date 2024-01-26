@@ -150,8 +150,8 @@ def _init_env() -> None:
 def env(key: str, default: Optional[Any] = None) -> Any:
   """Return the value of an environment variable."""
   # For backwards compatibility, shim USE_TABLE_INDEX to LILAC_USE_TABLE_INDEX.
-  if key == 'USE_TABLE_INDEX':
-    key = 'LILAC_USE_TABLE_INDEX'
+  if key == 'LILAC_USE_TABLE_INDEX':
+    default = os.environ.get('USE_TABLE_INDEX', default)
   return os.environ.get(key, default)
 
 
