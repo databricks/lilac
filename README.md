@@ -32,6 +32,14 @@ pre-training and fine-tuning data.
 
 Lilac runs **on-device** using open-source LLMs with a UI and Python API.
 
+## 🆒 New
+
+- [Lilac Garden](https://www.lilacml.com/#Garden) is our hosted platform for blazing fast
+  dataset-level computations. [Sign up](https://forms.gle/Gz9cpeKJccNar5Lq8) to join the pilot.
+- Cluster & title millions of documents with the power of LLMs.
+  [Explore and search](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22question__cluster%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22question__cluster%22%2C%22cluster_title%22%5D%7D)
+  over 36,000 clusters of 4.3M documents in OpenOrca
+
 ## Why use Lilac?
 
 - Explore your data interactively with LLM-powered search, filter, clustering and annotation.
