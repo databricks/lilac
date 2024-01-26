@@ -20,6 +20,7 @@
   import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
 
   import {queryDatasetSchema} from '$lib/queries/datasetQueries';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import type {BinaryFilter, Path, UnaryFilter} from '$lilac';
   import {ArrowUpRight} from 'carbon-icons-svelte';
@@ -37,6 +38,7 @@
 
   let isOnScreen = false;
   let root: HTMLDivElement;
+  const navState = getNavigationContext();
 
   onMount(() => {
     observer.observe(root);
@@ -101,7 +103,7 @@
           {@const innerGroup = castToInnerPivot(item)}
           {@const groupPercentage = getPercentage(innerGroup.count, group.count)}
           {@const totalPercentage = getPercentage(innerGroup.count, numRowsInQuery)}
-          {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
+          {@const groupLink = datasetLink($store.namespace, $store.datasetName, $navState, {
             ...$store,
             viewPivot: false,
             pivot: undefined,

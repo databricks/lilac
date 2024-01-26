@@ -11,6 +11,7 @@
     getSelectRowsOptions,
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import {getDisplayPath, getSearchHighlighting, shortFieldName} from '$lib/view_utils';
   import {
@@ -40,6 +41,7 @@
       entry.target.dispatchEvent(new CustomEvent('intersect', {detail: entry.isIntersecting}));
     }
   });
+  const navState = getNavigationContext();
 
   onDestroy(() => {
     observer.disconnect();
@@ -260,7 +262,7 @@
     {:else}
       <div class="flex w-full flex-col gap-y-10" bind:clientWidth={carouselWidth}>
         {#each groups as group}
-          {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
+          {@const groupLink = datasetLink($store.namespace, $store.datasetName, $navState, {
             ...$store,
             viewPivot: false,
             pivot: undefined,

@@ -1,6 +1,7 @@
 <script lang="ts">
   import {queryDatasets} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import {Button, SkeletonText} from 'carbon-components-svelte';
   import {Help} from 'carbon-icons-svelte';
@@ -13,7 +14,8 @@
     displayName: 'OpenOrca',
     originalLink: 'https://huggingface.co/datasets/Open-Orca/OpenOrca'
   };
-  const tryLink = datasetLink(tryDataset.namespace, tryDataset.name);
+  const navState = getNavigationContext();
+  const tryLink = datasetLink(tryDataset.namespace, tryDataset.name, $navState);
   const authInfo = queryAuthInfo();
   $: huggingFaceSpaceId = $authInfo.data?.huggingface_space_id;
 
