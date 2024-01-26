@@ -26,21 +26,22 @@
 Lilac is a tool for exploration, curation and quality control of datasets for training, fine-tuning
 and monitoring LLMs.
 
-Lilac is used by companies like Cohere, Databricks and Nous Research to visualize, quantify and
-improve the quality of pre-training and fine-tuning data.
+Lilac is used by companies like [Cohere](https://cohere.com/) and
+[Databricks](https://www.databricks.com/) to visualize, quantify and improve the quality of
+pre-training and fine-tuning data.
 
 Lilac runs **on-device** using open-source LLMs with a UI and Python API.
 
 ## Why use Lilac?
 
-- Explore your data interactively with real-time search, filter, clustering and annotation.
-- Inspect and collaborate with your team on a single, centralized dataset to improve data quality.
-- Apply best practices for data curation, like removing duplicates, PII and obscure content to
+- Explore your data interactively with LLM-powered search, filter, clustering and annotation.
+- Curate AI data, applying best practices like removing duplicates, PII and obscure content to
   reduce dataset size and lower training cost and time.
-- See how your data pipeline affects your data by diffing the changes.
+- Inspect and collaborate with your team on a single, centralized dataset to improve data quality.
+- Understand how data changes over time.
 
-Lilac can offload expensive computations to [Lilac Garden](#lilac-garden), our hosted platform for
-blazing fast dataset-level computations.
+Lilac can offload expensive computations to [Lilac Garden](https://www.lilacml.com/#Garden), our
+hosted platform for blazing fast dataset-level computations.
 
 <img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
 
@@ -54,13 +55,16 @@ blazing fast dataset-level computations.
 pip install lilac[all]
 ```
 
-If you prefer no local installation, you can duplicate the
-[HuggingFace Spaces demo](https://lilacai-lilac.hf.space/). Documentation
+If you prefer no local installation, you can duplicate our
+[Spaces demo](https://lilacai-lilac.hf.space/) by following documentation
 [here](https://docs.lilacml.com/deployment/huggingface_spaces.html).
+
+For more detailed instructions, see our
+[installation guide](https://docs.lilacml.com/getting_started/installation.html).
 
 ### 🌐 Start a webserver
 
-Start a Lilac webserver from the CLI:
+Start a Lilac webserver with our `lilac` CLI:
 
 ```sh
 lilac start ~/my_project
@@ -77,31 +81,6 @@ ll.start_server(project_dir='~/my_project')
 This will open start a webserver at http://localhost:5432/ where you can now load datasets and
 explore them.
 
-### Run via Docker
-
-We publish images for `linux/amd64` and `linux/arm64` on Docker Hub under
-[lilacai](https://hub.docker.com/u/lilacai).
-
-The container runs on the virtual port `80`, this command maps it to the host machine port `5432`.
-
-If you have an existing lilac project, mount it and set the `LILAC_PROJECT_DIR` environment
-variable:
-
-```sh
-docker run -it \
-  -p 5432:80 \
-  --volume /host/path/to/data:/data \
-  -e LILAC_PROJECT_DIR="/data" \
-  --gpus all \ # Remove if you don't have a GPU, or on MacOS.
-  lilacai/lilac
-```
-
-To build your own custom image run the following command, otherwise skip to the next step.
-
-```sh
-docker build -t lilac .
-```
-
 ### Lilac Garden
 
 Lilac Garden is our hosted platform for running dataset-level computations. We utilize powerful GPUs
@@ -114,7 +93,7 @@ to accelerate expensive signals like Clustering, Embedding, and PII.
 
 ### 📊 Load data
 
-Datasets can be loaded directly from HuggingFace, CSV, JSON,
+Datasets can be loaded directly from HuggingFace, Parquet, CSV, JSON,
 [LangSmith from LangChain](https://www.langchain.com/langsmith), SQLite,
 [LLamaHub](https://llamahub.ai/), Pandas, Parquet, and more. More documentation
 [here](https://docs.lilacml.com/datasets/dataset_load.html).
@@ -123,13 +102,7 @@ Datasets can be loaded directly from HuggingFace, CSV, JSON,
 import lilac as ll
 
 ll.set_project_dir('~/my_project')
-
-config = ll.DatasetConfig(
-  namespace='local',
-  name='imdb',
-  source=ll.HuggingFaceSource(dataset_name='imdb'))
-
-dataset = ll.create_dataset(config)
+dataset = ll.from_huggingface('imdb')
 ```
 
 If you prefer, you can load datasets directly from the UI without writing any Python:
@@ -138,7 +111,11 @@ If you prefer, you can load datasets directly from the UI without writing any Py
 
 ### 🔎 Explore
 
-> [🔗 Try OpenOrca before installing!](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22question__cluster%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22question__cluster%22%2C%22cluster_title%22%5D%7D)
+<!-- prettier-ignore -->
+> [!NOTE]
+> 🔗 Explore [OpenOrca](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca) and
+> [its clusters](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22question__cluster%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22question__cluster%22%2C%22cluster_title%22%5D%7D)
+> before installing!
 
 Once we've loaded a dataset, we can explore it from the UI and get a sense for what's in the data.
 More documentation [here](https://docs.lilacml.com/datasets/dataset_explore.html).
@@ -150,16 +127,13 @@ More documentation [here](https://docs.lilacml.com/datasets/dataset_explore.html
 Cluster any text column to get automated dataset insights:
 
 ```python
-import lilac as ll
-
-ll.set_project_dir('~/my_project')
 dataset = ll.get_dataset('local', 'imdb')
 dataset.cluster('text') # add `use_garden=True` to offload to Lilac Garden
 ```
 
-Clustering on device can be slow or impractical, especially on machines without a powerful GPU, or
-without large memory. Offloading the compute to [Lilac Garden](#lilac-garden), our hosted data
-processing platform, can speedup clustering by more than 100x.
+Clustering on device can be slow or impractical, especially on machines without a powerful GPU or
+large memory. Offloading the compute to [Lilac Garden](https://www.lilacml.com/#Garden), our hosted
+data processing platform, can speedup clustering by more than 100x.
 
 <img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
 
