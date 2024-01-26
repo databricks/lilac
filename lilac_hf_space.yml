@@ -173,6 +173,22 @@ datasets:
         path:
           - completion
 
+  - namespace: lilac
+    name: hncomments-1m
+    source:
+      dataset_name: OpenPipe/hacker-news
+      sample_size: 1000000
+      source_name: huggingface
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - text
+    embeddings:
+      - embedding: gte-small
+        path:
+          - text
+
   ## Eval datasets
   - namespace: lilac
     name: MMLU
@@ -479,6 +495,11 @@ clusters:
       selector: user
     output_path:
       - messages__clusters
+
+  - dataset_namespace: lilac
+    dataset_name: hncomments-1m
+    input_path:
+      - text
 
   # NOTE: We cluster both prompt and completion because the roblox prompts are just small sections
   # of code which are not extremely descriptive.
