@@ -14,6 +14,7 @@ from pydantic import (
   BaseModel,
 )
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
+from tqdm import tqdm
 
 from ..batch_utils import compress_docs, flatten_path_iter, group_by_sorted_key_iter
 from ..dataset_format import DatasetFormatInputSelector
@@ -341,6 +342,8 @@ def cluster_impl(
 
     dataset.map(extract_text, output_path=cluster_output_path, overwrite=True)
 
+  total_len = dataset.stats(temp_text_path).total_count
+
   cluster_ids_exists = schema.has_field((*cluster_output_path, CLUSTER_ID))
   if not cluster_ids_exists or overwrite:
     if task_info:
@@ -352,7 +355,7 @@ def cluster_impl(
       items, items2 = itertools.tee(items)
       docs: Iterator[Optional[str]] = (item.get(TEXT_COLUMN) for item in items)
       cluster_items = sparse_to_dense_compute(
-        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, use_garden)
+        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, use_garden, num_docs=total_len)
       )
       for item, cluster_item in zip(items2, cluster_items):
         yield {**item, **(cluster_item or {})}
@@ -365,7 +368,6 @@ def cluster_impl(
       overwrite=True,
     )
 
-  total_len = dataset.stats(temp_text_path).total_count
   cluster_titles_exist = schema.has_field((*cluster_output_path, CLUSTER_TITLE))
   if not cluster_titles_exist or overwrite or recompute_titles:
     if task_info:
@@ -491,6 +493,7 @@ def _hdbscan_cluster(
   docs: Iterator[str],
   min_cluster_size: int = MIN_CLUSTER_SIZE,
   use_garden: bool = False,
+  num_docs: Optional[int] = None,
 ) -> Iterator[Item]:
   """Cluster docs with HDBSCAN."""
   if use_garden:
@@ -503,11 +506,14 @@ def _hdbscan_cluster(
   with DebugTimer('Computing embeddings'):
     jina = JinaV2Small()
     jina.setup()
-    response = jina.compute(list(docs))
+    response = []
+    for doc in tqdm(docs, position=0, desc='Computing embeddings', total=num_docs):
+      response.extend(jina.compute([doc]))
     jina.teardown()
 
+  del docs, jina
   all_vectors = np.array([r[0][EMBEDDING_KEY] for r in response], dtype=np.float32)
-  del response, docs
+  del response
   gc.collect()
 
   # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.
