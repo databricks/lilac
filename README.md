@@ -131,9 +131,11 @@ dataset = ll.get_dataset('local', 'imdb')
 dataset.cluster('text') # add `use_garden=True` to offload to Lilac Garden
 ```
 
-Clustering on device can be slow or impractical, especially on machines without a powerful GPU or
-large memory. Offloading the compute to [Lilac Garden](https://www.lilacml.com/#Garden), our hosted
-data processing platform, can speedup clustering by more than 100x.
+<!-- prettier-ignore -->
+> [!TIP]
+> Clustering on device can be slow or impractical, especially on machines without a powerful GPU or
+> large memory. Offloading the compute to [Lilac Garden](https://www.lilacml.com/#Garden), our
+hosted data processing platform, can speedup clustering by more than 100x.
 
 <img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
 
