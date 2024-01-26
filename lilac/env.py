@@ -37,7 +37,16 @@ class LilacEnvironment(BaseModel):
     description='Turn on Lilac debug mode to log queries and timing information.'
   )
   DISABLE_LOGS: str = PydanticField(description='Disable log() statements to the console.')
-  USE_TABLE_INDEX: str = PydanticField(description='Use persistent tables with rowid indexes.')
+  USE_TABLE_INDEX: str = PydanticField(
+    description='Use persistent tables with rowid indexes.'
+    ' NOTE: This is deprecated in favor of USE_TABLE_INDEX.'
+  )
+  LILAC_USE_TABLE_INDEX: str = PydanticField(
+    description='Use persistent tables with rowid indexes.'
+  )
+  LILAC_DISABLE_ERROR_NOTIFICATIONS: str = PydanticField(
+    description='Set lilac in production mode. This will disable error messages in the UI.'
+  )
 
   # API Keys.
   OPENAI_API_KEY: str = PydanticField(
@@ -140,6 +149,9 @@ def _init_env() -> None:
 
 def env(key: str, default: Optional[Any] = None) -> Any:
   """Return the value of an environment variable."""
+  # For backwards compatibility, shim USE_TABLE_INDEX to LILAC_USE_TABLE_INDEX.
+  if key == 'USE_TABLE_INDEX':
+    key = 'LILAC_USE_TABLE_INDEX'
   return os.environ.get(key, default)
 
 

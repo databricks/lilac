@@ -9,5 +9,6 @@
 export type ServerStatus = {
     version: string;
     google_analytics_enabled: boolean;
+    disable_error_notifications: boolean;
 };
 

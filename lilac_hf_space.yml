@@ -134,6 +134,12 @@ datasets:
           - - conversations
             - '*'
             - value
+    embeddings:
+      - embedding: gte-small
+        path:
+          - conversations
+          - '*'
+          - value
 
   - namespace: lilac
     name: UltraChat-200k
@@ -158,6 +164,13 @@ datasets:
       ui:
         media_paths:
           - prompt
+          - completion
+    embeddings:
+      - embedding: gte-small
+        path:
+          - prompt
+      - embedding: gte-small
+        path:
           - completion
 
   ## Eval datasets
@@ -385,7 +398,10 @@ datasets:
           - instruction
           - input
           - output
-
+    embeddings:
+      - embedding: gte-small
+        path:
+          - instruction
 signals:
   - signal_name: text_statistics
   - signal_name: lang_detection

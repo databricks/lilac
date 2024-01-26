@@ -134,6 +134,7 @@ class ServerStatus(BaseModel):
 
   version: str
   google_analytics_enabled: bool
+  disable_error_notifications: bool
 
 
 @app.get('/status')
@@ -142,6 +143,7 @@ def status() -> ServerStatus:
   return ServerStatus(
     version=metadata.version('lilac'),
     google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False),
+    disable_error_notifications=env('LILAC_DISABLE_ERROR_NOTIFICATIONS', False),
   )
 
 
