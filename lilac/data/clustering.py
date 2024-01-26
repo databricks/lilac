@@ -355,7 +355,10 @@ def cluster_impl(
       items, items2 = itertools.tee(items)
       docs: Iterator[Optional[str]] = (item.get(TEXT_COLUMN) for item in items)
       cluster_items = sparse_to_dense_compute(
-        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, use_garden, num_docs=total_len)
+        docs,
+        lambda x: _hdbscan_cluster(
+          x, min_cluster_size, use_garden, num_docs=total_len, task_info=task_info
+        ),
       )
       for item, cluster_item in zip(items2, cluster_items):
         yield {**item, **(cluster_item or {})}
@@ -494,6 +497,7 @@ def _hdbscan_cluster(
   min_cluster_size: int = MIN_CLUSTER_SIZE,
   use_garden: bool = False,
   num_docs: Optional[int] = None,
+  task_info: Optional[TaskInfo] = None,
 ) -> Iterator[Item]:
   """Cluster docs with HDBSCAN."""
   if use_garden:
@@ -503,12 +507,18 @@ def _hdbscan_cluster(
     response = remote_fn({'gzipped_docs': gzipped_docs})
     yield from response['clusters']
 
+  if task_info:
+    task_info.message = 'Computing embeddings'
+    task_info.total_progress = 0
+    task_info.total_len = num_docs
   with DebugTimer('Computing embeddings'):
     jina = JinaV2Small()
     jina.setup()
     response = []
     for doc in tqdm(docs, position=0, desc='Computing embeddings', total=num_docs):
       response.extend(jina.compute([doc]))
+      if task_info and task_info.total_progress is not None:
+        task_info.total_progress += 1
     jina.teardown()
 
   del docs, jina
