@@ -47,6 +47,8 @@ _TOP_K_CENTRAL_DOCS = 7
 _TOP_K_CENTRAL_TITLES = 20
 _NUM_THREADS = 32
 _NUM_RETRIES = 16
+# OpenAI rate limits you on `max_tokens` so we ideally want to guess the right value. If ChatGPT
+# fails to generate a title within the `max_tokens` limit, we will retry with a higher value.
 _INITIAL_MAX_TOKENS = 50
 _FINAL_MAX_TOKENS = 200
 
@@ -158,7 +160,8 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
         max_tokens += _INITIAL_MAX_TOKENS
         log(f'Retrying with max_tokens={max_tokens}')
     log(f'Could not generate a short title for input:\n{input}')
-    return 'FAILED_TO_GENERATE'
+    # We return a string instead of None, since None is emitted when the text column is sparse.
+    return 'FAILED_TO_TITLE'
 
   return request_with_retries()
 
