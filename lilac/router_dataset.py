@@ -249,7 +249,6 @@ def select_groups(
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
-  print(options.searches, sanitized_filters)
   return dataset.select_groups(
     options.leaf_path,
     sanitized_filters,

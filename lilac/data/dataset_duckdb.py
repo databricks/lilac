@@ -1872,7 +1872,6 @@ class DatasetDuckDB(Dataset):
 
     pivot_key = (outer_path, inner_path, sort_by, sort_order)
     use_cache = not filters and not searches
-    print('use cache', use_cache)
     if use_cache and pivot_key in self._pivot_cache:
       return self._pivot_cache[pivot_key]
 
@@ -1952,7 +1951,6 @@ class DatasetDuckDB(Dataset):
     where_query = self._compile_select_options(
       DuckDBQueryParams(filters=filters, include_deleted=False)
     )
-    print(where_query)
 
     query = f"""
       WITH tuples AS (
