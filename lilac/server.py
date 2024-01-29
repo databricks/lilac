@@ -212,7 +212,7 @@ app.mount(
 
 
 @app.get('/favicon.ico', include_in_schema=False)
-async def favicon():
+async def favicon() -> FileResponse:
   """Serve the favicon which must be in the root of the dist folder."""
   return FileResponse(os.path.join(DIST_PATH, 'favicon.ico'))
 
