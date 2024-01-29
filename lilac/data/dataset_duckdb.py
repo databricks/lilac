@@ -583,10 +583,6 @@ class DatasetDuckDB(Dataset):
           ]
         )
         with DebugTimer(f'Recomputing table+index for {self.dataset_name}...'):
-          # Need to check a variety of transitions that could throw errors...
-          # What if cache_t exists but t does not?
-          # What if the type of t was VIEW but we replace it with a TABLE or vice-versa?
-          # What if the user deletes the duckdb.cache while server is up?
           self.con.execute('UPDATE mtime_cache SET mtime = ?', (latest_mtime_micro_sec,))
           self.con.execute(
             f'CREATE OR REPLACE TABLE cache_t AS (SELECT {table_select_sql} FROM {table_join_sql})'
@@ -700,11 +696,8 @@ class DatasetDuckDB(Dataset):
       try:
         return self._recompute_joint_table(latest_mtime_micro_sec, tuple(sorted(rapid_change)))
       except Exception as e:
-        log(
-          'Encountered error while attempting to recompute joint table'
-          '; deleting cache and retrying. Exception:',
-          e,
-        )
+        log(e)
+        log('Exception encountered while updating joint table cache; recomputing from scratch.')
         self._clear_joint_table_cache()
         return self._recompute_joint_table(latest_mtime_micro_sec, tuple(sorted(rapid_change)))
 
