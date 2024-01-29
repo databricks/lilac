@@ -1739,6 +1739,7 @@ class DatasetDuckDB(Dataset):
     limit: Optional[int] = None,
     bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None,
     include_deleted: bool = False,
+    searches: Optional[Sequence[Search]] = None,
   ) -> SelectGroupsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
@@ -1815,6 +1816,22 @@ class DatasetDuckDB(Dataset):
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     if not include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
       filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
+
+    # Add search where queries.
+    for search in searches or []:
+      search_path = normalize_path(search.path)
+      if search.type == 'keyword':
+        filters.append(Filter(path=search_path, op='ilike', value=search.query))
+      elif search.type == 'semantic' or search.type == 'concept':
+        # Semantic search and concepts don't yet filter.
+        continue
+      elif search.type == 'metadata':
+        # Make a regular filter query.
+        filter = Filter(path=search_path, op=search.op, value=search.value)
+        filters.append(filter)
+      else:
+        raise ValueError(f'Unknown search operator {search.type}.')
+
     filter_queries = self._create_where(manifest, filters)
 
     where_query = ''
@@ -1841,6 +1858,7 @@ class DatasetDuckDB(Dataset):
     self,
     outer_path: Path,
     inner_path: Path,
+    searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
     sort_order: Optional[SortOrder] = SortOrder.DESC,
@@ -1853,7 +1871,8 @@ class DatasetDuckDB(Dataset):
     outer_path = normalize_path(outer_path)
 
     pivot_key = (outer_path, inner_path, sort_by, sort_order)
-    use_cache = not filters
+    use_cache = not filters and not searches
+    print('use cache', use_cache)
     if use_cache and pivot_key in self._pivot_cache:
       return self._pivot_cache[pivot_key]
 
@@ -1914,9 +1933,26 @@ class DatasetDuckDB(Dataset):
       span_from=self._resolve_span(outer_path, manifest),
     )
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+
+    # Add search where queries.
+    for search in searches or []:
+      search_path = normalize_path(search.path)
+      if search.type == 'keyword':
+        filters.append(Filter(path=search_path, op='ilike', value=search.query))
+      elif search.type == 'semantic' or search.type == 'concept':
+        # Semantic search and concepts don't yet filter.
+        continue
+      elif search.type == 'metadata':
+        # Make a regular filter query.
+        filter = Filter(path=search_path, op=search.op, value=search.value)
+        filters.append(filter)
+      else:
+        raise ValueError(f'Unknown search operator {search.type}.')
+
     where_query = self._compile_select_options(
       DuckDBQueryParams(filters=filters, include_deleted=False)
     )
+    print(where_query)
 
     query = f"""
       WITH tuples AS (
@@ -3090,7 +3126,7 @@ class DatasetDuckDB(Dataset):
             raise ValueError(
               f'{output_path} is not a map/cluster column and cannot be overwritten.'
             )
-        else:
+        elif input_path != output_path:
           raise ValueError(
             f'Cannot map to path "{output_path}" which already exists in the dataset. '
             'Use overwrite=True to overwrite the column.'

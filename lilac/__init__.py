@@ -18,7 +18,6 @@ from .embeddings import *  # noqa: F403
 from .env import *  # noqa: F403
 from .env import LilacEnvironment, get_project_dir, set_project_dir
 from .formats import *  # noqa: F403
-from .formats import OpenChat, ShareGPT
 from .load import load
 from .load_dataset import create_dataset, from_dicts, from_huggingface
 from .project import init

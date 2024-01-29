@@ -76,7 +76,8 @@
   $: pivotQuery = pivotQueryFn($store.namespace, $store.datasetName, {
     outer_path: outerLeafPath!,
     inner_path: innerLeafPath!,
-    filters: selectOptions.filters
+    filters: selectOptions.filters,
+    searches: selectOptions.searches
   });
 
   // The search text after a user presses the search button or enter.
@@ -159,10 +160,7 @@
   }
 
   // The bound input text from the search box.
-  let inputSearchText: string | undefined = undefined;
-  function searchInput(e: Event) {
-    inputSearchText = (e.target as HTMLInputElement)?.value;
-  }
+  $: inputSearchText = searchText;
 
   function search() {
     $store.pivot = {...$store.pivot, searchText: inputSearchText};
@@ -190,17 +188,17 @@
       <input
         class="h-full w-full focus:border-none focus:outline-none"
         placeholder="Search all categories and titles"
+        bind:value={inputSearchText}
         on:change={search}
-        on:input={searchInput}
       />
       <div
         use:hoverTooltip={{text: 'Clear search query'}}
-        class:invisible={$store.pivot?.searchText == null || $store.pivot.searchText === ''}
+        class:invisible={(inputSearchText?.length || 0) === 0}
       >
         <button on:click={clearSearch}><Close /></button>
       </div>
     </div>
-    <div class="h-18 mr-8 flex flex-row items-end gap-x-4 pr-4">
+    <div class="mr-8 flex h-16 flex-row items-end gap-x-4 pr-4">
       <div class="flex flex-col gap-y-2">
         <div>Explore</div>
         <DropdownPill

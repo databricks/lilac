@@ -51,6 +51,12 @@
   let showCopyToast = false;
 
   $: link = datasetLink(namespace, datasetName, $navState);
+  $: backToItemsLink = datasetLink(namespace, datasetName, $navState, {
+    ...$datasetViewStore,
+    pivot: undefined,
+    viewPivot: false,
+    groupBy: undefined
+  });
 
   // Determine whether the dataset has clusters.
   $: clusterFields = childFields($schema.data).filter(f => isClusterRootField(f));
@@ -69,7 +75,7 @@
           pivot: {outerPath: clusterOuterPath, innerPath: clusterInnerPath}
         })
       : null;
-  $: clusterToggleLink = $datasetViewStore.viewPivot ? link : clusterLink;
+  $: clusterToggleLink = $datasetViewStore.viewPivot ? backToItemsLink : clusterLink;
 </script>
 
 <Page>

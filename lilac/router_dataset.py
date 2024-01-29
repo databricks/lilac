@@ -233,6 +233,7 @@ class SelectGroupsOptions(BaseModel):
 
   leaf_path: Path
   filters: Sequence[Filter] = []
+  searches: Sequence[SearchPy] = []
   sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT
   sort_order: Optional[SortOrder] = SortOrder.DESC
   limit: Optional[int] = 100
@@ -248,6 +249,7 @@ def select_groups(
   sanitized_filters = [
     PyFilter(path=normalize_path(f.path), op=f.op, value=f.value) for f in (options.filters or [])
   ]
+  print(options.searches, sanitized_filters)
   return dataset.select_groups(
     options.leaf_path,
     sanitized_filters,
@@ -255,6 +257,7 @@ def select_groups(
     options.sort_order,
     options.limit,
     options.bins,
+    searches=options.searches,
   )
 
 
@@ -264,6 +267,7 @@ class PivotOptions(BaseModel):
   inner_path: Path
   outer_path: Path
   filters: Sequence[Filter] = []
+  searches: Sequence[SearchPy] = []
 
 
 @router.post('/{namespace}/{dataset_name}/pivot')
@@ -277,6 +281,7 @@ def pivot(namespace: str, dataset_name: str, options: PivotOptions) -> PivotResu
     options.outer_path,
     options.inner_path,
     filters=sanitized_filters,
+    searches=options.searches,
   )
 
 

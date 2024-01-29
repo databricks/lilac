@@ -4,8 +4,12 @@
 /* eslint-disable */
 
 import type { BinaryFilter } from './BinaryFilter';
+import type { ConceptSearch } from './ConceptSearch';
 import type { GroupsSortBy } from './GroupsSortBy';
+import type { KeywordSearch } from './KeywordSearch';
 import type { ListFilter } from './ListFilter';
+import type { MetadataSearch } from './MetadataSearch';
+import type { SemanticSearch } from './SemanticSearch';
 import type { SortOrder } from './SortOrder';
 import type { StringFilter } from './StringFilter';
 import type { UnaryFilter } from './UnaryFilter';
@@ -16,6 +20,7 @@ import type { UnaryFilter } from './UnaryFilter';
 export type SelectGroupsOptions = {
     leaf_path: (Array<string> | string);
     filters?: Array<(BinaryFilter | StringFilter | UnaryFilter | ListFilter)>;
+    searches?: Array<(ConceptSearch | SemanticSearch | KeywordSearch | MetadataSearch)>;
     sort_by?: (GroupsSortBy | null);
     sort_order?: (SortOrder | null);
     limit?: (number | null);
