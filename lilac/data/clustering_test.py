@@ -87,6 +87,7 @@ def test_simple_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -
       return 'simplification'
     return 'other'
 
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
   mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   _mock_jina(mocker)
 
@@ -236,6 +237,7 @@ def test_nested_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -
       {'text': 'Give me simplified version of this text'},
     ],
   ]
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
   mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'texts': t} for t in texts])
 
@@ -307,6 +309,7 @@ def test_path_ending_with_repeated(make_test_data: TestDataMaker, mocker: Mocker
       return 'b_cluster'
     return 'other'
 
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
   _mock_jina(mocker)
   dataset.cluster('texts.*', min_cluster_size=2, topic_fn=topic_fn)
   rows = list(dataset.select_rows(combine_columns=True))
@@ -356,6 +359,7 @@ def test_clusters_with_fn(make_test_data: TestDataMaker, mocker: MockerFixture) 
   ]
   dataset = make_test_data([{'texts': t} for t in texts])
   mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
     if 'summar' in docs[0][0]:
@@ -440,6 +444,7 @@ def test_clusters_with_fn_output_is_under_a_dict(
   ]
   mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'texts': t, 'info': {'dummy': True}} for t in texts])
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
     if 'summar' in docs[0][0]:
@@ -557,6 +562,7 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker, mocker: MockerFixture)
       return 'time'
     return 'other'
 
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
   _mock_jina(mocker)
   dataset.cluster(
     ShareGPT.human,
@@ -655,6 +661,7 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker, mocker: Mocker
 
   signal = TestSignal()
   dataset.compute_signal(signal, 'text')
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
   _mock_jina(mocker)
 
   dataset.cluster('text', min_cluster_size=2, topic_fn=topic_fn)

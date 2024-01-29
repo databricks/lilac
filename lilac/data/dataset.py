@@ -609,6 +609,8 @@ class Dataset(abc.ABC):
     sort_order: Optional[SortOrder] = SortOrder.DESC,
     limit: Optional[int] = None,
     bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None,
+    include_deleted: bool = False,
+    searches: Optional[Sequence[Search]] = None,
   ) -> SelectGroupsResult:
     """Select grouped columns to power a histogram.
 
@@ -620,6 +622,8 @@ class Dataset(abc.ABC):
       sort_order: The sort order.
       limit: The maximum number of rows to return.
       bins: The bins to use when bucketizing a float column.
+      include_deleted: Whether to include deleted rows in the query.
+      searches: The searches to apply to the query.
 
     Returns:
       A `SelectGroupsResult` iterator where each row is a group.
@@ -631,6 +635,7 @@ class Dataset(abc.ABC):
     self,
     outer_path: Path,
     inner_path: Path,
+    searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
     sort_order: Optional[SortOrder] = SortOrder.DESC,

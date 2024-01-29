@@ -1,6 +1,10 @@
 <script lang="ts">
-  import {queryDatasetStats, querySelectGroups} from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {
+    queryDatasetSchema,
+    queryDatasetStats,
+    querySelectGroups
+  } from '$lib/queries/datasetQueries';
+  import {getDatasetViewContext, getSelectRowsOptions} from '$lib/stores/datasetViewStore';
   import {
     formatValue,
     isNumeric,
@@ -26,10 +30,13 @@
 
   let sortOrder: SortOrder;
   $: sortOrder = sortBy === 'value' ? 'ASC' : 'DESC';
+  $: schema = queryDatasetSchema($store.namespace, $store.datasetName);
+  $: selectOptions = getSelectRowsOptions($store, $schema.data);
 
   $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {
     leaf_path: field.path,
-    filters: $store.query.filters,
+    filters: selectOptions.filters,
+    searches: selectOptions.searches,
     sort_by: sortBy,
     sort_order: sortOrder
   });

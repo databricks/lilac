@@ -161,13 +161,13 @@ interface BatchMetadataRequest {
 const ROW_METADATA_BATCH_WINDOW_MS = 30;
 const batchedRowMetadataCache: Record<
   string,
-  Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0]>
+  Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0] | null>
 > = {};
 function getRowMetadataBatcher(
   namespace: string,
   datasetName: string,
   selectRowsOptions: SelectRowsOptions
-): Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0]> {
+): Batcher<SelectRowsResponse['rows'], BatchMetadataRequest, SelectRowsResponse['rows'][0] | null> {
   const key = `${namespace}/${datasetName}/${JSON.stringify(selectRowsOptions)}`;
   if (batchedRowMetadataCache[key] == null) {
     batchedRowMetadataCache[key] = createBatcher({
@@ -184,7 +184,7 @@ function getRowMetadataBatcher(
         return selectRowsResponse.rows;
       },
       resolver: (items: SelectRowsResponse['rows'], query: BatchMetadataRequest) =>
-        items.find(item => item[ROWID] == query.rowId)!,
+        items.find(item => item[ROWID] == query.rowId) || null,
       scheduler: windowScheduler(ROW_METADATA_BATCH_WINDOW_MS)
     });
   }
@@ -200,7 +200,7 @@ export const queryRowMetadata = (
   schema?: LilacSchema | undefined,
   enabled = true
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): CreateQueryResult<Awaited<Record<string, any>>, ApiError> => {
+): CreateQueryResult<Awaited<Record<string, any> | null>, ApiError> => {
   const tags = [DATASETS_TAG, namespace, datasetName, DATASET_ITEM_METADATA_TAG, rowId];
   const endpoint = getRowMetadataBatcher(namespace, datasetName, selectRowsOptions).fetch;
   type TQueryFnData = Awaited<ReturnType<typeof endpoint>>;
