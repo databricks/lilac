@@ -11,12 +11,21 @@ from typing import Annotated, Any, AsyncGenerator, Optional
 
 import uvicorn
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, ORJSONResponse
+from fastapi.responses import (
+  FileResponse,
+  HTMLResponse,
+  JSONResponse,
+  ORJSONResponse,
+  RedirectResponse,
+)
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from starlette.datastructures import URL
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import RedirectResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 from uvicorn.config import Config
 
 from . import (
@@ -79,6 +88,25 @@ app = FastAPI(
 )
 
 
+class HttpUrlRedirectMiddleware:
+  """Middleware that redirects trailing slashes to non-trailing slashes."""
+
+  def __init__(self, app: ASGIApp) -> None:
+    self.app = app
+
+  async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    """Redirect trailing slashes to non-trailing slashes."""
+    url = URL(scope=scope).path
+    ends_with_slash = url.endswith('/') and url != '/' and not url.startswith('/api')
+
+    if scope['type'] == 'http' and ends_with_slash:
+      new_url = url.rstrip('/')
+      response = RedirectResponse(url=new_url, status_code=307)
+      await response(scope, receive, send)
+    else:
+      await self.app(scope, receive, send)
+
+
 @app.exception_handler(ConceptAuthorizationException)
 def concept_authorization_exception(
   request: Request, exc: ConceptAuthorizationException
@@ -96,7 +124,7 @@ def module_not_found_error(request: Request, exc: ModuleNotFoundError) -> JSONRe
 
 
 app.add_middleware(SessionMiddleware, secret_key=env('LILAC_OAUTH_SECRET_KEY'))
-
+app.add_middleware(HttpUrlRedirectMiddleware)
 app.include_router(router_google_login.router, prefix='/google', tags=['google_login'])
 
 v1_router = APIRouter(route_class=RouteErrorHandler)
@@ -178,14 +206,23 @@ def list_files(
   return templates.TemplateResponse('list_files.html', {'request': request, 'files': files_paths})
 
 
-@app.api_route('/{path_name}', include_in_schema=False)
-def catch_all() -> FileResponse:
-  """Catch any other requests and serve index for HTML5 history."""
-  return FileResponse(path=os.path.join(DIST_PATH, 'index.html'))
-
-
 # Serve static files in production mode.
-app.mount('/', StaticFiles(directory=DIST_PATH, html=True, check_dir=False))
+app.mount(
+  '/_app', StaticFiles(directory=os.path.join(DIST_PATH, '_app'), html=True, check_dir=False)
+)
+
+
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+  """Serve the favicon which must be in the root of the dist folder."""
+  return FileResponse(os.path.join(DIST_PATH, 'favicon.ico'))
+
+
+@app.api_route('/{path_name:path}', include_in_schema=False)
+def catch_all(path_name: str) -> FileResponse:
+  """Catch any other requests and serve index for HTML5 history."""
+  filename = f'{path_name or "index"}.html'
+  return FileResponse(path=os.path.join(DIST_PATH, filename))
 
 
 class GetTasksFilter(logging.Filter):
