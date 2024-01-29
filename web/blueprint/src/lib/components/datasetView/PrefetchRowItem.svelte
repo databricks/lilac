@@ -23,19 +23,19 @@
     getSelectRowsSchemaOptions($datasetViewStore, $schema.data)
   );
   $: selectOptions = getSelectRowsOptions($datasetViewStore, $selectRowsSchema.data?.schema);
-  $: rowQuery =
+  $: readyToQueryRow =
     !$selectRowsSchema.isFetching &&
     $selectRowsSchema?.data?.schema != null &&
     selectOptions != null &&
-    rowId != null
-      ? queryRowMetadata(
-          namespace,
-          datasetName,
-          rowId,
-          selectOptions,
-          $selectRowsSchema.data.schema
-        )
-      : null;
+    rowId != null;
+  $: rowQuery = queryRowMetadata(
+    namespace,
+    datasetName,
+    rowId,
+    selectOptions,
+    $selectRowsSchema.data?.schema,
+    readyToQueryRow
+  );
 </script>
 
 {#if $rowQuery?.data != null}
