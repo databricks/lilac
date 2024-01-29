@@ -283,6 +283,33 @@ def test_select_rows_next(make_test_data: TestDataMaker) -> None:
   assert _get_rows() == SIMPLE_ITEMS
 
 
+def test_select_rows_exclude_signals(make_test_data: TestDataMaker) -> None:
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
+
+  # Compute a map and make sure it shows up.
+  dataset.map(lambda row: row['text'] + '_mapped', output_path='text_map')
+
+  test_signal = TestSignal()
+  dataset.compute_signal(test_signal, 'text')
+  length_signal = LengthSignal()
+  dataset.compute_signal(length_signal, 'text')
+
+  result = dataset.select_rows(combine_columns=True, exclude_signals=True)
+  assert list(result) == [
+    {
+      'text': 'hello',
+      'text_map': 'hello_mapped',
+    },
+    {'text': 'everybody', 'text_map': 'everybody_mapped'},
+  ]
+
+  result = dataset.select_rows(['text'], combine_columns=True, exclude_signals=True)
+  assert list(result) == [
+    {'text': 'hello'},
+    {'text': 'everybody'},
+  ]
+
+
 def test_merge_values(make_test_data: TestDataMaker) -> None:
   dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
   test_signal = TestSignal()

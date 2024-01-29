@@ -2,6 +2,7 @@
   import {goto} from '$app/navigation';
   import {querySelectRows} from '$lib/queries/datasetQueries';
   import {defaultDatasetViewState} from '$lib/stores/datasetViewStore';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import {getSpanValuePaths} from '$lib/view_utils';
   import {
@@ -24,6 +25,7 @@
   export let scorePath: Path;
 
   const NUM_ITEMS = 5;
+  const navState = getNavigationContext();
 
   $: topRows = querySelectRows(
     namespace,
@@ -59,7 +61,7 @@
     datasetState.query.sort_by = [scorePath];
     datasetState.query.sort_order = 'DESC';
     datasetState.insightsOpen = false;
-    goto(datasetLink(namespace, datasetName, datasetState));
+    goto(datasetLink(namespace, datasetName, $navState, datasetState));
   }
 </script>
 

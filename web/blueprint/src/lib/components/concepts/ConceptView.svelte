@@ -8,6 +8,7 @@
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import type {Concept} from '$lilac';
   import {Button, ToastNotification} from 'carbon-components-svelte';
@@ -29,6 +30,7 @@
   $: userId = $authInfo.data?.user?.id;
 
   const concepts = queryConcepts();
+  const navState = getNavigationContext();
 
   $: conceptInfo = $concepts.data?.find(
     c => c.namespace === concept.namespace && c.name === concept.concept_name
@@ -59,7 +61,7 @@
       concept_name: concept.concept_name,
       embedding: applyEmbedding
     });
-    goto(datasetLink(applyDataset.namespace, applyDataset.name, get(store)));
+    goto(datasetLink(applyDataset.namespace, applyDataset.name, $navState, get(store)));
   }
 
   function remove(id: string) {

@@ -15,6 +15,7 @@
     getSelectRowsSchemaOptions,
     setDatasetViewContext
   } from '$lib/stores/datasetViewStore';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import {getHighlightedFields, getMediaFields} from '$lib/view_utils';
   import {L, ROWID, valueAtPath, type DatasetSettings} from '$lilac';
@@ -30,6 +31,7 @@
   const updateSettings = updateDatasetSettingsMutation();
 
   $: loadTaskComplete = task?.status == 'completed';
+  const navState = getNavigationContext();
 
   const datasetViewStore = createDatasetViewStore(namespace, datasetName);
   setDatasetViewContext(datasetViewStore);
@@ -93,7 +95,7 @@
     if (newSettings == null) return;
     $updateSettings.mutate([namespace, datasetName, newSettings], {
       onSuccess: () => {
-        goto(datasetLink(namespace, datasetName));
+        goto(datasetLink(namespace, datasetName, $navState));
       }
     });
   }

@@ -47,6 +47,20 @@ def test_export_to_huggingface(make_test_data: TestDataMaker, tmp_path: pathlib.
   hf_dataset = dataset.to_huggingface()
 
   assert list(hf_dataset) == [
+    {'text': 'hello'},
+    {'text': 'everybody'},
+  ]
+
+
+def test_export_to_huggingface_include_signals(
+  make_test_data: TestDataMaker, tmp_path: pathlib.Path
+) -> None:
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
+  dataset.compute_signal(TestSignal(), 'text')
+
+  hf_dataset = dataset.to_huggingface(include_signals=True)
+
+  assert list(hf_dataset) == [
     {'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}},
     {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}},
   ]
@@ -62,13 +76,17 @@ def test_export_to_huggingface_filters(
   hf_dataset = dataset.to_huggingface(
     columns=['text', 'text.test_signal.flen'],
     filters=[('text.test_signal.len', 'greater', 6)],
+    include_signals=True,
   )
 
   assert list(hf_dataset) == [
     {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}}
   ]
 
-  hf_dataset = dataset.to_huggingface(filters=[('text.test_signal.flen', 'less_equal', '5')])
+  hf_dataset = dataset.to_huggingface(
+    filters=[('text.test_signal.flen', 'less_equal', '5')],
+    include_signals=True,
+  )
 
   assert list(hf_dataset) == [
     {'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}}
@@ -86,6 +104,14 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
+  assert parsed_items == [{'text': 'hello'}, {'text': 'everybody'}]
+
+  # Include signals.
+  dataset.to_json(filepath, include_signals=True)
+
+  with open(filepath) as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
   assert parsed_items == [
     {'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}},
     {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}},
@@ -97,6 +123,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     filepath,
     columns=['text', 'text.test_signal.flen'],
     filters=[('text.test_signal.len', 'greater', '6')],
+    include_signals=True,
   )
 
   with open(filepath) as f:
@@ -107,7 +134,9 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   ]
 
   filepath = tmp_path / 'dataset3.json'
-  dataset.to_json(filepath, filters=[('text.test_signal.flen', 'less_equal', '5')])
+  dataset.to_json(
+    filepath, filters=[('text.test_signal.flen', 'less_equal', '5')], include_signals=True
+  )
 
   with open(filepath) as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
@@ -122,6 +151,26 @@ def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) ->
   # Download all columns.
   filepath = tmp_path / 'dataset.csv'
   dataset.to_csv(filepath)
+
+  with open(filepath) as f:
+    rows = list(csv.reader(f))
+
+  assert rows == [
+    ['text'],  # Header
+    ['hello'],
+    ['everybody'],
+  ]
+
+
+def test_export_to_csv_include_signals(
+  make_test_data: TestDataMaker, tmp_path: pathlib.Path
+) -> None:
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
+  dataset.compute_signal(TestSignal(), 'text')
+
+  # Download all columns.
+  filepath = tmp_path / 'dataset.csv'
+  dataset.to_csv(filepath, include_signals=True)
 
   with open(filepath) as f:
     rows = list(csv.reader(f))
@@ -202,6 +251,21 @@ def test_export_to_parquet(make_test_data: TestDataMaker, tmp_path: pathlib.Path
   dataset.to_parquet(filepath)
 
   df = pd.read_parquet(filepath)
+  expected_df = pd.DataFrame([{'text': 'hello'}, {'text': 'everybody'}])
+  pd.testing.assert_frame_equal(df, expected_df)
+
+
+def test_export_to_parquet_include_signals(
+  make_test_data: TestDataMaker, tmp_path: pathlib.Path
+) -> None:
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
+  dataset.compute_signal(TestSignal(), 'text')
+
+  # Download all columns.
+  filepath = tmp_path / 'dataset.parquet'
+  dataset.to_parquet(filepath, include_signals=True)
+
+  df = pd.read_parquet(filepath)
   expected_df = pd.DataFrame(
     [
       {'text': {VALUE_KEY: 'hello', 'test_signal': {'len': 5, 'flen': 5.0}}},
@@ -217,6 +281,11 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
 
   # Download all columns.
   df = dataset.to_pandas()
+  expected_df = pd.DataFrame.from_records([{'text': 'hello'}, {'text': 'everybody'}])
+  pd.testing.assert_frame_equal(df, expected_df)
+
+  # Download all columns, including signals.
+  df = dataset.to_pandas(include_signals=True)
   expected_df = pd.DataFrame.from_records(
     [
       {'text': {VALUE_KEY: 'hello', 'test_signal': {'len': 5, 'flen': 5.0}}},
@@ -226,7 +295,7 @@ def test_export_to_pandas(make_test_data: TestDataMaker) -> None:
   pd.testing.assert_frame_equal(df, expected_df)
 
   # Select only some columns, including pseudocolumn rowid.
-  df = dataset.to_pandas([ROWID, 'text.test_signal.flen'])
+  df = dataset.to_pandas([ROWID, 'text.test_signal.flen'], include_signals=True)
   expected_df = pd.DataFrame(
     [
       {ROWID: '00001', 'text': {'test_signal': {'flen': np.float32(5.0)}}},

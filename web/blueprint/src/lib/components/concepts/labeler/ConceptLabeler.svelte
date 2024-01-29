@@ -2,6 +2,7 @@
   import {goto} from '$app/navigation';
   import {maybeQueryDatasetSchema} from '$lib/queries/datasetQueries';
   import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import type {Concept, LilacSchema} from '$lilac';
   import {Button, ToastNotification} from 'carbon-components-svelte';
@@ -16,6 +17,7 @@
   let schema: LilacSchema | null | undefined;
   let path: string[] | undefined;
   let embedding: string | undefined = undefined;
+  const navState = getNavigationContext();
 
   $: schemaQuery =
     dataset?.namespace && dataset?.name
@@ -36,7 +38,7 @@
       concept_name: concept.concept_name,
       embedding
     });
-    goto(datasetLink(dataset.namespace, dataset.name, get(store)));
+    goto(datasetLink(dataset.namespace, dataset.name, $navState, get(store)));
   }
 </script>
 

@@ -670,6 +670,7 @@ class Dataset(abc.ABC):
     resolve_span: bool = False,
     combine_columns: bool = False,
     include_deleted: bool = False,
+    exclude_signals: bool = False,
     user: Optional[UserInfo] = None,
   ) -> SelectRowsResult:
     """Select a set of rows that match the provided filters, analogous to SQL SELECT.
@@ -694,6 +695,7 @@ class Dataset(abc.ABC):
       combine_columns: Whether to combine columns into a single object. The object will be pruned
         to only include sub-fields that correspond to the requested columns.
       include_deleted: Whether to include deleted rows in the query.
+      exclude_signals: Whether to exclude fields produced by signals.
       user: The authenticated user, if auth is enabled and the user is logged in. This is used to
         apply ACL to the query, especially for concepts.
 
@@ -987,6 +989,7 @@ class Dataset(abc.ABC):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> HuggingFaceDataset:
     """Export the dataset to a huggingface dataset.
 
@@ -996,6 +999,7 @@ class Dataset(abc.ABC):
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
       include_deleted: Whether to include deleted rows in the export.
+      include_signals: Whether to include fields produced by signals.
     """
     pass
 
@@ -1009,6 +1013,7 @@ class Dataset(abc.ABC):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> None:
     """Export the dataset to a JSON file.
 
@@ -1020,6 +1025,7 @@ class Dataset(abc.ABC):
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
       include_deleted: Whether to include deleted rows in the export.
+      include_signals: Whether to include fields produced by signals.
     """
     pass
 
@@ -1031,6 +1037,7 @@ class Dataset(abc.ABC):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> pd.DataFrame:
     """Export the dataset to a pandas DataFrame.
 
@@ -1040,6 +1047,7 @@ class Dataset(abc.ABC):
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
       include_deleted: Whether to include deleted rows in the export.
+      include_signals: Whether to include fields produced by signals.
     """
     pass
 
@@ -1052,6 +1060,7 @@ class Dataset(abc.ABC):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> None:
     """Export the dataset to a parquet file.
 
@@ -1062,6 +1071,7 @@ class Dataset(abc.ABC):
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
       include_deleted: Whether to include deleted rows in the export.
+      include_signals: Whether to include fields produced by signals.
     """
     pass
 
@@ -1074,6 +1084,7 @@ class Dataset(abc.ABC):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> None:
     """Export the dataset to a csv file.
 
@@ -1084,6 +1095,7 @@ class Dataset(abc.ABC):
       include_labels: The labels to include in the export.
       exclude_labels: The labels to exclude in the export.
       include_deleted: Whether to include deleted rows in the export.
+      include_signals: Whether to include fields produced by signals.
     """
     pass
 
