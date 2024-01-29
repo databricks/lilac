@@ -1641,7 +1641,7 @@ files = [
 
 [[package]]
 name = "lilac"
-version = "0.3.2"
+version = "0.3.3"
 description = "Organize unstructured data"
 optional = false
 python-versions = ">=3.9,<4.0"

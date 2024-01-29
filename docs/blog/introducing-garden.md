@@ -6,7 +6,9 @@ _Automatic and human-readable clustering of 1 million conversations from Chatbot
 
 _Jan 30, 2024_
 
-![Cluster view of conversations from Chatbot Arena](../_static/introducing_garden/clusters.png)
+<a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%7D">
+<img title="Cluster view of conversations from Chatbot Arena" src="../_static/introducing_garden/clusters.png" />
+</a>
 
 At Lilac, our mission is to help you curate your text data so you can build the best possible LLM
 apps. We’ve built a new LLM-powered text clustering pipeline that’s more accurate and easy to
@@ -44,26 +46,40 @@ and more.
 chatbot quality. The Arena team has released a subset of redacted user logs, and we discovered that
 quite a few users test their jailbreaks and prompt injections on the Arena.
 
-![Jailbreaking models](../_static/introducing_garden/jailbreak_unhinged.png)
+<a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&query=%7B%22filters%22%3A%5B%7B%22path%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22op%22%3A%22equals%22%2C%22value%22%3A%22Inappropriate%20Content%22%7D%5D%7D&groupBy=%7B%22path%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%2C%22value%22%3A%22Inappropriate%20Content%20Requests%22%7D">
+  <img title="Jailbreaking models" src="../_static/introducing_garden/jailbreak_unhinged.png"/>
+</a>
 
-![DAN Jailbreak](../_static/introducing_garden/jailbreak_dan.png)
+<a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&query=%7B%22filters%22%3A%5B%7B%22path%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22op%22%3A%22equals%22%2C%22value%22%3A%22AI%20Role-Play%22%7D%5D%7D&groupBy=%7B%22path%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%2C%22value%22%3A%22Role-playing%20scenarios%20with%20DAN%20AI%20model%22%7D">
+  <img title="DAN Jailbreak" src="../_static/introducing_garden/jailbreak_dan.png"/>
+</a>
 
 Unsurprisingly, another popular theme is users trying to get chatbots to say NSFW things (and they
-seem to be broadly successful, on average!).
+seem to be broadly successful).
 
-![Alt text](../_static/introducing_garden/nsfw.png)
+```{warning}
+The image below links to explicit content.
+```
+
+<a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&groupBy=%7B%22path%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22value%22%3A%22Inappropriate%20Content%22%7D&rowId=%22fff8851628884e259af503b0570ba194%22">
+<img title="NSFW" src="../_static/introducing_garden/nsfw.png"/>
+
+</a>
 
 Users are also trying to understand the guardrails of the chatbots by poking around controversial
 topics.
 
-![Alt text](../_static/introducing_garden/ai_ethics.png)
+<a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&groupBy=%7B%22path%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22value%22%3A%22AI%20Ethics%20Conversations%22%7D&rowId=%22ff6668747746466ca528b1912133926a%22">
+  <img title="AI Ethics" src="../_static/introducing_garden/ai_ethics.png"/>
+</a>
 
 Our cluster breakdown page also supports grouping by custom fields. We can
 <a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22model%22%5D%2C%22innerPath%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%7D">group
-by the Model column</a> to see what sorts of interactions users have with each model. Since the
-conversations are extended back-and-forths, the model’s responses affect the clustering results.
+by the Model column</a> to see what sorts of interactions users have with each model.
 
-![Grouping cluster by model type](../_static/introducing_garden/group_cluster_by_model.png)
+<a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22model%22%5D%2C%22innerPath%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%7D">
+  <img title="Grouping cluster by model type" src="../_static/introducing_garden/group_cluster_by_model.png" />
+</a>
 
 We’re excited to see what interesting clusters you find!
 
@@ -82,14 +98,14 @@ dataset = ll.from_huggingface('LDJnr/Capybara')
 dataset.cluster(input='conversation.*.input', use_garden=False)
 ```
 
-For datasets larger than 10k rows – or if you’re impatient, like us – Lilac Garden is the answer.
+For datasets larger than 10k rows – or if you’re impatient, like us –
 [Lilac Garden](https://www.lilacml.com/#garden) is a remote computation service that powers
 compute-heavy features like clustering, perplexity scoring, and embedding computation. Lilac Garden
 clustered our largest datasets of 4 million data points in just an hour. A 10,000 data point dataset
 would cluster in less than a minute on Garden - **100x faster** than local computation!
 
-Lilac Garden fundamentally changes how we interact with data, allowing you to use the power of LLMs
-over entire datasets, without needing to wait and monitor multi-day pipelines.
+Lilac Garden fundamentally changed how we interact with data, allowing to use the power of LLMs over
+entire datasets, without needing to wait and monitor multi-day pipelines.
 
 To join the waitlist,
 [fill out this form](https://docs.google.com/forms/d/e/1FAIpQLSd53PiLVU-65n0czUbhQySvZVtybbSR1fH-WJDDycOZxVRvNQ/viewform).
@@ -136,11 +152,8 @@ label on these clusters by prompt-engineering a command to GPT3.5.
 ### Beyond clusters
 
 Clustering can give us valuable insights into the shape of our data, or how users are interacting
-with production systems.
-
-However, we can go beyond just analytics by using generated clusters to curate data in Lilac.
-
-Once computed, we can:
+with production systems. However, we can also use the generated clusters to curate data much faster
+in Lilac:
 
 - Drop problematic clusters
 - Sample across clusters to reduce the size of our dataset
