@@ -46,6 +46,9 @@ _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 7
 _TOP_K_CENTRAL_TITLES = 20
 _NUM_THREADS = 32
+_NUM_RETRIES = 16
+_INITIAL_MAX_TOKENS = 50
+_FINAL_MAX_TOKENS = 200
 
 CLUSTER_ID = 'cluster_id'
 CLUSTER_MEMBERSHIP_PROB = 'cluster_membership_prob'
@@ -77,6 +80,9 @@ def _openai_client() -> Any:
       'Please install it with `pip install openai`.'
     )
 
+  # OpenAI requests sometimes hang, without any errors, and the default connection timeout is 10
+  # mins, which is too long. Set it to 7 seconds (99%-tile for latency is 3-4 sec). Also set
+  # `max_retries` to 0 to disable internal retries so we handle retries ourselves.
   return instructor.patch(openai.OpenAI(timeout=7, max_retries=0))
 
 
@@ -120,11 +126,11 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
       )
     ),
     wait=wait_random_exponential(multiplier=0.5, max=60),
-    stop=stop_after_attempt(16),
+    stop=stop_after_attempt(_NUM_RETRIES),
   )
   def request_with_retries() -> str:
-    max_tokens = 50
-    while max_tokens <= 150:
+    max_tokens = _INITIAL_MAX_TOKENS
+    while max_tokens <= _FINAL_MAX_TOKENS:
       try:
         title = _openai_client().chat.completions.create(
           model='gpt-3.5-turbo-1106',
@@ -149,7 +155,7 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
         )
         return title.title
       except IncompleteOutputException:
-        max_tokens += 50
+        max_tokens += _INITIAL_MAX_TOKENS
         log(f'Retrying with max_tokens={max_tokens}')
     log(f'Could not generate a short title for input:\n{input}')
     return 'FAILED_TO_GENERATE'
@@ -188,11 +194,11 @@ def generate_category(ranked_docs: list[tuple[str, float]]) -> str:
       )
     ),
     wait=wait_random_exponential(multiplier=0.5, max=60),
-    stop=stop_after_attempt(10),
+    stop=stop_after_attempt(_NUM_RETRIES),
   )
   def request_with_retries() -> str:
-    max_tokens = 50
-    while max_tokens <= 150:
+    max_tokens = _INITIAL_MAX_TOKENS
+    while max_tokens <= _FINAL_MAX_TOKENS:
       try:
         category = _openai_client().chat.completions.create(
           model='gpt-3.5-turbo-1106',
@@ -213,7 +219,7 @@ def generate_category(ranked_docs: list[tuple[str, float]]) -> str:
         )
         return category.category
       except IncompleteOutputException:
-        max_tokens += 50
+        max_tokens += _INITIAL_MAX_TOKENS
         log(f'Retrying with max_tokens={max_tokens}')
     log(f'Could not generate a short category for input:\n{input}')
     return 'FAILED_TO_GENERATE'
@@ -460,7 +466,7 @@ def cluster_impl(
       task_info.total_progress = 0
       task_info.total_len = total_len
 
-    def title_superclusters(items: Iterator[Item]) -> Iterator[Item]:
+    def title_categories(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
       titles = _compute_titles(
         items,
@@ -477,7 +483,7 @@ def cluster_impl(
         yield {**item, CATEGORY_TITLE: title}
 
     dataset.transform(
-      title_superclusters,
+      title_categories,
       input_path=cluster_output_path,
       output_path=cluster_output_path,
       sort_by=(*cluster_output_path, CATEGORY_ID),

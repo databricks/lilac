@@ -72,8 +72,6 @@ __all__ = [
   'deploy_project',
   'deploy_config',
   'SpanVector',
-  'ShareGPT',
-  'OpenChat',
   'download',
   'upload',
   'register_embedding',

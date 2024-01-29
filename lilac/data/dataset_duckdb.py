@@ -1817,20 +1817,7 @@ class DatasetDuckDB(Dataset):
     if not include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
       filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
 
-    # Add search where queries.
-    for search in searches or []:
-      search_path = normalize_path(search.path)
-      if search.type == 'keyword':
-        filters.append(Filter(path=search_path, op='ilike', value=search.query))
-      elif search.type == 'semantic' or search.type == 'concept':
-        # Semantic search and concepts don't yet filter.
-        continue
-      elif search.type == 'metadata':
-        # Make a regular filter query.
-        filter = Filter(path=search_path, op=search.op, value=search.value)
-        filters.append(filter)
-      else:
-        raise ValueError(f'Unknown search operator {search.type}.')
+    filters = self._add_searches_to_filters(searches or [], filters)
 
     filter_queries = self._create_where(manifest, filters)
 
@@ -1934,19 +1921,7 @@ class DatasetDuckDB(Dataset):
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
 
     # Add search where queries.
-    for search in searches or []:
-      search_path = normalize_path(search.path)
-      if search.type == 'keyword':
-        filters.append(Filter(path=search_path, op='ilike', value=search.query))
-      elif search.type == 'semantic' or search.type == 'concept':
-        # Semantic search and concepts don't yet filter.
-        continue
-      elif search.type == 'metadata':
-        # Make a regular filter query.
-        filter = Filter(path=search_path, op=search.op, value=search.value)
-        filters.append(filter)
-      else:
-        raise ValueError(f'Unknown search operator {search.type}.')
+    filters = self._add_searches_to_filters(searches or [], filters)
 
     where_query = self._compile_select_options(
       DuckDBQueryParams(filters=filters, include_deleted=False)
@@ -2157,20 +2132,7 @@ class DatasetDuckDB(Dataset):
     # Filtering and searching.
     where_query = ''
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases, manifest)
-    # Add search where queries.
-    for search in searches:
-      search_path = normalize_path(search.path)
-      if search.type == 'keyword':
-        filters.append(Filter(path=search_path, op='ilike', value=search.query))
-      elif search.type == 'semantic' or search.type == 'concept':
-        # Semantic search and concepts don't yet filter.
-        continue
-      elif search.type == 'metadata':
-        # Make a regular filter query.
-        filter = Filter(path=search_path, op=search.op, value=search.value)
-        filters.append(filter)
-      else:
-        raise ValueError(f'Unknown search operator {search.type}.')
+    filters = self._add_searches_to_filters(searches, filters)
 
     if not include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
       filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
@@ -3493,6 +3455,24 @@ class DatasetDuckDB(Dataset):
     if unnest and is_result_a_list:
       selection = f'unnest({selection})'
     return selection
+
+  def _add_searches_to_filters(
+    self, searches: Sequence[Search], filters: list[Filter]
+  ) -> list[Filter]:
+    for search in searches:
+      search_path = normalize_path(search.path)
+      if search.type == 'keyword':
+        filters.append(Filter(path=search_path, op='ilike', value=search.query))
+      elif search.type == 'semantic' or search.type == 'concept':
+        # Semantic search and concepts don't yet filter.
+        continue
+      elif search.type == 'metadata':
+        # Make a regular filter query.
+        filter = Filter(path=search_path, op=search.op, value=search.value)
+        filters.append(filter)
+      else:
+        raise ValueError(f'Unknown search operator {search.type}.')
+    return filters
 
 
 def _escape_like_value(value: str) -> str:
