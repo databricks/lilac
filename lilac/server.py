@@ -24,7 +24,6 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.datastructures import URL
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from uvicorn.config import Config
 
