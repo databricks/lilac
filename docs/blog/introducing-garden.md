@@ -10,6 +10,8 @@ _Automatic and human-readable clustering of 1 million conversations from Chatbot
 <img title="Cluster view of conversations from Chatbot Arena" src="../_static/introducing_garden/clusters.png" />
 </a>
 
+[Watch our 10 min walkthrough of clustering in Lilac](https://www.youtube.com/watch?v=kLyxBReyexU)
+
 At Lilac, our mission is to help you understand and curate your text data so you can build the best
 possible LLM apps. We’ve built a new LLM-powered text clustering pipeline that’s more accurate and
 easy to understand than any clustering approach we’ve seen before. This is our first cloud service
