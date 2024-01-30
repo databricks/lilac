@@ -12,6 +12,16 @@
    :parser: myst_parser.sphinx_
 
 .. toctree::
+   :caption: Blog posts
+   :hidden:
+   :maxdepth: 1
+   :glob:
+
+   blog/introducing-lilac.md
+   blog/curate-coding-dataset.md
+   blog/introducing-garden.md
+
+.. toctree::
    :caption: Getting Started
    :hidden:
    :maxdepth: 1
@@ -19,14 +29,6 @@
    getting_started/quickstart.md
    getting_started/installation.md
    getting_started/quickstart_python.md
-
-.. toctree::
-   :caption: Blog posts
-   :hidden:
-   :maxdepth: 1
-   :glob:
-
-   blog/*
 
 .. toctree::
    :caption: Datasets

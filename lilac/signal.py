@@ -326,6 +326,9 @@ def register_signal(signal_cls: Type[Signal], exists_ok: bool = False) -> None:
     signal_cls: The signal class to register.
     exists_ok: Whether to allow overwriting an existing signal.
   """
+  if not hasattr(signal_cls, 'name'):
+    raise ValueError(f'Signal "{signal_cls.__name__}" needs to have a "name" attribute.')
+
   if signal_cls.name in SIGNAL_REGISTRY and not exists_ok:
     raise ValueError(f'Signal "{signal_cls.name}" has already been registered!')
 

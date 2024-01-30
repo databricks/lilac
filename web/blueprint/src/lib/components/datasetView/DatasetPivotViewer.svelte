@@ -11,7 +11,6 @@
     getSelectRowsOptions,
     getSelectRowsSchemaOptions
   } from '$lib/stores/datasetViewStore';
-  import {datasetLink} from '$lib/utils';
   import {getDisplayPath, getSearchHighlighting, shortFieldName} from '$lib/view_utils';
   import {
     DatasetsService,
@@ -28,11 +27,22 @@
     DropdownItem,
     DropdownItemId
   } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
-  import {ArrowUpRight, Close, Search} from 'carbon-icons-svelte';
+  import {Close, Search} from 'carbon-icons-svelte';
+  import {onDestroy} from 'svelte';
   import DropdownPill from '../common/DropdownPill.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import DatasetPivotResult, {type OuterPivot} from './DatasetPivotResult.svelte';
   import FilterControls from './FilterControls.svelte';
+
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      entry.target.dispatchEvent(new CustomEvent('intersect', {detail: entry.isIntersecting}));
+    }
+  });
+
+  onDestroy(() => {
+    observer.disconnect();
+  });
 
   let outerLeafPath: Path | undefined = undefined;
   let innerLeafPath: Path | undefined = undefined;
@@ -66,7 +76,8 @@
   $: pivotQuery = pivotQueryFn($store.namespace, $store.datasetName, {
     outer_path: outerLeafPath!,
     inner_path: innerLeafPath!,
-    filters: selectOptions.filters
+    filters: selectOptions.filters,
+    searches: selectOptions.searches
   });
 
   // The search text after a user presses the search button or enter.
@@ -74,7 +85,8 @@
 
   function getGroups(
     pivotTable: PivotResult | undefined,
-    searchQuery: string | undefined
+    searchQuery: string | undefined,
+    numRowsInQuery: number | undefined
   ): OuterPivot[] | undefined {
     if (pivotTable == null) return undefined;
     searchQuery = searchQuery?.trim().toLowerCase();
@@ -99,7 +111,7 @@
     );
   }
 
-  $: groups = getGroups($pivotQuery?.data, $store.pivot?.searchText);
+  $: groups = getGroups($pivotQuery?.data, $store.pivot?.searchText, numRowsInQuery);
 
   function getPercentage(count: number, numRowsInQuery: number | undefined) {
     if (numRowsInQuery == null) return '';
@@ -148,10 +160,7 @@
   }
 
   // The bound input text from the search box.
-  let inputSearchText: string | undefined = undefined;
-  function searchInput(e: Event) {
-    inputSearchText = (e.target as HTMLInputElement)?.value;
-  }
+  $: inputSearchText = searchText;
 
   function search() {
     $store.pivot = {...$store.pivot, searchText: inputSearchText};
@@ -161,6 +170,13 @@
     inputSearchText = undefined;
     search();
   }
+
+  const WIDTH_PER_ITEM_PX = 256;
+  const DEFAULT_ITEMS_PER_PAGE = 4;
+  let carouselWidth: number | undefined = undefined;
+  $: itemsPerPage = carouselWidth
+    ? Math.max(1, Math.round(carouselWidth / WIDTH_PER_ITEM_PX) - 1)
+    : DEFAULT_ITEMS_PER_PAGE;
 </script>
 
 <div class="flex h-full flex-col">
@@ -172,17 +188,17 @@
       <input
         class="h-full w-full focus:border-none focus:outline-none"
         placeholder="Search all categories and titles"
+        bind:value={inputSearchText}
         on:change={search}
-        on:input={searchInput}
       />
       <div
         use:hoverTooltip={{text: 'Clear search query'}}
-        class:invisible={$store.pivot?.searchText == null || $store.pivot.searchText === ''}
+        class:invisible={(inputSearchText?.length || 0) === 0}
       >
         <button on:click={clearSearch}><Close /></button>
       </div>
     </div>
-    <div class="h-18 mr-8 flex flex-row items-end gap-x-4 pr-4">
+    <div class="mr-8 flex h-16 flex-row items-end gap-x-4 pr-4">
       <div class="flex flex-col gap-y-2">
         <div>Explore</div>
         <DropdownPill
@@ -239,57 +255,19 @@
     {:else if groups == null || numRowsInQuery == null}
       <SkeletonText />
     {:else}
-      <div class="flex w-full flex-col gap-y-10">
+      <div class="flex w-full flex-col gap-y-10" bind:clientWidth={carouselWidth}>
         {#each groups as group}
-          {@const groupLink = datasetLink($store.namespace, $store.datasetName, {
-            ...$store,
-            viewPivot: false,
-            pivot: undefined,
-            query: {
-              ...$store.query
-            },
-            groupBy: outerLeafPath ? {path: outerLeafPath, value: group.value} : undefined
-          })}
-
-          <div class="flex w-full flex-row gap-x-4 rounded py-2">
-            <div
-              class="flex h-full w-72 flex-col justify-between gap-y-4 self-start rounded-lg px-4 pt-4"
-            >
-              <div
-                title={group.value}
-                class="card-outer-title w-16 whitespace-break-spaces text-3xl leading-9 tracking-tight"
-              >
-                {#each group.textHighlights as highlight}
-                  {#if highlight.isBold}<span class="font-bold">{highlight.text}</span>
-                  {:else}<span>{highlight.text}</span>{/if}
-                {/each}
-              </div>
-              <div class="flex w-full flex-col font-light">
-                <span class="text-3xl text-neutral-600">
-                  {group.percentage}%
-                </span>
-                <span class="text-lg text-neutral-500">
-                  {group.count.toLocaleString()} rows
-                </span>
-              </div>
-              <a class="mb-2 flex flex-row" href={groupLink}>
-                <button
-                  class="flex flex-row items-center gap-x-2 border border-neutral-300 bg-violet-200 bg-opacity-70 font-light text-black shadow"
-                  >Explore <ArrowUpRight /></button
-                ></a
-              >
-            </div>
-            {#if outerLeafPath && innerLeafPath && numRowsInQuery}
-              <DatasetPivotResult
-                filter={group.value == null
-                  ? {path: outerLeafPath, op: 'not_exists'}
-                  : {path: outerLeafPath, op: 'equals', value: group.value}}
-                {group}
-                path={innerLeafPath}
-                {numRowsInQuery}
-              />
-            {/if}
-          </div>
+          <DatasetPivotResult
+            {observer}
+            filter={group.value == null
+              ? {path: outerLeafPath, op: 'not_exists'}
+              : {path: outerLeafPath, op: 'equals', value: group.value}}
+            {group}
+            path={innerLeafPath}
+            {numRowsInQuery}
+            {itemsPerPage}
+            {outerLeafPath}
+          />
         {:else}
           <div class="mx-20 mt-8 w-full text-lg text-gray-600">No results.</div>
         {/each}
@@ -299,13 +277,6 @@
 </div>
 
 <style lang="postcss">
-  .card-outer-title {
-    width: 100%;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-  }
   .search-box:focus-within {
     @apply outline outline-1 outline-blue-500;
   }

@@ -23,21 +23,37 @@
     </a>
 </p>
 
-Lilac helps you **curate data** for LLMs, from RAGs to fine-tuning datasets.
+Lilac is a tool for exploration, curation and quality control of datasets for training, fine-tuning
+and monitoring LLMs.
 
-Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
+Lilac is used by companies like [Cohere](https://cohere.com/) and
+[Databricks](https://www.databricks.com/) to visualize, quantify and improve the quality of
+pre-training and fine-tuning data.
 
-- **Exploring** datasets with natural language (documents)
-- **Annotating & structuring** data (e.g. PII detection, profanity, text statistics)
-- **Semantic search** to find similar results to a query
-- **Conceptual search** to find and tag results that match a fuzzy concept (e.g. low command of
-  English language)
-- **Clustering** data semantically for understanding & deduplication
-- **Labeling** and **Bulk Labeling** to curate data
+Lilac runs **on-device** using open-source LLMs with a UI and Python API.
 
-### 3 minute walkthrough
+## 🆒 New
 
-[![Lilac: 3 minute walkthrough](https://i.ytimg.com/vi/RrcvVC3VYzQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
+- [Lilac Garden](https://www.lilacml.com/#Garden) is our hosted platform for blazing fast
+  dataset-level computations. [Sign up](https://forms.gle/Gz9cpeKJccNar5Lq8) to join the pilot.
+- Cluster & title millions of documents with the power of LLMs.
+  [Explore and search](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22question__cluster%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22question__cluster%22%2C%22cluster_title%22%5D%7D)
+  over 36,000 clusters of 4.3M documents in OpenOrca
+
+## Why use Lilac?
+
+- Explore your data interactively with LLM-powered search, filter, clustering and annotation.
+- Curate AI data, applying best practices like removing duplicates, PII and obscure content to
+  reduce dataset size and lower training cost and time.
+- Inspect and collaborate with your team on a single, centralized dataset to improve data quality.
+- Understand how data changes over time.
+
+Lilac can offload expensive computations to [Lilac Garden](https://www.lilacml.com/#Garden), our
+hosted platform for blazing fast dataset-level computations.
+
+<img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
+
+> See our [3min walkthrough video](https://www.youtube.com/watch?v=RrcvVC3VYzQ)
 
 ## 🔥 Getting started
 
@@ -47,13 +63,16 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API for:
 pip install lilac[all]
 ```
 
-If you prefer no local installation, you can duplicate the
-[HuggingFace Spaces demo](https://lilacai-lilac.hf.space/). Documentation
+If you prefer no local installation, you can duplicate our
+[Spaces demo](https://lilacai-lilac.hf.space/) by following documentation
 [here](https://docs.lilacml.com/deployment/huggingface_spaces.html).
+
+For more detailed instructions, see our
+[installation guide](https://docs.lilacml.com/getting_started/installation.html).
 
 ### 🌐 Start a webserver
 
-Start a Lilac webserver from the CLI:
+Start a Lilac webserver with our `lilac` CLI:
 
 ```sh
 lilac start ~/my_project
@@ -70,34 +89,19 @@ ll.start_server(project_dir='~/my_project')
 This will open start a webserver at http://localhost:5432/ where you can now load datasets and
 explore them.
 
-### Run via Docker
+### Lilac Garden
 
-We publish images for `linux/amd64` and `linux/arm64` on Docker Hub under
-[lilacai](https://hub.docker.com/u/lilacai).
+Lilac Garden is our hosted platform for running dataset-level computations. We utilize powerful GPUs
+to accelerate expensive signals like Clustering, Embedding, and PII.
+[Sign up](https://forms.gle/Gz9cpeKJccNar5Lq8) to join the pilot.
 
-The container runs on the virtual port `80`, this command maps it to the host machine port `5432`.
-
-If you have an existing lilac project, mount it and set the `LILAC_PROJECT_DIR` environment
-variable:
-
-```sh
-docker run -it \
-  -p 5432:80 \
-  --volume /host/path/to/data:/data \
-  -e LILAC_PROJECT_DIR="/data" \
-  --gpus all \ # Remove if you don't have a GPU, or on MacOS.
-  lilacai/lilac
-```
-
-To build your own custom image run the following command, otherwise skip to the next step.
-
-```sh
-docker build -t lilac .
-```
+- Cluster and title **a million** data points in **20 mins**
+- Embed your dataset at **half a billion** tokens per min
+- Run your own signal
 
 ### 📊 Load data
 
-Datasets can be loaded directly from HuggingFace, CSV, JSON,
+Datasets can be loaded directly from HuggingFace, Parquet, CSV, JSON,
 [LangSmith from LangChain](https://www.langchain.com/langsmith), SQLite,
 [LLamaHub](https://llamahub.ai/), Pandas, Parquet, and more. More documentation
 [here](https://docs.lilacml.com/datasets/dataset_load.html).
@@ -106,13 +110,7 @@ Datasets can be loaded directly from HuggingFace, CSV, JSON,
 import lilac as ll
 
 ll.set_project_dir('~/my_project')
-
-config = ll.DatasetConfig(
-  namespace='local',
-  name='imdb',
-  source=ll.HuggingFaceSource(dataset_name='imdb'))
-
-dataset = ll.create_dataset(config)
+dataset = ll.from_huggingface('imdb')
 ```
 
 If you prefer, you can load datasets directly from the UI without writing any Python:
@@ -121,26 +119,41 @@ If you prefer, you can load datasets directly from the UI without writing any Py
 
 ### 🔎 Explore
 
-> [🔗 Try OpenOrca before installing!](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca)
+<!-- prettier-ignore -->
+> [!NOTE]
+> 🔗 Explore [OpenOrca](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca) and
+> [its clusters](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22question__cluster%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22question__cluster%22%2C%22cluster_title%22%5D%7D)
+> before installing!
 
 Once we've loaded a dataset, we can explore it from the UI and get a sense for what's in the data.
 More documentation [here](https://docs.lilacml.com/datasets/dataset_explore.html).
 
 <img alt="image" src="docs/_static/dataset/dataset_explore.png">
 
+### ✨ Clustering
+
+Cluster any text column to get automated dataset insights:
+
+```python
+dataset = ll.get_dataset('local', 'imdb')
+dataset.cluster('text') # add `use_garden=True` to offload to Lilac Garden
+```
+
+<!-- prettier-ignore -->
+> [!TIP]
+> Clustering on device can be slow or impractical, especially on machines without a powerful GPU or
+> large memory. Offloading the compute to [Lilac Garden](https://www.lilacml.com/#Garden), our
+hosted data processing platform, can speedup clustering by more than 100x.
+
+<img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
+
 ### ⚡ Annotate with Signals (PII, Text Statistics, Language Detection, Neardup, etc)
 
 Annotating data with signals will produce another column in your data.
 
 ```python
-import lilac as ll
-
-ll.set_project_dir('~/my_project')
-
 dataset = ll.get_dataset('local', 'imdb')
-
-# [Language detection] Detect the language of each document.
-dataset.compute_signal(ll.LangDetectionSignal(), 'text')
+dataset.compute_signal(ll.LangDetectionSignal(), 'text') # Detect language of each doc.
 
 # [PII] Find emails, phone numbers, ip addresses, and secrets.
 dataset.compute_signal(ll.PIISignal(), 'text')
@@ -157,7 +170,7 @@ print(dataset.manifest())
 
 We can also compute signals from the UI:
 
-<img width="600" alt="image" src="docs/_static/dataset/dataset_compute_signal_modal.png">
+<img width="400" alt="image" src="docs/_static/dataset/dataset_compute_signal_modal.png">
 
 ### 🔎 Search
 

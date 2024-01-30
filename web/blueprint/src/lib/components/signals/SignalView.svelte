@@ -117,8 +117,9 @@
     }
   };
   $: hasOptions =
-    Object.keys(signalInfo?.json_schema?.properties || {}).filter(p => p != 'signal_name').length >
-    0;
+    Object.keys(signalInfo?.json_schema?.properties || {}).filter(
+      p => ['signal_name', 'supports_garden'].indexOf(p) < 0
+    ).length > 0;
 </script>
 
 <div class="flex h-full w-full flex-col gap-y-8 px-10">
@@ -204,7 +205,7 @@
             bind:value={propertyValues}
             bind:validationErrors={errors}
             showDescription={false}
-            hiddenProperties={['/signal_name']}
+            hiddenProperties={['/signal_name', '/supports_garden']}
             customComponents={customComponents[signalInfo?.name]}
           />
         </div>

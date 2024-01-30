@@ -1,6 +1,10 @@
 <script lang="ts">
   import {querySelectGroups} from '$lib/queries/datasetQueries';
-  import {getDatasetViewContext, type GroupByState} from '$lib/stores/datasetViewStore';
+  import {
+    getDatasetViewContext,
+    getSelectRowsOptions,
+    type GroupByState
+  } from '$lib/stores/datasetViewStore';
   import {shortFieldName} from '$lib/view_utils';
   import {
     formatValue,
@@ -16,18 +20,18 @@
   export let groupBy: GroupByState;
   export let schema: LilacSchema;
 
-  let store = getDatasetViewContext();
+  const store = getDatasetViewContext();
   $: value = groupBy.value;
 
   $: field = getField(schema, groupBy.path)!;
   $: sortBy = isNumeric(field.dtype) && !field.categorical ? 'value' : 'count';
   $: sortOrder = sortBy === 'value' ? 'ASC' : 'DESC';
-
+  $: selectOptions = getSelectRowsOptions($store, schema);
   $: groupsQuery = querySelectGroups($store.namespace, $store.datasetName, {
     leaf_path: groupBy.path,
     sort_by: sortBy as GroupsSortBy,
     sort_order: sortOrder as SortOrder,
-    filters: $store.query.filters,
+    filters: selectOptions.filters,
     // Explicitly set the limit to null to get all the groups, not just the top 100.
     limit: null
   });
@@ -46,8 +50,11 @@
     if (value == null || allCounts == null || valueIndex == null) {
       return;
     }
-    const newValue =
-      direction === 'next' ? allCounts[valueIndex + 1][0] : allCounts[valueIndex - 1][0];
+    const newIndex = direction === 'next' ? valueIndex + 1 : valueIndex - 1;
+    if (newIndex < 0 || newIndex >= allCounts.length) {
+      return;
+    }
+    const newValue = direction === 'next' ? allCounts[newIndex][0] : allCounts[newIndex][0];
     store.setGroupBy(groupBy.path, newValue);
   }
   function onKeyDown(key: KeyboardEvent) {

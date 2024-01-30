@@ -75,7 +75,6 @@
               class:bg-neutral-100={linkItem.isSelected}
             >
               <a
-                data-sveltekit-reload
                 href={link}
                 class:text-black={linkItem.isSelected}
                 class:font-semibold={linkItem.isSelected}

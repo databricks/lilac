@@ -142,6 +142,13 @@ def hf_docker_start_command() -> None:
   default=False,
 )
 @click.option(
+  '--deploy_at_head',
+  help='Deploy the current working directory, instead of latest PyPI release.',
+  type=bool,
+  is_flag=True,
+  default=False,
+)
+@click.option(
   '--create_space',
   help='When True, creates the HuggingFace space if it doesnt exist. The space will be created '
   'with the storage type defined by --hf_space_storage.',
@@ -178,6 +185,7 @@ def deploy_project_command(
   concept: Optional[list[str]],
   skip_data_upload: bool,
   skip_concept_upload: bool,
+  deploy_at_head: bool,
   create_space: bool,
   load_on_space: bool,
   hf_space_storage: Optional[Union[Literal['small'], Literal['medium'], Literal['large']]],
@@ -208,6 +216,7 @@ def deploy_project_command(
     project_dir=project_dir,
     hf_space=hf_space,
     concepts=concept,
+    deploy_at_head=deploy_at_head,
     skip_concept_upload=skip_concept_upload,
     create_space=create_space,
     load_on_space=load_on_space,

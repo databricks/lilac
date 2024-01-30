@@ -6,8 +6,9 @@ In this quick start we're going to:
 
 - Load [OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca), a popular instruction dataset
   for tuning LLMs.
-- Find PII (emails, etc)
-- Find profanity in the responses (using powerful text embeddings)
+- Compute clusters.
+- Delete specific clusters.
+- Find profanity in the remaining rows (using powerful text embeddings)
 - Download the enriched dataset as a json file so we can clean it in a Python notebook
 
 ## Start the web server
@@ -35,7 +36,13 @@ Click the `Add dataset` button on the Getting Started page and fill in:
 Fill in HuggingFace-specific fields:
 
 3. HuggingFace dataset name: `Open-Orca/OpenOrca`
-4. Sample size: 10000 (it takes ~5mins to compute on-device embeddings for 10,000 items)
+4. Sample size: 10000
+
+```{note}
+Lilac's sweet spot is ~100K-1M rows of data, although up to 10 million rows are possible.
+This quickstart uses 10,000 rows so that clustering and embedding operations finish locally
+in ~10 minutes even without a GPU.
+```
 
 Finally:
 
@@ -58,6 +65,27 @@ your media field contains markdown, you can enable markdown rendering.
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-settings.mp4"></video>
 
+## Cluster
+
+Lilac can detect clusters in your dataset. Clusters are a powerful way to understand the types of
+content present in your dataset, as well as to target subsets for removal from the dataset.
+
+To cluster, open up the dataset schema tray to reveal the fields in your dataset. Here, you can
+choose which field will get clustered.
+
+<video loop muted autoplay controls src="../_static/getting_started/orca-cluster.mp4"></video>
+
+The cluster visualizer shows two hierarchical levels of clusters by default. You can also group over
+other fields in your dataset by changing the Explore and Group By selections.
+
+## Tagging and Deleting rows
+
+Lilac can curate your dataset by tagging or deleting rows.
+
+Deleting is not permanent - you can toggle visibility of deleted items - but it is a convenient way
+to iterate on your dataset by removing undesired slices of data. Later on, when you export data from
+Lilac, deleted rows will be excluded by default.
+
 ## Enrich
 
 Lilac can enrich your media fields with additional metadata by:
@@ -66,22 +94,6 @@ Lilac can enrich your media fields with additional metadata by:
   statistics, etc.)
 - Running a [concept](../concepts/concepts.md) (e.g. profanity, sentiment, etc. or a custom concept
   that you create)
-
-### PII detection
-
-Let's run the PII detection signal on both the `question` and the `response` field and see if there
-is any PII like emails, secret tokens, etc.
-
-<video loop muted autoplay controls src="../_static/getting_started/orca-pii-enrichment.mp4"></video>
-
-Once it's done, we can see that both the `question` and the `response` fields have emails present.
-We can click on an email to apply a filter and see all the rows that contain that email.
-
-<video loop muted autoplay controls src="../_static/getting_started/orca-pii-filter.mp4"></video>
-
-We notice that the selected email in the `response` field was not hallucinated by the LLM because it
-was also present in the `question` field. Later we can use the enriched metadata of both fields to
-filter out only responses that have hallucinated emails.
 
 ### Profanity detection
 
@@ -112,9 +124,10 @@ can open the statistics panel to see the distribution of concept scores.
 
 ## Download
 
-Now that we've enriched the dataset, let's download it by clicking on the `Download data` button in
-the top-right corner. This will download a json file with the same name as the dataset. Once we have
-the data, we can continue working with it in a Python notebook, or any other language.
+Now that we've clustered, curated, and enriched the dataset, let's download it by clicking on the
+`Download data` button in the top-right corner. This will download a json file with the same name as
+the dataset. Once we have the data, we can continue working with it in a Python notebook, or any
+other language.
 
 You can also get the dataset as a Pandas dataframe through the [Python API](quickstart_python.md).
 

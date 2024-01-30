@@ -130,8 +130,8 @@
   }
 
   onMount(async () => {
+    if (editorContainer == null) return;
     monaco = await getMonaco();
-
     editor = monaco.editor.create(editorContainer, {
       ...MONACO_OPTIONS,
       lineNumbers: 'on',

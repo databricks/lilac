@@ -8,6 +8,7 @@
   import {queryDatasetSchema, querySettings} from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {getDatasetViewContext} from '$lib/stores/datasetViewStore';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
   import {datasetLink} from '$lib/utils';
   import {
     CLUSTER_CATEGORY_FIELD,
@@ -29,6 +30,7 @@
   export let datasetName: string;
 
   const datasetViewStore = getDatasetViewContext();
+  const navState = getNavigationContext();
 
   $: settingsQuery = querySettings(namespace, datasetName);
   $: itemsViewType = $settingsQuery.data?.ui?.view_type || 'single_item';
@@ -48,7 +50,13 @@
 
   let showCopyToast = false;
 
-  $: link = datasetLink(namespace, datasetName);
+  $: link = datasetLink(namespace, datasetName, $navState);
+  $: backToItemsLink = datasetLink(namespace, datasetName, $navState, {
+    ...$datasetViewStore,
+    pivot: undefined,
+    viewPivot: false,
+    groupBy: undefined
+  });
 
   // Determine whether the dataset has clusters.
   $: clusterFields = childFields($schema.data).filter(f => isClusterRootField(f));
@@ -58,7 +66,7 @@
   $: clusterInnerPath = clusterField ? [...clusterField.path, CLUSTER_TITLE_FIELD] : null;
   $: clusterLink =
     clusterOuterPath != null && clusterInnerPath != null
-      ? datasetLink($datasetViewStore.namespace, $datasetViewStore.datasetName, {
+      ? datasetLink($datasetViewStore.namespace, $datasetViewStore.datasetName, $navState, {
           ...$datasetViewStore,
           viewPivot: true,
           query: {filters: undefined, searches: undefined},
@@ -67,7 +75,7 @@
           pivot: {outerPath: clusterOuterPath, innerPath: clusterInnerPath}
         })
       : null;
-  $: clusterToggleLink = $datasetViewStore.viewPivot ? link : clusterLink;
+  $: clusterToggleLink = $datasetViewStore.viewPivot ? backToItemsLink : clusterLink;
 </script>
 
 <Page>

@@ -1,6 +1,7 @@
 import {base} from '$app/paths';
 import {defaultDatasetViewState, type DatasetViewState} from './stores/datasetViewStore';
-import {serializeState} from './stores/urlHashStore';
+import type {NavigationState} from './stores/navigationStore';
+import {getStateHash, serializeState} from './stores/urlHashStore';
 
 export function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
   return value !== null && value !== undefined;
@@ -21,6 +22,7 @@ export function datasetIdentifier(namespace: string, datasetName: string) {
 export function datasetLink(
   namespace: string,
   datasetName: string,
+  navState: NavigationState,
   datasetViewState?: DatasetViewState
 ): string {
   let hashState: string | null = null;
@@ -28,9 +30,8 @@ export function datasetLink(
     const defaultState = defaultDatasetViewState(namespace, datasetName);
     hashState = serializeState(datasetViewState, defaultState);
   }
-  return `${base}/datasets#${datasetIdentifier(namespace, datasetName)}${
-    hashState != null ? `&${hashState}` : ''
-  }`;
+  const hash = getStateHash(datasetIdentifier(namespace, datasetName), navState, hashState);
+  return `${base}/datasets${hash}`;
 }
 
 export function signalLink(name: string) {

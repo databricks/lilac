@@ -1,4 +1,5 @@
 """The DuckDB implementation of the dataset database."""
+import copy
 import csv
 import functools
 import gc
@@ -335,7 +336,7 @@ class DatasetDuckDB(Dataset):
     self._signal_manifests: list[SignalManifest] = []
     self._map_manifests: list[MapManifest] = []
     self._label_schemas: dict[str, Schema] = {}
-    if env('USE_TABLE_INDEX', default=False):
+    if env('LILAC_USE_TABLE_INDEX', default=False):
       self.con = duckdb.connect(database=os.path.join(self.dataset_path, DUCKDB_CACHE_FILE))
     else:
       self.con = duckdb.connect(database=':memory:')
@@ -417,7 +418,55 @@ class DatasetDuckDB(Dataset):
   # NOTE: This is cached, but when the latest mtime of any file in the dataset directory changes
   # the results are invalidated.
   @functools.lru_cache(maxsize=1)
-  def _recompute_joint_table(self, latest_mtime_micro_sec: int) -> DatasetManifest:
+  def _recompute_joint_table(
+    self, latest_mtime_micro_sec: int, sqlite_files: tuple[str]
+  ) -> DatasetManifest:
+    """Recomputes tables and/or views providing a unified view over the dataset.
+
+    High level strategy: create views for each major class of data, then merge all the views.
+    CREATE VIEW signals AS (
+      ...
+    )
+    CREATE VIEW labels AS (
+      ...
+    )
+    CREATE VIEW maps AS (
+      ...
+    )
+    CREATE VIEW t AS (
+      SELECT sources.*, signals.*, labels.*, maps.*
+      FROM sources
+      JOIN signals USING (rowid)
+      JOIN labels USING (rowid)
+      JOIN maps USING (rowid))
+
+    If LILAC_USE_TABLE_INDEX is set, then we apply a further optimization where we create a DuckDB
+    table as a cache and index over Sources, Signals, and Maps (excluding labels). We invalidate
+    this cache if the underlying data is updated. Labels are excluded from the cache because users
+    expect labeling to be a milliseconds-long operations, but recomputing the entire DuckDB table
+    can take a second for a 100k row table. Luckily, labels are stored as a indexed sqlite table, so
+    we can join them in at query time. The only time this logic is invalid is if an entire label
+    type is deleted or created. Therefore the sqlite files are added to the function signature for
+    cache busting reasons.
+
+    CREATE TABLE cached_t AS (
+      SELECT sources.*, signals.*, maps.*
+      FROM sources
+      JOIN signals USING (rowid)
+      JOIN maps USING (rowid))
+    CREATE INDEX ON cached_t (rowid)
+
+    CREATE VIEW t AS (
+      SELECT cached_t.*, labels.*
+      FROM cached_t
+      JOIN labels USING (rowid))
+    )
+
+    One final complication is that the duckdb table is now on-disk state that can become invalid
+    for a variety of reasons (bugs, lilac version migrations, DuckDB version bumps.)
+    The solution is to nuke and recompute the entire cache if anything fails.
+    """
+    del sqlite_files  # Unused.
     merged_schema = self._source_manifest.data_schema.model_copy(deep=True)
     self._signal_manifests = []
     self._label_schemas = {}
@@ -429,7 +478,7 @@ class DatasetDuckDB(Dataset):
       type='parquet',
     )
 
-    # Add the signal column groups.
+    # Walk dataset directory and create views for each data type
     for root, _, files in os.walk(self.dataset_path):
       for file in files:
         if file.endswith(SIGNAL_MANIFEST_FILENAME):
@@ -507,21 +556,7 @@ class DatasetDuckDB(Dataset):
       """
       )
 
-    select_sql = ', '.join(
-      [f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + map_column_selects + label_column_selects
-    )
-
-    # Get parquet ids for signals, maps, and labels.
-    parquet_ids = [
-      manifest.parquet_id
-      for manifest in self._signal_manifests + self._map_manifests
-      if manifest.files
-    ] + list(self._label_schemas.keys())
-    join_sql = ' '.join(
-      [SOURCE_VIEW_NAME]
-      + [f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
-    )
-    if env('USE_TABLE_INDEX', default=False):
+    if env('LILAC_USE_TABLE_INDEX', default=False):
       self.con.execute(
         """CREATE TABLE IF NOT EXISTS mtime_cache AS
          (SELECT CAST(0 AS bigint) AS mtime);"""
@@ -531,13 +566,60 @@ class DatasetDuckDB(Dataset):
         "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 't'"
       ).fetchone()[0]  # type: ignore
       if db_mtime != latest_mtime_micro_sec or not table_exists:
+        table_select_sql = ', '.join(
+          [f'{SOURCE_VIEW_NAME}.*'] + signal_column_selects + map_column_selects
+        )
+
+        # Get parquet ids for signals, maps
+        parquet_ids = [
+          manifest.parquet_id
+          for manifest in self._signal_manifests + self._map_manifests
+          if manifest.files
+        ]
+        table_join_sql = ' '.join(
+          [SOURCE_VIEW_NAME]
+          + [
+            f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids
+          ]
+        )
         with DebugTimer(f'Recomputing table+index for {self.dataset_name}...'):
           self.con.execute('UPDATE mtime_cache SET mtime = ?', (latest_mtime_micro_sec,))
-          self.con.execute(f'CREATE OR REPLACE TABLE t AS (SELECT {select_sql} FROM {join_sql})')
-          self.con.execute('CREATE INDEX row_idx ON t ("__rowid__")')
+          self.con.execute(
+            f'CREATE OR REPLACE TABLE cache_t AS (SELECT {table_select_sql} FROM {table_join_sql})'
+          )
+          self.con.execute(f'CREATE INDEX row_idx ON cache_t ({ROWID})')
           # If not checkpointed, the index will sometimes not be flushed to disk and be recomputed.
           self.con.execute('CHECKPOINT')
+      view_select_sql = ', '.join(['cache_t.*'] + label_column_selects)
+      view_join_sql = ' '.join(
+        ['cache_t']
+        + [
+          f'LEFT JOIN {escape_col_name(label_name)} USING ({ROWID})'
+          for label_name in self._label_schemas.keys()
+        ]
+      )
+      self.con.execute(
+        f'CREATE OR REPLACE VIEW t AS (SELECT {view_select_sql} FROM {view_join_sql})'
+      )
+
     else:
+      select_sql = ', '.join(
+        [f'{SOURCE_VIEW_NAME}.*']
+        + signal_column_selects
+        + map_column_selects
+        + label_column_selects
+      )
+
+      # Get parquet ids for signals, maps, and labels.
+      parquet_ids = [
+        manifest.parquet_id
+        for manifest in self._signal_manifests + self._map_manifests
+        if manifest.files
+      ] + list(self._label_schemas.keys())
+      join_sql = ' '.join(
+        [SOURCE_VIEW_NAME]
+        + [f'LEFT JOIN {escape_col_name(parquet_id)} USING ({ROWID})' for parquet_id in parquet_ids]
+      )
       sql_cmd = f"""
         CREATE OR REPLACE VIEW t AS (SELECT {select_sql} FROM {join_sql})
       """
@@ -572,8 +654,13 @@ class DatasetDuckDB(Dataset):
     """Clears the cache for the joint table."""
     self._recompute_joint_table.cache_clear()
     self._pivot_cache.clear()
-    if env('USE_TABLE_INDEX', default=False):
-      self.con.execute('DROP TABLE IF EXISTS mtime_cache')
+    if env('LILAC_USE_TABLE_INDEX', default=False):
+      self.con.close()
+      pathlib.Path(os.path.join(self.dataset_path, DUCKDB_CACHE_FILE)).unlink(missing_ok=True)
+      pathlib.Path(os.path.join(self.dataset_path, DUCKDB_CACHE_FILE + '.wal')).unlink(
+        missing_ok=True
+      )
+      self.con = duckdb.connect(database=os.path.join(self.dataset_path, DUCKDB_CACHE_FILE))
 
   def _add_map_keys_to_schema(self, path: PathTuple, field: Field, merged_schema: Schema) -> None:
     """Adds the keys of a map to the schema."""
@@ -601,16 +688,30 @@ class DatasetDuckDB(Dataset):
       all_dataset_files = glob.iglob(os.path.join(self.dataset_path, '**'), recursive=True)
       all_dataset_files = (f for f in all_dataset_files if DUCKDB_CACHE_FILE not in f)
       all_dataset_files = (f for f in all_dataset_files if os.path.isfile(f))
-      latest_mtime = max(map(os.path.getmtime, all_dataset_files))
+      rapid_change, slow_change = itertools.tee(all_dataset_files)
+      rapid_change = (f for f in rapid_change if f.endswith(LABELS_SQLITE_SUFFIX))
+      slow_change = (f for f in slow_change if not f.endswith(LABELS_SQLITE_SUFFIX))
+      latest_mtime = max(map(os.path.getmtime, slow_change))
       latest_mtime_micro_sec = int(latest_mtime * 1e6)
-      return self._recompute_joint_table(latest_mtime_micro_sec)
+      try:
+        return self._recompute_joint_table(latest_mtime_micro_sec, tuple(sorted(rapid_change)))
+      except Exception as e:
+        log(e)
+        log('Exception encountered while updating joint table cache; recomputing from scratch.')
+        self._clear_joint_table_cache()
+        return self._recompute_joint_table(latest_mtime_micro_sec, tuple(sorted(rapid_change)))
 
-  def count(self, query_options: Optional[DuckDBQueryParams] = None) -> int:
-    """Count the number of rows."""
-    if query_options is None:
-      option_sql = ''
-    else:
-      option_sql = self._compile_select_options(query_options)
+  @override
+  def count(
+    self,
+    filters: Optional[Sequence[FilterLike]] = None,
+    limit: Optional[int] = None,
+    include_deleted: bool = False,
+  ) -> int:
+    manifest = self.manifest()
+    filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+    query_options = DuckDBQueryParams(filters=filters, limit=limit, include_deleted=include_deleted)
+    option_sql = self._compile_select_options(query_options)
     return cast(
       tuple,
       self.con.execute(f'SELECT COUNT(*) FROM (SELECT {ROWID} from t {option_sql})').fetchone(),
@@ -1071,7 +1172,7 @@ class DatasetDuckDB(Dataset):
 
     query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
     offset = self._get_cache_len(jsonl_cache_filepath, overwrite=overwrite)
-    estimated_len = self.count(query_params)
+    estimated_len = self.count(filters=filters, limit=limit, include_deleted=include_deleted)
 
     if task_id is not None:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len, task_id=task_id)
@@ -1199,7 +1300,7 @@ class DatasetDuckDB(Dataset):
 
     query_params = DuckDBQueryParams(include_deleted=include_deleted, filters=filters, limit=limit)
     offset = self._get_cache_len(jsonl_cache_filepath, overwrite=overwrite)
-    estimated_len = self.count(query_params)
+    estimated_len = self.count(filters=filters, limit=limit, include_deleted=include_deleted)
 
     if task_id is not None:
       progress_bar = get_progress_bar(offset=offset, estimated_len=estimated_len, task_id=task_id)
@@ -1738,6 +1839,7 @@ class DatasetDuckDB(Dataset):
     limit: Optional[int] = None,
     bins: Optional[Union[Sequence[Bin], Sequence[float]]] = None,
     include_deleted: bool = False,
+    searches: Optional[Sequence[Search]] = None,
   ) -> SelectGroupsResult:
     if not leaf_path:
       raise ValueError('leaf_path must be provided')
@@ -1814,6 +1916,9 @@ class DatasetDuckDB(Dataset):
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
     if not include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
       filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
+
+    filters = self._add_searches_to_filters(searches or [], filters)
+
     filter_queries = self._create_where(manifest, filters)
 
     where_query = ''
@@ -1840,6 +1945,7 @@ class DatasetDuckDB(Dataset):
     self,
     outer_path: Path,
     inner_path: Path,
+    searches: Optional[Sequence[Search]] = None,
     filters: Optional[Sequence[FilterLike]] = None,
     sort_by: Optional[GroupsSortBy] = GroupsSortBy.COUNT,
     sort_order: Optional[SortOrder] = SortOrder.DESC,
@@ -1852,7 +1958,7 @@ class DatasetDuckDB(Dataset):
     outer_path = normalize_path(outer_path)
 
     pivot_key = (outer_path, inner_path, sort_by, sort_order)
-    use_cache = not filters
+    use_cache = not filters and not searches
     if use_cache and pivot_key in self._pivot_cache:
       return self._pivot_cache[pivot_key]
 
@@ -1913,6 +2019,10 @@ class DatasetDuckDB(Dataset):
       span_from=self._resolve_span(outer_path, manifest),
     )
     filters, _ = self._normalize_filters(filters, col_aliases={}, udf_aliases={}, manifest=manifest)
+
+    # Add search where queries.
+    filters = self._add_searches_to_filters(searches or [], filters)
+
     where_query = self._compile_select_options(
       DuckDBQueryParams(filters=filters, include_deleted=False)
     )
@@ -2051,6 +2161,7 @@ class DatasetDuckDB(Dataset):
     resolve_span: bool = False,
     combine_columns: bool = False,
     include_deleted: bool = False,
+    exclude_signals: bool = False,
     user: Optional[UserInfo] = None,
   ) -> SelectRowsResult:
     manifest = self.manifest()
@@ -2071,6 +2182,14 @@ class DatasetDuckDB(Dataset):
         searches,
         combine_columns=True,
       ).data_schema
+
+    # Remove fields that are produced by signals.
+    if exclude_signals:
+      signal_paths: list[PathTuple] = []
+      for signal_manifest in self._signal_manifests:
+        signal_paths.extend(list(signal_manifest.data_schema.leafs.keys()))
+
+      cols = [col for col in cols if col.path not in signal_paths]
 
     self._validate_columns(cols, manifest.data_schema, schema)
 
@@ -2113,20 +2232,7 @@ class DatasetDuckDB(Dataset):
     # Filtering and searching.
     where_query = ''
     filters, udf_filters = self._normalize_filters(filters, col_aliases, udf_aliases, manifest)
-    # Add search where queries.
-    for search in searches:
-      search_path = normalize_path(search.path)
-      if search.type == 'keyword':
-        filters.append(Filter(path=search_path, op='ilike', value=search.query))
-      elif search.type == 'semantic' or search.type == 'concept':
-        # Semantic search and concepts don't yet filter.
-        continue
-      elif search.type == 'metadata':
-        # Make a regular filter query.
-        filter = Filter(path=search_path, op=search.op, value=search.value)
-        filters.append(filter)
-      else:
-        raise ValueError(f'Unknown search operator {search.type}.')
+    filters = self._add_searches_to_filters(searches, filters)
 
     if not include_deleted and manifest.data_schema.has_field((DELETED_LABEL_NAME,)):
       filters.append(Filter(path=(DELETED_LABEL_NAME,), op='not_exists'))
@@ -2188,7 +2294,7 @@ class DatasetDuckDB(Dataset):
       if final_col_name not in columns_to_merge:
         columns_to_merge[final_col_name] = {}
 
-      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns)
+      duckdb_paths = self._column_to_duckdb_paths(column, schema, combine_columns, exclude_signals)
       span_from = self._resolve_span(path, manifest) if resolve_span or column.signal_udf else None
 
       for parquet_id, duckdb_path in duckdb_paths:
@@ -2415,6 +2521,7 @@ class DatasetDuckDB(Dataset):
     sort_order: Optional[SortOrder] = None,
     searches: Optional[Sequence[Search]] = None,
     combine_columns: bool = False,
+    exclude_signals: bool = False,
   ) -> SelectRowsSchemaResult:
     """Returns the schema of the result of `select_rows` above with the same arguments."""
     if not combine_columns:
@@ -2428,11 +2535,19 @@ class DatasetDuckDB(Dataset):
     search_udfs = self._search_udfs(searches, manifest)
     cols.extend([search_udf.udf for search_udf in search_udfs])
 
+    # Remove fields that are produced by signals.
+    if exclude_signals:
+      signal_paths: list[PathTuple] = []
+      for signal_manifest in self._signal_manifests:
+        signal_paths.extend(list(signal_manifest.data_schema.leafs.keys()))
+
+      cols = [col for col in cols if col.path not in signal_paths]
+
     udfs: list[SelectRowsSchemaUDF] = []
     col_schemas: list[Schema] = []
     for col in cols:
       dest_path = _col_destination_path(col)
-      if col.signal_udf:
+      if col.signal_udf and not exclude_signals:
         udfs.append(SelectRowsSchemaUDF(path=dest_path, alias=col.alias))
         field = col.signal_udf.fields()
         assert field, f'Signal {col.signal_udf.name} needs `Signal.fields` defined when run as UDF.'
@@ -2442,6 +2557,13 @@ class DatasetDuckDB(Dataset):
       else:
         # This column might refer to an output of a udf. We postpone validation to later.
         continue
+
+      # Delete any signals from the schema if we are excluding signals.
+      if exclude_signals:
+        field = copy.deepcopy(field)
+        field = _remove_signals_from_field(field)
+        assert field is not None
+
       col_schemas.append(_make_schema_from_path(dest_path, field))
 
     sort_results = self._merge_sorts(search_udfs, sort_by, sort_order)
@@ -2630,7 +2752,7 @@ class DatasetDuckDB(Dataset):
     return duckdb_path
 
   def _column_to_duckdb_paths(
-    self, column: Column, schema: Schema, combine_columns: bool
+    self, column: Column, schema: Schema, combine_columns: bool, exclude_signals: bool = False
   ) -> list[tuple[str, PathTuple]]:
     path = column.path
     if path[0] in self._label_schemas:
@@ -2654,6 +2776,9 @@ class DatasetDuckDB(Dataset):
     for m in parquet_manifests:
       if not m.files:
         continue
+      if exclude_signals and isinstance(m, SignalManifest):
+        continue
+
       # Skip this parquet file if it doesn't contain the path.
       # if not schema_contains_path(m.data_schema, path):
       #   continue
@@ -2901,7 +3026,7 @@ class DatasetDuckDB(Dataset):
             # So, we insert a range clause to limit the extent of the index scan. This optimization
             # works well because nearly all of our queries are sorted by rowid, meaning that min/max
             # will narrow down the index scan to a small range.
-            if env('USE_TABLE_INDEX', default=False) and ROWID in select_str:
+            if env('LILAC_USE_TABLE_INDEX', default=False) and ROWID in select_str:
               min_row, max_row = min(filter_list_val), max(filter_list_val)
               filter_query += f' AND {ROWID} BETWEEN {min_row} AND {max_row}'
               # wrap in parens to isolate from other filters, just in case?
@@ -3061,7 +3186,7 @@ class DatasetDuckDB(Dataset):
             raise ValueError(
               f'{output_path} is not a map/cluster column and cannot be overwritten.'
             )
-        else:
+        elif input_path != output_path:
           raise ValueError(
             f'Cannot map to path "{output_path}" which already exists in the dataset. '
             'Use overwrite=True to overwrite the column.'
@@ -3091,7 +3216,7 @@ class DatasetDuckDB(Dataset):
     )
 
     offset = self._get_cache_len(jsonl_cache_filepath, overwrite=overwrite)
-    estimated_len = self.count(query_params)
+    estimated_len = self.count(filters=filters, limit=limit, include_deleted=include_deleted)
     if task_id is not None:
       progress_bar = get_progress_bar(task_id, offset=offset, estimated_len=estimated_len)
     else:
@@ -3206,13 +3331,18 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> HuggingFaceDataset:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     rows = self.select_rows(
-      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
+      columns,
+      filters=filters,
+      combine_columns=True,
+      include_deleted=include_deleted,
+      exclude_signals=not include_signals,
     )
 
     def _gen() -> Iterator[Item]:
@@ -3231,13 +3361,18 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     rows = self.select_rows(
-      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
+      columns,
+      filters=filters,
+      combine_columns=True,
+      include_deleted=include_deleted,
+      exclude_signals=not include_signals,
     )
     filepath = os.path.expanduser(filepath)
     with open_file(filepath, 'wb') as file:
@@ -3257,13 +3392,18 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> pd.DataFrame:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     rows = self.select_rows(
-      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
+      columns,
+      filters=filters,
+      combine_columns=True,
+      include_deleted=include_deleted,
+      exclude_signals=not include_signals,
     )
     return pd.DataFrame.from_records(list(rows))
 
@@ -3276,6 +3416,7 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> None:
     manifest = self.manifest()
     filters, _ = self._normalize_filters(
@@ -3284,7 +3425,11 @@ class DatasetDuckDB(Dataset):
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
     select_schema = self.select_rows_schema(columns, combine_columns=True)
     rows = self.select_rows(
-      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
+      columns,
+      filters=filters,
+      combine_columns=True,
+      include_deleted=include_deleted,
+      exclude_signals=not include_signals,
     )
     fieldnames = list(select_schema.data_schema.fields.keys())
     filepath = os.path.expanduser(filepath)
@@ -3303,14 +3448,21 @@ class DatasetDuckDB(Dataset):
     include_labels: Optional[Sequence[str]] = None,
     exclude_labels: Optional[Sequence[str]] = None,
     include_deleted: bool = False,
+    include_signals: bool = False,
   ) -> None:
     filters, _ = self._normalize_filters(
       filter_likes=filters, col_aliases={}, udf_aliases={}, manifest=self.manifest()
     )
     filters.extend(self._compile_include_exclude_filters(include_labels, exclude_labels))
-    select_schema = self.select_rows_schema(columns, combine_columns=True)
+    select_schema = self.select_rows_schema(
+      columns, combine_columns=True, exclude_signals=not include_signals
+    )
     rows = self.select_rows(
-      columns, filters=filters, combine_columns=True, include_deleted=include_deleted
+      columns,
+      filters=filters,
+      combine_columns=True,
+      include_deleted=include_deleted,
+      exclude_signals=not include_signals,
     )
     filepath = os.path.expanduser(filepath)
     with open_file(filepath, 'wb') as f:
@@ -3403,6 +3555,24 @@ class DatasetDuckDB(Dataset):
     if unnest and is_result_a_list:
       selection = f'unnest({selection})'
     return selection
+
+  def _add_searches_to_filters(
+    self, searches: Sequence[Search], filters: list[Filter]
+  ) -> list[Filter]:
+    for search in searches:
+      search_path = normalize_path(search.path)
+      if search.type == 'keyword':
+        filters.append(Filter(path=search_path, op='ilike', value=search.query))
+      elif search.type == 'semantic' or search.type == 'concept':
+        # Semantic search and concepts don't yet filter.
+        continue
+      elif search.type == 'metadata':
+        # Make a regular filter query.
+        filter = Filter(path=search_path, op=search.op, value=search.value)
+        filters.append(filter)
+      else:
+        raise ValueError(f'Unknown search operator {search.type}.')
+    return filters
 
 
 def _escape_like_value(value: str) -> str:
@@ -3702,6 +3872,33 @@ def _schema_has_spans(field: Field) -> bool:
   if field.repeated_field:
     return _schema_has_spans(field.repeated_field)
   return False
+
+
+def _remove_signals_from_field(field: Field) -> Optional[Field]:
+  """Remove signals from a field."""
+  if field.signal is not None:
+    return None
+
+  if field.fields:
+    fields: dict[str, Field] = {}
+    for key, sub_field in field.fields.items():
+      if sub_field and not sub_field.signal:
+        sub_field_no_signals = _remove_signals_from_field(sub_field)
+        if sub_field_no_signals:
+          fields[key] = sub_field_no_signals
+    return Field(fields=fields, dtype=field.dtype)
+
+  if field.repeated_field:
+    if not field.signal:
+      sub_field_no_signals = _remove_signals_from_field(field.repeated_field)
+      if sub_field_no_signals:
+        return Field(repeated_field=sub_field_no_signals, dtype=field.dtype)
+      else:
+        return None
+    else:
+      return None
+
+  return field
 
 
 def _normalize_bins(bins: Optional[Union[Sequence[Bin], Sequence[float]]]) -> Optional[list[Bin]]:

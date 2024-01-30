@@ -14,6 +14,7 @@ from pydantic import (
   BaseModel,
 )
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
+from tqdm import tqdm
 
 from ..batch_utils import compress_docs, flatten_path_iter, group_by_sorted_key_iter
 from ..dataset_format import DatasetFormatInputSelector
@@ -43,8 +44,13 @@ from .dataset_utils import (
 
 _SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 7
-_TOP_K_CENTRAL_TITLES = 15
+_TOP_K_CENTRAL_TITLES = 20
 _NUM_THREADS = 32
+_NUM_RETRIES = 16
+# OpenAI rate limits you on `max_tokens` so we ideally want to guess the right value. If ChatGPT
+# fails to generate a title within the `max_tokens` limit, we will retry with a higher value.
+_INITIAL_MAX_TOKENS = 50
+_FINAL_MAX_TOKENS = 200
 
 CLUSTER_ID = 'cluster_id'
 CLUSTER_MEMBERSHIP_PROB = 'cluster_membership_prob'
@@ -56,7 +62,8 @@ CATEGORY_TITLE = 'category_title'
 
 FIELD_SUFFIX = 'cluster'
 
-MIN_CLUSTER_SIZE = 5
+MIN_CLUSTER_SIZE = 10
+MIN_CLUSTER_SIZE_CATEGORY = 5
 UMAP_DIM = 5
 UMAP_SEED = 42
 HDBSCAN_SELECTION_EPS = 0.05
@@ -75,7 +82,10 @@ def _openai_client() -> Any:
       'Please install it with `pip install openai`.'
     )
 
-  return instructor.patch(openai.OpenAI())
+  # OpenAI requests sometimes hang, without any errors, and the default connection timeout is 10
+  # mins, which is too long. Set it to 7 seconds (99%-tile for latency is 3-4 sec). Also set
+  # `max_retries` to 0 to disable internal retries so we handle retries ourselves.
+  return instructor.patch(openai.OpenAI(timeout=7, max_retries=0))
 
 
 def _snippet_to_prefix_and_suffix(text: str) -> str:
@@ -87,7 +97,7 @@ def _snippet_to_prefix_and_suffix(text: str) -> str:
 
 
 class Title(BaseModel):
-  """A 4-5 word title for the group of related requests."""
+  """A 4-5 word title for the group of related snippets."""
 
   title: str
 
@@ -96,7 +106,7 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
   """Summarize a group of requests in a title of at most 5 words."""
   # Get the top 5 documents.
   docs = [doc for doc, _ in ranked_docs[:_TOP_K_CENTRAL_DOCS]]
-  texts = [f'BEGIN_REQUEST\n{_snippet_to_prefix_and_suffix(doc)}\nEND_REQUEST' for doc in docs]
+  texts = [f'BEGIN_SNIPPET\n{_snippet_to_prefix_and_suffix(doc)}\nEND_SNIPPET' for doc in docs]
   input = '\n'.join(texts)
   try:
     import openai
@@ -108,13 +118,21 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
     )
 
   @retry(
-    retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
+    retry=retry_if_exception_type(
+      (
+        openai.RateLimitError,
+        openai.APITimeoutError,
+        openai.APIConnectionError,
+        openai.ConflictError,
+        openai.InternalServerError,
+      )
+    ),
     wait=wait_random_exponential(multiplier=0.5, max=60),
-    stop=stop_after_attempt(10),
+    stop=stop_after_attempt(_NUM_RETRIES),
   )
   def request_with_retries() -> str:
-    max_tokens = 50
-    while max_tokens <= 200:
+    max_tokens = _INITIAL_MAX_TOKENS
+    while max_tokens <= _FINAL_MAX_TOKENS:
       try:
         title = _openai_client().chat.completions.create(
           model='gpt-3.5-turbo-1106',
@@ -125,11 +143,13 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
             {
               'role': 'system',
               'content': (
-                'You are a world-class title generator. Ignore the group of related requests '
-                'below, and generate a short title to describe the common theme. Some examples: '
+                'You are a world-class short title generator. Ignore the related snippets below '
+                'and generate a short title to describe their common theme. Some examples: '
                 '"YA book reviews", "Questions about South East Asia", "Translating English to '
-                'Polish", "Writing product descriptions", etc. Prefer using descriptive words. Do '
-                'not use vague words like "various", "assortment", "comments", "discussion", etc.'
+                'Polish", "Writing product descriptions", etc. Use descriptive words. If the '
+                "snippet's language is different than English, mention it in the title, e.g. "
+                '"Cooking questions in Spanish". Avoid vague words like "various", "assortment", '
+                '"comments", "discussion", etc.'
               ),
             },
             {'role': 'user', 'content': input},
@@ -137,10 +157,11 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
         )
         return title.title
       except IncompleteOutputException:
-        max_tokens = max_tokens * 2
+        max_tokens += _INITIAL_MAX_TOKENS
         log(f'Retrying with max_tokens={max_tokens}')
     log(f'Could not generate a short title for input:\n{input}')
-    return 'FAILED_TO_GENERATE'
+    # We return a string instead of None, since None is emitted when the text column is sparse.
+    return 'FAILED_TO_TITLE'
 
   return request_with_retries()
 
@@ -166,29 +187,45 @@ def generate_category(ranked_docs: list[tuple[str, float]]) -> str:
     )
 
   @retry(
-    retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
+    retry=retry_if_exception_type(
+      (
+        openai.RateLimitError,
+        openai.APITimeoutError,
+        openai.APIConnectionError,
+        openai.ConflictError,
+        openai.InternalServerError,
+      )
+    ),
     wait=wait_random_exponential(multiplier=0.5, max=60),
-    stop=stop_after_attempt(10),
+    stop=stop_after_attempt(_NUM_RETRIES),
   )
   def request_with_retries() -> str:
-    category = _openai_client().chat.completions.create(
-      model='gpt-3.5-turbo-1106',
-      response_model=Category,
-      temperature=0.0,
-      max_tokens=50,
-      messages=[
-        {
-          'role': 'system',
-          'content': (
-            'You are a world-class category labeler. Generate a short category name for the '
-            'provided titles. For example, given two titles "translating english to polish" and '
-            '"translating korean to english", generate "Translation".'
-          ),
-        },
-        {'role': 'user', 'content': input},
-      ],
-    )
-    return category.category
+    max_tokens = _INITIAL_MAX_TOKENS
+    while max_tokens <= _FINAL_MAX_TOKENS:
+      try:
+        category = _openai_client().chat.completions.create(
+          model='gpt-3.5-turbo-1106',
+          response_model=Category,
+          temperature=0.0,
+          max_tokens=max_tokens,
+          messages=[
+            {
+              'role': 'system',
+              'content': (
+                'You are a world-class category labeler. Generate a short category name for the '
+                'provided titles. For example, given two titles "translating english to polish" '
+                'and "translating korean to english", generate "Translation".'
+              ),
+            },
+            {'role': 'user', 'content': input},
+          ],
+        )
+        return category.category
+      except IncompleteOutputException:
+        max_tokens += _INITIAL_MAX_TOKENS
+        log(f'Retrying with max_tokens={max_tokens}')
+    log(f'Could not generate a short category for input:\n{input}')
+    return 'FAILED_TO_GENERATE'
 
   return request_with_retries()
 
@@ -256,7 +293,7 @@ def cluster_impl(
   dataset: Dataset,
   input_fn_or_path: Union[Path, Callable[[Item], str], DatasetFormatInputSelector],
   output_path: Optional[Path] = None,
-  min_cluster_size: int = 5,
+  min_cluster_size: int = MIN_CLUSTER_SIZE,
   topic_fn: TopicFn = summarize_request,
   overwrite: bool = False,
   use_garden: bool = False,
@@ -341,39 +378,43 @@ def cluster_impl(
 
     dataset.map(extract_text, output_path=cluster_output_path, overwrite=True)
 
+  total_len = dataset.stats(temp_text_path).total_count
+
   cluster_ids_exists = schema.has_field((*cluster_output_path, CLUSTER_ID))
   if not cluster_ids_exists or overwrite:
     if task_info:
-      task_info.message = 'Computing clusters'
+      task_info.message = 'Clustering documents'
       task_info.total_progress = 0
       task_info.total_len = None
 
-    def compute_clusters(items: Iterator[Item]) -> Iterator[Item]:
+    def cluster_documents(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
       docs: Iterator[Optional[str]] = (item.get(TEXT_COLUMN) for item in items)
       cluster_items = sparse_to_dense_compute(
-        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, use_garden)
+        docs,
+        lambda x: _hdbscan_cluster(
+          x, min_cluster_size, use_garden, num_docs=total_len, task_info=task_info
+        ),
       )
       for item, cluster_item in zip(items2, cluster_items):
         yield {**item, **(cluster_item or {})}
 
     # Compute the clusters.
     dataset.transform(
-      compute_clusters,
+      cluster_documents,
       input_path=cluster_output_path,
       output_path=cluster_output_path,
       overwrite=True,
     )
 
-  total_len = dataset.stats(temp_text_path).total_count
   cluster_titles_exist = schema.has_field((*cluster_output_path, CLUSTER_TITLE))
   if not cluster_titles_exist or overwrite or recompute_titles:
     if task_info:
-      task_info.message = 'Computing cluster titles'
+      task_info.message = 'Titling clusters'
       task_info.total_progress = 0
       task_info.total_len = total_len
 
-    def compute_cluster_titles(items: Iterator[Item]) -> Iterator[Item]:
+    def title_clusters(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
       titles = _compute_titles(
         items,
@@ -387,7 +428,7 @@ def cluster_impl(
         yield {**item, CLUSTER_TITLE: title}
 
     dataset.transform(
-      compute_cluster_titles,
+      title_clusters,
       input_path=cluster_output_path,
       output_path=cluster_output_path,
       sort_by=(*cluster_output_path, CLUSTER_ID),
@@ -397,15 +438,15 @@ def cluster_impl(
   category_id_exists = schema.has_field((*cluster_output_path, CATEGORY_ID))
   if not category_id_exists or overwrite or recompute_titles:
     if task_info:
-      task_info.message = 'Computing super clusters'
+      task_info.message = 'Clustering titles'
       task_info.total_progress = 0
       task_info.total_len = None
 
-    def compute_category_clusters(items: Iterator[Item]) -> Iterator[Item]:
+    def cluster_titles(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
       docs = (item.get(CLUSTER_TITLE) for item in items)
       cluster_items = sparse_to_dense_compute(
-        docs, lambda x: _hdbscan_cluster(x, min_cluster_size, use_garden)
+        docs, lambda x: _hdbscan_cluster(x, MIN_CLUSTER_SIZE_CATEGORY, use_garden)
       )
       for item, cluster_item in zip(items2, cluster_items):
         item[CATEGORY_ID] = (cluster_item or {}).get(CLUSTER_ID, -1)
@@ -414,7 +455,7 @@ def cluster_impl(
 
     # Compute the clusters.
     dataset.transform(
-      compute_category_clusters,
+      cluster_titles,
       input_path=cluster_output_path,
       output_path=cluster_output_path,
       overwrite=True,
@@ -424,11 +465,11 @@ def cluster_impl(
   category_title_exists = schema.has_field(category_title_path)
   if not category_title_exists or overwrite or recompute_titles:
     if task_info:
-      task_info.message = 'Computing category titles'
+      task_info.message = 'Titling categories'
       task_info.total_progress = 0
       task_info.total_len = total_len
 
-    def compute_category_titles(items: Iterator[Item]) -> Iterator[Item]:
+    def title_categories(items: Iterator[Item]) -> Iterator[Item]:
       items, items2 = itertools.tee(items)
       titles = _compute_titles(
         items,
@@ -440,11 +481,12 @@ def cluster_impl(
       )
       for item, title in zip(items2, titles):
         # Drop the temporary newline-concatenated text column.
-        del item[TEXT_COLUMN]
+        if TEXT_COLUMN in item:
+          del item[TEXT_COLUMN]
         yield {**item, CATEGORY_TITLE: title}
 
     dataset.transform(
-      compute_category_titles,
+      title_categories,
       input_path=cluster_output_path,
       output_path=cluster_output_path,
       sort_by=(*cluster_output_path, CATEGORY_ID),
@@ -489,25 +531,36 @@ def cluster_impl(
 
 def _hdbscan_cluster(
   docs: Iterator[str],
-  min_cluster_size: int = MIN_CLUSTER_SIZE,
+  min_cluster_size: int,
   use_garden: bool = False,
+  num_docs: Optional[int] = None,
+  task_info: Optional[TaskInfo] = None,
 ) -> Iterator[Item]:
   """Cluster docs with HDBSCAN."""
   if use_garden:
     remote_fn = modal.Function.lookup('cluster', 'Cluster.cluster').remote
     with DebugTimer('Compressing docs for clustering remotely'):
       gzipped_docs = compress_docs(list(docs))
-    response = remote_fn({'gzipped_docs': gzipped_docs})
+    response = remote_fn({'gzipped_docs': gzipped_docs, 'min_cluster_size': min_cluster_size})
     yield from response['clusters']
 
+  if task_info:
+    task_info.message = 'Computing embeddings'
+    task_info.total_progress = 0
+    task_info.total_len = num_docs
   with DebugTimer('Computing embeddings'):
     jina = JinaV2Small()
     jina.setup()
-    response = jina.compute(list(docs))
+    response = []
+    for doc in tqdm(docs, position=0, desc='Computing embeddings', total=num_docs):
+      response.extend(jina.compute([doc]))
+      if task_info and task_info.total_progress is not None:
+        task_info.total_progress += 1
     jina.teardown()
 
+  del docs, jina
   all_vectors = np.array([r[0][EMBEDDING_KEY] for r in response], dtype=np.float32)
-  del response, docs
+  del response
   gc.collect()
 
   # Use UMAP to reduce the dimensionality before hdbscan to speed up clustering.

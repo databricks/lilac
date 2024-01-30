@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 # model.encode function. The model will split this batch into smaller batches after sorting by text
 # length (for performance reasons). A larger batch size gives sentence_transformer more
 # opportunities to minimize padding by grouping similar sentence lengths together.
-SENTENCE_TRANSFORMER_BATCH_SIZE = 1024
+SENTENCE_TRANSFORMER_BATCH_SIZE = 256
 
 # We're using joblib, which uses spawning, not forking. So it should be safe to hardcode this to
 # true without deadlocks.
