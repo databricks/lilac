@@ -1,27 +1,39 @@
 # 100x Faster Clustering with Lilac Garden
 
+_Jan 30, 2024_
+
 _Automatic and human-readable clustering of 1 million conversations from Chatbot Arena, computed in
 20 minutes.
 [Join the waitlist for Lilac Garden.](https://docs.google.com/forms/d/e/1FAIpQLSd53PiLVU-65n0czUbhQySvZVtybbSR1fH-WJDDycOZxVRvNQ/viewform)_
-
-_Jan 30, 2024_
 
 <a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%7D">
 <img title="Cluster view of conversations from Chatbot Arena" src="../_static/introducing_garden/clusters.png" />
 </a>
 
-At Lilac, our mission is to help you curate your text data so you can build the best possible LLM
-apps. We’ve built a new LLM-powered text clustering pipeline that’s more accurate and easy to
-understand than any clustering approach we’ve seen before. This is our first cloud service that we
-are launching on [Lilac Garden](https://www.lilacml.com/#garden), our new accelerated computation
-platform.
+At Lilac, our mission is to help you understand and curate your text data so you can build the best
+possible LLM apps. We’ve built a new LLM-powered text clustering pipeline that’s more accurate and
+easy to understand than any clustering approach we’ve seen before. This is our first cloud service
+that we are launching on [Lilac Garden](https://www.lilacml.com/#garden), our new accelerated
+computation platform.
 
 ## The problem
 
-Visualizing text datasets poses a unique set of challenges. Unlike visual data, where patterns and
-relationships can often be discerned through graphical representations, understanding text is
-inherently tricky. Our new LLM-powered text clustering pipeline addresses this challenge by
-leveraging long context embeddings, massively parallel GPU compute, and sophisticated LLMs to
+Understanding text datasets poses a unique set of challenges. Unlike images and videos where we
+immediately can _see_ patterns, text requires a different approach. A common approach to
+understanding large text datasets is clustering, where semantically similar documents are put in the
+same bucket, or category. Understanding the relative sizes of the categories allows us to understand
+how our data is distributed, without having to read every individual document. However document
+clustering is often tricky to get right, requiring embeddings that capture intent in text, and
+compute intensive pipelines that can take prohibitively long. The result is a set of cluster IDs
+that require skimming through individual examples to draw insights.
+
+## Our solution
+
+Our new clustering service aims to solve this problem by simplifying this pipeline to a single API
+that allows you to hand us a list of documents, and we'll give you back human-readable cluster
+names, and categories for clusters, with a highly-optimized, hardware-accelerated cloud pipeline.
+
+We leverage long context embeddings, massively parallel GPU compute, and sophisticated LLMs to
 generate concise, descriptive titles for each cluster. These clusters play a crucial role in
 revealing the major segments of your dataset by grouping similar documents together. This approach
 can dramatically speed up the process of curation, allowing the identification and removal of
