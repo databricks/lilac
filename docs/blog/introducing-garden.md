@@ -16,12 +16,19 @@ understand than any clustering approach we’ve seen before. This is our first c
 are launching on [Lilac Garden](https://www.lilacml.com/#garden), our new accelerated computation
 platform.
 
-This pipeline takes advantage of long context embeddings, massively parallel GPU compute, and LLMs
-to generate concise, descriptive titles for each cluster.
+## The problem
 
-The result: Clusters reveal the major segments of your dataset by grouping similar documents. But
-the most interesting revelations are in the long tail. For example, clusters in user-LLM interaction
-logs reveal a number of subtle and dangerous ways in which users interact with your product.
+Visualizing text datasets poses a unique set of challenges. Unlike visual data, where patterns and
+relationships can often be discerned through graphical representations, understanding text is
+inherently tricky. Our new LLM-powered text clustering pipeline addresses this challenge by
+leveraging long context embeddings, massively parallel GPU compute, and sophisticated LLMs to
+generate concise, descriptive titles for each cluster. These clusters play a crucial role in
+revealing the major segments of your dataset by grouping similar documents together. This approach
+not only enhances the accuracy of understanding text data, but can also dramatically speed up the
+process of curation, allowing the identification and removal of problematic clusters, sub-sampling
+to reduce dataset size, and creating task-specific datasets. Moreover, examining clusters in
+user-LLM interaction logs sheds light on subtle and potentially hazardous ways in which users engage
+with your product.
 
 Don’t just take our word for it - check out Lilac’s demo page to see clusters for LLM fine-tuning
 datasets
@@ -124,7 +131,7 @@ Historically, clustering as a service has been hard to pull off for several reas
 
 Today, these issues are all solvable, thanks to the work of many other companies and researchers.
 
-The Lilac Clustering pipeline is a 4 step process.
+The Lilac Clustering pipeline is a four-step process.
 
 1. Embed documents with
    [Jina V2](https://jina.ai/news/jina-ai-launches-worlds-first-open-source-8k-text-embedding-rivaling-openai/),
