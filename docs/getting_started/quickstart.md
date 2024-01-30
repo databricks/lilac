@@ -73,7 +73,7 @@ content present in your dataset, as well as to target subsets for removal from t
 To cluster, open up the dataset schema tray to reveal the fields in your dataset. Here, you can
 choose which field will get clustered.
 
-** Add clustering video here **
+<video loop muted autoplay controls src="../_static/getting_started/orca-cluster.mp4"></video>
 
 The cluster visualizer shows two hierarchical levels of clusters by default. You can also group over
 other fields in your dataset by changing the Explore and Group By selections.
