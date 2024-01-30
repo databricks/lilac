@@ -79,7 +79,7 @@ def load(
   total_num_rows = 0
   for d in datasets_to_load:
     dataset = DatasetDuckDB(d.namespace, d.name, project_dir=project_dir)
-    num_rows = dataset.count(query_options=None)
+    num_rows = dataset.count()
     log(f'{d.namespace}/{d.name} loaded with {num_rows:,} rows.')
 
     # Free up RAM.
