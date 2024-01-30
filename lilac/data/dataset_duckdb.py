@@ -704,7 +704,7 @@ class DatasetDuckDB(Dataset):
   @override
   def count(
     self,
-    filters: Optional[list[Filter]] = None,
+    filters: Optional[Sequence[FilterLike]] = None,
     limit: Optional[int] = None,
     include_deleted: bool = False,
   ) -> int:

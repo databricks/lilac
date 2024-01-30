@@ -39,7 +39,7 @@ Fill in HuggingFace-specific fields:
 4. Sample size: 10000
 
 ```{note}
-Lilac's sweet spot is 10,000-100,000 rows of data, although up to 10 million rows are possible.
+Lilac's sweet spot is ~100K-1M rows of data, although up to 10 million rows are possible.
 This quickstart uses 10,000 rows so that clustering and embedding operations finish locally
 in ~10 minutes even without a GPU.
 ```
