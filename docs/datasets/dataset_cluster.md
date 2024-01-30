@@ -22,7 +22,7 @@ dataset, enabling you to remove problematic data with precision.
 
 Clustering on device can be very slow. To dramatically speed up the computation,
 [sign up for the pilot](https://forms.gle/Gz9cpeKJccNar5Lq8) of
-[Lilac Garden](https://lilacml.com/garden), our platform for accelerated data processing. Lilac
+[Lilac Garden](https://lilacml.com/#garden), our platform for accelerated data processing. Lilac
 Garden uses powerful GPUs to embed, cluster and annotate datasets up to 100x faster than on device.
 We can cluster a million documents in ~20-30 mins.
 
