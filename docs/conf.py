@@ -8,7 +8,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Lilac'
-copyright = '2023, Lilac AI Inc.'
+copyright = '2024, Lilac AI Inc.'
 author = 'Lilac AI Inc.'
 
 # -- General configuration ---------------------------------------------------
