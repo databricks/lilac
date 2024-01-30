@@ -24,11 +24,10 @@ inherently tricky. Our new LLM-powered text clustering pipeline addresses this c
 leveraging long context embeddings, massively parallel GPU compute, and sophisticated LLMs to
 generate concise, descriptive titles for each cluster. These clusters play a crucial role in
 revealing the major segments of your dataset by grouping similar documents together. This approach
-not only enhances the accuracy of understanding text data, but can also dramatically speed up the
-process of curation, allowing the identification and removal of problematic clusters, sub-sampling
-to reduce dataset size, and creating task-specific datasets. Moreover, examining clusters in
-user-LLM interaction logs sheds light on subtle and potentially hazardous ways in which users engage
-with your product.
+can dramatically speed up the process of curation, allowing the identification and removal of
+problematic clusters, sub-sampling large clusters to reduce dataset size, and creating task-specific
+datasets. Moreover, examining clusters in user-LLM interaction logs sheds light on subtle and
+potentially hazardous ways in which users engage with your product.
 
 Don’t just take our word for it - check out Lilac’s demo page to see clusters for LLM fine-tuning
 datasets
