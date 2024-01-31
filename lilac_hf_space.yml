@@ -434,11 +434,11 @@ datasets:
 signals:
   - signal_name: text_statistics
   - signal_name: lang_detection
-# NOTE: This is currently bugging.
-# - signal_name: concept_score
-#   namespace: lilac
-#   concept_name: profanity
-#   embedding: gte-small
+  # NOTE: This is currently bugging.
+  # - signal_name: concept_score
+  #   namespace: lilac
+  #   concept_name: profanity
+  #   embedding: gte-small
 
 clusters:
   - dataset_namespace: lilac
