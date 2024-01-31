@@ -83,6 +83,7 @@
               <div class="text-s flex flex-row">
                 <div class="mr-2">{task.name}</div>
               </div>
+              <button>Cancel button</button>
               <div class="progress-container mt-3">
                 <ProgressBar
                   labelText={message || ''}
