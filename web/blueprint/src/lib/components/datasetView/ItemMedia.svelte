@@ -249,7 +249,7 @@
 </script>
 
 {#if isLeaf}
-  <div class="flex w-full flex-row gap-x-4" class:border={isRepeated}>
+  <div class="flex w-full flex-row gap-x-4">
     <div
       class="relative mr-4 flex w-28 flex-row rounded border-neutral-200 px-2 font-mono font-medium text-neutral-500 md:w-36"
     >
@@ -363,7 +363,10 @@
   <!-- Repeated values will render <ItemMedia> again. -->
   <div class="flex flex-col">
     {#if !isRepeated && displayPath}
-      <div title={displayPath} class="mx-4 my-2 truncate font-mono font-medium text-neutral-500">
+      <div
+        title={displayPath}
+        class="mx-4 my-2 truncate font-mono font-medium leading-5 text-neutral-500"
+      >
         {displayPath}
       </div>
     {/if}

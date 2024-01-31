@@ -123,6 +123,19 @@ datasets:
           - question
 
   - namespace: lilac
+    name: OpenHermes-2.5
+    source:
+      dataset_name: teknium/OpenHermes-2.5
+      source_name: huggingface
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - - conversations
+            - '*'
+            - value
+
+  - namespace: lilac
     name: SlimOrca
     source:
       dataset_name: Open-Orca/SlimOrca
@@ -418,14 +431,14 @@ datasets:
       - embedding: gte-small
         path:
           - instruction
-signals:
-  - signal_name: text_statistics
-  - signal_name: lang_detection
-  # NOTE: This is currently bugging.
-  # - signal_name: concept_score
-  #   namespace: lilac
-  #   concept_name: profanity
-  #   embedding: gte-small
+# signals:
+#   - signal_name: text_statistics
+#   - signal_name: lang_detection
+# NOTE: This is currently bugging.
+# - signal_name: concept_score
+#   namespace: lilac
+#   concept_name: profanity
+#   embedding: gte-small
 
 clusters:
   - dataset_namespace: lilac
@@ -464,6 +477,14 @@ clusters:
     dataset_name: OpenOrca
     input_path:
       - question
+
+  - dataset_namespace: lilac
+    dataset_name: OpenHermes-2.5
+    input_selector:
+      format: sharegpt
+      selector: human
+    output_path:
+      - conversations__clusters
 
   - dataset_namespace: lilac
     dataset_name: SlimOrca
