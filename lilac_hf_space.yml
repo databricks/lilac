@@ -431,9 +431,9 @@ datasets:
       - embedding: gte-small
         path:
           - instruction
-# signals:
-#   - signal_name: text_statistics
-#   - signal_name: lang_detection
+signals:
+  - signal_name: text_statistics
+  - signal_name: lang_detection
 # NOTE: This is currently bugging.
 # - signal_name: concept_score
 #   namespace: lilac
