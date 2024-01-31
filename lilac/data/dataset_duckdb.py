@@ -1933,6 +1933,7 @@ class DatasetDuckDB(Dataset):
       ORDER BY {sort_by.value} {sort_order.value}, {value_column}
       {limit_query}
     """
+    print(query)
     df = self._query_df(query)
     counts = list(df.itertuples(index=False, name=None))
     if is_temporal(leaf.dtype):
@@ -3918,6 +3919,11 @@ def _normalize_bins(bins: Optional[Union[Sequence[Bin], Sequence[float]]]) -> Op
 def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
   if stats.min_val is None or stats.max_val is None:
     return [('0', None, None)]
+
+  if stats.min_val == stats.max_val:
+    # Avoid division by zero when value_range = 0
+    const_val = cast(float, stats.min_val)
+    return [('0', const_val, None)]
 
   min_val = cast(float, stats.min_val)
   max_val = cast(float, stats.max_val)
