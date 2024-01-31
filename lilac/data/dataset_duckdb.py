@@ -1873,7 +1873,6 @@ class DatasetDuckDB(Dataset):
     if not leaf.categorical and (leaf_is_float or leaf_is_integer):
       if named_bins is None:
         # Auto-bin.
-        print(stats)
         named_bins = _auto_bins(stats, NUM_AUTO_BINS)
 
       sql_bounds = []
@@ -1933,7 +1932,6 @@ class DatasetDuckDB(Dataset):
       ORDER BY {sort_by.value} {sort_order.value}, {value_column}
       {limit_query}
     """
-    print(query)
     df = self._query_df(query)
     counts = list(df.itertuples(index=False, name=None))
     if is_temporal(leaf.dtype):
