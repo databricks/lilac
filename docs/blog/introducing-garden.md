@@ -3,12 +3,18 @@
 _Jan 30, 2024_
 
 _Automatic and human-readable clustering of 1 million conversations from Chatbot Arena, computed in
-20 minutes.
-[Join the waitlist for Lilac Garden.](https://docs.google.com/forms/d/e/1FAIpQLSd53PiLVU-65n0czUbhQySvZVtybbSR1fH-WJDDycOZxVRvNQ/viewform)_
+20 minutes._
+
+<a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%7D">Explore
+clusters</a> and
+[join the waitlist](https://docs.google.com/forms/d/e/1FAIpQLSd53PiLVU-65n0czUbhQySvZVtybbSR1fH-WJDDycOZxVRvNQ/viewform)
+for Lilac Garden.
 
 <a href="https://lilacai-lilac.hf.space/datasets#lilac/lmsys-chat-1m&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22conversation__clusters%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22conversation__clusters%22%2C%22cluster_title%22%5D%7D">
 <img title="Cluster view of conversations from Chatbot Arena" src="../_static/introducing_garden/clusters.png" />
 </a>
+
+[Watch our 10 min walkthrough of clustering in Lilac](https://www.youtube.com/watch?v=kLyxBReyexU)
 
 At Lilac, our mission is to help you understand and curate your text data so you can build the best
 possible LLM apps. We’ve built a new LLM-powered text clustering pipeline that’s more accurate and
