@@ -1,4 +1,4 @@
-🌸 Lilac
+Lilac
 =================
 .. meta::
    :description: Better data, better AI
