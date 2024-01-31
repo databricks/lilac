@@ -451,8 +451,8 @@ class Dataset(abc.ABC):
 
     Args:
       filters: Filters to apply to the row; only matching rows will be counted.
-      limit: Limit the number of rows to count. (The returned answer may be smaller than LIMIT,
-        if filters reduce the row count to below the limit!)
+      limit: Limit the number of rows to count. The returned answer may be smaller than LIMIT,
+        if filters reduce the row count to below the limit!
       include_deleted: Whether to include deleted rows in the count.
 
     Returns:

@@ -66,7 +66,7 @@ dataset = ll.get_dataset('local', 'open-orca-100k')
 
 ## Compute clusters
 
-Let's compute clusters on the `question`field.
+Let's [compute clusters](../datasets/dataset_cluster.md#from-python) on the `question`field.
 
 ```python
 dataset.cluster('question')
@@ -130,8 +130,8 @@ question__cluster:
 ## Select specific rows
 
 Let's find all clusters that talk about movies via [](#Dataset.select_rows), which works very
-similarly to a `SQL Select` statement. We do this by adding an [`exists`](#Filter.op) filter on
-`question__cluster.cluster_title`.
+similarly to a `SQL Select` statement. We do this by adding an [`regex_matches`](#Filter.op) filter
+on `question__cluster.cluster_title`. (See [Querying](../datasets/dataset_query.md) for more.)
 
 ```py
 df_with_emails = dataset.select_rows(
@@ -177,8 +177,9 @@ For more information on querying, see [](#Dataset.select_rows).
 ### Profanity detection
 
 Let's also run the profanity concept on the `response` field to see if the LLM produced any profane
-content. To do that we need to _index_ the `response` field using a text embedding. We only need to
-index once. For a fast on-device embedding, we recommend the
+content. To do that we need to _index_ the `response` field using a
+[text embedding](../datasets/dataset_embeddings.md#from-python). We only need to index once. For a
+fast on-device embedding, we recommend the
 [GTE-Small embedding](https://huggingface.co/thenlper/gte-small).
 
 ```py
@@ -221,7 +222,8 @@ Computing signal "concept_score" on local/open-orca-10k:('response',) took 0.025
 4  [{'__span__': {'start': 0, 'end': 164}, 'score...
 ```
 
-To compute the concept score over the entire dataset, we do:
+To compute the [concept score](../datasets/dataset_concepts.md#from-python) over the entire dataset,
+we do:
 
 ```py
 dataset.compute_concept('lilac', 'profanity', embedding='gte-small', path='response')

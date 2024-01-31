@@ -41,7 +41,8 @@ Fill in HuggingFace-specific fields:
 ```{note}
 Lilac's sweet spot is ~100K-1M rows of data, although up to 10 million rows are possible.
 This quickstart uses 10,000 rows so that clustering and embedding operations finish locally
-in ~10 minutes even without a GPU.
+in 10-20 minutes even without a GPU. [Lilac Garden](https://docs.lilacml.com/blog/introducing-garden.html) can help speed
+up your computation for larger datasets.
 ```
 
 Finally:
@@ -61,14 +62,16 @@ When we load a dataset, Lilac creates a default UI configuration, inferring whic
 presented differently in the UI.
 
 Let's edit the configuration by clicking the `Dataset settings` button in the top-right corner. If
-your media field contains markdown, you can enable markdown rendering.
+your media field contains markdown, you can
+[enable markdown rendering](../datasets/dataset_configure.md).
 
 <video loop muted autoplay controls src="../_static/getting_started/orca-settings.mp4"></video>
 
 ## Cluster
 
-Lilac can detect clusters in your dataset. Clusters are a powerful way to understand the types of
-content present in your dataset, as well as to target subsets for removal from the dataset.
+Lilac can detect [clusters in your dataset](../datasets/dataset_cluster.md). Clusters are a powerful
+way to understand the types of content present in your dataset, as well as to target subsets for
+removal from the dataset.
 
 To cluster, open up the dataset schema tray to reveal the fields in your dataset. Here, you can
 choose which field will get clustered.
@@ -80,9 +83,10 @@ other fields in your dataset by changing the Explore and Group By selections.
 
 ## Tagging and Deleting rows
 
-Lilac can curate your dataset by tagging or deleting rows.
+Lilac can curate your dataset by [tagging](../datasets/dataset_labels.md) or
+[deleting](../datasets/dataset_delete_rows.md) rows.
 
-Deleting is not permanent - you can toggle visibility of deleted items - but it is a convenient way
+Deleting is not permanent - you can toggle visibility of deleted item. Deleting is a convenient way
 to iterate on your dataset by removing undesired slices of data. Later on, when you export data from
 Lilac, deleted rows will be excluded by default.
 
@@ -124,10 +128,10 @@ can open the statistics panel to see the distribution of concept scores.
 
 ## Download
 
-Now that we've clustered, curated, and enriched the dataset, let's download it by clicking on the
-`Download data` button in the top-right corner. This will download a json file with the same name as
-the dataset. Once we have the data, we can continue working with it in a Python notebook, or any
-other language.
+Now that we've clustered, curated, and enriched the dataset, let's
+[download it](../datasets/dataset_export.md) by clicking on the `Download data` button in the
+top-right corner. This will download a json file with the same name as the dataset. Once we have the
+data, we can continue working with it in a Python notebook, or any other language.
 
 You can also get the dataset as a Pandas dataframe through the [Python API](quickstart_python.md).
 
