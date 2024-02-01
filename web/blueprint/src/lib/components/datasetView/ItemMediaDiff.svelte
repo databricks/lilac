@@ -14,7 +14,7 @@
 
   const datasetViewStore = getDatasetViewContext();
 
-  export let row: LilacValueNode;
+  export let row: LilacValueNode | undefined | null;
   export let colCompareState: ColumnComparisonState;
   export let textIsOverBudget: boolean;
   export let isExpanded: boolean;
@@ -27,8 +27,8 @@
   $: rightPath = colCompareState.swapDirection
     ? colCompareState.column
     : colCompareState.compareToColumn;
-  $: leftValue = L.value(getValueNodes(row, leftPath)[0]) as string;
-  $: rightValue = L.value(getValueNodes(row, rightPath)[0]) as string;
+  $: leftValue = row != null ? (L.value(getValueNodes(row, leftPath)[0]) as string) : '';
+  $: rightValue = row != null ? (L.value(getValueNodes(row, rightPath)[0]) as string) : '';
 
   let monaco: typeof Monaco;
   let editor: Monaco.editor.IStandaloneDiffEditor;
@@ -93,7 +93,8 @@
   });
 </script>
 
-<div class="relative -ml-6 flex h-fit w-full flex-col gap-x-4">
+<!-- For reasons unknown to me, the -ml-6 is required to make the autolayout of monaco react. -->
+<div class="relative left-16 -ml-10 flex h-fit w-full flex-col gap-x-4 pr-6">
   <div class="flex flex-row items-center font-mono text-xs font-medium text-neutral-500">
     <div class="ml-8 w-1/2">{getDisplayPath(leftPath)}</div>
     <div class="ml-8 w-1/2">{getDisplayPath(rightPath)}</div>

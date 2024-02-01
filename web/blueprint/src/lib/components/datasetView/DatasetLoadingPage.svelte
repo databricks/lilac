@@ -162,6 +162,7 @@
               totalNumRows={$firstRow?.data?.total_num_rows}
               {mediaFields}
               {highlightedFields}
+              datasetViewHeight={320}
             />
           {/if}
         </div>

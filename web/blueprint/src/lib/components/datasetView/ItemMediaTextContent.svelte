@@ -6,12 +6,7 @@
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   import {onDestroy, onMount} from 'svelte';
 
-  import {
-    MAX_MONACO_HEIGHT_COLLAPSED,
-    MAX_MONACO_HEIGHT_EXPANDED,
-    MONACO_OPTIONS,
-    getMonaco
-  } from '$lib/monaco';
+  import {MAX_MONACO_HEIGHT_COLLAPSED, MONACO_OPTIONS, getMonaco} from '$lib/monaco';
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {conceptLink} from '$lib/utils';
@@ -35,9 +30,9 @@
   import {SkeletonText} from 'carbon-components-svelte';
   import {derived} from 'svelte/store';
   import {getMonacoRenderSpans, type MonacoRenderSpan, type SpanValueInfo} from './spanHighlight';
-  export let text: string;
+  export let text: string | null | undefined;
   // The full row item.
-  export let row: LilacValueNode;
+  export let row: LilacValueNode | undefined | null;
   export let field: LilacField | undefined = undefined;
   // Path of the spans for this item to render.
   export let spanPaths: Path[];
@@ -54,6 +49,13 @@
   // Passed back up to the parent.
   export let textIsOverBudget = false;
   export let viewType: DatasetUISettings['view_type'] | undefined = undefined;
+  export let datasetViewHeight: number | undefined = undefined;
+  export let isFetching: boolean | undefined = undefined;
+
+  // This is a small number that lets us peek at the next media item so it's clear there are
+  // multiple.
+  const DEFAULT_HEIGHT_PEEK_SINGLE_ITEM_PX = 110;
+  const DEFAULT_HEIGHT_PEEK_SCROLL_PX = 180;
 
   // Map paths from the searches to the spans that they refer to.
   let pathToSpans: {
@@ -62,6 +64,7 @@
   $: {
     pathToSpans = {};
     spanPaths.forEach(sp => {
+      if (row == null) return;
       let valueNodes = getValueNodes(row, sp);
       const isSpanNestedUnder = pathMatchesPrefix(sp, path);
       if (isSpanNestedUnder) {
@@ -114,15 +117,22 @@
     }
   }
 
-  function relayout() {
-    if (editor != null && editor.getModel() != null) {
-      const contentHeight = editor.getContentHeight();
-      textIsOverBudget = contentHeight > MAX_MONACO_HEIGHT_COLLAPSED;
+  $: maxMonacoHeightCollapsed = datasetViewHeight
+    ? datasetViewHeight -
+      (viewType === 'scroll' ? DEFAULT_HEIGHT_PEEK_SCROLL_PX : DEFAULT_HEIGHT_PEEK_SINGLE_ITEM_PX)
+    : MAX_MONACO_HEIGHT_COLLAPSED;
 
-      if (isExpanded || !textIsOverBudget) {
-        editorContainer.style.height = `${Math.min(contentHeight, MAX_MONACO_HEIGHT_EXPANDED)}px`;
+  function relayout() {
+    if (editorContainer != null && editor != null && editor.getModel() != null) {
+      const contentHeight = editor.getContentHeight();
+      textIsOverBudget = contentHeight > maxMonacoHeightCollapsed;
+
+      if (isExpanded) {
+        editorContainer.style.height = contentHeight + 'px';
+      } else if (!textIsOverBudget) {
+        editorContainer.style.height = `${Math.min(contentHeight, maxMonacoHeightCollapsed)}px`;
       } else {
-        editorContainer.style.height = MAX_MONACO_HEIGHT_COLLAPSED + 'px';
+        editorContainer.style.height = maxMonacoHeightCollapsed + 'px';
       }
 
       editor.layout();
@@ -130,8 +140,9 @@
   }
 
   onMount(async () => {
-    if (editorContainer == null) return;
+    if (monaco != null) return;
     monaco = await getMonaco();
+    if (editorContainer == null) return;
     editor = monaco.editor.create(editorContainer, {
       ...MONACO_OPTIONS,
       lineNumbers: 'on',
@@ -145,7 +156,7 @@
         scale: 2
       }
     });
-    model = monaco.editor.createModel(text, 'text/plain');
+    model = monaco.editor.createModel(text || '', 'text/plain');
     editor.setModel(model);
 
     // When the fonts are ready, measure the fonts and display the editor after the font measurement
@@ -159,13 +170,13 @@
 
   // When text changes, set the value on the global model and relayout.
   $: {
-    if (model != null && text != null) {
+    if (editorContainer != null && model != null && text != null) {
       model.setValue(text);
       relayout();
     }
   }
 
-  $: monacoSpans = getMonacoRenderSpans(text, pathToSpans, spanPathToValueInfos);
+  $: monacoSpans = getMonacoRenderSpans(text || '', pathToSpans, spanPathToValueInfos);
 
   // Reveal the first span so that it is near the top of the view.
   $: {
@@ -644,7 +655,7 @@
 
 <!-- For reasons unknown to me, the -ml-6 is required to make the autolayout of monaco react. -->
 <div class="relative left-16 -ml-10 flex h-fit w-full flex-col gap-x-4 pr-6">
-  {#if !editorReady}
+  {#if !editorReady && false}
     <div class="w-full"><SkeletonText class="ml-4 w-full " lines={3} /></div>
   {/if}
   <div
@@ -653,6 +664,10 @@
     bind:this={editorContainer}
     class:invisible={!editorReady}
   />
+  {#if isFetching}
+    <!-- add a cover -->
+    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70" />
+  {/if}
 </div>
 
 <style lang="postcss">
