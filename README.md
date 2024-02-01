@@ -34,7 +34,7 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API.
 
 ## 🆒 New
 
-- [Lilac Garden](https://www.lilacml.com/#Garden) is our hosted platform for blazing fast
+- [Lilac Garden](https://www.lilacml.com/#garden) is our hosted platform for blazing fast
   dataset-level computations. [Sign up](https://forms.gle/Gz9cpeKJccNar5Lq8) to join the pilot.
 - Cluster & title millions of documents with the power of LLMs.
   [Explore and search](https://lilacai-lilac.hf.space/datasets#lilac/OpenOrca&query=%7B%7D&viewPivot=true&pivot=%7B%22outerPath%22%3A%5B%22question__cluster%22%2C%22category_title%22%5D%2C%22innerPath%22%3A%5B%22question__cluster%22%2C%22cluster_title%22%5D%7D)
@@ -48,7 +48,7 @@ Lilac runs **on-device** using open-source LLMs with a UI and Python API.
 - Inspect and collaborate with your team on a single, centralized dataset to improve data quality.
 - Understand how data changes over time.
 
-Lilac can offload expensive computations to [Lilac Garden](https://www.lilacml.com/#Garden), our
+Lilac can offload expensive computations to [Lilac Garden](https://www.lilacml.com/#garden), our
 hosted platform for blazing fast dataset-level computations.
 
 <img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
@@ -142,7 +142,7 @@ dataset.cluster('text') # add `use_garden=True` to offload to Lilac Garden
 <!-- prettier-ignore -->
 > [!TIP]
 > Clustering on device can be slow or impractical, especially on machines without a powerful GPU or
-> large memory. Offloading the compute to [Lilac Garden](https://www.lilacml.com/#Garden), our
+> large memory. Offloading the compute to [Lilac Garden](https://www.lilacml.com/#garden), our
 hosted data processing platform, can speedup clustering by more than 100x.
 
 <img alt="image" src="docs/_static/dataset/dataset_cluster_view.png">
