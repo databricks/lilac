@@ -263,6 +263,38 @@ def test_auto_bins_for_float(make_test_data: TestDataMaker) -> None:
   assert res.bins
 
 
+def test_auto_bins_for_missing_float(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [{'feature': 1.0}] + [{'feature': float('nan')}] * 5
+  dataset = make_test_data(items)
+  # The 1.0 row was just to get the right type inference going; desired dataset is a bunch of NaNs.
+  dataset.delete_rows(filters=[('feature', 'equals', 1.0)])
+
+  res = dataset.select_groups('feature')
+  assert res.counts == [(None, 5)]
+  assert res.too_many_distinct is False
+  assert res.bins == [('0', None, None)]
+
+  # Confirm that SQL compliation works for 1 bin.
+  stats = dataset.stats('feature')
+  assert stats.min_val is None
+  assert stats.max_val is None
+
+
+def test_auto_bins_for_constant_float(make_test_data: TestDataMaker) -> None:
+  items: list[Item] = [{'feature': 1.0}] * 5
+  dataset = make_test_data(items)
+
+  res = dataset.select_groups('feature')
+  assert res.counts == [('0', 5)]
+  assert res.too_many_distinct is False
+  assert res.bins == [('0', 1.0, None)]
+
+  # Confirm that SQL compliation works for 1 bin.
+  stats = dataset.stats('feature')
+  assert stats.min_val == 1.0
+  assert stats.max_val == 1.0
+
+
 def test_map_dtype(make_test_data: TestDataMaker) -> None:
   items = [
     {'column': {'a': 1.0, 'b': 2.0}},

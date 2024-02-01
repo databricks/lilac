@@ -3915,6 +3915,14 @@ def _normalize_bins(bins: Optional[Union[Sequence[Bin], Sequence[float]]]) -> Op
 
 
 def _auto_bins(stats: StatsResult, num_bins: int) -> list[Bin]:
+  if stats.min_val is None or stats.max_val is None:
+    return [('0', None, None)]
+
+  if stats.min_val == stats.max_val:
+    # Avoid division by zero when value_range = 0
+    const_val = cast(float, stats.min_val)
+    return [('0', const_val, None)]
+
   min_val = cast(float, stats.min_val)
   max_val = cast(float, stats.max_val)
   value_range = max_val - min_val
