@@ -2,15 +2,19 @@
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   import {onDestroy, onMount} from 'svelte';
 
-  import {getMonaco, MONACO_OPTIONS} from '$lib/monaco';
+  import {
+    DEFAULT_HEIGHT_PEEK_SCROLL_PX,
+    DEFAULT_HEIGHT_PEEK_SINGLE_ITEM_PX,
+    getMonaco,
+    MONACO_OPTIONS
+  } from '$lib/monaco';
   import {getDatasetViewContext, type ColumnComparisonState} from '$lib/stores/datasetViewStore';
   import {getDisplayPath} from '$lib/view_utils';
-  import {getValueNodes, L, type LilacValueNode} from '$lilac';
+  import {getValueNodes, L, type DatasetUISettings, type LilacValueNode} from '$lilac';
   import {PropertyRelationship} from 'carbon-icons-svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
 
   const MAX_MONACO_HEIGHT_COLLAPSED = 360;
-  const MAX_MONACO_HEIGHT_EXPANDED = 720;
 
   const datasetViewStore = getDatasetViewContext();
 
@@ -18,6 +22,9 @@
   export let colCompareState: ColumnComparisonState;
   export let textIsOverBudget: boolean;
   export let isExpanded: boolean;
+  export let viewType: DatasetUISettings['view_type'] | undefined = undefined;
+  export let datasetViewHeight: number | undefined = undefined;
+  export let isFetching: boolean | undefined = undefined;
 
   let editorContainer: HTMLElement;
 
@@ -38,7 +45,10 @@
       relayout();
     }
   }
-
+  $: maxMonacoHeightCollapsed = datasetViewHeight
+    ? datasetViewHeight -
+      (viewType === 'scroll' ? DEFAULT_HEIGHT_PEEK_SCROLL_PX : DEFAULT_HEIGHT_PEEK_SINGLE_ITEM_PX)
+    : MAX_MONACO_HEIGHT_COLLAPSED;
   function relayout() {
     if (
       editor != null &&
@@ -51,10 +61,12 @@
       );
       textIsOverBudget = contentHeight > MAX_MONACO_HEIGHT_COLLAPSED;
 
-      if (isExpanded || !textIsOverBudget) {
-        editorContainer.style.height = `${Math.min(contentHeight, MAX_MONACO_HEIGHT_EXPANDED)}px`;
+      if (isExpanded) {
+        editorContainer.style.height = contentHeight + 'px';
+      } else if (!textIsOverBudget) {
+        editorContainer.style.height = `${Math.min(contentHeight, maxMonacoHeightCollapsed)}px`;
       } else {
-        editorContainer.style.height = MAX_MONACO_HEIGHT_COLLAPSED + 'px';
+        editorContainer.style.height = maxMonacoHeightCollapsed + 'px';
       }
       editor.layout();
     }
@@ -107,6 +119,9 @@
     </div>
   </div>
   <div class="editor-container" bind:this={editorContainer} />
+  {#if isFetching}
+    <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70" />
+  {/if}
 </div>
 
 <style lang="postcss">

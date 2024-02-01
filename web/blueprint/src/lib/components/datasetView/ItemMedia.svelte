@@ -352,7 +352,14 @@
             </div>
           </div>
         {:else if colCompareState != null}
-          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
+          <ItemMediaDiff
+            {row}
+            {colCompareState}
+            bind:textIsOverBudget
+            isExpanded={userExpanded}
+            {datasetViewHeight}
+            {isFetching}
+          />
         {/if}
       </div>
     </div>

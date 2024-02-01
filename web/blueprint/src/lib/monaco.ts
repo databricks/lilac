@@ -3,6 +3,10 @@ import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
 
 export const MAX_MONACO_HEIGHT_COLLAPSED = 360;
 export const MAX_MONACO_HEIGHT_EXPANDED = 720;
+// This is a small number that lets us peek at the next media item so it's clear there are
+// multiple.
+export const DEFAULT_HEIGHT_PEEK_SINGLE_ITEM_PX = 120;
+export const DEFAULT_HEIGHT_PEEK_SCROLL_PX = 180;
 let monacoInstance: Promise<typeof Monaco>;
 
 export const MONACO_OPTIONS: Monaco.editor.IStandaloneEditorConstructionOptions = {

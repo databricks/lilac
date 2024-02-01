@@ -6,7 +6,13 @@
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   import {onDestroy, onMount} from 'svelte';
 
-  import {MAX_MONACO_HEIGHT_COLLAPSED, MONACO_OPTIONS, getMonaco} from '$lib/monaco';
+  import {
+    DEFAULT_HEIGHT_PEEK_SCROLL_PX,
+    DEFAULT_HEIGHT_PEEK_SINGLE_ITEM_PX,
+    MAX_MONACO_HEIGHT_COLLAPSED,
+    MONACO_OPTIONS,
+    getMonaco
+  } from '$lib/monaco';
   import {editConceptMutation} from '$lib/queries/conceptQueries';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
   import {conceptLink} from '$lib/utils';
@@ -42,8 +48,6 @@
   // Information about each value under span paths to render.
   export let spanValueInfos: SpanValueInfo[];
   export let embeddings: string[];
-
-  // When defined, enables semantic search on spans.
   export let datasetViewStore: DatasetViewStore | undefined = undefined;
   export let isExpanded = false;
   // Passed back up to the parent.
@@ -51,11 +55,6 @@
   export let viewType: DatasetUISettings['view_type'] | undefined = undefined;
   export let datasetViewHeight: number | undefined = undefined;
   export let isFetching: boolean | undefined = undefined;
-
-  // This is a small number that lets us peek at the next media item so it's clear there are
-  // multiple.
-  const DEFAULT_HEIGHT_PEEK_SINGLE_ITEM_PX = 110;
-  const DEFAULT_HEIGHT_PEEK_SCROLL_PX = 180;
 
   // Map paths from the searches to the spans that they refer to.
   let pathToSpans: {
@@ -665,7 +664,6 @@
     class:invisible={!editorReady}
   />
   {#if isFetching}
-    <!-- add a cover -->
     <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70" />
   {/if}
 </div>
