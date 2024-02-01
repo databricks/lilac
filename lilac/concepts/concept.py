@@ -7,9 +7,11 @@ import numpy as np
 from joblib import Parallel, delayed
 from pydantic import BaseModel, field_validator
 from sklearn.base import clone
+from sklearn.exceptions import NotFittedError
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_recall_curve, roc_auc_score
 from sklearn.model_selection import KFold
+from sklearn.utils.validation import check_is_fitted
 
 from ..embeddings.embedding import get_embed_fn
 from ..signal import TextEmbeddingSignal, get_signal_cls
@@ -140,6 +142,15 @@ class ConceptMetrics(BaseModel):
   overall: OverallScore
 
 
+def _is_fitted(model: LogisticRegression) -> bool:
+  """Check if the model is fitted."""
+  try:
+    check_is_fitted(model)
+    return True
+  except NotFittedError:
+    return False
+
+
 @dataclasses.dataclass
 class LogisticEmbeddingModel:
   """A model that uses logistic regression with embeddings."""
@@ -155,7 +166,10 @@ class LogisticEmbeddingModel:
 
   def score_embeddings(self, embeddings: np.ndarray) -> np.ndarray:
     """Get the scores for the provided embeddings."""
-    y_probs = self._model.predict_proba(embeddings)[:, 1]
+    if _is_fitted(self._model):
+      y_probs = self._model.predict_proba(embeddings)[:, 1]
+    else:
+      y_probs = np.ones(len(embeddings)) * 0.5
     # Map [0, threshold, 1] to [0, 0.5, 1].
     power = np.log(self._threshold) / np.log(0.5)
     return y_probs**power
@@ -173,7 +187,9 @@ class LogisticEmbeddingModel:
   def fit(self, embeddings: np.ndarray, labels: list[bool]) -> None:
     """Fit the model to the provided embeddings and labels."""
     label_set = set(labels)
-    if len(label_set) < 2:
+    if len(label_set) == 0:
+      return
+    elif len(label_set) < 2:
       dim = embeddings.shape[1]
       random_vector = np.random.randn(dim).astype(np.float32)
       random_vector /= np.linalg.norm(random_vector)
@@ -206,7 +222,10 @@ class LogisticEmbeddingModel:
       if len(set(y_train)) < 2:
         return np.array([]), np.array([])
       model.fit(X_train, y_train)
-      y_pred = model.predict_proba(X_test)[:, 1]
+      if _is_fitted(model):
+        y_pred = model.predict_proba(X_test)[:, 1]
+      else:
+        y_pred = np.ones_like(y_test) * 0.5
       return y_test, y_pred
 
     # Compute the metrics for each validation fold in parallel.
@@ -298,7 +317,11 @@ class ConceptModel:
 
   def coef(self, draft: DraftId = DRAFT_MAIN) -> np.ndarray:
     """Get the coefficients of the underlying ML model."""
-    return self._get_logistic_model(draft)._model.coef_.reshape(-1)
+    model = self._get_logistic_model(draft)
+    if _is_fitted(model._model):
+      return model._model.coef_.reshape(-1)
+    else:
+      return np.zeros(0)
 
   def _get_logistic_model(self, draft: DraftId = DRAFT_MAIN) -> LogisticEmbeddingModel:
     """Get the logistic model for the provided draft."""
@@ -345,8 +368,6 @@ class ConceptModel:
     concept_embeddings: dict[str, np.ndarray] = {}
 
     examples = concept.data.items()
-    if not examples:
-      raise ValueError(f'Cannot sync concept "{concept.concept_name}". It has no examples.')
 
     # Compute the embeddings for the examples with cache miss.
     texts_of_missing_embeddings: dict[str, str] = {}
