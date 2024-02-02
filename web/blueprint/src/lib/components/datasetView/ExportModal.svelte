@@ -85,8 +85,6 @@
     ...checkedMapFields
   ];
 
-  $: console.log('export fields:', exportFields);
-
   $: previewRows =
     exportFields.length > 0 && open
       ? querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
