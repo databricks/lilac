@@ -179,7 +179,7 @@
   <!-- Header -->
   <div class="sticky top-0 z-10 flex w-full flex-row justify-between bg-white">
     <div
-      class="mx-8 flex w-full rounded-t-lg border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
+      class="flex w-full rounded-t-lg border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
       class:bg-violet-200={!$datasetViewStore.viewTrash}
       class:bg-opacity-70={!$datasetViewStore.viewTrash}
       class:bg-red-500={$datasetViewStore.viewTrash}
@@ -298,7 +298,7 @@
       </div>
     </div>
   </div>
-  <div class="flex w-full flex-row px-8">
+  <div class="flex w-full flex-row">
     <div
       class={`flex flex-col ${!$datasetViewStore.showMetadataPanel ? 'grow ' : 'w-2/3'}`}
       bind:clientHeight={mediaHeight}

@@ -115,7 +115,7 @@
 {/if}
 
 <div
-  class="flex h-full w-full flex-col overflow-y-scroll pb-16"
+  class="flex h-full w-full flex-col overflow-y-scroll px-8 pb-16"
   bind:clientHeight={datasetViewHeight}
 >
   {#if rows?.length === 0}

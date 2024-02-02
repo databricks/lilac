@@ -155,7 +155,7 @@
 
         <div>
           {#if firstRowId != null}
-            <div class="text-xl text-gray-700">Preview</div>
+            <div class="mb-2 text-xl text-gray-700">Preview</div>
             <RowItem
               rowId={firstRowId}
               index={0}
