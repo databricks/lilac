@@ -40,7 +40,7 @@
   const formats: ExportOptions['format'][] = ['json', 'csv', 'parquet'];
   let selectedFormat: ExportOptions['format'] = 'json';
   let filepath = '';
-  let jsonl = false;
+  let jsonl = true;
 
   const dispatch = createEventDispatcher();
   const exportDataset = exportDatasetMutation();
@@ -258,7 +258,7 @@
           />
         </div>
         {#if selectedFormat === 'json'}
-          <div class="mt-4 border-t border-gray-300 pt-2">
+          <div class="mt-4 pt-2">
             <Toggle bind:toggled={jsonl} labelText="JSONL" />
           </div>
         {/if}
