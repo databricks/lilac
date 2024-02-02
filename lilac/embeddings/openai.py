@@ -44,12 +44,14 @@ class OpenAIEmbedding(TextEmbeddingSignal):
     azure_api_endpoint = env('AZURE_OPENAI_ENDPOINT')
 
     if not api_key and not azure_api_key:
-      raise ValueError('`OPENAI_API_KEY` or `AZURE_OPENAI_KEY` '
-                       'environment variables not set, please set one.')
+      raise ValueError(
+        '`OPENAI_API_KEY` or `AZURE_OPENAI_KEY` ' 'environment variables not set, please set one.'
+      )
     if api_key and azure_api_key:
       raise ValueError(
         'Both `OPENAI_API_KEY` and `AZURE_OPENAI_KEY` '
-        'environment variables are set, please set only one.')
+        'environment variables are set, please set only one.'
+      )
 
     try:
       import openai
@@ -61,16 +63,13 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       )
 
     else:
-
       if api_key:
         self._client = openai.OpenAI(api_key=api_key)
         self._azure = False
 
       elif azure_api_key:
         self._client = openai.AzureOpenAI(
-          api_key=azure_api_key,
-          api_version=azure_api_version,
-          azure_endpoint=azure_api_endpoint
+          api_key=azure_api_key, api_version=azure_api_version, azure_endpoint=azure_api_endpoint
         )
         self._azure = True
         OpenAIEmbedding.local_batch_size = AZURE_OPENAI_BATCH_SIZE
