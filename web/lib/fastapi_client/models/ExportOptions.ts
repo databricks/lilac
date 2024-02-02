@@ -13,5 +13,6 @@ export type ExportOptions = {
     columns?: Array<(Array<string> | string)>;
     include_labels?: Array<string>;
     exclude_labels?: Array<string>;
+    include_signals?: boolean;
 };
 

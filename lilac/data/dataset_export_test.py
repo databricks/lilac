@@ -101,7 +101,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   filepath = tmp_path / 'dataset.json'
   dataset.to_json(filepath)
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [{'text': 'hello'}, {'text': 'everybody'}]
@@ -109,7 +109,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
   # Include signals.
   dataset.to_json(filepath, include_signals=True)
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
@@ -126,7 +126,7 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     include_signals=True,
   )
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
@@ -138,7 +138,62 @@ def test_export_to_json(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -
     filepath, filters=[('text.test_signal.flen', 'less_equal', '5')], include_signals=True
   )
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}}]
+
+
+def test_export_to_jsonl(make_test_data: TestDataMaker, tmp_path: pathlib.Path) -> None:
+  dataset = make_test_data([{'text': 'hello'}, {'text': 'everybody'}])
+  dataset.compute_signal(TestSignal(), 'text')
+
+  # Download all columns.
+  filepath = tmp_path / 'dataset.json'
+  dataset.to_json(filepath, jsonl=True)
+
+  with open(filepath, 'r') as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [{'text': 'hello'}, {'text': 'everybody'}]
+
+  # Include signals.
+  dataset.to_json(filepath, jsonl=True, include_signals=True)
+
+  with open(filepath, 'r') as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [
+    {'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}},
+    {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}},
+  ]
+
+  # Download a subset of columns with filter.
+  filepath = tmp_path / 'dataset2.json'
+  dataset.to_json(
+    filepath,
+    jsonl=True,
+    columns=['text', 'text.test_signal'],
+    filters=[('text.test_signal.len', 'greater', '6')],
+    include_signals=True,
+  )
+
+  with open(filepath, 'r') as f:
+    parsed_items = [json.loads(line) for line in f.readlines()]
+
+  assert parsed_items == [
+    {'text': {VALUE_KEY: 'everybody', 'test_signal': {'flen': 9.0, 'len': 9}}}
+  ]
+
+  filepath = tmp_path / 'dataset3.json'
+  dataset.to_json(
+    filepath,
+    jsonl=True,
+    filters=[('text.test_signal.flen', 'less_equal', '5')],
+    include_signals=True,
+  )
+
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [{'text': {VALUE_KEY: 'hello', 'test_signal': {'flen': 5.0, 'len': 5}}}]
@@ -152,7 +207,7 @@ def test_export_to_csv(make_test_data: TestDataMaker, tmp_path: pathlib.Path) ->
   filepath = tmp_path / 'dataset.csv'
   dataset.to_csv(filepath)
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     rows = list(csv.reader(f))
 
   assert rows == [
@@ -172,7 +227,7 @@ def test_export_to_csv_include_signals(
   filepath = tmp_path / 'dataset.csv'
   dataset.to_csv(filepath, include_signals=True)
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     rows = list(csv.reader(f))
 
   assert rows == [
@@ -196,7 +251,7 @@ def test_export_to_csv_subset_source_columns(
   filepath = tmp_path / 'dataset.csv'
   dataset.to_csv(filepath, columns=['age', 'metric'])
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     rows = list(csv.reader(f))
 
   assert rows == [
@@ -232,7 +287,7 @@ def test_export_to_csv_subset_of_nested_data(
   filepath = tmp_path / 'dataset.csv'
   dataset.to_csv(filepath, columns=['doc.content', 'doc.paragraphs.*.text'])
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     rows = list(csv.reader(f))
 
   assert rows == [
@@ -323,7 +378,7 @@ def test_label_and_export_by_excluding(
   filepath = tmp_path / 'dataset.json'
   dataset.to_json(filepath)
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [{f'{DELETED_LABEL_NAME}': None, 'text': 'a'}]
@@ -332,7 +387,7 @@ def test_label_and_export_by_excluding(
   filepath = tmp_path / 'dataset.json'
   dataset.to_json(filepath, include_deleted=True)
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [
@@ -357,7 +412,7 @@ def test_include_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathli
   filepath = tmp_path / 'dataset.json'
   dataset.to_json(filepath, columns=['text'], include_labels=['good', 'very_good'])
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   parsed_items = sorted(parsed_items, key=lambda x: x['text'])
@@ -373,7 +428,7 @@ def test_exclude_multiple_labels(make_test_data: TestDataMaker, tmp_path: pathli
   filepath = tmp_path / 'dataset.json'
   dataset.to_json(filepath, columns=['text'], exclude_labels=['bad', 'very_bad'])
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   parsed_items = sorted(parsed_items, key=lambda x: x['text'])
@@ -389,7 +444,7 @@ def test_exclude_trumps_include(make_test_data: TestDataMaker, tmp_path: pathlib
   filepath = tmp_path / 'dataset.json'
   dataset.to_json(filepath, columns=['text'], include_labels=['good'], exclude_labels=['bad'])
 
-  with open(filepath) as f:
+  with open(filepath, 'r') as f:
     parsed_items = [json.loads(line) for line in f.readlines()]
 
   assert parsed_items == [{'text': 'b'}]
