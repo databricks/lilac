@@ -22,7 +22,8 @@
   const taskToProgressStatus: {[taskStatus: string]: ProgressBarProps['status']} = {
     pending: 'active',
     completed: 'finished',
-    error: 'error'
+    error: 'error',
+    cancelled: 'error'
   };
 
   const cancelTask = cancelTaskMutation();
@@ -88,7 +89,8 @@
               task.total_progress != null && task.total_len != null
                 ? task.total_progress / task.total_len
                 : undefined}
-            {@const message = task.error ?? task.message}
+            {@const message =
+              task.status != 'cancelled' ? task.error ?? task.message : 'Task cancelled.'}
             <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
               <div class="text-s flex flex-row items-center">
                 <div class="mr-2">{task.name}</div>

@@ -101,7 +101,7 @@ class TaskManager:
     tasks_with_progress = [
       (task.total_progress / task.total_len)
       for task in self._task_info.values()
-      if task.total_progress and task.total_len and task.status != TaskStatus.COMPLETED
+      if task.total_progress and task.total_len and task.status == TaskStatus.PENDING
     ]
     return TaskManifest(
       tasks=self._task_info,
