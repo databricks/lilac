@@ -1,8 +1,9 @@
 <script lang="ts">
   import {queryAuthInfo} from '$lib/queries/serverQueries';
-  import {queryTaskManifest} from '$lib/queries/taskQueries';
-  import {Loading, Popover, ProgressBar} from 'carbon-components-svelte';
+  import {cancelTaskMutation, queryTaskManifest} from '$lib/queries/taskQueries';
+  import {Loading, Modal, Popover, ProgressBar} from 'carbon-components-svelte';
   import type {ProgressBarProps} from 'carbon-components-svelte/types/ProgressBar/ProgressBar.svelte';
+  import {CloseFilled} from 'carbon-icons-svelte';
   import Checkmark from 'carbon-icons-svelte/lib/Checkmark.svelte';
   import {hoverTooltip} from './common/HoverTooltip';
 
@@ -23,6 +24,15 @@
     completed: 'finished',
     error: 'error'
   };
+
+  const cancelTask = cancelTaskMutation();
+  let cancelTaskId: string | undefined = undefined;
+  let cancelTaskName: string | undefined = undefined;
+  function cancelTaskAccepted() {
+    if (cancelTaskId == null) return;
+    $cancelTask.mutate([cancelTaskId]);
+    cancelTaskId = undefined;
+  }
 
   const authInfo = queryAuthInfo();
   $: canRunTasks =
@@ -80,10 +90,19 @@
                 : undefined}
             {@const message = task.error ?? task.message}
             <div class="relative border-b-2 border-slate-200 p-4 text-left last:border-b-0">
-              <div class="text-s flex flex-row">
+              <div class="text-s flex flex-row items-center">
                 <div class="mr-2">{task.name}</div>
+                {#if task.status === 'pending'}
+                  <div use:hoverTooltip={{text: 'Cancel task'}}>
+                    <button
+                      on:click|stopPropagation={() => {
+                        cancelTaskId = id;
+                        cancelTaskName = task.name;
+                      }}><CloseFilled /></button
+                    >
+                  </div>
+                {/if}
               </div>
-              <button>Cancel button</button>
               <div class="progress-container mt-3">
                 <ProgressBar
                   labelText={message || ''}
@@ -101,6 +120,25 @@
     </button>
   </div>
 {/if}
+
+<Modal
+  size="xs"
+  open={cancelTaskId != null}
+  modalHeading="Cancel task"
+  primaryButtonText="Confirm"
+  secondaryButtonText="Cancel"
+  selectorPrimaryFocus=".bx--btn--primary"
+  on:submit={() => cancelTaskAccepted()}
+  on:click:button--secondary={() => {
+    cancelTaskId = undefined;
+  }}
+  on:close={(cancelTaskId = undefined)}
+>
+  <div class="italic">
+    {cancelTaskName}
+  </div>
+  <p class="mt-4">Are you sure you want to cancel this task?</p>
+</Modal>
 
 <style lang="postcss">
   :global(.progress-container .bx--progress-bar__label) {
