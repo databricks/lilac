@@ -664,6 +664,7 @@
     class:invisible={!editorReady}
   />
   {#if isFetching}
+    <!-- Transparent overlay when fetching rows. -->
     <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70" />
   {/if}
 </div>

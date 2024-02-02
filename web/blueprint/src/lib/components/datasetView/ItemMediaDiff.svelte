@@ -120,6 +120,7 @@
   </div>
   <div class="editor-container" bind:this={editorContainer} />
   {#if isFetching}
+    <!-- Transparent overlay when fetching rows. -->
     <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70" />
   {/if}
 </div>
