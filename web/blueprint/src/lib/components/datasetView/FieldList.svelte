@@ -9,9 +9,12 @@
     type LilacField
   } from '$lilac';
   import {Checkbox} from 'carbon-components-svelte';
+  import {createEventDispatcher} from 'svelte';
 
   export let fields: LilacField[];
   export let checkedFields: LilacField[];
+
+  const dispatch = createEventDispatcher();
 
   function checkboxClicked(field: LilacField, event: Event) {
     const checked = (event.target as HTMLInputElement).checked;
@@ -21,6 +24,7 @@
     } else {
       checkedFields = checkedFields.filter(f => !pathIsEqual(f.path, field.path));
     }
+    dispatch('change', checkedFields);
   }
 </script>
 

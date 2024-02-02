@@ -26,7 +26,6 @@
     NotificationActionButton,
     RadioButton,
     RadioButtonGroup,
-    SkeletonPlaceholder,
     SkeletonText,
     TextArea,
     TextInput,
@@ -48,14 +47,29 @@
 
   const datasetViewStore = getDatasetViewContext();
 
-  $: ({sourceFields, enrichedFields, labelFields, mapFields} = getFields(schema));
+  $: ({sourceFields, signalFields: signalFields, labelFields, mapFields} = getFields(schema));
 
   let checkedSourceFields: LilacField[] | undefined = undefined;
   let checkedLabeledFields: LilacField[] = [];
-  let checkedEnrichedFields: LilacField[] = [];
+  let checkedSignalFields: LilacField[] = [];
   let checkedMapFields: LilacField[] = [];
   let includeOnlyLabels: boolean[] = [];
   let excludeLabels: boolean[] = [];
+  let includeSignals = false;
+
+  function includeSignalsChecked(e: Event) {
+    includeSignals = (e.target as HTMLInputElement).checked;
+    if (includeSignals) {
+      checkedSignalFields = signalFields;
+    } else {
+      checkedSignalFields = [];
+    }
+  }
+  function signalCheckboxClicked() {
+    if (checkedSignalFields.length > 0) {
+      includeSignals = true;
+    }
+  }
 
   // Default the checked source fields to all of them.
   $: {
@@ -67,16 +81,19 @@
   $: exportFields = [
     ...(checkedSourceFields || []),
     ...checkedLabeledFields,
-    ...checkedEnrichedFields,
+    ...checkedSignalFields,
     ...checkedMapFields
   ];
+
+  $: console.log('export fields:', exportFields);
 
   $: previewRows =
     exportFields.length > 0 && open
       ? querySelectRows($datasetViewStore.namespace, $datasetViewStore.datasetName, {
           columns: exportFields.map(x => x.path),
           limit: 3,
-          combine_columns: true
+          combine_columns: true,
+          exclude_signals: !includeSignals
         })
       : null;
   $: exportDisabled =
@@ -87,21 +104,21 @@
     const petalFields = petals(schema).filter(f => !isEmbeddingField(f));
 
     const labelFields = allFields.filter(f => isLabelRootField(f));
-    const enrichedFields = allFields
-      .filter(f => isSignalField(f) || isClusterField(f))
+    const signalFields = allFields
+      .filter(f => isSignalField(f))
       .filter(f => !childFields(f).some(f => f.dtype?.type === 'embedding'));
-    const mapFields = allFields.filter(f => isMapField(f));
+    const mapFields = allFields.filter(f => isMapField(f) || isClusterField(f));
 
     const sourceFields = petalFields.filter(
       f =>
         !labelFields.includes(f) &&
-        !enrichedFields.includes(f) &&
+        !signalFields.includes(f) &&
         !mapFields.includes(f) &&
         // Labels are special in that we only show the root of the label field so the children do
         // not show up in the labelFields.
         !isLabelField(f)
     );
-    return {sourceFields, enrichedFields, labelFields, mapFields};
+    return {sourceFields, signalFields, labelFields, mapFields};
   }
 
   async function submit() {
@@ -113,7 +130,8 @@
       jsonl,
       columns: exportFields.map(x => x.path),
       include_labels: labelFields.filter((_, i) => includeOnlyLabels[i]).map(x => x.path[0]),
-      exclude_labels: labelFields.filter((_, i) => excludeLabels[i]).map(x => x.path[0])
+      exclude_labels: labelFields.filter((_, i) => excludeLabels[i]).map(x => x.path[0]),
+      include_signals: includeSignals
     };
     $exportDataset.mutate([namespace, datasetName, options]);
   }
@@ -150,7 +168,7 @@
         <p class="text-red-600" class:invisible={exportFields.length > 0}>
           No fields selected. Please select at least one field to export.
         </p>
-        <div class="flex flex-wrap gap-x-8">
+        <div class="flex flex-row gap-x-8">
           <section>
             <h4>Source fields</h4>
             {#if checkedSourceFields != null}
@@ -163,10 +181,23 @@
               <FieldList fields={labelFields} bind:checkedFields={checkedLabeledFields} />
             </section>
           {/if}
-          {#if enrichedFields.length > 0}
+          {#if signalFields.length > 0}
             <section>
-              <h4>Enriched fields</h4>
-              <FieldList fields={enrichedFields} bind:checkedFields={checkedEnrichedFields} />
+              <div class="flex flex-row items-center">
+                <div class="w-8">
+                  <Checkbox
+                    hideLabel
+                    checked={includeSignals}
+                    on:change={e => includeSignalsChecked(e)}
+                  />
+                </div>
+                <h4>Signal fields</h4>
+              </div>
+              <FieldList
+                fields={signalFields}
+                bind:checkedFields={checkedSignalFields}
+                on:change={() => signalCheckboxClicked()}
+              />
             </section>
           {/if}
           {#if mapFields.length > 0}
@@ -241,7 +272,7 @@
             hideCloseButton
           />
         {:else if $exportDataset.isLoading}
-          <SkeletonPlaceholder />
+          <SkeletonText lines={5} class="mt-4" />
         {:else if $exportDataset.data}
           <div class="export-success">
             <InlineNotification kind="success" lowContrast hideCloseButton>

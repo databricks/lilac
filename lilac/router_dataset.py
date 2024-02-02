@@ -155,6 +155,7 @@ class SelectRowsOptions(BaseModel):
   offset: Optional[int] = None
   combine_columns: Optional[bool] = None
   include_deleted: bool = False
+  exclude_signals: bool = False
 
 
 class SelectRowsSchemaOptions(BaseModel):
@@ -206,6 +207,7 @@ def select_rows(
     offset=options.offset,
     combine_columns=options.combine_columns or False,
     include_deleted=options.include_deleted,
+    exclude_signals=options.exclude_signals,
     user=user,
   )
 
@@ -303,6 +305,7 @@ class ExportOptions(BaseModel):
   columns: Sequence[Path] = []
   include_labels: Sequence[str] = []
   exclude_labels: Sequence[str] = []
+  include_signals: bool = False
   # Note: "__deleted__" is "just" another label, and the UI
   # will default to adding the "__deleted__" label to the exclude_labels list. If the user wants
   # to include deleted items, they can remove the "__deleted__" label from the exclude_labels list.
@@ -328,20 +331,31 @@ def export_dataset(namespace: str, dataset_name: str, options: ExportOptions) ->
 
   if options.format == 'csv':
     dataset.to_csv(
-      options.filepath, options.columns, [], options.include_labels, options.exclude_labels
+      filepath=options.filepath,
+      columns=options.columns,
+      filters=[],
+      include_labels=options.include_labels,
+      exclude_labels=options.exclude_labels,
+      include_signals=options.include_signals,
     )
   elif options.format == 'json':
     dataset.to_json(
-      options.filepath,
-      options.jsonl or False,
-      options.columns,
-      [],
-      options.include_labels,
-      options.exclude_labels,
+      filepath=options.filepath,
+      jsonl=options.jsonl or False,
+      columns=options.columns,
+      filters=[],
+      include_labels=options.include_labels,
+      exclude_labels=options.exclude_labels,
+      include_signals=options.include_signals,
     )
   elif options.format == 'parquet':
     dataset.to_parquet(
-      options.filepath, options.columns, [], options.include_labels, options.exclude_labels
+      filepath=options.filepath,
+      columns=options.columns,
+      filters=[],
+      include_labels=options.include_labels,
+      exclude_labels=options.exclude_labels,
+      include_signals=options.include_signals,
     )
   else:
     raise ValueError(f'Unknown format: {options.format}')

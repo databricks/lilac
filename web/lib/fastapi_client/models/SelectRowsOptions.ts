@@ -27,5 +27,6 @@ export type SelectRowsOptions = {
     offset?: (number | null);
     combine_columns?: (boolean | null);
     include_deleted?: boolean;
+    exclude_signals?: boolean;
 };
 
