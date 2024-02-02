@@ -135,9 +135,9 @@
   <SkeletonText />
 {:else}
   <div class="flex flex-col gap-y-6">
-    <section class="flex flex-col gap-y-4">
+    <section class="flex flex-col gap-y-2">
       <div class="text-lg text-gray-700">Media fields</div>
-      <div class="text-sm text-gray-500">
+      <div class="mb-2 text-sm text-gray-500">
         Media fields are text fields that are rendered large in the dataset viewer. They are the
         fields on which you can compute signals, embeddings, search, and label.
       </div>
@@ -255,7 +255,7 @@
     </section>
 
     <section class="flex flex-col gap-y-1">
-      <div class="text-lg text-gray-700">View type</div>
+      <div class="mb-2 text-lg text-gray-700">View type</div>
       <div class="flex gap-x-2">
         <Chip
           icon={Table}

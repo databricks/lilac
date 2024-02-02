@@ -714,3 +714,17 @@ class ConceptModelDBSuite:
 
     with pytest.raises(ValueError, match='Example "unknown text" not in embedding map'):
       model_db.sync(model.namespace, model.concept_name, model.embedding_name)
+
+  def test_empty_concept(
+    self, concept_db_cls: Type[ConceptDB], model_db_cls: Type[ConceptModelDB]
+  ) -> None:
+    concept_db = concept_db_cls()
+    model_db = model_db_cls(concept_db)
+
+    namespace = 'test'
+    concept_name = 'test_concept'
+    concept_db.create(namespace=namespace, name=concept_name, type=ConceptType.TEXT)
+    model = model_db.create(namespace, concept_name, embedding_name='test_embedding')
+    model = model_db.sync(model.namespace, model.concept_name, model.embedding_name)
+    # Make sure the model is in sync.
+    assert model_db.in_sync(model) is True

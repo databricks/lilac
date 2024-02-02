@@ -33,7 +33,7 @@
   $: filters = $datasetViewStore.query.filters;
 </script>
 
-<div class="relative mx-8 my-2 flex items-center justify-between pr-4">
+<div class="relative mx-8 my-2 flex items-center justify-between">
   <div class="flex w-full items-center justify-between gap-x-6 gap-y-2">
     <div class="flex w-full flex-row items-center gap-x-4">
       <div class="flex items-center gap-x-2">

@@ -33,7 +33,6 @@
     type LilacValueNode,
     type Path
   } from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
   import {
     CatalogPublish,
     ChevronDown,
@@ -56,6 +55,7 @@
   // The root path contains the sub-path up to the point of this leaf.
   export let rootPath: Path | undefined = undefined;
   export let isFetching: boolean | undefined = undefined;
+  export let datasetViewHeight: number | undefined = undefined;
 
   let childPathParts: string[];
   // Find all the children path parts that match a media field.
@@ -74,7 +74,7 @@
         if (lastMediaPath == null) continue;
 
         const subPath = [...rootPath, field.path[rootPath.length]];
-        const valueNodes = getValueNodes(row!, subPath);
+        const valueNodes = row != null ? getValueNodes(row, subPath) : [];
         for (const childNode of valueNodes) {
           const childPath = L.path(childNode)![rootPath.length];
           if (childPath != null) {
@@ -115,7 +115,7 @@
     }
   }
 
-  $: valueNodes = row != null ? getValueNodes(row, rootPath!) : [];
+  $: valueNodes = row != null ? getValueNodes(row, rootPath!) : null;
 
   // The child component will communicate this back upwards to this component.
   let textIsOverBudget = false;
@@ -126,7 +126,7 @@
   const datasetViewStore = getDatasetViewContext();
   const appSettings = getSettingsContext();
 
-  $: value = L.value(valueNodes[0]) as string;
+  $: value = valueNodes != null ? (L.value(valueNodes[0]) as string) : null;
 
   $: settings = querySettings($datasetViewStore.namespace, $datasetViewStore.datasetName);
 
@@ -329,11 +329,7 @@
       {/if}
 
       <div class="grow pt-1">
-        {#if isFetching}
-          <SkeletonText class="!w-80" />
-        {:else if value == null || row == null}
-          <span class="ml-12 italic">null</span>
-        {:else if colCompareState == null && spanValuePaths != null && field != null}
+        {#if colCompareState == null && field != null}
           <ItemMediaTextContent
             hidden={markdown}
             text={value}
@@ -341,11 +337,13 @@
             path={rootPath}
             {field}
             isExpanded={userExpanded}
-            spanPaths={spanValuePaths.spanPaths}
-            spanValueInfos={spanValuePaths.spanValueInfos}
+            spanPaths={spanValuePaths?.spanPaths || []}
+            spanValueInfos={spanValuePaths?.spanValueInfos || []}
             {datasetViewStore}
             embeddings={computedEmbeddings}
             {viewType}
+            {isFetching}
+            {datasetViewHeight}
             bind:textIsOverBudget
           />
           <div class="markdown w-full" class:hidden={!markdown}>
@@ -354,7 +352,14 @@
             </div>
           </div>
         {:else if colCompareState != null}
-          <ItemMediaDiff {row} {colCompareState} bind:textIsOverBudget isExpanded={userExpanded} />
+          <ItemMediaDiff
+            {row}
+            {colCompareState}
+            bind:textIsOverBudget
+            isExpanded={userExpanded}
+            {datasetViewHeight}
+            {isFetching}
+          />
         {/if}
       </div>
     </div>
@@ -387,6 +392,8 @@
           {mediaFields}
           {row}
           {highlightedFields}
+          {datasetViewHeight}
+          {isFetching}
         />
       </div>
     {/each}

@@ -95,6 +95,8 @@
       updateSequentialRowId('next');
     }
   }
+
+  let datasetViewHeight: number;
 </script>
 
 <DatasetControls numRowsInQuery={rowsResponse?.total_num_rows} />
@@ -112,7 +114,10 @@
   {/if}
 {/if}
 
-<div class="flex h-full w-full flex-col overflow-y-scroll pb-32">
+<div
+  class="flex h-full w-full flex-col overflow-y-scroll px-8 pb-16"
+  bind:clientHeight={datasetViewHeight}
+>
   {#if rows?.length === 0}
     <div class="mt-8 flex flex-col items-center text-xl">No rows found</div>
   {:else}
@@ -125,6 +130,7 @@
       {highlightedFields}
       {updateSequentialRowId}
       {modalOpen}
+      {datasetViewHeight}
     />
   {/if}
 </div>
