@@ -16,6 +16,8 @@ from pydantic import (
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
 from tqdm import tqdm
 
+from lilac.data.cluster_titling import get_titling_snippet
+
 from ..batch_utils import compress_docs, flatten_path_iter, group_by_sorted_key_iter
 from ..dataset_format import DatasetFormatInputSelector
 from ..embeddings.jina import JinaV2Small
@@ -33,6 +35,8 @@ from ..schema import (
 )
 from ..signal import (
   TopicFn,
+  TopicFnBatched,
+  TopicFnNoBatch,
 )
 from ..tasks import TaskId, TaskInfo, get_task_manager
 from ..utils import DebugTimer, chunks, log
@@ -42,7 +46,6 @@ from .dataset_utils import (
   sparse_to_dense_compute,
 )
 
-_SHORTEN_LEN = 400
 _TOP_K_CENTRAL_DOCS = 7
 _TOP_K_CENTRAL_TITLES = 20
 _NUM_THREADS = 32
@@ -88,14 +91,6 @@ def _openai_client() -> Any:
   return instructor.patch(openai.OpenAI(timeout=7, max_retries=0))
 
 
-def _snippet_to_prefix_and_suffix(text: str) -> str:
-  text = text.strip()
-  if len(text) <= _SHORTEN_LEN:
-    return text
-  prefix_len = _SHORTEN_LEN // 2
-  return text[:prefix_len] + '\n...\n' + text[-prefix_len:]
-
-
 class Title(BaseModel):
   """A 4-5 word title for the group of related snippets."""
 
@@ -106,7 +101,7 @@ def summarize_request(ranked_docs: list[tuple[str, float]]) -> str:
   """Summarize a group of requests in a title of at most 5 words."""
   # Get the top 5 documents.
   docs = [doc for doc, _ in ranked_docs[:_TOP_K_CENTRAL_DOCS]]
-  texts = [f'BEGIN_SNIPPET\n{_snippet_to_prefix_and_suffix(doc)}\nEND_SNIPPET' for doc in docs]
+  texts = [f'BEGIN_SNIPPET\n{get_titling_snippet(doc)}\nEND_SNIPPET' for doc in docs]
   input = '\n'.join(texts)
   try:
     import openai
@@ -236,57 +231,69 @@ def _compute_titles(
   cluster_id_column: str,
   membership_column: str,
   topic_fn: TopicFn,
+  batch_size: Optional[int] = None,
   task_info: Optional[TaskInfo] = None,
 ) -> Iterator[str]:
   def _compute_title(
-    sorted_docs: list[tuple[str, float]], group_size: int
-  ) -> Optional[tuple[int, Optional[str]]]:
-    if not sorted_docs:
-      return group_size, None
-    return group_size, topic_fn(sorted_docs)
+    batch_docs: list[list[tuple[str, float]]], group_size: list[int]
+  ) -> list[tuple[int, Optional[str]]]:
+    if batch_size is None:
+      topic_fn_no_batch = cast(TopicFnNoBatch, topic_fn)
+      topics = [topic_fn_no_batch(batch_docs[0])]
+    else:
+      topic_fn_batched = cast(TopicFnBatched, topic_fn)
+      topics = topic_fn_batched(batch_docs)
+    return [(group_size, topic) for group_size, topic in zip(group_size, topics)]
 
   def _delayed_compute_all_titles() -> Iterator:
-    for group in group_by_sorted_key_iter(items, lambda x: x[cluster_id_column]):
-      sorted_docs: list[tuple[str, float]] = []
+    clusters = group_by_sorted_key_iter(items, lambda x: x[cluster_id_column])
+    for batch_clusters in chunks(clusters, batch_size or 1):
+      cluster_sizes: list[int] = []
+      batch_docs: list[list[tuple[str, float]]] = []
+      for cluster in batch_clusters:
+        sorted_docs: list[tuple[str, float]] = []
 
-      for item in group:
-        if not item:
-          continue
+        for item in cluster:
+          if not item:
+            continue
 
-        cluster_id = item.get(cluster_id_column, -1)
-        if cluster_id < 0:
-          continue
+          cluster_id = item.get(cluster_id_column, -1)
+          if cluster_id < 0:
+            continue
 
-        text = item.get(text_column)
-        if not text:
-          continue
+          text = item.get(text_column)
+          if not text:
+            continue
 
-        membership_prob = item.get(membership_column, 0)
-        if membership_prob == 0:
-          continue
+          membership_prob = item.get(membership_column, 0)
+          if membership_prob == 0:
+            continue
 
-        sorted_docs.append((text, membership_prob))
+          sorted_docs.append((text, membership_prob))
 
-      # Remove any duplicate texts in the group.
-      sorted_docs = list(set(sorted_docs))
+        # Remove any duplicate texts in the cluster.
+        sorted_docs = list(set(sorted_docs))
 
-      # Shuffle the group to avoid biasing the topic function.
-      random.shuffle(sorted_docs)
+        # Shuffle the cluster to avoid biasing the topic function.
+        random.shuffle(sorted_docs)
 
-      # Sort the group by membership probability after shuffling so that we still choose high
-      # membership scores but they are still shuffled when the values are equal.
-      sorted_docs.sort(key=lambda text_score: text_score[1], reverse=True)
+        # Sort the cluster by membership probability after shuffling so that we still choose high
+        # membership scores but they are still shuffled when the values are equal.
+        sorted_docs.sort(key=lambda text_score: text_score[1], reverse=True)
+        cluster_sizes.append(len(cluster))
+        batch_docs.append(sorted_docs)
 
-      yield delayed(_compute_title)(sorted_docs, len(group))
+      yield delayed(_compute_title)(batch_docs, cluster_sizes)
 
   parallel = Parallel(n_jobs=_NUM_THREADS, backend='threading', return_as='generator')
   if task_info:
     task_info.total_progress = 0
-  for group_size, title in parallel(_delayed_compute_all_titles()):
-    if task_info:
-      task_info.total_progress += group_size
-    for _ in range(group_size):
-      yield title
+  for batch_result in parallel(_delayed_compute_all_titles()):
+    for group_size, title in batch_result:
+      if task_info:
+        task_info.total_progress += group_size
+      for _ in range(group_size):
+        yield title
 
 
 def cluster_impl(
@@ -295,10 +302,12 @@ def cluster_impl(
   output_path: Optional[Path] = None,
   min_cluster_size: int = MIN_CLUSTER_SIZE,
   topic_fn: TopicFn = summarize_request,
+  category_fn: TopicFn = generate_category,
   overwrite: bool = False,
   use_garden: bool = False,
   task_id: Optional[TaskId] = None,
   recompute_titles: bool = False,
+  batch_topic_fn: Optional[int] = None,
 ) -> None:
   """Compute clusters for a field of the dataset."""
   task_manager = get_task_manager()
@@ -422,6 +431,7 @@ def cluster_impl(
         cluster_id_column=CLUSTER_ID,
         membership_column=CLUSTER_MEMBERSHIP_PROB,
         topic_fn=topic_fn,
+        batch_size=batch_topic_fn,
         task_info=task_info,
       )
       for item, title in zip(items2, titles):
@@ -476,7 +486,8 @@ def cluster_impl(
         text_column=CLUSTER_TITLE,
         cluster_id_column=CATEGORY_ID,
         membership_column=CATEGORY_MEMBERSHIP_PROB,
-        topic_fn=generate_category,
+        topic_fn=category_fn,
+        batch_size=batch_topic_fn,
         task_info=task_info,
       )
       for item, title in zip(items2, titles):

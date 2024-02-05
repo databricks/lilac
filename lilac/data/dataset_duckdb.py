@@ -3320,7 +3320,14 @@ class DatasetDuckDB(Dataset):
   ) -> None:
     topic_fn = topic_fn or clustering.summarize_request
     return cluster_impl(
-      self, input, output_path, min_cluster_size, topic_fn, overwrite, use_garden, task_id=task_id
+      self,
+      input,
+      output_path,
+      min_cluster_size=min_cluster_size,
+      topic_fn=topic_fn,
+      overwrite=overwrite,
+      use_garden=use_garden,
+      task_id=task_id,
     )
 
   @override
