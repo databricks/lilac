@@ -88,10 +88,11 @@ def test_simple_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -
     return 'other'
 
   mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   _mock_jina(mocker)
 
-  dataset.cluster('text', min_cluster_size=2, topic_fn=topic_fn)
+  dataset.cluster(
+    'text', min_cluster_size=2, topic_fn=topic_fn, category_fn=lambda _: 'MockCategory'
+  )
 
   rows = list(dataset.select_rows(['text', 'text__cluster'], combine_columns=True))
   assert rows == [
@@ -238,7 +239,6 @@ def test_nested_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -
     ],
   ]
   mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'texts': t} for t in texts])
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
@@ -250,7 +250,9 @@ def test_nested_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -
 
   _mock_jina(mocker)
 
-  dataset.cluster('texts.*.text', min_cluster_size=2, topic_fn=topic_fn)
+  dataset.cluster(
+    'texts.*.text', min_cluster_size=2, topic_fn=topic_fn, category_fn=lambda _: 'MockCategory'
+  )
 
   rows = list(dataset.select_rows(['texts_text__cluster'], combine_columns=True))
   assert rows == [
@@ -300,9 +302,10 @@ def test_nested_clusters(make_test_data: TestDataMaker, mocker: MockerFixture) -
 def test_path_ending_with_repeated(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
   texts: list[list[str]] = [['hello', 'teacher'], ['professor'], ['hi']]
   dataset = make_test_data([{'texts': t} for t in texts])
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
+    print(docs)
+    print('-------------')
     if 'hello' in docs[0][0]:
       return 'a_cluster'
     elif 'teacher' in docs[0][0]:
@@ -311,7 +314,9 @@ def test_path_ending_with_repeated(make_test_data: TestDataMaker, mocker: Mocker
 
   mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
   _mock_jina(mocker)
-  dataset.cluster('texts.*', min_cluster_size=2, topic_fn=topic_fn)
+  dataset.cluster(
+    'texts.*', min_cluster_size=2, topic_fn=topic_fn, category_fn=lambda _: 'MockCategory'
+  )
   rows = list(dataset.select_rows(combine_columns=True))
   assert rows == [
     {
@@ -358,7 +363,6 @@ def test_clusters_with_fn(make_test_data: TestDataMaker, mocker: MockerFixture) 
     ['Can you simplify this text'],
   ]
   dataset = make_test_data([{'texts': t} for t in texts])
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
@@ -383,6 +387,7 @@ def test_clusters_with_fn(make_test_data: TestDataMaker, mocker: MockerFixture) 
     output_path='cluster',
     min_cluster_size=2,
     topic_fn=topic_fn,
+    category_fn=lambda _: 'MockCategory',
   )
   rows = list(dataset.select_rows(combine_columns=True))
   assert rows == [
@@ -442,7 +447,6 @@ def test_clusters_with_fn_output_is_under_a_dict(
     ['Can you provide a short summary of the following text'],
     ['Can you simplify this text'],
   ]
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'texts': t, 'info': {'dummy': True}} for t in texts])
   mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
 
@@ -459,6 +463,7 @@ def test_clusters_with_fn_output_is_under_a_dict(
     output_path=('info', 'cluster'),
     min_cluster_size=2,
     topic_fn=topic_fn,
+    category_fn=lambda _: 'MockCategory',
   )
   rows = list(dataset.select_rows(combine_columns=True))
   assert rows == [
@@ -522,8 +527,6 @@ def test_clusters_with_fn_output_is_under_a_dict(
 
 
 def test_clusters_sharegpt(make_test_data: TestDataMaker, mocker: MockerFixture) -> None:
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
-
   texts: list[Item] = [
     {
       'conversations': [
@@ -569,6 +572,7 @@ def test_clusters_sharegpt(make_test_data: TestDataMaker, mocker: MockerFixture)
     output_path='cluster',
     min_cluster_size=2,
     topic_fn=topic_fn,
+    category_fn=lambda _: 'MockCategory',
   )
 
   # Sort because topics are shuffled.
@@ -649,7 +653,6 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker, mocker: Mocker
     'Can you provide a short summary of the following text',
     'Can you simplify this text',
   ]
-  mocker.patch.object(clustering, 'generate_category', return_value='MockCategory')
   dataset = make_test_data([{'text': t} for t in texts])
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
@@ -664,7 +667,9 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker, mocker: Mocker
   mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
   _mock_jina(mocker)
 
-  dataset.cluster('text', min_cluster_size=2, topic_fn=topic_fn)
+  dataset.cluster(
+    'text', min_cluster_size=2, topic_fn=topic_fn, category_fn=lambda _: 'MockCategory'
+  )
 
   rows = list(dataset.select_rows(['text', 'text__cluster'], combine_columns=True))
   assert rows == [

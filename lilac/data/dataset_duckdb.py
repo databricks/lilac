@@ -120,7 +120,7 @@ from ..utils import (
   log,
   open_file,
 )
-from . import clustering, dataset  # Imported top-level so they can be mocked.
+from . import dataset  # Imported top-level so they can be mocked.
 from .clustering import cluster_impl
 from .dataset import (
   BINARY_OPS,
@@ -3317,14 +3317,15 @@ class DatasetDuckDB(Dataset):
     overwrite: bool = False,
     use_garden: bool = False,
     task_id: Optional[TaskId] = None,
+    category_fn: Optional[TopicFn] = None,
   ) -> None:
-    topic_fn = topic_fn or clustering.summarize_request
     return cluster_impl(
       self,
       input,
       output_path,
       min_cluster_size=min_cluster_size,
       topic_fn=topic_fn,
+      category_fn=category_fn,
       overwrite=overwrite,
       use_garden=use_garden,
       task_id=task_id,
