@@ -1,5 +1,5 @@
 import {TasksService} from '$lilac';
-import {createApiQuery} from './queryUtils';
+import {createApiMutation, createApiQuery} from './queryUtils';
 
 export const TASKS_TAG = 'tasks';
 
@@ -9,3 +9,5 @@ export const queryTaskManifest = createApiQuery(TasksService.getTaskManifest, TA
   refetchIntervalInBackground: false,
   refetchOnWindowFocus: true
 });
+
+export const cancelTaskMutation = createApiMutation(TasksService.cancelTask);

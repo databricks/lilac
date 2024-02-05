@@ -44,6 +44,7 @@
     undefined;
   export let nextRowId: string | undefined = undefined;
   export let modalOpen = false;
+  export let datasetViewHeight: number;
 
   let openDeleteModal = false;
 
@@ -80,14 +81,14 @@
     $selectRowsSchema.data?.schema,
     rowId != null && $selectRowsSchema.data != null /* enabled */
   );
-  $: row = $rowQuery != null && !$rowQuery.isFetching ? $rowQuery?.data : null;
+  $: row = $rowQuery.data;
   $: rowLabels = row != null ? getRowLabels(row) : [];
   $: disableLabels = !canEditLabels;
 
   $: schemaLabels = $schema.data && getSchemaLabels($schema.data);
   $: addLabels = $schema.data != null ? addLabelsMutation($schema.data) : null;
 
-  $: isStale = $rowQuery?.isStale;
+  $: isStale = $rowQuery.isStale;
   $: {
     if (!isStale) {
       labelsInProgress = new Set();
@@ -170,17 +171,20 @@
       }
     }
   }
+
+  let headerHeight: number;
 </script>
 
 <div class="relative flex w-full flex-col rounded md:flex-col">
   <!-- Header -->
   <div class="sticky top-0 z-10 flex w-full flex-row justify-between bg-white">
     <div
-      class="mx-8 flex w-full rounded-t-lg border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
+      class="flex w-full rounded-t-lg border border-neutral-300 bg-violet-200 bg-opacity-70 py-2"
       class:bg-violet-200={!$datasetViewStore.viewTrash}
       class:bg-opacity-70={!$datasetViewStore.viewTrash}
       class:bg-red-500={$datasetViewStore.viewTrash}
       class:bg-opacity-20={$datasetViewStore.viewTrash}
+      bind:clientHeight={headerHeight}
     >
       <!-- Left arrow -->
       <div class="flex w-1/3 flex-row">
@@ -294,20 +298,26 @@
       </div>
     </div>
   </div>
-  <div class="flex w-full flex-row px-8">
+  <div class="flex w-full flex-row">
     <div
       class={`flex flex-col ${!$datasetViewStore.showMetadataPanel ? 'grow ' : 'w-2/3'}`}
       bind:clientHeight={mediaHeight}
     >
       <div class="rounded-b border-b border-l border-r border-neutral-300">
-        {#if $rowQuery?.isFetching}
-          <SkeletonText class="w-20" />
-        {/if}
-        {#if mediaFields.length > 0 && row != null}
-          <div class="flex w-full flex-col">
-            <ItemMedia {mediaFields} {row} {highlightedFields} isFetching={$rowQuery?.isFetching} />
+        {#if $rowQuery.isFetching}
+          <div class="absolute top-0 h-2 w-full overflow-hidden">
+            <SkeletonText class="w-20" lines={1} />
           </div>
         {/if}
+        <div class="flex w-full flex-col">
+          <ItemMedia
+            {mediaFields}
+            {row}
+            {highlightedFields}
+            isFetching={$rowQuery.isFetching}
+            datasetViewHeight={datasetViewHeight - headerHeight}
+          />
+        </div>
       </div>
     </div>
     {#if $datasetViewStore.showMetadataPanel}

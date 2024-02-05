@@ -60,6 +60,8 @@
   const writableStore = writable<HTMLDivElement | null>(itemScrollContainer);
   $: setContext(ITEM_SCROLL_CONTAINER_CTX_KEY, writableStore);
   $: writableStore.set(itemScrollContainer);
+
+  let datasetViewHeight: number;
 </script>
 
 <DatasetControls numRowsInQuery={totalNumRows} />
@@ -84,9 +86,17 @@
   <div
     class="flex h-full w-full flex-col gap-y-10 overflow-y-scroll pb-32"
     bind:this={itemScrollContainer}
+    bind:clientHeight={datasetViewHeight}
   >
     {#each rowIds as rowId, i}
-      <RowItem {rowId} index={i} {totalNumRows} {mediaFields} {highlightedFields} />
+      <RowItem
+        {rowId}
+        index={i}
+        {totalNumRows}
+        {mediaFields}
+        {highlightedFields}
+        {datasetViewHeight}
+      />
     {/each}
     {#if rowIds.length > 0}
       <InfiniteScroll threshold={100} on:loadMore={() => $rows?.fetchNextPage()} />

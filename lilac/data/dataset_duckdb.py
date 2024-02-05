@@ -3388,7 +3388,7 @@ class DatasetDuckDB(Dataset):
           file.write(orjson.dumps(row))
           file.write('\n'.encode('utf-8'))
       else:
-        file.write(orjson.dumps(rows))
+        file.write(orjson.dumps(list(rows)))
     log(f'Dataset exported to {filepath}')
 
   @override
