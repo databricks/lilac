@@ -2,7 +2,7 @@
 
 import functools
 import random
-from typing import Any, Iterator, Optional, cast
+from typing import Any, Iterator, Optional, Sequence, cast
 
 import instructor
 import modal
@@ -340,6 +340,7 @@ def compute_titles(
   ) -> list[tuple[int, Optional[str]]]:
     if batch_size is None:
       topic_fn_no_batch = cast(TopicFnNoBatch, topic_fn)
+      topics: Sequence[Optional[str]]
       if batch_docs and batch_docs[0]:
         topics = [topic_fn_no_batch(batch_docs[0])]
       else:
