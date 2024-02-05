@@ -119,7 +119,8 @@ def generate_category_mistral(batch_titles: list[list[tuple[str, float]]]) -> li
     titles = [title for title, _ in ranked_titles[:_TOP_K_CENTRAL_DOCS]]
     snippets = '\n'.join(titles)
     messages: list[Message] = [
-      Message(role='user', content=f'{CATEGORY_SYSTEM_PROMPT}\n{CATEGORY_EXAMPLE_TITLES}'),
+      Message(role='system', content=CATEGORY_SYSTEM_PROMPT),
+      Message(role='user', content=CATEGORY_EXAMPLE_TITLES),
       Message(role='assistant', content=EXAMPLE_CATEGORY),
       Message(role='user', content=snippets),
     ]
@@ -151,7 +152,8 @@ def generate_title_mistral(batch_docs: list[list[tuple[str, float]]]) -> list[st
       [f'BEGIN_SNIPPET\n{get_titling_snippet(doc)}\nEND_SNIPPET' for doc in docs]
     )
     messages: list[Message] = [
-      Message(role='user', content=f'{TITLE_SYSTEM_PROMPT}\n{EXAMPLE_SNIPPETS}'),
+      Message(role='system', content=TITLE_SYSTEM_PROMPT),
+      Message(role='user', content=EXAMPLE_SNIPPETS),
       Message(role='assistant', content=EXAMPLE_TITLE),
       Message(role='user', content=snippets),
     ]
@@ -356,9 +358,6 @@ def compute_titles(
       cluster_sizes: list[int] = []
       batch_docs: list[list[tuple[str, float]]] = []
       for cluster in batch_clusters:
-        print('????????')
-        print(cluster)
-        print('????????')
         sorted_docs: list[tuple[str, float]] = []
 
         for item in cluster:

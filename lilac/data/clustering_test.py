@@ -304,8 +304,6 @@ def test_path_ending_with_repeated(make_test_data: TestDataMaker, mocker: Mocker
   dataset = make_test_data([{'texts': t} for t in texts])
 
   def topic_fn(docs: list[tuple[str, float]]) -> str:
-    print(docs)
-    print('-------------')
     if 'hello' in docs[0][0]:
       return 'a_cluster'
     elif 'teacher' in docs[0][0]:
