@@ -5,7 +5,7 @@
   export let field: LilacField;
   export let counts: Array<[LeafValue, number]>;
   export let bins: Record<string, [number | null, number | null]> | null;
-  $: maxCount = Math.max(...counts.map(([_, count]) => count));
+  $: maxCount = Math.max(...counts.filter(val => val[0] != null).map(([_, count]) => count));
 
   // Sort the counts by the index of their value in the named bins.
   $: binKeys = bins != null ? (Object.keys(bins) as LeafValue[]) : [];
@@ -37,8 +37,9 @@
 <div class="histogram">
   {#each sortedCounts as [value, count]}
     {@const groupName = formatValueOrBin(value)}
-    {@const barWidth = `${(count / maxCount) * 100}%`}
+    {@const barWidth = `${Math.min(1, count / maxCount) * 100}%`}
     {@const formattedCount = formatValue(count)}
+    {@const backgroundColor = value != null ? 'bg-indigo-200' : 'bg-gray-200'}
 
     <button
       class="flex items-center p-0 text-left text-xs text-black hover:bg-gray-200"
@@ -51,7 +52,7 @@
         <div
           title={formattedCount}
           style:width={barWidth}
-          class="histogram-label histogram-bar my-px bg-indigo-200 pl-2 text-xs leading-5"
+          class="histogram-label histogram-bar my-px {backgroundColor} pl-2 text-xs leading-5"
         >
           {formattedCount}
         </div>
