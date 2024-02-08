@@ -18,7 +18,7 @@ from .config import (
   EmbeddingConfig,
   SignalConfig,
 )
-from .data import clustering
+from .data import cluster_titling
 from .data.dataset import DatasetManifest
 from .db_manager import get_dataset
 from .embeddings.jina import JinaV2Small
@@ -409,8 +409,8 @@ def test_load_clusters(
   )
 
   _mock_jina(mocker)
-  mocker.patch.object(clustering, 'generate_title_openai', return_value='title')
-  mocker.patch.object(clustering, 'generate_category_openai', return_value='category')
+  mocker.patch.object(cluster_titling, 'generate_title_openai', return_value='title')
+  mocker.patch.object(cluster_titling, 'generate_category_openai', return_value='category')
 
   _mock_jina(mocker)
 
@@ -481,7 +481,7 @@ class TestShareGPTSource(Source):
 def test_load_clusters_format_selector(
   tmp_path: pathlib.Path, capsys: pytest.CaptureFixture, mocker: MockerFixture
 ) -> None:
-  mocker.patch.object(clustering, 'generate_category_openai', return_value='MockCategory')
+  mocker.patch.object(cluster_titling, 'generate_category_openai', return_value='MockCategory')
   _mock_jina(mocker)
 
   topic_fn_calls: list[list[tuple[str, float]]] = []
@@ -494,7 +494,7 @@ def test_load_clusters_format_selector(
       return 'time'
     return 'other'
 
-  mocker.patch.object(clustering, 'generate_title_openai', side_effect=_test_topic_fn)
+  mocker.patch.object(cluster_titling, 'generate_title_openai', side_effect=_test_topic_fn)
   set_project_dir(tmp_path)
 
   # Initialize the lilac project. init() defaults to the project directory.

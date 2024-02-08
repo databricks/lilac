@@ -120,7 +120,10 @@ from ..utils import (
   log,
   open_file,
 )
-from . import dataset  # Imported top-level so they can be mocked.
+from . import (
+  cluster_titling,
+  dataset,  # Imported top-level so they can be mocked.
+)
 from .clustering import cluster_impl
 from .dataset import (
   BINARY_OPS,
@@ -467,6 +470,10 @@ class DatasetDuckDB(Dataset):
     The solution is to nuke and recompute the entire cache if anything fails.
     """
     del sqlite_files  # Unused.
+
+    self._pivot_cache.clear()
+    self.stats.cache_clear()
+
     merged_schema = self._source_manifest.data_schema.model_copy(deep=True)
     self._signal_manifests = []
     self._label_schemas = {}
@@ -654,6 +661,7 @@ class DatasetDuckDB(Dataset):
     """Clears the cache for the joint table."""
     self._recompute_joint_table.cache_clear()
     self._pivot_cache.clear()
+    self.stats.cache_clear()
     if env('LILAC_USE_TABLE_INDEX', default=False):
       self.con.close()
       pathlib.Path(os.path.join(self.dataset_path, DUCKDB_CACHE_FILE)).unlink(missing_ok=True)
@@ -3313,12 +3321,14 @@ class DatasetDuckDB(Dataset):
     input: Union[Path, Callable[[Item], str], DatasetFormatInputSelector],
     output_path: Optional[Path] = None,
     min_cluster_size: int = 5,
-    topic_fn: Optional[TopicFn] = None,
+    topic_fn: Optional[TopicFn] = cluster_titling.generate_title_openai,
     overwrite: bool = False,
     use_garden: bool = False,
     task_id: Optional[TaskId] = None,
-    category_fn: Optional[TopicFn] = None,
+    category_fn: Optional[TopicFn] = cluster_titling.generate_category_openai,
   ) -> None:
+    topic_fn = topic_fn or cluster_titling.generate_title_openai
+    category_fn = category_fn or cluster_titling.generate_category_openai
     return cluster_impl(
       self,
       input,

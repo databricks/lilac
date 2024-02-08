@@ -67,7 +67,7 @@ def cluster_impl(
   use_garden: bool = False,
   task_id: Optional[TaskId] = None,
   recompute_titles: bool = False,
-  batch_topic_fn: Optional[int] = None,
+  batch_size_titling: Optional[int] = None,
 ) -> None:
   """Compute clusters for a field of the dataset."""
   topic_fn = topic_fn or generate_title_openai
@@ -193,7 +193,7 @@ def cluster_impl(
         cluster_id_column=CLUSTER_ID,
         membership_column=CLUSTER_MEMBERSHIP_PROB,
         topic_fn=topic_fn,
-        batch_size=batch_topic_fn,
+        batch_size=batch_size_titling,
         task_info=task_info,
       )
       for item, title in zip(items2, titles):
@@ -249,7 +249,7 @@ def cluster_impl(
         cluster_id_column=CATEGORY_ID,
         membership_column=CATEGORY_MEMBERSHIP_PROB,
         topic_fn=category_fn,
-        batch_size=batch_topic_fn,
+        batch_size=batch_size_titling,
         task_info=task_info,
       )
       for item, title in zip(items2, titles):

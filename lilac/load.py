@@ -208,6 +208,8 @@ def load(
           output_path=c.output_path,
           min_cluster_size=c.min_cluster_size,
           use_garden=config.use_garden,
+          topic_fn=None,
+          category_fn=None,
         )
 
   log()

@@ -497,6 +497,7 @@ class Dataset(abc.ABC):
     overwrite: bool = False,
     use_garden: bool = False,
     task_id: Optional[TaskId] = None,
+    # TODO(0.4.0): colocate with topic_fn.
     category_fn: Optional[TopicFn] = None,
   ) -> None:
     """Compute clusters for a field of the dataset.
