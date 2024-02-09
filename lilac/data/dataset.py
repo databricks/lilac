@@ -504,6 +504,8 @@ class Dataset(abc.ABC):
     overwrite: bool = False,
     use_garden: bool = False,
     task_id: Optional[TaskId] = None,
+    # TODO(0.4.0): colocate with topic_fn.
+    category_fn: Optional[TopicFn] = None,
   ) -> None:
     """Compute clusters for a field of the dataset.
 
@@ -520,6 +522,8 @@ class Dataset(abc.ABC):
       use_garden: Whether to run the clustering remotely on Lilac Garden.
       task_id: The TaskManager `task_id` for this process run. This is used to update the progress
         of the task.
+      category_fn: A function that returns a category for a set of related titles. It takes a list
+        of (doc, membership_score) tuples and returns a single category name.
 
     """
     pass

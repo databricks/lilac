@@ -398,6 +398,8 @@ datasets:
         path:
           - original-response
 
+  # NOTE: This dataset is used in a blog post soon to come out, so do not delete it unless it has
+  # found another home.
   - namespace: lilac
     name: mosaic-instruct-v3
     source:
@@ -413,6 +415,26 @@ datasets:
       - embedding: gte-small
         path:
           - prompt
+
+  # NOTE: This dataset is used in a blog post soon to come out, so do not delete it unless it has
+  # found another home.
+  - namespace: lilac
+    name: GAIR-lima
+    source:
+      dataset_name: GAIR/lima
+      source_name: huggingface
+    settings:
+      tags: [datasets]
+      ui:
+        media_paths:
+          - - conversations
+            - '*'
+        markdown_paths: []
+    embeddings:
+      - embedding: gte-small
+        path:
+          - conversations
+          - '*'
 
   - namespace: lilac
     name: dolphin
@@ -503,6 +525,12 @@ clusters:
     dataset_name: mosaic-instruct-v3
     input_path:
       - prompt
+
+  - dataset_namespace: lilac
+    dataset_name: GAIR-lima
+    input_path:
+      - conversations
+      - '*'
 
   - dataset_namespace: lilac
     dataset_name: dolphin
