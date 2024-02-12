@@ -248,6 +248,8 @@ def generate_examples(description: str) -> list[str]:
   api_type = env('OPENAI_API_TYPE')
   api_version = env('OPENAI_API_VERSION')
   api_engine = env('OPENAI_API_ENGINE_CHAT')
+  api_base = env('OPENAI_API_BASE')
+  api_model = env('API_MODEL')
   if not api_key:
     raise ValueError('`OPENAI_API_KEY` environment variable not set.')
   try:
@@ -262,16 +264,17 @@ def generate_examples(description: str) -> list[str]:
     openai.api_key = api_key
     api_engine = api_engine
 
+
     if api_type:
       openai.api_type = api_type
       openai.api_version = api_version
 
   try:
     # Enables response_model in the openai client.
-    client = instructor.patch(openai.OpenAI())
+    client = instructor.patch(openai.OpenAI(base_url=api_base))
 
     completion = client.chat.completions.create(
-      model='gpt-3.5-turbo-1106',
+      model=api_model,
       response_model=Examples,
       temperature=0.0,
       messages=[

@@ -39,6 +39,7 @@ class OpenAIEmbedding(TextEmbeddingSignal):
   @override
   def setup(self) -> None:
     api_key = env('OPENAI_API_KEY')
+    api_base = env('OPENAI_API_BASE')
     azure_api_key = env('AZURE_OPENAI_KEY')
     azure_api_version = env('AZURE_OPENAI_VERSION')
     azure_api_endpoint = env('AZURE_OPENAI_ENDPOINT')
@@ -64,7 +65,7 @@ class OpenAIEmbedding(TextEmbeddingSignal):
 
     else:
       if api_key:
-        self._client = openai.OpenAI(api_key=api_key)
+        self._client = openai.OpenAI(api_key=api_key, base_url=api_base)
         self._azure = False
 
       elif azure_api_key:

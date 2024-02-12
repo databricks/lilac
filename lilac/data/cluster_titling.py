@@ -24,6 +24,7 @@ from ..signal import (
 )
 from ..tasks import TaskInfo
 from ..utils import chunks, log
+from ..env import env
 
 _TOP_K_CENTRAL_DOCS = 7
 _TOP_K_CENTRAL_TITLES = 20
@@ -184,8 +185,10 @@ def generate_title_mistral(batch_docs: list[list[tuple[str, float]]]) -> list[st
 @functools.cache
 def _openai_client() -> Any:
   """Get an OpenAI client."""
+  api_base = env('OPENAI_API_BASE')
   try:
     import openai
+
 
   except ImportError:
     raise ImportError(
@@ -196,7 +199,7 @@ def _openai_client() -> Any:
   # OpenAI requests sometimes hang, without any errors, and the default connection timeout is 10
   # mins, which is too long. Set it to 7 seconds (99%-tile for latency is 3-4 sec). Also set
   # `max_retries` to 0 to disable internal retries so we handle retries ourselves.
-  return instructor.patch(openai.OpenAI(timeout=7, max_retries=0))
+  return instructor.patch(openai.OpenAI(timeout=7, max_retries=0, base_url=api_base))
 
 
 class Title(BaseModel):
@@ -234,11 +237,12 @@ def generate_title_openai(ranked_docs: list[tuple[str, float]]) -> str:
     stop=stop_after_attempt(_NUM_RETRIES),
   )
   def request_with_retries() -> str:
+    api_model = env('API_MODEL')
     max_tokens = _OPENAI_INITIAL_MAX_TOKENS
     while max_tokens <= _OPENAI_FINAL_MAX_TOKENS:
       try:
         title = _openai_client().chat.completions.create(
-          model='gpt-3.5-turbo-1106',
+          model=api_model,
           response_model=Title,
           temperature=0.0,
           max_tokens=max_tokens,
@@ -295,11 +299,12 @@ def generate_category_openai(ranked_docs: list[tuple[str, float]]) -> str:
     stop=stop_after_attempt(_NUM_RETRIES),
   )
   def request_with_retries() -> str:
+    api_model = env('API_MODEL')
     max_tokens = _OPENAI_INITIAL_MAX_TOKENS
     while max_tokens <= _OPENAI_FINAL_MAX_TOKENS:
       try:
         category = _openai_client().chat.completions.create(
-          model='gpt-3.5-turbo-1106',
+          model=api_model,
           response_model=Category,
           temperature=0.0,
           max_tokens=max_tokens,
