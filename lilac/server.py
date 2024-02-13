@@ -165,17 +165,15 @@ class ServerStatus(BaseModel):
   version: str
   google_analytics_enabled: bool
   disable_error_notifications: bool
-  root_path: Optional[str]
 
 
 @app.get('/status')
-def status(request: Request) -> ServerStatus:
+def status() -> ServerStatus:
   """Returns server status information."""
   return ServerStatus(
     version=metadata.version('lilac'),
     google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False),
     disable_error_notifications=env('LILAC_DISABLE_ERROR_NOTIFICATIONS', False),
-    root_path=request.scope.get('root_path'),
   )
 
 
