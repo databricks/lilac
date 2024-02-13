@@ -27,6 +27,7 @@
 
   // Set the base URL for the OpenAPI requests when the app is served from a subdir.
   OpenAPI.BASE = base;
+  console.log('base=', base);
 
   const routeToPage: Record<string, AppPage> = {
     '': 'home',

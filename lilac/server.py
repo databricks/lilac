@@ -96,6 +96,7 @@ class HttpUrlRedirectMiddleware:
   async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
     """Redirect trailing slashes to non-trailing slashes."""
     url = URL(scope=scope).path
+    print('url=', url)
     root_path = scope.get('root_path')
     ends_with_slash = (
       url.endswith('/')
@@ -104,8 +105,10 @@ class HttpUrlRedirectMiddleware:
       and url != root_path + '/'
       and not url.startswith('/api')
     )
+    # ends_with_slash = url.endswith('/') and url != '/' and not url.startswith('/api')
 
     if scope['type'] == 'http' and ends_with_slash:
+      print('redirectiong to', url.rstrip('/'))
       new_url = url.rstrip('/')
       response = RedirectResponse(url=new_url, status_code=307)
       await response(scope, receive, send)
@@ -169,15 +172,17 @@ class ServerStatus(BaseModel):
   version: str
   google_analytics_enabled: bool
   disable_error_notifications: bool
+  root_path: Optional[str]
 
 
 @app.get('/status')
-def status() -> ServerStatus:
+def status(request: Request) -> ServerStatus:
   """Returns server status information."""
   return ServerStatus(
     version=metadata.version('lilac'),
     google_analytics_enabled=env('GOOGLE_ANALYTICS_ENABLED', False),
     disable_error_notifications=env('LILAC_DISABLE_ERROR_NOTIFICATIONS', False),
+    root_path=request.scope.get('root_path'),
   )
 
 

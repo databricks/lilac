@@ -16,7 +16,9 @@ if [ "$1" ]; then
 else
   export LILAC_PROJECT_DIR="./data"
 fi
-poetry run uvicorn lilac.server:app --reload --port 5432 --host 0.0.0.0 \
+# poetry run uvicorn lilac.server:app --reload --port 5432 --host 0.0.0.0 \
+#   --reload-dir lilac &
+poetry run uvicorn integration_tests.fastapi_integration:app --reload --port 5432 --host 0.0.0.0 \
   --reload-dir lilac &
 pid[1]=$!
 
