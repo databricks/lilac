@@ -166,6 +166,12 @@ datasets:
           - - messages
             - '*'
             - content
+    embeddings:
+      - embedding: gte-small
+        path:
+          - messages
+          - '*'
+          - content
 
   - namespace: lilac
     name: roblox_luau_corpus
