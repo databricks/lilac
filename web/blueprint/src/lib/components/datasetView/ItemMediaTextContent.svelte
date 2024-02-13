@@ -605,12 +605,19 @@
       if (editor.getAction(idLinkSelection) == null) {
         editor.addAction({
           id: idLinkSelection,
-          label: '🔗 Link to selection',
+          label: '🔗 Copy link to selection',
           contextMenuGroupId: 'navigation_links',
           // We use ctrl/cmd + K to create a link, which is standard for hyperlinks.
           keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK],
           run: () => {
-            if (datasetViewStore == null || path == null || field == null || editor == null) return;
+            if (
+              datasetViewStore == null ||
+              path == null ||
+              field == null ||
+              editor == null ||
+              model == null
+            )
+              return;
 
             const selection = editor.getSelection();
             if (selection == null) return;
@@ -621,6 +628,12 @@
               startCol: selection.startColumn,
               endCol: selection.endColumn
             });
+
+            // Copy the URL to the clipboard after the store is updated.
+            navigator.clipboard.writeText(location.href).then(null, () => {
+              throw Error('Error copying URL to clipboard.');
+            });
+
             editor.setSelection(selection);
           }
         });
