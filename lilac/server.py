@@ -97,13 +97,14 @@ class HttpUrlRedirectMiddleware:
     """Redirect trailing slashes to non-trailing slashes."""
     url = URL(scope=scope).path
     print('url=', url)
-    root_path = scope.get('root_path')
+    root_path = scope.get('root_path') or ''
     ends_with_slash = (
       url.endswith('/')
       and url != '/'
       and root_path
+      and url != root_path
       and url != root_path + '/'
-      and not url.startswith('/api')
+      and not url.startswith(root_path + '/api')
     )
     # ends_with_slash = url.endswith('/') and url != '/' and not url.startswith('/api')
 
