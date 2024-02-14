@@ -89,10 +89,10 @@ hdbscan = { version = "^0.8.33", optional = true }
 
 [tool.poetry.extras]
 all = [
-  "bge",
   "cohere",
   "detect-secrets",
   "email-reply-parser",
+  "FlagEmbedding",
   "google-api-python-client",
   "google-auth-httplib2",
   "google-auth-oauthlib",
@@ -107,6 +107,7 @@ all = [
   "sentence-transformers",
   "spacy",
   "textacy",
+  "transformers",
   "umap-learn",
 ]
 
