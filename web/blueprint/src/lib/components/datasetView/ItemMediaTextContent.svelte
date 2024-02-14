@@ -3,6 +3,7 @@
    * Component that renders string spans as an absolute positioned
    * layer, meant to be rendered on top of the source text.
    */
+  import {conceptIdentifier, conceptLink} from '$lib/utils';
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   import {onDestroy, onMount} from 'svelte';
 
@@ -13,9 +14,9 @@
     MONACO_OPTIONS,
     getMonaco
   } from '$lib/monaco';
-  import {editConceptMutation} from '$lib/queries/conceptQueries';
+  import {editConceptMutation, queryConcepts} from '$lib/queries/conceptQueries';
   import type {DatasetViewStore} from '$lib/stores/datasetViewStore';
-  import {conceptLink} from '$lib/utils';
+  import {getNotificationsContext} from '$lib/stores/notificationsStore';
   import {getSearches} from '$lib/view_utils';
   import {
     L,
@@ -33,8 +34,21 @@
     type SemanticSimilaritySignal,
     type SubstringSignal
   } from '$lilac';
-  import {SkeletonText} from 'carbon-components-svelte';
+  import {
+    ComposedModal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader,
+    SkeletonText,
+    TextArea,
+    Toggle
+  } from 'carbon-components-svelte';
+  import type {
+    DropdownItem,
+    DropdownItemId
+  } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import {derived} from 'svelte/store';
+  import DropdownPill from '../common/DropdownPill.svelte';
   import {getMonacoRenderSpans, type MonacoRenderSpan, type SpanValueInfo} from './spanHighlight';
   export let text: string | null | undefined;
   // The full row item.
@@ -92,6 +106,7 @@
     }
   }
 
+  const notificationStore = getNotificationsContext();
   const conceptEdit = editConceptMutation();
   const addConceptLabel = (
     conceptNamespace: string,
@@ -101,7 +116,17 @@
   ) => {
     if (!conceptName || !conceptNamespace)
       throw Error('Label could not be added, no active concept.');
-    $conceptEdit.mutate([conceptNamespace, conceptName, {insert: [{text, label}]}]);
+    $conceptEdit.mutate([conceptNamespace, conceptName, {insert: [{text, label}]}], {
+      onSuccess: () => {
+        notificationStore.addNotification({
+          kind: 'success',
+          title: `Added ${
+            label ? 'positive' : 'negative'
+          } example to concept ${conceptNamespace}/${conceptName}`,
+          message: text
+        });
+      }
+    });
   };
 
   let editorContainer: HTMLElement;
@@ -331,41 +356,105 @@
     }
   }
 
-  // Add the concept actions to the right-click menu.
+  // Add to concept.
+  let addToConceptText: string | undefined = undefined;
+  function addToConceptTextChanged(e: Event) {
+    addToConceptText = (e.target as HTMLInputElement).value;
+  }
+  let addToConceptSelectedConcept: string | undefined = undefined;
+
+  let addToConceptPositive = true;
+  function selectConceptFromModal(
+    e: CustomEvent<{
+      selectedId: DropdownItemId;
+      selectedItem: DropdownItem;
+    }>
+  ) {
+    addToConceptSelectedConcept = e.detail.selectedId;
+  }
+  function addToConceptFromModal() {
+    if (addToConceptSelectedConcept == null || addToConceptText == null) return;
+    const [conceptNamespace, conceptName] = addToConceptSelectedConcept.split('/');
+    addConceptLabel(conceptNamespace, conceptName, addToConceptText, addToConceptPositive);
+    addToConceptText = undefined;
+  }
+
+  const conceptQuery = queryConcepts();
+  $: concepts = $conceptQuery.data;
+  let conceptsInMenu: Set<string>;
+  let addToConceptItems: DropdownItem[] = [];
+
   $: {
-    if (editor != null && searches != null) {
-      for (const search of searches) {
+    if (concepts != null) {
+      conceptsInMenu = new Set<string>();
+      for (const concept of concepts) {
+        if (concept.namespace == 'lilac') continue;
+        conceptsInMenu.add(conceptIdentifier(concept.namespace, concept.name));
+      }
+      for (const search of searches || []) {
         if (search.type == 'concept') {
-          const idAdd = `add-positive-to-concept-${search.concept_name}`;
-          if (editor.getAction(idAdd) != null) continue;
-          editor.addAction({
-            id: idAdd,
-            label: `👍 add as positive to concept "${search.concept_name}"`,
-            contextMenuGroupId: 'navigation_concepts',
-            precondition: conceptActionKeyId(search.concept_namespace, search.concept_name),
-            run: () => {
-              const selection = getEditorSelection();
-              if (selection == null) return;
-
-              const label = true;
-              addConceptLabel(search.concept_namespace, search.concept_name, selection, label);
-            }
-          });
-          editor.addAction({
-            id: 'add-negative-to-concept',
-            label: `👎 add as negative to concept "${search.concept_name}"`,
-            contextMenuGroupId: 'navigation_concepts',
-            precondition: conceptActionKeyId(search.concept_namespace, search.concept_name),
-            run: () => {
-              const selection = getEditorSelection();
-              if (selection == null) return;
-
-              const label = false;
-              addConceptLabel(search.concept_namespace, search.concept_name, selection, label);
-            }
-          });
+          conceptsInMenu.add(conceptIdentifier(search.concept_namespace, search.concept_name));
         }
       }
+    }
+    addToConceptItems = Array.from(conceptsInMenu).map(concept => ({
+      id: concept,
+      text: concept
+    }));
+  }
+
+  // Add the concept actions to the right-click menu.
+  $: {
+    if (editor != null && concepts != null) {
+      for (const concept of conceptsInMenu) {
+        const [conceptNamespace, conceptName] = concept.split('/');
+        const idPositive = `add-positive-to-concept-${conceptNamespace}/${conceptName}`;
+        if (editor.getAction(idPositive) != null) continue;
+        editor.addAction({
+          id: idPositive,
+          label: `👍 add as positive to concept "${conceptName}"`,
+          contextMenuGroupId: 'navigation_concepts',
+          precondition: conceptActionKeyId(conceptNamespace, conceptName),
+          run: () => {
+            const selection = getEditorSelection();
+            if (selection == null) return;
+
+            const label = true;
+            addConceptLabel(conceptNamespace, conceptName, selection, label);
+          }
+        });
+        const idNegative = `add-negative-to-concept-${conceptNamespace}/${conceptName}`;
+        if (editor.getAction(idNegative) != null) continue;
+        editor.addAction({
+          id: idNegative,
+          label: `👎 add as negative to concept "${conceptName}"`,
+          contextMenuGroupId: 'navigation_concepts',
+          precondition: conceptActionKeyId(conceptNamespace, conceptName),
+          run: () => {
+            const selection = getEditorSelection();
+            if (selection == null) return;
+
+            const label = false;
+            addConceptLabel(conceptNamespace, conceptName, selection, label);
+          }
+        });
+      }
+    }
+  }
+  $: {
+    if (editor != null) {
+      editor.addAction({
+        id: 'add-to-concept',
+        label: `➕ Add to concept`,
+        contextMenuOrder: 1000,
+        contextMenuGroupId: 'navigation_concepts',
+        run: () => {
+          const selection = getEditorSelection();
+          if (selection == null) return;
+          addToConceptSelectedConcept = addToConceptItems[0].id;
+          addToConceptText = selection;
+        }
+      });
     }
   }
 
@@ -669,6 +758,72 @@
   {/if}
 </div>
 
+<div class="add-concept-modal">
+  <ComposedModal
+    size="sm"
+    open={addToConceptText != null}
+    selectorPrimaryFocus=".bx--btn--primary"
+    on:submit={addToConceptFromModal}
+    on:close={() => (addToConceptText = undefined)}
+  >
+    <ModalHeader title="Add to concept" />
+    <ModalBody hasForm>
+      <div class="flex w-full flex-col gap-y-8 pt-4">
+        <section class="flex flex-col gap-y-4">
+          <div class="text-md text-gray-700">Concept</div>
+          <div class="flex flex-row items-center gap-x-4">
+            <div>
+              <DropdownPill
+                title="Choose a concept"
+                items={addToConceptItems}
+                on:select={selectConceptFromModal}
+                selectedId={addToConceptSelectedConcept}
+                let:item
+              >
+                {@const groupByItem = addToConceptItems?.find(x => x === item)}
+                {#if groupByItem}
+                  <div class="flex items-center justify-between gap-x-1">
+                    <span title={groupByItem.text} class="truncate text-sm">{groupByItem.text}</span
+                    >
+                  </div>
+                {/if}
+              </DropdownPill>
+            </div>
+            <div>
+              <Toggle
+                labelA={'Negative'}
+                labelB={'Positive'}
+                bind:toggled={addToConceptPositive}
+                hideLabel
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="mt-8">
+        <section class="flex flex-col gap-y-4">
+          <div class="text-md text-gray-700">Text</div>
+
+          <TextArea
+            value={addToConceptText || undefined}
+            on:input={addToConceptTextChanged}
+            placeholder="Enter text for the concept"
+            class="mb-2 w-full "
+          />
+        </section>
+      </div>
+    </ModalBody>
+    <ModalFooter
+      primaryButtonText={'Save'}
+      secondaryButtonText="Close"
+      primaryButtonDisabled={addToConceptSelectedConcept == null}
+      on:click:button--secondary={() => {
+        addToConceptText = undefined;
+      }}
+    />
+  </ComposedModal>
+</div>
+
 <style lang="postcss">
   /** Keyword search */
   :global(.keyword-search-bg) {
@@ -714,5 +869,8 @@
 
   :global(.editor-container .monaco-editor .lines-content.monaco-editor-background) {
     margin-left: 10px;
+  }
+  :global(.add-concept-modal .bx--modal-container) {
+    @apply min-h-fit;
   }
 </style>

@@ -156,7 +156,7 @@
       return;
     }
 
-    if (key.code === 'Delete' || key.code === 'Backspace') {
+    if (key.ctrlKey && (key.code === 'Delete' || key.code === 'Backspace')) {
       openDeleteModal = true;
     } else {
       // Find the key code in the label keyboard shortcuts.

@@ -1,5 +1,13 @@
 import loader from '@monaco-editor/loader';
 import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 
 export const MAX_MONACO_HEIGHT_COLLAPSED = 360;
 export const MAX_MONACO_HEIGHT_EXPANDED = 720;

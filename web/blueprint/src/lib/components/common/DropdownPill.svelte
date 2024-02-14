@@ -62,7 +62,6 @@
 
 <style lang="postcss">
   :global(.drop-pill .bx--list-box__menu) {
-    max-height: 26rem !important;
     width: unset;
   }
   :global(.drop-pill.drop-pill-left .bx--list-box__menu) {

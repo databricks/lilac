@@ -142,23 +142,6 @@
       {/if}
     </div>
   </Expandable>
-
-  {#if $embeddings.data}
-    <Expandable expanded>
-      <div slot="above" class="text-md font-semibold">Metrics</div>
-      <div slot="below" class="model-metrics flex flex-wrap gap-x-4 gap-y-4">
-        {#each $embeddings.data as embedding}
-          {@const model = $conceptModels.data?.find(m => m.embedding_name == embedding.name)}
-          <ConceptMetrics
-            {concept}
-            embedding={embedding.name}
-            {model}
-            isFetching={$conceptModels.isFetching}
-          />
-        {/each}
-      </div>
-    </Expandable>
-  {/if}
   <Expandable>
     <div slot="above" class="text-md font-semibold">Collect labels</div>
     <div slot="below" class="w-full">
@@ -176,6 +159,23 @@
       {/if}
     </div>
   </Expandable>
+  {#if $embeddings.data}
+    <Expandable expanded>
+      <div slot="above" class="text-md font-semibold">Metrics</div>
+      <div slot="below" class="model-metrics flex flex-wrap gap-x-4 gap-y-4">
+        {#each $embeddings.data as embedding}
+          {@const model = $conceptModels.data?.find(m => m.embedding_name == embedding.name)}
+          <ConceptMetrics
+            {concept}
+            embedding={embedding.name}
+            {model}
+            isFetching={$conceptModels.isFetching}
+          />
+        {/each}
+      </div>
+    </Expandable>
+  {/if}
+
   <div class="flex gap-x-4">
     <div class="flex w-0 flex-grow flex-col gap-y-4">
       <span class="flex items-center gap-x-2 text-lg"

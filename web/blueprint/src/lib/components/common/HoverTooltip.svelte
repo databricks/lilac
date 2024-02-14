@@ -34,6 +34,6 @@
 <style>
   .text-container {
     min-width: 4rem;
-    max-width: 16rem;
+    max-width: fit-content;
   }
 </style>
