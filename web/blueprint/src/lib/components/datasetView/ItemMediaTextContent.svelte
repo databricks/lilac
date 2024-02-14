@@ -443,18 +443,21 @@
   }
   $: {
     if (editor != null) {
-      editor.addAction({
-        id: 'add-to-concept',
-        label: `➕ Add to concept`,
-        contextMenuOrder: 1000,
-        contextMenuGroupId: 'navigation_concepts',
-        run: () => {
-          const selection = getEditorSelection();
-          if (selection == null) return;
-          addToConceptSelectedConcept = addToConceptItems[0].id;
-          addToConceptText = selection;
-        }
-      });
+      const idAddToConcept = 'add-to-concept';
+      if (editor.getAction(idAddToConcept) == null) {
+        editor.addAction({
+          id: 'add-to-concept',
+          label: `➕ Add to concept`,
+          contextMenuOrder: 1000,
+          contextMenuGroupId: 'navigation_concepts',
+          run: () => {
+            const selection = getEditorSelection();
+            if (selection == null) return;
+            addToConceptSelectedConcept = addToConceptItems[0].id;
+            addToConceptText = selection;
+          }
+        });
+      }
     }
   }
 
@@ -807,6 +810,7 @@
           <TextArea
             value={addToConceptText || undefined}
             on:input={addToConceptTextChanged}
+            rows={6}
             placeholder="Enter text for the concept"
             class="mb-2 w-full "
           />
