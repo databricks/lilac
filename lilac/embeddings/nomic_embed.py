@@ -2,6 +2,7 @@
 import gc
 from typing import TYPE_CHECKING, ClassVar, Optional
 
+import numpy as np
 from typing_extensions import override
 
 if TYPE_CHECKING:
@@ -65,7 +66,7 @@ class NomicEmbed15(TextEmbeddingSignal):
         'Please install it with `pip install "sentence_transformers".'
       )
 
-    def _encode(doc: list[str]):
+    def _encode(doc: list[str]) -> list[np.ndarray]:
       embeddings = self._model.encode(doc, convert_to_tensor=True)
       # Extract the dense vectors from the model.
       embeddings = F.layer_norm(embeddings, normalized_shape=(embeddings.shape[1],))

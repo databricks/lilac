@@ -2,6 +2,7 @@
 import gc
 from typing import TYPE_CHECKING, ClassVar, Optional
 
+import numpy as np
 from typing_extensions import override
 
 from ..utils import log
@@ -67,7 +68,7 @@ class BGEM3(TextEmbeddingSignal):
   def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Call the embedding function."""
 
-    def _encode(doc: list[str]):
+    def _encode(doc: list[str]) -> list[np.ndarray]:
       # Extract the dense vectors from the model.
       return self._model.encode(doc)['dense_vecs']
 

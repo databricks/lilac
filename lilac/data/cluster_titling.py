@@ -14,6 +14,7 @@ from pydantic import (
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_random_exponential
 
 from ..batch_utils import group_by_sorted_key_iter
+from ..env import env
 from ..schema import (
   Item,
 )
@@ -24,7 +25,6 @@ from ..signal import (
 )
 from ..tasks import TaskInfo
 from ..utils import chunks, log
-from ..env import env
 
 _TOP_K_CENTRAL_DOCS = 7
 _TOP_K_CENTRAL_TITLES = 20
