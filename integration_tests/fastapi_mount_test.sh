@@ -24,6 +24,5 @@ until curl --fail --silent "$URL" > /dev/null; do
 done
 
 
-curl --fail --silent "http://localhost:$PORT/lilac_sub/api/v1/tasks/"
-
-curl --fail --silent "http://localhost:$PORT/lilac_sub/"
+curl --fail --silent "http://localhost:$PORT/lilac_sub/api/v1/tasks/" > /dev/null
+curl --fail --silent "http://localhost:$PORT/lilac_sub/" --max-redirs 0 > /dev/null
