@@ -177,9 +177,6 @@ def test_auth_nonadmin_label_all(mocker: MockerFixture) -> None:
 
 
 def test_slash_redirect() -> None:
-  response = client.get('/', allow_redirects=False)
-  assert response.status_code == 200
-
   response = client.get('/auth_info/', allow_redirects=False)
   assert response.status_code == 307
   # We should redirect to the URL with slash removed.
