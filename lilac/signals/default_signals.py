@@ -1,5 +1,6 @@
 """Registers all available default signals."""
 
+from ..embeddings.bge import BGEM3
 from ..embeddings.cohere import Cohere
 from ..embeddings.gte import GTEBase, GTESmall, GTETiny
 from ..embeddings.jina import JinaV2Base, JinaV2Small
@@ -43,3 +44,5 @@ def register_default_signals() -> None:
 
   register_signal(JinaV2Small, exists_ok=True)
   register_signal(JinaV2Base, exists_ok=True)
+
+  register_signal(BGEM3, exists_ok=True)
