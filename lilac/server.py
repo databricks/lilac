@@ -96,11 +96,11 @@ class HttpUrlRedirectMiddleware:
   async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
     """Redirect trailing slashes to non-trailing slashes."""
     url = URL(scope=scope).path
+
     root_path = scope.get('root_path') or ''
     ends_with_slash = (
       url.endswith('/')
       and url != '/'
-      and root_path
       and url != f'{root_path}/'
       and not url.startswith(root_path + '/api')
     )

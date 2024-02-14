@@ -25,4 +25,4 @@ done
 
 
 curl --fail --silent "http://localhost:$PORT/$MOUNT_PATH/api/v1/tasks/" > /dev/null
-curl --fail --silent "http://localhost:$PORT/$MOUNT_PATH/" --max-redirs 0 > /dev/null
+curl --fail --silent "http://localhost:$PORT/$MOUNT_PATH/" -L --max-redirs 0 > /dev/null
