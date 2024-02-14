@@ -11,7 +11,7 @@ export type ConceptSignal = {
     /**
      * The name of the pre-computed embedding.
      */
-    embedding: 'cohere' | 'sbert' | 'openai' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base' | 'bge-m3';
+    embedding: 'cohere' | 'sbert' | 'openai' | 'gte-tiny' | 'gte-small' | 'gte-base' | 'jina-v2-small' | 'jina-v2-base' | 'bge-m3' | 'nomic-embed-1.5-768' | 'nomic-embed-1.5-256';
     namespace: string;
     concept_name: string;
     version?: (number | null);

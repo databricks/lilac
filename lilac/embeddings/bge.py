@@ -1,8 +1,10 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
 import gc
-from typing import TYPE_CHECKING, ClassVar, Iterator, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from typing_extensions import override
+
+from ..utils import log
 
 if TYPE_CHECKING:
   from FlagEmbedding import BGEM3FlagModel
@@ -15,7 +17,7 @@ from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
 from .embedding import chunked_compute_embedding
-from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
+from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE
 
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
 BGE_M3 = 'BAAI/bge-m3'
@@ -33,8 +35,11 @@ def _get_and_cache_bge_m3(model_name: str) -> 'BGEM3FlagModel':
   model = BGEM3FlagModel(
     'BAAI/bge-m3', use_fp16=True
   )  # Setting use_fp16 to True speeds up computation with a slight performance degradation
+
+  log(f'[{model_name}] Using device:', model.device)
+
+  # NOTE: we don't call setup model and device here as this happens internally.
   return model
-  return setup_model_device(model, model_name)
 
 
 class BGEM3(TextEmbeddingSignal):
@@ -62,7 +67,7 @@ class BGEM3(TextEmbeddingSignal):
   def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Call the embedding function."""
 
-    def _encode(doc):
+    def _encode(doc: list[str]):
       # Extract the dense vectors from the model.
       return self._model.encode(doc)['dense_vecs']
 
@@ -74,15 +79,10 @@ class BGEM3(TextEmbeddingSignal):
     )
 
   @override
-  def compute_garden(self, docs: Iterator[str]) -> Iterator[Item]:
-    raise NotImplementedError('Garden computation is not supported for BGE-M3.')
-
-  @override
   def teardown(self) -> None:
     if not hasattr(self, '_model'):
       return
 
-    self._model.cpu()
     del self._model
     gc.collect()
 

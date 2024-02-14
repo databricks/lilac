@@ -1422,6 +1422,17 @@ files = [
 ]
 
 [[package]]
+name = "einops"
+version = "0.7.0"
+description = "A new flavour of deep learning operations"
+optional = true
+python-versions = ">=3.8"
+files = [
+    {file = "einops-0.7.0-py3-none-any.whl", hash = "sha256:0f3096f26b914f465f6ff3c66f5478f9a5e380bb367ffc6493a68143fbbf1fd1"},
+    {file = "einops-0.7.0.tar.gz", hash = "sha256:b2b04ad6081a3b227080c9bf5e3ace7160357ff03043cd66cc5b2319eb7031d1"},
+]
+
+[[package]]
 name = "email-reply-parser"
 version = "0.5.12"
 description = "Email reply parser"
@@ -6056,25 +6067,26 @@ win32 = ["pywin32"]
 
 [[package]]
 name = "sentence-transformers"
-version = "2.2.2"
+version = "2.3.1"
 description = "Multilingual text embeddings"
 optional = true
-python-versions = ">=3.6.0"
+python-versions = ">=3.8.0"
 files = [
-    {file = "sentence-transformers-2.2.2.tar.gz", hash = "sha256:dbc60163b27de21076c9a30d24b5b7b6fa05141d68cf2553fa9a77bf79a29136"},
+    {file = "sentence-transformers-2.3.1.tar.gz", hash = "sha256:d589d85a464f45338cdbdf99ea715f8068e1fb01c582e0bcdbf60bcf3eade6d0"},
+    {file = "sentence_transformers-2.3.1-py3-none-any.whl", hash = "sha256:285d6637726c3b002186aa4b8bcace1101364b32671fb605297c4c2636b8190e"},
 ]
 
 [package.dependencies]
-huggingface-hub = ">=0.4.0"
+huggingface-hub = ">=0.15.1"
 nltk = "*"
 numpy = "*"
+Pillow = "*"
 scikit-learn = "*"
 scipy = "*"
 sentencepiece = "*"
-torch = ">=1.6.0"
-torchvision = "*"
+torch = ">=1.11.0"
 tqdm = "*"
-transformers = ">=4.6.0,<5.0.0"
+transformers = ">=4.32.0,<5.0.0"
 
 [[package]]
 name = "sentencepiece"
@@ -7006,44 +7018,6 @@ typing-extensions = "*"
 [package.extras]
 dynamo = ["jinja2"]
 opt-einsum = ["opt-einsum (>=3.3)"]
-
-[[package]]
-name = "torchvision"
-version = "0.16.2"
-description = "image and video datasets and models for torch deep learning"
-optional = true
-python-versions = ">=3.8"
-files = [
-    {file = "torchvision-0.16.2-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:bc86f2800cb2c0c1a09c581409cdd6bff66e62f103dc83fc63f73346264c3756"},
-    {file = "torchvision-0.16.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b024bd412df6d3a007dcebf311a894eb3c5c21e1af80d12be382bbcb097a7c3a"},
-    {file = "torchvision-0.16.2-cp310-cp310-manylinux1_x86_64.whl", hash = "sha256:e89f10f3c8351972b6e3fda95bc3e479ea8dbfc9dfcfd2c32902dbad4ba5cfc5"},
-    {file = "torchvision-0.16.2-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:96c7583700112a410bdc4e1e4f118c429dab49c29c9a31a2cc3579bc9b08b19d"},
-    {file = "torchvision-0.16.2-cp310-cp310-win_amd64.whl", hash = "sha256:9f4032ebb3277fb07ff6a9b818d50a547fb8fcd89d958cfd9e773322454bb688"},
-    {file = "torchvision-0.16.2-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:67b1aaf8b8cb02ce75dd445f291a27c8036a502f8c0aa76e28c37a0faac2e153"},
-    {file = "torchvision-0.16.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:bef30d03e1d1c629761f4dca51d3b7d8a0dc0acce6f4068ab2a1634e8e7b64e0"},
-    {file = "torchvision-0.16.2-cp311-cp311-manylinux1_x86_64.whl", hash = "sha256:e59cc7b2bd1ab5c0ce4ae382e4e37be8f1c174e8b5de2f6a23c170de9ae28495"},
-    {file = "torchvision-0.16.2-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:e130b08cc9b3cc73a6c59d6edf032394a322f9579bfd21d14bc2e1d0999aa758"},
-    {file = "torchvision-0.16.2-cp311-cp311-win_amd64.whl", hash = "sha256:8692ab1e48807e9604046a6f4beeb67b523294cee1b00828654bb0df2cfce2b2"},
-    {file = "torchvision-0.16.2-cp38-cp38-macosx_10_13_x86_64.whl", hash = "sha256:b82732dcf876a37c852772342aa6ee3480c03bb3e2a802ae109fc5f7e28d26e9"},
-    {file = "torchvision-0.16.2-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:4b065143d1a720fe8a9077fd4be35d491f98819ec80b3dbbc3ec64d0b707a906"},
-    {file = "torchvision-0.16.2-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:bc5f274e4ecd1b86062063cdf4fd385a1d39d147a3a2685fbbde9ff08bb720b8"},
-    {file = "torchvision-0.16.2-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:335959c43b371c0474af34c1ef2a52efdc7603c45700d29e4475eeb02984170c"},
-    {file = "torchvision-0.16.2-cp38-cp38-win_amd64.whl", hash = "sha256:7fd22d86e08eba321af70cad291020c2cdeac069b00ce88b923ca52e06174769"},
-    {file = "torchvision-0.16.2-cp39-cp39-macosx_10_13_x86_64.whl", hash = "sha256:56115268b37f0b75364e3654e47ad9abc66ac34c1f9e5e3dfa89a22d6a40017a"},
-    {file = "torchvision-0.16.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:82805f8445b094f9d1e770390ee6cc86855e89955e08ce34af2e2274fc0e5c45"},
-    {file = "torchvision-0.16.2-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:3f4bd5fcbc361476e2e78016636ac7d5509e59d9962521f06eb98e6803898182"},
-    {file = "torchvision-0.16.2-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:8199acdf8ab066a28b84a5b6f4d97b58976d9e164b1acc3a9d14fccfaf74bb3a"},
-    {file = "torchvision-0.16.2-cp39-cp39-win_amd64.whl", hash = "sha256:41dd4fa9f176d563fe9f1b9adef3b7e582cdfb60ce8c9bc51b094a025be687c9"},
-]
-
-[package.dependencies]
-numpy = "*"
-pillow = ">=5.3.0,<8.3.dev0 || >=8.4.dev0"
-requests = "*"
-torch = "2.1.2"
-
-[package.extras]
-scipy = ["scipy"]
 
 [[package]]
 name = "tornado"
@@ -8161,6 +8135,7 @@ gte = ["sentence-transformers"]
 lang-detection = ["langdetect"]
 langsmith = ["langsmith"]
 llms = ["openai"]
+nomic = ["einops", "sentence-transformers"]
 openai = ["openai"]
 pii = ["detect-secrets", "presidio_analyzer"]
 sbert = ["sentence-transformers"]
@@ -8171,4 +8146,4 @@ text-stats = ["textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "94b8c942172e5a02cb89c0fe8f7ea134169bdf5356d5486549bd8facb73ba8aa"
+content-hash = "5aec3cf990d020b4c1c66a1ebce20b00778021db680a4c4dd8fdf65aa9fb4295"
