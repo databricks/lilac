@@ -189,7 +189,6 @@ def _openai_client() -> Any:
   try:
     import openai
 
-
   except ImportError:
     raise ImportError(
       'Could not import the "openai" python package. '
