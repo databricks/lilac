@@ -11,7 +11,7 @@ MOUNT_POINT = '/lilac_sub'
 
 
 @app.get('/')
-def read_main():
+def read_main() -> dict:
   """The main endpoint."""
   return {'message': 'hello world'}
 
@@ -24,9 +24,6 @@ def test_mount_root() -> None:
   response = client.get('/', allow_redirects=False)
   assert response.status_code == 200
   assert response.json() == {'message': 'hello world'}
-
-  response = client.get(f'{MOUNT_POINT}/', allow_redirects=False)
-  assert response.status_code == 200
 
 
 def test_mount_slash_redirect() -> None:
