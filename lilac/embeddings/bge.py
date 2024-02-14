@@ -2,7 +2,6 @@
 import gc
 from typing import TYPE_CHECKING, ClassVar, Optional
 
-import numpy as np
 from typing_extensions import override
 
 from ..utils import log
@@ -67,16 +66,14 @@ class BGEM3(TextEmbeddingSignal):
   @override
   def compute(self, docs: list[str]) -> list[Optional[Item]]:
     """Call the embedding function."""
-
-    def _encode(doc: list[str]) -> list[np.ndarray]:
-      # Extract the dense vectors from the model.
-      return self._model.encode(doc)['dense_vecs']
-
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
     # The sentence transformer API actually does batching internally, so we pass
     # local_batch_size * 16 to allow the library to see all the chunks at once.
     return chunked_compute_embedding(
-      _encode, docs, self.local_batch_size * 16, chunker=clustering_spacy_chunker
+      lambda docs: self._model.encode(docs)['dense_vecs'],
+      docs,
+      self.local_batch_size * 16,
+      chunker=clustering_spacy_chunker,
     )
 
   @override
