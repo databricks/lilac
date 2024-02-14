@@ -273,6 +273,13 @@ export function createDatasetViewStore(
         state.selection = undefined;
         return state;
       }),
+    setFilters: (filters: Filter[]) =>
+      update(state => {
+        state.query.filters = filters;
+        state.rowId = undefined;
+        state.selection = undefined;
+        return state;
+      }),
     showTrash: (show: boolean) =>
       update(state => {
         state.rowId = undefined;

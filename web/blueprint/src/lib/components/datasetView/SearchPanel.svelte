@@ -260,7 +260,8 @@
   };
   $: keywordSearchItem = {
     id: 'keyword-search',
-    text: searchText
+    text: searchText,
+    disabled: searchText == ''
   } as SearchItem;
   $: semanticSearchItem = {
     id: 'semantic-search',
