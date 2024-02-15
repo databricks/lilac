@@ -32,7 +32,7 @@ class OpenAIJSON(DatasetFormat):
   Taken from: https://platform.openai.com/docs/api-reference/chat
   """
 
-  name: ClassVar[str] = 'openai_json'
+  name: ClassVar[str] = 'OpenAI JSON'
   data_schema: Schema = schema(
     {
       'messages': [
@@ -88,7 +88,7 @@ class OpenAIConversationJSON(DatasetFormat):
   Note that here "messages" is "conversation" for support with common datasets.
   """
 
-  name: ClassVar[str] = 'openai_conversation_json'
+  name: ClassVar[str] = 'OpenAI Conversation JSON'
   data_schema: Schema = schema(
     {
       'conversation': [

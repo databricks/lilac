@@ -18,7 +18,11 @@
 </script>
 
 <script lang="ts">
-  import {clusterMutation, queryFormatSelectors} from '$lib/queries/datasetQueries';
+  import {
+    clusterMutation,
+    queryDatasetManifest,
+    queryFormatSelectors
+  } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {serializePath, type Path} from '$lilac';
   import {
@@ -39,12 +43,17 @@
   $: canComputeRemotely = $authInfo.data?.access.dataset.execute_remotely;
 
   $: formatSelectorsQuery =
-    options != null ? queryFormatSelectors(options?.namespace, options?.datasetName) : null;
-
-  let selectedFormatSelector: string | undefined = undefined;
+    options != null ? queryFormatSelectors(options.namespace, options.datasetName) : null;
+  $: datasetManifest =
+    options != null ? queryDatasetManifest(options.namespace, options.datasetName) : null;
+  let selectedFormatSelector = 'none';
   let formatSelectors: string[] | undefined = undefined;
   let outputColumn: string | undefined = undefined;
-  $: outputColumnRequired = formatSelectors != null;
+  $: outputColumnRequired =
+    formatSelectors != null &&
+    formatSelectors.length > 0 &&
+    selectedFormatSelector != null &&
+    selectedFormatSelector != 'none';
   $: {
     if (options?.output_path != null) {
       outputColumn = serializePath(options.output_path);
@@ -56,7 +65,6 @@
       $formatSelectorsQuery != null &&
       $formatSelectorsQuery.data != null
     ) {
-      selectedFormatSelector = $formatSelectorsQuery.data[0];
       formatSelectors = $formatSelectorsQuery.data;
     }
   }
@@ -66,13 +74,15 @@
   }
   function submit() {
     if (!options) return;
+
     $clusterQuery.mutate([
       options.namespace,
       options.datasetName,
       {
-        input: options.input,
+        input: selectedFormatSelector == null ? options.input : null,
         use_garden: options.use_garden,
         output_path: outputColumn,
+        input_selector: selectedFormatSelector,
         overwrite: options.overwrite
       }
     ]);
@@ -87,16 +97,21 @@
       <div class="flex max-w-2xl flex-col gap-y-8">
         <div>
           <FieldSelect
+            disabled={selectedFormatSelector != null && selectedFormatSelector != 'none'}
             filter={f => f.dtype?.type === 'string'}
             defaultPath={options.input}
             bind:path={options.input}
             labelText="Field"
           />
         </div>
-        {#if formatSelectors != null}
+        {#if formatSelectors != null && formatSelectors.length > 0}
           <div>
-            <div class="label text-s mb-2 font-medium text-gray-700">Selector</div>
+            <div class="label text-s mb-2 font-medium text-gray-700">
+              {$datasetManifest?.data?.dataset_manifest.dataset_format?.['format_name']} selector
+            </div>
             <Select hideLabel={true} bind:selected={selectedFormatSelector} required>
+              <SelectItem value={'none'} text={'None'} />
+
               {#each formatSelectors as formatSelector}
                 <SelectItem value={formatSelector} text={formatSelector} />
               {/each}
@@ -105,7 +120,9 @@
         {/if}
         <div>
           <div class="label text-s mb-2 font-medium text-gray-700">
-            {outputColumnRequired ? '*' : ''} Output column
+            {outputColumnRequired ? '*' : ''} Output column {!outputColumnRequired
+              ? '(Optional)'
+              : ''}
           </div>
           <input
             required={outputColumnRequired}

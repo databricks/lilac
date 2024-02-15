@@ -7,7 +7,6 @@ from pydantic import BaseModel, SerializeAsAny, field_validator
 from pydantic import Field as PydanticField
 
 from .auth import UserInfo, get_session_user, get_user_access
-from .config import ClusterInputSelectorConfig
 from .dataset_format import DatasetFormatInputSelector, get_dataset_format_cls
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
@@ -85,7 +84,7 @@ class ClusterOptions(BaseModel):
   """The request for the cluster endpoint."""
 
   input: Optional[Path] = None
-  input_selector: Optional[ClusterInputSelectorConfig] = None
+  input_selector: Optional[str] = None
 
   output_path: Optional[Path] = None
   use_garden: bool = PydanticField(
@@ -111,9 +110,6 @@ def cluster(
   if not get_user_access(user).dataset.compute_signals:
     raise HTTPException(401, 'User does not have access to compute clusters over this dataset.')
 
-  if options.input is None and options.input_selector is None:
-    raise HTTPException(400, 'Either input or input_selector must be provided.')
-
   dataset = get_dataset(namespace, dataset_name)
   manifest = dataset.manifest()
 
@@ -129,21 +125,15 @@ def cluster(
 
     format_cls = get_dataset_format_cls(dataset_format.name)
     if format_cls is None:
-      raise ValueError(f'Unknown format: {c.input_selector.format}')
+      raise ValueError(f'Unknown format: {dataset_format.name}')
 
-    format = format_cls()
-    if format != manifest.dataset_format:
-      raise ValueError(
-        f'Cluster input format {c.input_selector.format} does not match '
-        f'dataset format {manifest.dataset_format}'
-      )
-
-    cluster_input = format_cls.input_selectors[c.input_selector.selector]
+    cluster_input = format_cls.input_selectors[options.input_selector]
 
     task_name = (
-      f'[{namespace}/{dataset_name}] Clustering using input selector '
-      f'"{options.input_selector.selector}"'
+      f'[{namespace}/{dataset_name}] Clustering using input selector ' f'"{options.input_selector}"'
     )
+  else:
+    raise HTTPException(400, 'Either input or input_selector must be provided.')
 
   task_id = get_task_manager().task_id(name=task_name)
 

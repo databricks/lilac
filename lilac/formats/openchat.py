@@ -10,7 +10,7 @@ from ..schema import PATH_WILDCARD, PathTuple, Schema, schema
 class OpenChat(DatasetFormat):
   """OpenChat format."""
 
-  name: ClassVar[str] = 'openchat'
+  name: ClassVar[str] = 'OpenChat'
   data_schema: Schema = schema(
     {
       'items': [

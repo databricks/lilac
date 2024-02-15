@@ -17,6 +17,7 @@
 
   export let defaultPath: Path | undefined = undefined;
   export let path: Path | undefined = undefined;
+  export let disabled = false;
 
   const datasetViewStore = getDatasetViewContext();
 
@@ -83,7 +84,7 @@
     <div class="label text-s mb-2 font-medium text-gray-700">
       {labelText}
     </div>
-    <Select hideLabel={true} {helperText} bind:selected={selectedPath} required>
+    <Select hideLabel={true} {helperText} bind:selected={selectedPath} required {disabled}>
       {#if sourceFields?.length}
         <SelectItemGroup label="Source Fields">
           {#each sourceFields as field}

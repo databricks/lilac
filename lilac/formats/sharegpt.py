@@ -37,7 +37,7 @@ _GPT_SELECTOR = DatasetFormatInputSelector(
 class ShareGPT(DatasetFormat):
   """ShareGPT format."""
 
-  name: ClassVar[str] = 'sharegpt'
+  name: ClassVar[str] = 'ShareGPT'
   data_schema: Schema = schema(
     {
       'conversations': [
