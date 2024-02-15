@@ -513,7 +513,7 @@ def test_load_clusters_format_selector(
         dataset_namespace='namespace',
         dataset_name='test',
         input_selector=ClusterInputSelectorConfig(
-          format='sharegpt',
+          format='ShareGPT',
           selector='human',
         ),
         output_path=('cluster',),
