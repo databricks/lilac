@@ -333,3 +333,7 @@ function invalidateQueriesLabelEdit(
     ]);
   }
 }
+export const queryFormatSelectors = createApiQuery(
+  DatasetsService.getFormatSelectors,
+  DATASETS_TAG
+);

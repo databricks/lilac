@@ -59,5 +59,5 @@ class ShareGPT(DatasetFormat):
 
   input_selectors: ClassVar[dict[str, DatasetFormatInputSelector]] = {
     selector.name: selector
-    for selector in [_SYSTEM_SELECTOR, _HUMAN_SELECTOR, _GPT_SELECTOR, _TOOL_SELECTOR]
+    for selector in [_HUMAN_SELECTOR, _SYSTEM_SELECTOR, _GPT_SELECTOR, _TOOL_SELECTOR]
   }

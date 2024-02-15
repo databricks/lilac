@@ -534,3 +534,13 @@ def restore_rows(
     searches=options.searches,
     filters=sanitized_filters,
   )
+
+
+@router.get('/{namespace}/{dataset_name}/format_selectors')
+def get_format_selectors(namespace: str, dataset_name: str) -> list[str]:
+  """Get format selectors for the dataset if a format has been inferred."""
+  dataset = get_dataset(namespace, dataset_name)
+  manifest = dataset.manifest()
+  if manifest.dataset_format:
+    return list(manifest.dataset_format.input_selectors.keys())
+  return []

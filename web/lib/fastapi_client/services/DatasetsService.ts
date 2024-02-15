@@ -526,6 +526,31 @@ export class DatasetsService {
     }
 
     /**
+     * Get Format Selectors
+     * Get format selectors for the dataset if a format has been inferred.
+     * @param namespace
+     * @param datasetName
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static getFormatSelectors(
+        namespace: string,
+        datasetName: string,
+    ): CancelablePromise<Array<string>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/format_selectors',
+            path: {
+                'namespace': namespace,
+                'dataset_name': datasetName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
      * Compute Signal
      * Compute a signal for a dataset.
      * @param namespace
