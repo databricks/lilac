@@ -68,6 +68,14 @@
       formatSelectors = $formatSelectorsQuery.data;
     }
   }
+  $: {
+    if (selectedFormatSelector != null && selectedFormatSelector != 'none') {
+      // Choose a reasonable default output column.
+      outputColumn = `${selectedFormatSelector}__clusters`;
+    } else if (selectedFormatSelector === 'none') {
+      outputColumn = undefined;
+    }
+  }
 
   function close() {
     store.set(null);
