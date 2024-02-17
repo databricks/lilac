@@ -21,6 +21,7 @@
   import {
     clusterMutation,
     queryDatasetManifest,
+    queryDefaultClusterOutputPath,
     queryFormatSelectors
   } from '$lib/queries/datasetQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
@@ -54,6 +55,14 @@
     formatSelectors.length > 0 &&
     selectedFormatSelector != null &&
     selectedFormatSelector != 'none';
+  $: defaultClusterOutputPath = options?.input
+    ? queryDefaultClusterOutputPath({input_path: options.input})
+    : null;
+  $: {
+    if ($defaultClusterOutputPath?.data != null) {
+      outputColumn = serializePath($defaultClusterOutputPath.data);
+    }
+  }
   $: {
     if (options?.output_path != null) {
       outputColumn = serializePath(options.output_path);

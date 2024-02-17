@@ -7,6 +7,7 @@ from pydantic import BaseModel, SerializeAsAny, field_validator
 from pydantic import Field as PydanticField
 
 from .auth import UserInfo, get_session_user, get_user_access
+from .data.clustering import default_cluster_output_path
 from .dataset_format import DatasetFormatInputSelector, get_dataset_format_cls
 from .db_manager import get_dataset
 from .router_utils import RouteErrorHandler
@@ -148,6 +149,18 @@ def cluster(
 
   launch_task(task_id, run)
   return ClusterResponse(task_id=task_id)
+
+
+class DefaultClusterOutputPathOptions(BaseModel):
+  """Request body for the default cluster output path endpoint."""
+
+  input_path: Path
+
+
+@router.post('/{namespace}/{dataset_name}/default_cluster_output_path')
+def get_default_cluster_output_path(options: DefaultClusterOutputPathOptions) -> Path:
+  """Get format selectors for the dataset if a format has been inferred."""
+  return default_cluster_output_path(options.input_path)
 
 
 class DeleteSignalOptions(BaseModel):

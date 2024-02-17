@@ -104,17 +104,7 @@ def cluster_impl(
   if output_path:
     cluster_output_path = normalize_path(output_path)
   elif path:
-    # The sibling output path is the same as the input path, but with a different suffix.
-    index = 0
-    for i, path_part in enumerate(path):
-      if path_part == PATH_WILDCARD:
-        break
-      else:
-        index = i
-
-    parent = path[:index]
-    sibling = '_'.join([p for p in path[index:] if p != PATH_WILDCARD])
-    cluster_output_path = (*parent, f'{sibling}__{FIELD_SUFFIX}')
+    cluster_output_path = default_cluster_output_path(path)
   else:
     raise ValueError('input must be provided.')
 
@@ -416,3 +406,19 @@ def _hdbscan_cluster(
 
   for cluster_id, membership_prob in zip(labels, memberships):
     yield {CLUSTER_ID: int(cluster_id), CLUSTER_MEMBERSHIP_PROB: float(membership_prob)}
+
+
+def default_cluster_output_path(input_path: Path) -> Path:
+  """Default output path for clustering."""
+  input_path = normalize_path(input_path)
+  # The sibling output path is the same as the input path, but with a different suffix.
+  index = 0
+  for i, path_part in enumerate(input_path):
+    if path_part == PATH_WILDCARD:
+      break
+    else:
+      index = i
+
+  parent = input_path[:index]
+  sibling = '_'.join([p for p in input_path[index:] if p != PATH_WILDCARD])
+  return (*parent, f'{sibling}__{FIELD_SUFFIX}')

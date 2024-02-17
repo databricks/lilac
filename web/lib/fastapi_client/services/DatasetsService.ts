@@ -9,6 +9,7 @@ import type { ComputeSignalOptions } from '../models/ComputeSignalOptions';
 import type { ComputeSignalResponse } from '../models/ComputeSignalResponse';
 import type { DatasetInfo } from '../models/DatasetInfo';
 import type { DatasetSettings } from '../models/DatasetSettings';
+import type { DefaultClusterOutputPathOptions } from '../models/DefaultClusterOutputPathOptions';
 import type { DeleteRowsOptions } from '../models/DeleteRowsOptions';
 import type { DeleteSignalOptions } from '../models/DeleteSignalOptions';
 import type { DeleteSignalResponse } from '../models/DeleteSignalResponse';
@@ -600,6 +601,27 @@ export class DatasetsService {
                 'namespace': namespace,
                 'dataset_name': datasetName,
             },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+
+    /**
+     * Get Default Cluster Output Path
+     * Get format selectors for the dataset if a format has been inferred.
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static getDefaultClusterOutputPath(
+        requestBody: DefaultClusterOutputPathOptions,
+    ): CancelablePromise<(Array<string> | string)> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/datasets/{namespace}/{dataset_name}/default_cluster_output_path',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

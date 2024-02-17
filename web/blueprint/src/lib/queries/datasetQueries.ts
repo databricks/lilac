@@ -337,3 +337,8 @@ export const queryFormatSelectors = createApiQuery(
   DatasetsService.getFormatSelectors,
   DATASETS_TAG
 );
+
+export const queryDefaultClusterOutputPath = createApiQuery(
+  DatasetsService.getDefaultClusterOutputPath,
+  DATASETS_TAG
+);

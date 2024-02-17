@@ -37,6 +37,7 @@ export type { DatasetSettings } from './models/DatasetSettings';
 export type { DatasetUISettings } from './models/DatasetUISettings';
 export type { DatasetUserAccess } from './models/DatasetUserAccess';
 export type { DataType } from './models/DataType';
+export type { DefaultClusterOutputPathOptions } from './models/DefaultClusterOutputPathOptions';
 export type { DeleteRowsOptions } from './models/DeleteRowsOptions';
 export type { DeleteSignalOptions } from './models/DeleteSignalOptions';
 export type { DeleteSignalResponse } from './models/DeleteSignalResponse';
