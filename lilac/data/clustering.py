@@ -408,7 +408,7 @@ def _hdbscan_cluster(
     yield {CLUSTER_ID: int(cluster_id), CLUSTER_MEMBERSHIP_PROB: float(membership_prob)}
 
 
-def default_cluster_output_path(input_path: Path) -> Path:
+def default_cluster_output_path(input_path: Path) -> PathTuple:
   """Default output path for clustering."""
   input_path = normalize_path(input_path)
   # The sibling output path is the same as the input path, but with a different suffix.
