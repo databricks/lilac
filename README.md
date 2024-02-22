@@ -11,6 +11,7 @@
     <a href="https://discord.gg/jNzw9mC8pp">
         <img alt="Discord" src="https://img.shields.io/discord/1135996772280451153?label=Join%20Discord" />
     </a>
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2Flilacai%2Flilac?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Flilacai%2Flilac.svg?type=shield"/></a>
     <a href="https://github.com/lilacai/lilac/blob/main/LICENSE">
           <img alt="License Apache 2.0" src="https://img.shields.io/badge/License-Apache 2.0-blue.svg?style=flat&color=ed2dd0" height="20" width="auto">
     </a>
@@ -31,6 +32,9 @@ Lilac is used by companies like [Cohere](https://cohere.com/) and
 pre-training and fine-tuning data.
 
 Lilac runs **on-device** using open-source LLMs with a UI and Python API.
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Flilacai%2Flilac.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Flilacai%2Flilac?ref=badge_large)
 
 ## 🆒 New
 
