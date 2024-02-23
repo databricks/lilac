@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING, Any, ClassVar, Iterable, Iterator, Optional
 
 if TYPE_CHECKING:
-  from llama_index import Document
+  from llama_index.core.schema import Document
 
 from typing_extensions import override
 

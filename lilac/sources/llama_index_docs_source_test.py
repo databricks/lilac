@@ -1,6 +1,6 @@
 """Tests for the Llama Index Docs source."""
 
-from llama_index import Document
+from llama_index.core.schema import Document
 
 from ..schema import schema
 from ..source import SourceSchema
