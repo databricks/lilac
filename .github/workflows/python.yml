@@ -39,7 +39,7 @@ jobs:
         run: |
           ./scripts/setup_py.sh
           poetry run pip3 install --force-reinstall --pre torch==2.* --index-url https://download.pytorch.org/whl/nightly/cpu
-          poetry run pip3 install typing_extensions==4.7.1 --force-reinstall
+          poetry run pip3 install typing_extensions==4.9.1 --force-reinstall
 
       - name: Test CLI
         run: |
