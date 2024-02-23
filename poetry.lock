@@ -8167,4 +8167,4 @@ text-stats = ["textacy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "7f1eb3dc1ebdce2c1288e6b2a20fbeb44fadcd2aefac69316ab65d5f02b7f282"
+content-hash = "34d882bda1bfc8e0fb1c704fbae79ff5e16a0fbbbff70051d782e790d112c4cc"
