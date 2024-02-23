@@ -74,7 +74,7 @@ class GithubSource(Source):
   @override
   def setup(self) -> None:
     try:
-      from llama_index import download_loader
+      from llama_index.core.readers import download_loader
 
     except ImportError:
       raise ImportError(
