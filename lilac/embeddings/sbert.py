@@ -12,7 +12,7 @@ import gc
 from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
-from .embedding import chunked_compute_embedding
+from .embedding import chunked_compute_embedding, identity_chunker
 from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
 
 # The `all-mpnet-base-v2` model provides the best quality, while `all-MiniLM-L6-v2`` is 5 times
@@ -47,8 +47,9 @@ class SBERT(TextEmbeddingSignal):
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
     # The sentence transformer API actually does batching internally, so we pass
     # local_batch_size * 16 to allow the library to see all the chunks at once.
+    chunker = clustering_spacy_chunker if self._split else identity_chunker
     return chunked_compute_embedding(
-      self._model.encode, docs, self.local_batch_size * 16, chunker=clustering_spacy_chunker
+      self._model.encode, docs, self.local_batch_size * 16, chunker=chunker
     )
 
   @override

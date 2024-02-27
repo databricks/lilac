@@ -19,7 +19,7 @@ from ..schema import Item, chunk_embedding
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
-from .embedding import chunked_compute_embedding
+from .embedding import chunked_compute_embedding, identity_chunker
 from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE, setup_model_device
 
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
@@ -69,8 +69,9 @@ class GTESmall(TextEmbeddingSignal):
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
     # The sentence transformer API actually does batching internally, so we pass
     # local_batch_size * 16 to allow the library to see all the chunks at once.
+    chunker = clustering_spacy_chunker if self._split else identity_chunker
     return chunked_compute_embedding(
-      self._model.encode, docs, self.local_batch_size * 16, chunker=clustering_spacy_chunker
+      self._model.encode, docs, self.local_batch_size * 16, chunker=chunker
     )
 
   @override
@@ -78,8 +79,9 @@ class GTESmall(TextEmbeddingSignal):
     # Trim the docs to the max context size.
 
     trimmed_docs = (doc[:GTE_CONTEXT_SIZE] for doc in docs)
+    chunker = clustering_spacy_chunker if self._split else identity_chunker
     text_chunks: Iterator[tuple[int, TextChunk]] = (
-      (i, chunk) for i, doc in enumerate(trimmed_docs) for chunk in clustering_spacy_chunker(doc)
+      (i, chunk) for i, doc in enumerate(trimmed_docs) for chunk in chunker(doc)
     )
     text_chunks, text_chunks_2 = itertools.tee(text_chunks)
     chunk_texts = (chunk[0] for _, chunk in text_chunks)

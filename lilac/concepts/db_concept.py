@@ -473,6 +473,8 @@ class DiskConceptDB(ConceptDB):
     self, examples: List[Union[ExampleIn, Example]], type: ConceptType
   ) -> None:
     for example in examples:
+      if not example.text and not example.img:
+        raise ValueError('The example must have a text or image associated with it.')
       inferred_type = 'text' if example.text else 'unknown'
       if inferred_type != type:
         raise ValueError(f'Example type "{inferred_type}" does not match concept type "{type}".')

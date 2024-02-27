@@ -76,7 +76,7 @@
   };
   $: {
     pathToSpans = {};
-    spanPaths.forEach(sp => {
+    (spanPaths || []).forEach(sp => {
       if (row == null) return;
       let valueNodes = getValueNodes(row, sp);
       const isSpanNestedUnder = pathMatchesPrefix(sp, path);
@@ -97,7 +97,7 @@
   let spanPathToValueInfos: Record<string, SpanValueInfo[]> = {};
   $: {
     spanPathToValueInfos = {};
-    for (const spanValueInfo of spanValueInfos) {
+    for (const spanValueInfo of spanValueInfos || []) {
       const spanPathStr = serializePath(spanValueInfo.spanPath);
       if (spanPathToValueInfos[spanPathStr] == null) {
         spanPathToValueInfos[spanPathStr] = [];
@@ -206,7 +206,7 @@
   $: {
     if (model != null && editor != null) {
       let minPosition: Monaco.Position | null = null;
-      for (const renderSpan of monacoSpans) {
+      for (const renderSpan of monacoSpans || []) {
         const span = L.span(renderSpan.span)!;
         const position = model.getPositionAt(span.start);
 
@@ -381,7 +381,7 @@
 
   const conceptQuery = queryConcepts();
   $: concepts = $conceptQuery.data;
-  let conceptsInMenu: Set<string>;
+  let conceptsInMenu: Set<string> = new Set();
   let addToConceptItems: DropdownItem[] = [];
 
   $: {

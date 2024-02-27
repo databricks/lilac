@@ -10,7 +10,7 @@ from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
-from .embedding import chunked_compute_embedding
+from .embedding import chunked_compute_embedding, identity_chunker
 
 API_NUM_PARALLEL_REQUESTS = 10
 API_OPENAI_BATCH_SIZE = 128
@@ -92,6 +92,5 @@ class OpenAIEmbedding(TextEmbeddingSignal):
       )
       return [np.array(embedding.embedding, dtype=np.float32) for embedding in response.data]
 
-    return chunked_compute_embedding(
-      embed_fn, docs, self.local_batch_size, chunker=clustering_spacy_chunker
-    )
+    chunker = clustering_spacy_chunker if self._split else identity_chunker
+    return chunked_compute_embedding(embed_fn, docs, self.local_batch_size, chunker=chunker)

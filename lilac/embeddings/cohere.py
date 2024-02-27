@@ -9,7 +9,7 @@ from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
-from .embedding import chunked_compute_embedding
+from .embedding import chunked_compute_embedding, identity_chunker
 
 if TYPE_CHECKING:
   from cohere import Client
@@ -65,6 +65,5 @@ class Cohere(TextEmbeddingSignal):
         ).embeddings
       ]
 
-    return chunked_compute_embedding(
-      _embed_fn, docs, self.local_batch_size, chunker=clustering_spacy_chunker
-    )
+    chunker = clustering_spacy_chunker if self._split else identity_chunker
+    return chunked_compute_embedding(_embed_fn, docs, self.local_batch_size, chunker=chunker)

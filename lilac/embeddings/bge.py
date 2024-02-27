@@ -16,7 +16,7 @@ from ..schema import Item
 from ..signal import TextEmbeddingSignal
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
-from .embedding import chunked_compute_embedding
+from .embedding import chunked_compute_embedding, identity_chunker
 from .transformer_utils import SENTENCE_TRANSFORMER_BATCH_SIZE
 
 # See https://huggingface.co/spaces/mteb/leaderboard for leaderboard of models.
@@ -69,11 +69,12 @@ class BGEM3(TextEmbeddingSignal):
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
     # The sentence transformer API actually does batching internally, so we pass
     # local_batch_size * 16 to allow the library to see all the chunks at once.
+    chunker = clustering_spacy_chunker if self._split else identity_chunker
     return chunked_compute_embedding(
       lambda docs: self._model.encode(docs)['dense_vecs'],
       docs,
       self.local_batch_size * 16,
-      chunker=clustering_spacy_chunker,
+      chunker=chunker,
     )
 
   @override
