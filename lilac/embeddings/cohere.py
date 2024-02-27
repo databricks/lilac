@@ -1,5 +1,5 @@
 """Cohere embeddings."""
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Callable, ClassVar, Optional, cast
 
 import numpy as np
 from typing_extensions import override
@@ -7,6 +7,7 @@ from typing_extensions import override
 from ..env import env
 from ..schema import Item
 from ..signal import TextEmbeddingSignal
+from ..splitters.chunk_splitter import TextChunk
 from ..splitters.spacy_splitter import clustering_spacy_chunker
 from ..tasks import TaskExecutionType
 from .embedding import chunked_compute_embedding, identity_chunker
@@ -65,5 +66,8 @@ class Cohere(TextEmbeddingSignal):
         ).embeddings
       ]
 
-    chunker = clustering_spacy_chunker if self._split else identity_chunker
+    chunker = cast(
+      Callable[[str], list[TextChunk]],
+      clustering_spacy_chunker if self._split else identity_chunker,
+    )
     return chunked_compute_embedding(_embed_fn, docs, self.local_batch_size, chunker=chunker)

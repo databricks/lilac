@@ -1,8 +1,9 @@
 """Sentence-BERT embeddings. Open-source models, designed to run on device."""
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Callable, ClassVar, Optional, cast
 
 from typing_extensions import override
 
+from ..splitters.chunk_splitter import TextChunk
 from ..tasks import TaskExecutionType
 
 if TYPE_CHECKING:
@@ -47,7 +48,10 @@ class SBERT(TextEmbeddingSignal):
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
     # The sentence transformer API actually does batching internally, so we pass
     # local_batch_size * 16 to allow the library to see all the chunks at once.
-    chunker = clustering_spacy_chunker if self._split else identity_chunker
+    chunker = cast(
+      Callable[[str], list[TextChunk]],
+      clustering_spacy_chunker if self._split else identity_chunker,
+    )
     return chunked_compute_embedding(
       self._model.encode, docs, self.local_batch_size * 16, chunker=chunker
     )

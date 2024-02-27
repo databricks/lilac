@@ -1,7 +1,7 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
 import gc
 import itertools
-from typing import TYPE_CHECKING, ClassVar, Iterator, Optional
+from typing import TYPE_CHECKING, Callable, ClassVar, Iterator, Optional, cast
 
 import modal
 from typing_extensions import override
@@ -69,7 +69,10 @@ class GTESmall(TextEmbeddingSignal):
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
     # The sentence transformer API actually does batching internally, so we pass
     # local_batch_size * 16 to allow the library to see all the chunks at once.
-    chunker = clustering_spacy_chunker if self._split else identity_chunker
+    chunker = cast(
+      Callable[[str], list[TextChunk]],
+      clustering_spacy_chunker if self._split else identity_chunker,
+    )
     return chunked_compute_embedding(
       self._model.encode, docs, self.local_batch_size * 16, chunker=chunker
     )
@@ -79,7 +82,10 @@ class GTESmall(TextEmbeddingSignal):
     # Trim the docs to the max context size.
 
     trimmed_docs = (doc[:GTE_CONTEXT_SIZE] for doc in docs)
-    chunker = clustering_spacy_chunker if self._split else identity_chunker
+    chunker = cast(
+      Callable[[str], list[TextChunk]],
+      clustering_spacy_chunker if self._split else identity_chunker,
+    )
     text_chunks: Iterator[tuple[int, TextChunk]] = (
       (i, chunk) for i, doc in enumerate(trimmed_docs) for chunk in chunker(doc)
     )

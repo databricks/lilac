@@ -1,9 +1,11 @@
 """Gegeral Text Embeddings (GTE) model. Open-source model, designed to run on device."""
 import gc
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Callable, ClassVar, Optional, cast
 
 import numpy as np
 from typing_extensions import override
+
+from ..splitters.chunk_splitter import TextChunk
 
 if TYPE_CHECKING:
   from sentence_transformers import SentenceTransformer
@@ -76,7 +78,10 @@ class NomicEmbed15(TextEmbeddingSignal):
     # While we get docs in batches of 1024, the chunker expands that by a factor of 3-10.
     # The sentence transformer API actually does batching internally, so we pass
     # local_batch_size * 16 to allow the library to see all the chunks at once.
-    chunker = clustering_spacy_chunker if self._split else identity_chunker
+    chunker = cast(
+      Callable[[str], list[TextChunk]],
+      clustering_spacy_chunker if self._split else identity_chunker,
+    )
     return chunked_compute_embedding(_encode, docs, self.local_batch_size * 16, chunker=chunker)
 
   @override

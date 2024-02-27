@@ -66,8 +66,10 @@ class ExampleIn(BaseModel):
 
   @field_validator('text')
   @classmethod
-  def parse_text(cls, text: str) -> str:
+  def parse_text(cls, text: Optional[str]) -> Optional[str]:
     """Fixes surrogate errors in text: https://github.com/ijl/orjson/blob/master/README.md#str ."""
+    if not text:
+      return None
     return text.encode('utf-8', 'replace').decode('utf-8')
 
 
