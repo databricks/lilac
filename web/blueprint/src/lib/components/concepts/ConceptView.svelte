@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {goto} from '$app/navigation';
   import {
     editConceptMutation,
     queryConceptModels,
@@ -6,16 +7,21 @@
   } from '$lib/queries/conceptQueries';
   import {queryAuthInfo} from '$lib/queries/serverQueries';
   import {queryEmbeddings} from '$lib/queries/signalQueries';
+  import {createDatasetViewStore} from '$lib/stores/datasetViewStore';
+  import {getNavigationContext} from '$lib/stores/navigationStore';
+  import {datasetLink} from '$lib/utils';
   import type {Concept} from '$lilac';
-  import {ToastNotification} from 'carbon-components-svelte';
+  import {Button, ToastNotification} from 'carbon-components-svelte';
   import {View, ViewOff} from 'carbon-icons-svelte';
   import ThumbsDownFilled from 'carbon-icons-svelte/lib/ThumbsDownFilled.svelte';
   import ThumbsUpFilled from 'carbon-icons-svelte/lib/ThumbsUpFilled.svelte';
+  import {get} from 'svelte/store';
   import Expandable from '../Expandable.svelte';
   import {hoverTooltip} from '../common/HoverTooltip';
   import ConceptExampleList from './ConceptExampleList.svelte';
   import ConceptMetrics from './ConceptMetrics.svelte';
   import ConceptPreview from './ConceptPreview.svelte';
+  import DatasetFieldEmbeddingSelector from './DatasetFieldEmbeddingSelector.svelte';
   import ConceptLabeler from './labeler/ConceptLabeler.svelte';
 
   export let concept: Concept;
@@ -24,6 +30,7 @@
   $: userId = $authInfo.data?.user?.id;
 
   const concepts = queryConcepts();
+  const navState = getNavigationContext();
 
   $: conceptInfo = $concepts.data?.find(
     c => c.namespace === concept.namespace && c.name === concept.concept_name
@@ -37,6 +44,25 @@
   $: negativeExamples = Object.values(concept.data).filter(v => v.label == false);
 
   $: randomPositive = positiveExamples[Math.floor(Math.random() * positiveExamples.length)];
+
+  // Apply to a dataset.
+  let applyDataset: {namespace: string; name: string} | undefined | null = undefined;
+  let applyPath: string[] | undefined;
+  let applyEmbedding: string | undefined = undefined;
+  function openDataset() {
+    if (applyPath == null || applyEmbedding == null || applyDataset == null) {
+      return;
+    }
+    const store = createDatasetViewStore(applyDataset.namespace, applyDataset.name);
+    store.addSearch({
+      path: applyPath,
+      type: 'concept',
+      concept_namespace: concept.namespace,
+      concept_name: concept.concept_name,
+      embedding: applyEmbedding
+    });
+    goto(datasetLink(applyDataset.namespace, applyDataset.name, $navState, get(store)));
+  }
 
   function remove(id: string) {
     if (!concept.namespace || !concept.concept_name) return;
@@ -89,6 +115,33 @@
     </div>
   </Expandable>
 
+  <Expandable>
+    <div slot="above" class="text-md font-semibold">Apply to a dataset</div>
+    <div slot="below">
+      <DatasetFieldEmbeddingSelector
+        bind:dataset={applyDataset}
+        bind:path={applyPath}
+        bind:embedding={applyEmbedding}
+      />
+      {#if applyDataset != null && applyPath != null && applyEmbedding != null}
+        <div class="mt-4">
+          <Button iconDescription={'Open dataset and apply concept.'} on:click={() => openDataset()}
+            >Search by concept
+          </Button>
+        </div>
+      {:else}
+        <ToastNotification
+          hideCloseButton
+          kind="warning"
+          fullWidth
+          lowContrast
+          title="Choose a dataset with a computed embedding"
+          caption={'Dataset has no fields with computed embeddings. ' +
+            'Please compute an embedding index before you can search by concept.'}
+        />
+      {/if}
+    </div>
+  </Expandable>
   <Expandable>
     <div slot="above" class="text-md font-semibold">Collect labels</div>
     <div slot="below" class="w-full">
