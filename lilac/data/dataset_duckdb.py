@@ -3334,6 +3334,7 @@ class DatasetDuckDB(Dataset):
     use_garden: bool = False,
     task_id: Optional[TaskId] = None,
     category_fn: Optional[TopicFn] = cluster_titling.generate_category_openai,
+    skip_noisy_assignment: bool = False,
   ) -> None:
     topic_fn = topic_fn or cluster_titling.generate_title_openai
     category_fn = category_fn or cluster_titling.generate_category_openai
@@ -3347,6 +3348,7 @@ class DatasetDuckDB(Dataset):
       overwrite=overwrite,
       use_garden=use_garden,
       task_id=task_id,
+      skip_noisy_assignment=skip_noisy_assignment,
     )
 
   @override
@@ -3950,6 +3952,7 @@ def _auto_bins(stats: StatsResult) -> list[Bin]:
     return [('0', const_val, None)]
 
   is_integer = stats.value_samples and all(isinstance(val, int) for val in stats.value_samples)
+
   def _round(value: float) -> float:
     # Select a round ndigits as a function of the value range. We offset it by 2 to allow for some
     # decimal places as a function of the range.

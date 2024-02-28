@@ -62,9 +62,9 @@ def _mock_jina(mocker: MockerFixture) -> None:
       if 'summar' in doc or 'hello' in doc or 'greeting' in doc:
         result.append([chunk_embedding(0, len(doc), np.array([1, 1, 1]))])
       elif 'simpl' in doc or 'whats' in doc or 'time' in doc:
-        result.append([chunk_embedding(0, len(doc), np.array([0, 0, 0]))])
+        result.append([chunk_embedding(0, len(doc), np.array([-1, -1, -1]))])
       else:
-        result.append([chunk_embedding(0, len(doc), np.array([0.5, 0.5, 0.5]))])
+        result.append([chunk_embedding(0, len(doc), np.array([100, 0, -100]))])
     return result
 
   mocker.patch.object(JinaV2Small, 'compute', side_effect=compute)
@@ -715,6 +715,96 @@ def test_clusters_on_enriched_text(make_test_data: TestDataMaker, mocker: Mocker
         'category_id': 1,
         'category_membership_prob': 1.0,
         'category_title': 'MockCategory',
+      },
+    },
+  ]
+
+
+def test_clusters_skip_noisy_assignment(
+  make_test_data: TestDataMaker, mocker: MockerFixture
+) -> None:
+  texts: list[str] = [
+    'Can you summarize this article',
+    'Can you rewrite this in a simpler way',
+    'Can you provide a short summary of the following text',
+    'Can you simplify this text',
+    'Hello world',
+  ]
+  dataset = make_test_data([{'text': t} for t in texts])
+
+  def topic_fn(docs: list[tuple[str, float]]) -> str:
+    if 'summar' in docs[0][0]:
+      return 'summarization'
+    elif 'simpl' in docs[0][0]:
+      return 'simplification'
+    return 'other'
+
+  mocker.patch.object(clustering, 'MIN_CLUSTER_SIZE_CATEGORY', 2)
+  _mock_jina(mocker)
+
+  dataset.cluster(
+    'text',
+    min_cluster_size=2,
+    topic_fn=topic_fn,
+    category_fn=lambda _: 'MockCategory',
+    skip_noisy_assignment=True,
+  )
+
+  rows = list(dataset.select_rows(['text', 'text__cluster'], combine_columns=True))
+  assert rows == [
+    {
+      'text': 'Can you summarize this article',
+      'text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
+      },
+    },
+    {
+      'text': 'Can you rewrite this in a simpler way',
+      'text__cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
+      },
+    },
+    {
+      'text': 'Can you provide a short summary of the following text',
+      'text__cluster': {
+        'cluster_id': 0,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'summarization',
+        'category_id': 0,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
+      },
+    },
+    {
+      'text': 'Can you simplify this text',
+      'text__cluster': {
+        'cluster_id': 1,
+        'cluster_membership_prob': 1.0,
+        'cluster_title': 'simplification',
+        'category_id': 1,
+        'category_membership_prob': 1.0,
+        'category_title': 'MockCategory',
+      },
+    },
+    {
+      'text': 'Hello world',
+      'text__cluster': {
+        'cluster_id': -1,
+        'cluster_membership_prob': 0.0,
+        'cluster_title': None,
+        'category_id': -1,
+        'category_membership_prob': 0.0,
+        'category_title': None,
       },
     },
   ]
