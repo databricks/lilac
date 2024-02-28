@@ -14,6 +14,10 @@ export type ClusterOptions = {
      * Accelerate computation by running remotely on Lilac Garden.
      */
     use_garden?: boolean;
+    /**
+     * Skip assignment of noisy points to the nearest cluster to speed up clustering.
+     */
+    skip_noisy_assignment?: boolean;
     overwrite?: boolean;
 };
 

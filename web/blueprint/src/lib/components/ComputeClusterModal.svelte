@@ -7,6 +7,7 @@
     input: Path;
     output_path?: Path;
     use_garden?: boolean;
+    skip_noisy_assignment?: boolean;
     overwrite?: boolean;
   };
 
@@ -101,7 +102,8 @@
         use_garden: options.use_garden,
         output_path: outputColumn,
         input_selector: selectedFormatSelector,
-        overwrite: options.overwrite
+        overwrite: options.overwrite,
+        skip_noisy_assignment: options.skip_noisy_assignment
       }
     ]);
     close();
@@ -173,6 +175,20 @@
             </div>
           {/if}
         </div>
+
+        <div>
+          <div class="label mb-2 font-medium text-gray-700">Skip noisy assignment</div>
+          <div class="label text-sm text-gray-700">
+            Skip assignment of noisy points to the nearest cluster to speed up clustering.
+          </div>
+          <Toggle
+            labelA={'False'}
+            labelB={'True'}
+            bind:toggled={options.skip_noisy_assignment}
+            hideLabel
+          />
+        </div>
+
         <div>
           <div class="label text-s mb-2 font-medium text-gray-700">Overwrite</div>
           <Toggle labelA={'False'} labelB={'True'} bind:toggled={options.overwrite} hideLabel />

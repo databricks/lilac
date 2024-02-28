@@ -109,6 +109,13 @@ def cluster_impl(
   else:
     raise ValueError('input must be provided.')
 
+  if use_garden and skip_noisy_assignment:
+    raise ValueError(
+      '`use_garden` and `skip_noisy_assignment` cannot both be True. '
+      'The garden implementation is heavily optimizied and will always '
+      'assign noisy points to the nearest cluster.'
+    )
+
   # Extract the text from the input path into a temporary column.
   TEXT_COLUMN = 'text'
   temp_text_path = (*cluster_output_path, TEXT_COLUMN)

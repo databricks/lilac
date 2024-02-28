@@ -91,6 +91,11 @@ class ClusterOptions(BaseModel):
   use_garden: bool = PydanticField(
     default=False, description='Accelerate computation by running remotely on Lilac Garden.'
   )
+  skip_noisy_assignment: bool = PydanticField(
+    default=False,
+    description='Skip assignment of noisy points to the nearest cluster to speed up clustering.',
+  )
+
   overwrite: bool = False
 
 
@@ -145,6 +150,7 @@ def cluster(
       use_garden=options.use_garden,
       overwrite=options.overwrite,
       task_id=task_id,
+      skip_noisy_assignment=options.skip_noisy_assignment,
     )
 
   launch_task(task_id, run)
