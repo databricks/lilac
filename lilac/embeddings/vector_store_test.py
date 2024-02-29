@@ -22,25 +22,32 @@ class VectorStoreImplSuite:
     store.add([('a',), ('b',)], np.array([[1, 2], [3, 4]]))
     store.add([('c',)], np.array([[5, 6]]))
 
-    np.testing.assert_array_equal(
-      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]])
-    )
+    vectors = list(store.get([('a',), ('b',), ('c',)]))
+    assert len(vectors) == 3
+    np.testing.assert_array_equal(vectors[0], [1, 2])
+    np.testing.assert_array_equal(vectors[1], [3, 4])
+    np.testing.assert_array_equal(vectors[2], [5, 6])
 
   def test_get_all(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
 
     store.add([('a',), ('b',), ('c',)], np.array([[1, 2], [3, 4], [5, 6]]))
 
-    np.testing.assert_array_equal(
-      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]])
-    )
+    vectors = list(store.get([('a',), ('b',), ('c',)]))
+    assert len(vectors) == 3
+    np.testing.assert_array_equal(vectors[0], [1, 2])
+    np.testing.assert_array_equal(vectors[1], [3, 4])
+    np.testing.assert_array_equal(vectors[2], [5, 6])
 
   def test_get_subset(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()
 
     store.add([('a',), ('b',), ('c',)], np.array([[1, 2], [3, 4], [5, 6]]))
 
-    np.testing.assert_array_equal(store.get([('b',), ('c',)]), np.array([[3, 4], [5, 6]]))
+    vectors = list(store.get([('b',), ('c',)]))
+    assert len(vectors) == 2
+    np.testing.assert_array_equal(vectors[0], [3, 4])
+    np.testing.assert_array_equal(vectors[1], [5, 6])
 
   def test_save_load(self, store_cls: Type[VectorStore], tmp_path: pathlib.Path) -> None:
     store = store_cls()
@@ -54,9 +61,11 @@ class VectorStoreImplSuite:
     store = store_cls()
     store.load((str(tmp_path)))
 
-    np.testing.assert_array_equal(
-      store.get([('a',), ('b',), ('c',)]), np.array([[1, 2], [3, 4], [5, 6]])
-    )
+    vectors = list(store.get([('a',), ('b',), ('c',)]))
+    assert len(vectors) == 3
+    np.testing.assert_array_equal(vectors[0], [1, 2])
+    np.testing.assert_array_equal(vectors[1], [3, 4])
+    np.testing.assert_array_equal(vectors[2], [5, 6])
 
   def test_topk(self, store_cls: Type[VectorStore]) -> None:
     store = store_cls()

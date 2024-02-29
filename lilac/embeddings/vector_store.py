@@ -159,13 +159,10 @@ class VectorDBIndex:
       all_spans.append(spans)
       all_vector_keys.append([(*path_key, i) for i in range(len(spans))])
 
-    offset = 0
     flat_vector_keys = [key for vector_keys in all_vector_keys for key in (vector_keys or [])]
-    all_vectors = self._vector_store.get(flat_vector_keys)
+    all_vectors = iter(self._vector_store.get(flat_vector_keys))
     for spans in all_spans:
-      vectors = all_vectors[offset : offset + len(spans)]
-      yield [{'span': span, 'vector': vector} for span, vector in zip(spans, vectors)]
-      offset += len(spans)
+      yield [{'span': span, 'vector': next(all_vectors)} for span in spans]
 
   def topk(
     self, query: np.ndarray, k: int, rowids: Optional[Iterable[str]] = None

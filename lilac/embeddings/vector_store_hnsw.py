@@ -3,7 +3,7 @@
 import multiprocessing
 import os
 import threading
-from typing import Iterable, Optional, Set, cast
+from typing import Iterable, Iterator, Optional, Set, cast
 
 import hnswlib
 import numpy as np
@@ -11,7 +11,7 @@ import pandas as pd
 from typing_extensions import override
 
 from ..schema import VectorKey
-from ..utils import DebugTimer
+from ..utils import DebugTimer, chunks
 from .vector_store import VectorStore
 
 _HNSW_SUFFIX = '.hnswlib.bin'
@@ -22,6 +22,8 @@ QUERY_EF = 50
 CONSTRUCTION_EF = 100
 M = 16
 SPACE = 'ip'
+# The number of items to retrieve at a time given a query of keys.
+HNSW_RETRIEVAL_BATCH_SIZE = 1024
 
 
 class HNSWVectorStore(VectorStore):
@@ -105,15 +107,23 @@ class HNSWVectorStore(VectorStore):
         self._index.set_ef(min(QUERY_EF, self.size()))
 
   @override
-  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> Iterator[np.ndarray]:
     assert (
       self._index is not None and self._key_to_label is not None
     ), 'No embeddings exist in this store.'
     with self._lock:
       if not keys:
-        return np.array(self._index.get_items(self._key_to_label.values), dtype=np.float32)
-      locs = self._key_to_label.loc[cast(list[str], keys)].values
-      return np.array(self._index.get_items(locs), dtype=np.float32)
+        locs = self._key_to_label.values
+      else:
+        locs = self._key_to_label.loc[cast(list[str], keys)].values
+
+      def _get_nparrays(index, locs) -> list[np.ndarray]:
+        items = np.array(index.get_items(locs), dtype=np.float32)
+        return [np.squeeze(vector) for vector in np.split(items, items.shape[0])]
+
+      for loc_chunk in chunks(locs, HNSW_RETRIEVAL_BATCH_SIZE):
+        item_chunk = _get_nparrays(self._index, loc_chunk)
+        yield from item_chunk
 
   @override
   def topk(

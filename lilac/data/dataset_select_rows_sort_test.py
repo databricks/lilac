@@ -473,7 +473,9 @@ class TopKSignal(VectorSignal):
     self, all_vector_spans: Iterable[list[SpanVector]]
   ) -> Iterator[Optional[Item]]:
     for vector_spans in all_vector_spans:
-      embeddings = np.array([vector_span['vector'] for vector_span in vector_spans])
+      embeddings = np.array([vector_span['vector'] for vector_span in vector_spans]).reshape(
+        len(vector_spans), -1
+      )
       scores = embeddings.dot(self._query).reshape(-1)
       res: Item = []
       for vector_span, score in zip(vector_spans, scores):
