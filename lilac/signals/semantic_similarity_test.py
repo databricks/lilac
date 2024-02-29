@@ -49,9 +49,11 @@ class TestVectorStore(VectorStore):
     pass
 
   @override
-  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> Iterator[np.ndarray]:
     keys = keys or []
-    return np.array([EMBEDDINGS[tuple(path_key)][cast(int, index)] for *path_key, index in keys])
+    yield from [
+      np.array(EMBEDDINGS[tuple(path_key)][cast(int, index)]) for *path_key, index in keys
+    ]
 
   @override
   def delete(self, base_path: str) -> None:

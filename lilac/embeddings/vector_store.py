@@ -3,7 +3,7 @@
 import abc
 import os
 import pickle
-from typing import Iterable, Optional, Sequence, Type, cast
+from typing import Iterable, Iterator, Optional, Sequence, Type, cast
 
 import numpy as np
 
@@ -50,7 +50,7 @@ class VectorStore(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> Iterator[np.ndarray]:
     """Return the embeddings for given keys.
 
     Args:
@@ -160,7 +160,7 @@ class VectorDBIndex:
       all_vector_keys.append([(*path_key, i) for i in range(len(spans))])
 
     flat_vector_keys = [key for vector_keys in all_vector_keys for key in (vector_keys or [])]
-    all_vectors = iter(self._vector_store.get(flat_vector_keys))
+    all_vectors = self._vector_store.get(flat_vector_keys)
     for spans in all_spans:
       yield [{'span': span, 'vector': next(all_vectors)} for span in spans]
 
