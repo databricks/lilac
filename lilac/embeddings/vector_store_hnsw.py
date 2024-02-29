@@ -117,13 +117,10 @@ class HNSWVectorStore(VectorStore):
       else:
         locs = self._key_to_label.loc[cast(list[str], keys)].values
 
-      def _get_nparrays(index, locs) -> list[np.ndarray]:
-        items = np.array(index.get_items(locs), dtype=np.float32)
-        return [np.squeeze(vector) for vector in np.split(items, items.shape[0])]
-
       for loc_chunk in chunks(locs, HNSW_RETRIEVAL_BATCH_SIZE):
-        item_chunk = _get_nparrays(self._index, loc_chunk)
-        yield from item_chunk
+        chunk_items = np.array(self._index.get_items(loc_chunk), dtype=np.float32)
+        for vector in np.split(chunk_items, chunk_items.shape[0]):
+          yield np.squeeze(vector)
 
   @override
   def topk(

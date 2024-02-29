@@ -1,7 +1,7 @@
 """NumpyVectorStore class for storing vectors in numpy arrays."""
 
 import os
-from typing import Iterable, Optional, cast
+from typing import Iterable, Iterator, Optional, cast
 
 import numpy as np
 import pandas as pd
@@ -73,14 +73,18 @@ class NumpyVectorStore(VectorStore):
       self._key_to_index = new_key_to_label
 
   @override
-  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> np.ndarray:
+  def get(self, keys: Optional[Iterable[VectorKey]] = None) -> Iterator[np.ndarray]:
     assert (
       self._embeddings is not None and self._key_to_index is not None
     ), 'The vector store has no embeddings. Call load() or add() first.'
     if not keys:
-      return self._embeddings
-    locs = self._key_to_index.loc[cast(list[str], keys)]
-    return self._embeddings.take(locs, axis=0)
+      embeddings = self._embeddings
+    else:
+      locs = self._key_to_index.loc[cast(list[str], keys)]
+      embeddings = self._embeddings.take(locs, axis=0)
+
+    for vector in np.split(embeddings, embeddings.shape[0]):
+      yield np.squeeze(vector)
 
   @override
   def topk(
