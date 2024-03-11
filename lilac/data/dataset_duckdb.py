@@ -1839,7 +1839,7 @@ class DatasetDuckDB(Dataset):
         sample_where_clause = ''
       else:
         sample_where_clause = (
-          f'WHERE val != 0 {'AND NOT isnan(val)' if is_float(leaf.dtype) else ''}'
+          f"WHERE val != 0 {'AND NOT isnan(val)' if is_float(leaf.dtype) else ''}"
         )
       sample_query = f"""
         SELECT COALESCE(ARRAY_AGG(val), [])
