@@ -1787,7 +1787,7 @@ class DatasetDuckDB(Dataset):
     avg_text_length: Optional[int] = None
     if leaf.dtype in (STRING, STRING_SPAN):
       avg_length_query = f"""
-        SELECT avg(length(val))
+        SELECT avg(length(CAST(val AS VARCHAR)))
         FROM (SELECT {inner_select} AS val FROM t {where_clause})
         USING SAMPLE {SAMPLE_AVG_TEXT_LENGTH};
       """
@@ -1835,10 +1835,16 @@ class DatasetDuckDB(Dataset):
       """
       row = self._query(min_max_query)[0]
       result.min_val, result.max_val = row
+      if is_temporal(leaf.dtype):
+        sample_where_clause = ''
+      else:
+        sample_where_clause = (
+          f'WHERE val != 0 {'AND NOT isnan(val)' if is_float(leaf.dtype) else ''}'
+        )
       sample_query = f"""
         SELECT COALESCE(ARRAY_AGG(val), [])
         FROM (SELECT {inner_select} as val FROM t {where_clause})
-        WHERE val != 0 {'AND NOT isnan(val)' if is_float(leaf.dtype) else ''}
+        {sample_where_clause}
         USING SAMPLE 100;
       """
       result.value_samples = list(self._query(sample_query)[0][0])
@@ -1894,9 +1900,9 @@ class DatasetDuckDB(Dataset):
       sql_bounds = []
       for label, start, end in named_bins:
         if start is None:
-          start = cast(float, "'-Infinity'")
+          start = cast(float, "'-Infinity'::FLOAT")
         if end is None:
-          end = cast(float, "'Infinity'")
+          end = cast(float, "'Infinity'::FLOAT")
         sql_bounds.append(f"('{label}', {start}, {end})")
 
       bin_index_col = 'col0'

@@ -60,10 +60,7 @@ class CSVSource(Source):
 
     # NOTE: We use duckdb here to increase parallelism for multiple files.
     # NOTE: We turn off the parallel reader because of https://github.com/lilacai/lilac/issues/373.
-    self._con.execute(
-      f"""
-      CREATE SEQUENCE serial START 1;
-      CREATE VIEW t as (SELECT nextval('serial') as "{LINE_NUMBER_COLUMN}", * FROM read_csv_auto(
+    csv_source_sql = f"""read_csv_auto(
         {duckdb_paths},
         SAMPLE_SIZE=500000,
         HEADER={self.header},
@@ -71,17 +68,23 @@ class CSVSource(Source):
         DELIM='{self.delim or ','}',
         IGNORE_ERRORS=true,
         PARALLEL=false
-    ));
-    """
-    )
-
-    res = self._con.execute('SELECT COUNT(*) FROM t').fetchone()
+    )"""
+    res = self._con.execute(f'SELECT COUNT(*) FROM {csv_source_sql}').fetchone()
     num_items = cast(tuple[int], res)[0]
 
-    self._reader = self._con.execute('SELECT * from t').fetch_record_batch(rows_per_batch=10_000)
+    self._reader = self._con.execute(
+      f'SELECT 1::BIGINT as "{LINE_NUMBER_COLUMN}", * from {csv_source_sql}'
+    ).fetch_record_batch(rows_per_batch=10_000)
     # Create the source schema in prepare to share it between process and source_schema.
     schema = arrow_schema_to_schema(self._reader.schema)
     self._source_schema = SourceSchema(fields=schema.fields, num_items=num_items)
+    self._con.execute(
+      f"""
+      CREATE SEQUENCE serial START 1;
+      CREATE VIEW t as (
+        SELECT nextval('serial') as "{LINE_NUMBER_COLUMN}", * FROM {csv_source_sql});
+    """
+    )
 
   @override
   def source_schema(self) -> SourceSchema:

@@ -177,8 +177,8 @@ def test_select_star(make_test_data: TestDataMaker) -> None:
   # Select * plus an inner `info.age` column.
   result = dataset.select_rows(['*', ('info', 'age')])
   assert list(result) == [
-    {'info.age': 40, 'info.age_2': 40, 'name': 'A'},
-    {'info.age': 42, 'info.age_2': 42, 'name': 'B'},
+    {'info.age': 40, 'info.age_1': 40, 'name': 'A'},
+    {'info.age': 42, 'info.age_1': 42, 'name': 'B'},
   ]
 
 
